@@ -14,7 +14,7 @@ import type {
   ConversationRef,
   HandshakeAuth,
   HandshakeErrorCode,
-  MessageCreatedEvent,
+  StoredEvent,
 } from 'chat-events';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -22,7 +22,13 @@ import { Env } from '../config/env.schema';
 import { readSessionCookie } from '../sessions/session-cookie';
 import { SessionsService } from '../sessions/sessions.service';
 import { UnauthenticatedError } from '../sessions/unauthenticated.error';
-import { conversationRoom, personRoom, sessionRoom } from './realtime-socket';
+import {
+  conversationRoom,
+  emitStoredEvent,
+  isStoredEventName,
+  personRoom,
+  sessionRoom,
+} from './realtime-socket';
 import { EventsStore } from './events.store';
 import { SESSION_RECHECK_INTERVAL_MS } from './realtime-values';
 import type { RealtimeServer, RealtimeSocket } from './realtime-socket';
@@ -32,11 +38,6 @@ const UNAUTHENTICATED: HandshakeErrorCode = 'unauthenticated';
 // WebSocket da API do chat (spec da F03, "Conexão" e "Sessão no WebSocket"). O handshake verifica a
 // Sessão pelo mesmo authenticate do guard REST e põe o socket nas salas da Pessoa e da Sessão.
 
-// Os eventos guardados por Pessoa que a reconexão reenvia (StoredEventPayloads, em chat-events).
-const STORED_EVENT_NAMES = new Set<string>([
-  'message.created',
-  'conversation.member_added',
-]);
 @WebSocketGateway()
 export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnModuleDestroy
@@ -106,9 +107,9 @@ export class RealtimeGateway
       // Os eventos guardados voltam na ordem do stream; um nome desconhecido, de uma versão
       // anterior ou posterior, fica de fora.
       for (const event of result.events) {
-        if (!STORED_EVENT_NAMES.has(event.name)) continue;
-        socket.emit(event.name as 'message.created', {
-          ...(event.payload as MessageCreatedEvent),
+        if (!isStoredEventName(event.name)) continue;
+        emitStoredEvent(socket, event.name, {
+          ...(event.payload as StoredEvent),
           event_id: event.cursor,
         });
       }

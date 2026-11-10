@@ -69,6 +69,18 @@ export interface StoredEventPayloads {
   "conversation.member_added": Omit<ConversationMemberAddedEvent, "event_id">;
 }
 
+export type StoredEventName = keyof StoredEventPayloads;
+
+/** Um evento guardado como chega à aba: a carga e o cursor dela, ausente com o Redis fora. */
+export type StoredEvent<N extends StoredEventName = StoredEventName> = StoredEventPayloads[N] & {
+  event_id?: string;
+};
+
+/** Os eventos guardados emitidos para a aba, um por entrada de StoredEventPayloads. */
+export type StoredServerToClientEvents = {
+  [N in StoredEventName]: (event: StoredEvent<N>) => void;
+};
+
 export interface SyncEvent {
   /** Cursor atual da Pessoa, que a aba manda no próximo handshake. */
   cursor: string | null;
@@ -95,9 +107,7 @@ export interface HandshakeAuth {
 }
 
 /** Eventos que a API emite para a aba. */
-export interface ServerToClientEvents {
-  "message.created": (event: MessageCreatedEvent) => void;
-  "conversation.member_added": (event: ConversationMemberAddedEvent) => void;
+export interface ServerToClientEvents extends StoredServerToClientEvents {
   sync: (event: SyncEvent) => void;
   "session.ended": () => void;
   "typing.start": (event: TypingEvent) => void;
