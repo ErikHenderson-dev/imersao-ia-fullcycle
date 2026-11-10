@@ -6,8 +6,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ConversationResponse,
   toConversationResponse,
@@ -28,18 +30,29 @@ import { SearchPeopleQuery } from './search-people.query';
 export class MembershipsController {
   constructor(private readonly memberships: MembershipsService) {}
 
+  // Cria um Canal (F04) ou abre a Conversa direta com uma Pessoa (F05): 201 quando a Conversa
+  // nasceu agora, 200 quando a Conversa direta do par já existia.
   @Post('conversations')
   async create(
     @CurrentPerson() person: Person,
     @Body() body: CreateConversationDto,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<{ conversation: ConversationResponse }> {
+    if (body.kind === 'direct') {
+      const opened = await this.memberships.openDirectConversation(
+        person.id,
+        body.person_id!,
+      );
+      if (!opened.created) response.status(200);
+      return { conversation: toConversationResponse(opened, person.id) };
+    }
     const created = await this.memberships.createChannel(person.id, {
       kind: body.kind,
-      name: body.name,
+      name: body.name!,
       topic: body.topic,
-      clientId: body.client_id,
+      clientId: body.client_id!,
     });
-    return { conversation: toConversationResponse(created) };
+    return { conversation: toConversationResponse(created, person.id) };
   }
 
   @Post('conversations/:id/members')

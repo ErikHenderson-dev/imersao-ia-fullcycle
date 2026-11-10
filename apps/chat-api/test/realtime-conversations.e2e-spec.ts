@@ -127,6 +127,46 @@ describe('Canais novos em tempo real', () => {
     expect(eventsOf(otherEvents, conversation.id)).toHaveLength(0);
   });
 
+  it('a abertura da Conversa direta chega às abas de quem abriu e não à outra Pessoa', async () => {
+    const opener = await authRoutes.loggedIn(app);
+    const other = await authRoutes.loggedIn(app);
+    const openerTab = await listening(opener.token);
+    const otherEvents = await listening(other.token);
+
+    const response = await conversationRoutes.openDirect(
+      app,
+      opener.cookie,
+      other.person.id,
+    );
+
+    const { conversation } = response.body as {
+      conversation: ConversationBody;
+    };
+    const event = await waitForConversation(openerTab, conversation.id);
+    expect(event.person_ids).toEqual([opener.person.id]);
+    expect(event.conversation.counterpart?.id).toBe(other.person.id);
+    await settle();
+    expect(eventsOf(otherEvents, conversation.id)).toHaveLength(0);
+  });
+
+  it('abrir de novo a Conversa direta não publica', async () => {
+    const opener = await authRoutes.loggedIn(app);
+    const other = await authRoutes.loggedIn(app);
+    const first = await conversationRoutes.openDirect(
+      app,
+      opener.cookie,
+      other.person.id,
+    );
+    const { id } = (first.body as { conversation: ConversationBody })
+      .conversation;
+    const events = await listening(opener.token);
+
+    await conversationRoutes.openDirect(app, opener.cookie, other.person.id);
+
+    await settle();
+    expect(eventsOf(events, id)).toHaveLength(0);
+  });
+
   const privateChannelOf = (cookie: string) =>
     conversationRoutes.privateChannelOf(app, cookie);
 

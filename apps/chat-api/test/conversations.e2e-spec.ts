@@ -111,6 +111,7 @@ describe('conversas', () => {
           name: channel.name,
           topic: 'Conversas do time',
           member_count: expect.any(Number) as number,
+          counterpart: null,
         },
       });
     });

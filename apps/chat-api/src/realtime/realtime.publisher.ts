@@ -32,14 +32,16 @@ export class RealtimePublisher {
   // F04, "Tempo real"). Quem entrou agora recebe person_ids só com ela mesma; quem já era Membro
   // recebe as Pessoas adicionadas. Assim o Canal público novo não leva o workspace inteiro em cada
   // um dos eventos guardados.
+  // A Conversa vai montada para cada Membro: a outra Pessoa da Conversa direta depende de quem
+  // recebe (spec da F05, "Tempo real").
   memberAdded(
     memberIds: string[],
-    conversation: ConversationPayload,
+    conversationFor: (personId: string) => ConversationPayload,
     addedIds: string[],
   ): Promise<void> {
     const added = new Set(addedIds);
     return this.publish('conversation.member_added', memberIds, (personId) => ({
-      conversation,
+      conversation: conversationFor(personId),
       person_ids: added.has(personId) ? [personId] : addedIds,
     }));
   }
