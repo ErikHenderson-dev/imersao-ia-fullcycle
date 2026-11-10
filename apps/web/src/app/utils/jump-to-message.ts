@@ -28,6 +28,7 @@ export function openingTarget(
   messageParam: string | null,
   dividerAfter: { lastReadId: string | null } | null,
 ): JumpTarget | null {
-  if (messageParam && isUuid(messageParam)) return { kind: "message", id: messageParam };
+  // Os ids da API vêm em minúsculas, e a ida os compara como texto.
+  if (messageParam && isUuid(messageParam)) return { kind: "message", id: messageParam.toLowerCase() };
   return dividerAfter ? { kind: "unread", lastReadId: dividerAfter.lastReadId } : null;
 }

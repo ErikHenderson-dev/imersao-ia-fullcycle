@@ -1,7 +1,8 @@
 // spec: e2e/plano-de-testes-f08.md
 // seed: e2e/seed.spec.ts
 import { expect, logIn, test } from "../fixtures";
-import { distanceToEnd, messageItem, readyHistory } from "../support/conversation-page";
+import type { Page } from "@playwright/test";
+import { distanceToEnd, messageList, readyHistory } from "../support/conversation-page";
 import {
   insertChannel,
   insertHistory,
@@ -11,6 +12,13 @@ import {
   softDeleteMessage,
 } from "../support/database";
 import { sidebarLink, unreadRowName } from "../support/sidebar";
+
+// A Mensagem pelo texto exato: "Mensagem 10" não casa com "Mensagem 100".
+function messageItem(page: Page, channelName: string, body: string) {
+  return messageList(page, channelName)
+    .getByRole("listitem")
+    .filter({ has: page.getByText(body, { exact: true }) });
+}
 
 test.describe("Abrir a Conversa na Mensagem", () => {
   test("vai até a Mensagem fora da primeira página e a destaca", async ({ loggedInPage: page, person, otherPerson }) => {
@@ -35,7 +43,6 @@ test.describe("Abrir a Conversa na Mensagem", () => {
 
     await page.goto(`/conversas/${canal.id}?mensagem=${historico[9].id}`);
 
-    // O destaque só existe na Mensagem pedida ("Mensagem 10" também casa com 100 a 109).
     await expect(messageItem(page, canal.name, "Mensagem 10").locator("[data-highlighted]")).toBeInViewport({
       timeout: 15_000,
     });

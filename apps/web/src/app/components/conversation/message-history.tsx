@@ -19,6 +19,7 @@ import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
 import { JUMP_PAGE_SIZE, type JumpTarget, jumpStep, openingTarget } from "@/app/utils/jump-to-message";
 import { firstUnreadId, needsOlderForUnread } from "@/app/utils/unread-opening";
+import { isUuid } from "@/app/utils/uuid";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
 import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
@@ -315,6 +316,8 @@ function History({
     if (saved.some((message) => message.id === messageId)) {
       isJumping.current = false;
       setJumpTarget(null);
+      // Uma ida pedida pela URL acaba aqui também: a URL perde o parâmetro.
+      dropMessageParam();
       return showMessage(messageId);
     }
     isJumping.current = true;
@@ -347,7 +350,9 @@ function History({
   const step = stepFor(jumpTarget);
   // Enquanto as anteriores carregam até a primeira Não lida, o divisor não aparece: ficaria acima da
   // Mensagem mais antiga carregada, que ainda não é a primeira Não lida.
-  const shownUnread = jumpTarget?.kind === "unread" && step === "continue" ? null : firstUnread;
+  // Vale também quando a ida vai até a Mensagem pedida pela URL e não passa pela Última leitura.
+  const shownUnread =
+    dividerAfter && needsOlderForUnread(saved, dividerAfter.lastReadId, hasOlder) ? null : firstUnread;
   const advanceJump = useEffectEvent(() => {
     if (!jumpTarget || !step) return;
     const isUnread = jumpTarget.kind === "unread";
@@ -380,18 +385,19 @@ function History({
   // Um `?mensagem=` novo com a Conversa já aberta (um Alerta da mesma Conversa) começa outra ida,
   // como uma Citação nova; o da abertura já é o alvo inicial.
   const openedWith = useRef(messageParam);
-  const goToRequested = useEffectEvent((messageId: string) => {
-    goToMessage(messageId);
-    // Já carregada, a Mensagem aparece na hora, sem ida: a URL perde o parâmetro aqui.
-    if (saved.some((message) => message.id === messageId)) dropMessageParam();
-  });
+  const goToRequested = useEffectEvent((messageId: string) => goToMessage(messageId));
   useEffect(() => {
-    if (!messageParam || messageParam === openedWith.current) return;
+    // Sem o parâmetro (a ida o tirou), pedir de novo a mesma Mensagem volta a ir até ela.
+    if (!messageParam) {
+      openedWith.current = null;
+      return;
+    }
+    // Um valor que não é um id não leva a lugar nenhum e sai da URL.
+    if (!isUuid(messageParam)) return dropMessageParam();
+    if (messageParam === openedWith.current) return;
     openedWith.current = messageParam;
-    const target = openingTarget(messageParam, null);
-    if (target?.kind !== "message") return;
     // No quadro seguinte, como os passos da ida.
-    const frame = requestAnimationFrame(() => goToRequested(target.id));
+    const frame = requestAnimationFrame(() => goToRequested(messageParam.toLowerCase()));
     return () => cancelAnimationFrame(frame);
   }, [messageParam]);
 

@@ -31,5 +31,7 @@ describe("openingTarget", () => {
     expect(openingTarget(null, null)).toBeNull();
     // Um parâmetro que não é um id não leva a lugar nenhum.
     expect(openingTarget("abc", null)).toBeNull();
+    // Em minúsculas, como os ids da API.
+    expect(openingTarget(id.toUpperCase(), null)).toEqual({ kind: "message", id });
   });
 });
