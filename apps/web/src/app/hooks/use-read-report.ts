@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
 import type { MarkReadResult, Unread } from "@/app/services/chat-api";
 import { hasUnreadToReport, readReportDelay } from "@/app/utils/read-report";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -51,7 +51,7 @@ export function useReadReport({
   newestSaved,
   initialLastReadId,
   isReady,
-}: ReadReport): void {
+}: ReadReport): () => string | null {
   const isFocused = useTabFocus();
   const newestSavedId = newestSaved?.id;
   // A própria Mensagem já avançou a Última leitura no envio (spec da F07): não há o que informar.
@@ -103,4 +103,7 @@ export function useReadReport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  // A Última leitura que o aviso conhece agora: a referência do divisor quando o foco volta.
+  return useCallback(() => knownLastRead.current, []);
 }

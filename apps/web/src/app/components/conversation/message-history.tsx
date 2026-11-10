@@ -17,6 +17,8 @@ import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
 import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
+import { firstUnreadId, needsOlderForUnread } from "@/app/utils/unread-opening";
+import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
 import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
@@ -123,7 +125,7 @@ function History({
   });
   const typing = useTypingAnnouncer(conversation.id);
   const newestOfSaved = saved.at(-1);
-  useReadReport({
+  const knownLastRead = useReadReport({
     conversationId: conversation.id,
     personId: currentPerson.id,
     newestSaved: newestOfSaved && { id: newestOfSaved.id, authorId: newestOfSaved.author.id },
@@ -176,6 +178,37 @@ function History({
   // Se a ida já pediu uma página: só a falha dessa carga encerra a ida, e não uma falha de antes.
   const jumpRequestedLoad = useRef(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  // O divisor de novas Mensagens (spec da F07, "Abrir na primeira Não lida e o divisor"): a Última
+  // leitura guardada ao abrir, só com Não lidas naquele momento, é a referência dele, e ele não se
+  // move enquanto a Pessoa fica na Conversa. Quando o foco da aba volta e chegaram Mensagens sem
+  // foco, a referência passa a ser a Última leitura que o aviso de leitura conhecia.
+  const [dividerAfter, setDividerAfter] = useState<{ lastReadId: string | null } | null>(() =>
+    conversation.unreadCount > 0 ? { lastReadId: conversation.lastReadMessageId } : null,
+  );
+  const firstUnread = dividerAfter
+    ? firstUnreadId(saved, dividerAfter.lastReadId, currentPerson.id)
+    : null;
+  const isFocused = useTabFocus();
+  const wasFocused = useRef(isFocused);
+  const onFocusBack = useEffectEvent(() => {
+    const known = knownLastRead();
+    if (firstUnreadId(saved, known, currentPerson.id)) setDividerAfter({ lastReadId: known });
+  });
+  // Só a volta do foco muda a referência.
+  useEffect(() => {
+    const was = wasFocused.current;
+    wasFocused.current = isFocused;
+    if (!was && isFocused) onFocusBack();
+  }, [isFocused]);
+  // A primeira Não lida longe da página carregada: as anteriores carregam, como na ida até a
+  // Mensagem citada, até a lista começar na Última leitura.
+  const [isSeekingUnread, setSeekingUnread] = useState(
+    () =>
+      dividerAfter !== null &&
+      needsOlderForUnread(initialPage.messages, dividerAfter.lastReadId, initialPage.hasMore),
+  );
+  const seekRequestedLoad = useRef(false);
   const listRef = useRef<HTMLOListElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   // Depois de apagar a própria Mensagem, o foco vai para a seguinte da lista, ou para a caixa de
@@ -308,6 +341,41 @@ function History({
     if (step === "found") showMessage(jumpTarget);
     else toast("A mensagem não está mais disponível");
   });
+  const advanceSeek = useEffectEvent(() => {
+    if (!isSeekingUnread) return;
+    const lastReadId = dividerAfter?.lastReadId ?? null;
+    if (!needsOlderForUnread(saved, lastReadId, hasOlder) || (olderFailed && seekRequestedLoad.current)) {
+      isJumping.current = false;
+      setSeekingUnread(false);
+      return;
+    }
+    if (isLoadingOlder) return;
+    isJumping.current = true;
+    seekRequestedLoad.current = true;
+    loadOlder(JUMP_PAGE_SIZE);
+  });
+  useEffect(() => {
+    if (!isSeekingUnread) return;
+    const frame = requestAnimationFrame(() => advanceSeek());
+    return () => cancelAnimationFrame(frame);
+  }, [isSeekingUnread, firstId, hasOlder, isLoadingOlder, olderFailed]);
+
+  // Posiciona uma vez, ao abrir: a lista já abre no fim, e o divisor que ficou acima da área
+  // visível rola para o topo dela.
+  const isPositioned = useRef(false);
+  useLayoutEffect(() => {
+    if (isPositioned.current || isSeekingUnread || !firstUnread) return;
+    isPositioned.current = true;
+    const element = scrollRef.current;
+    const divider = listRef.current?.querySelector("[data-unread-divider]");
+    if (!element || !divider) return;
+    if (divider.getBoundingClientRect().top < element.getBoundingClientRect().top) {
+      anchor.current = null;
+      divider.scrollIntoView({ block: "start" });
+      measureEnd();
+    }
+  }, [isSeekingUnread, firstUnread, measureEnd]);
+
   // A cada página que chega (ou falha), o próximo passo da ida, no quadro seguinte, depois de a lista
   // nova estar na tela.
   useEffect(() => {
@@ -415,6 +483,7 @@ function History({
                 timeZone={timeZone}
                 compact={compact}
                 dayLabel={dayLabel}
+                unreadDivider={message.id === firstUnread}
                 status={message.status ?? "sent"}
                 currentPersonId={currentPerson.id}
                 onGoToQuote={goToMessage}
@@ -445,7 +514,7 @@ function History({
             ))}
           </ol>
         </div>
-        {jumpTarget ? (
+        {jumpTarget || isSeekingUnread ? (
           <div className="absolute left-1/2 top-2 -translate-x-1/2" role="status">
             <span className="flex animate-pop-in items-center gap-2 rounded-pill border border-border bg-surface-raised px-3 py-1 text-small text-fg shadow-2">
               <Spinner size="sm" />

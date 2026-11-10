@@ -51,3 +51,22 @@ criam Canais no mesmo milissegundo.
    abrir o Canal numa delas tira o negrito e o contador na outra.
 3. **apagar a Mensagem com a Menção zera o contador:** a outra Pessoa menciona e depois apaga a
    Mensagem pelo menu; o Canal deixa de estar Não lido na primeira.
+
+### 4. Abrir na primeira Não lida, com o divisor (F07-T04)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/nao-lidas/abrir-na-primeira.spec.ts`
+
+A Última leitura é gravada direto no banco (`setLastRead`), e a volta do foco usa o script de
+`support/tab-focus.ts`, que esconde a aba e tira o foco dela.
+
+1. **vai até a primeira Não lida com mais Não lidas que uma página:** com 160 Mensagens e a Última
+   leitura na 20ª, abrir o Canal carrega as anteriores e deixa o divisor à vista, acima da
+   "Mensagem 21".
+2. **com poucas Não lidas abre no fim, com o divisor:** com 30 Mensagens e a Última leitura na 27ª,
+   o divisor fica acima da "Mensagem 28", e a lista está no fim.
+3. **ao voltar o foco, o divisor fica acima da primeira Mensagem que chegou sem foco:** com a aba
+   sem foco, chega uma Mensagem; ao voltar o foco, o divisor passa para cima dela, e há um só.
+
+**File:** `e2e/acessibilidade/divisor-sem-violacoes.spec.ts`
+
+4. **a Conversa com o divisor de novas Mensagens não tem violações de acessibilidade.**
