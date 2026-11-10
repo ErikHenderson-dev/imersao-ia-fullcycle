@@ -17,6 +17,9 @@ export const envSchema = z.object({
     .int()
     .min(RENEWAL_INTERVAL_DAYS + 1)
     .default(30),
+  // Carência da presença (LLD, "Valores de regra"): tempo sem nenhum socket antes de a Pessoa ficar
+  // ausente. Reduzida nos testes.
+  PRESENCE_GRACE_MS: z.coerce.number().int().positive().default(30_000),
 });
 
 export type Env = z.infer<typeof envSchema>;

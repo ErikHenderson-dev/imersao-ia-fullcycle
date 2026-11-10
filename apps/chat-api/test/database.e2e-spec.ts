@@ -155,6 +155,18 @@ describe('banco de testes', () => {
       await expect(update).rejects.toThrow(violation);
     });
 
+    it('people recusa a escolha de presença fora da lista', async () => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const update = app
+        .get(DataSource)
+        .query(`UPDATE people SET presence_choice = 'busy' WHERE id = $1`, [
+          person.id,
+        ]);
+
+      await expect(update).rejects.toThrow(/people_presence_choice_check/);
+    });
+
     it('people recusa um @usuário repetido', async () => {
       const username = freeUsername();
       await insertPerson({ username });

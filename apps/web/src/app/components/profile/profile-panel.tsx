@@ -16,6 +16,9 @@ import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-p
 import { isTooltipEscape } from "@/app/components/ui/tooltip";
 import { useEditProfile } from "./edit-profile-dialog";
 import { UserStatusLine } from "@/app/components/people/user-status";
+import { useKnownPresence } from "@/app/components/people/people-provider";
+import { PresenceLine } from "@/app/components/ui/presence-dot";
+import type { Presence } from "chat-events";
 
 class ProfileNotFoundError extends Error {}
 
@@ -131,6 +134,7 @@ function ProfileContent({
         {profile.title && <p className="text-body break-words text-fg">{profile.title}</p>}
         <p className="text-small text-fg-muted">@{profile.username}</p>
       </div>
+      <ProfilePresence personId={profile.id} presence={profile.presence} />
       <UserStatusLine personId={profile.id} status={profile.status} />
       {/* Um fuso que este navegador não formata some, em vez de quebrar o painel. */}
       {isValidTimeZone(profile.timeZone) && <LocalTime timeZone={profile.timeZone} />}
@@ -166,6 +170,13 @@ function ProfileContent({
       </section>
     </div>
   );
+}
+
+// A Presença no painel ("Painel de perfil", Status): a bolinha e "Disponível" ou "Ausente".
+function ProfilePresence({ personId, presence: fromPayload }: { personId: string; presence?: Presence }) {
+  const presence = useKnownPresence(personId, fromPayload);
+  if (!presence) return null;
+  return <PresenceLine presence={presence} className="text-body" />;
 }
 
 // A hora atual no fuso da Pessoa, que muda na virada de cada minuto (Figma, "Local time").

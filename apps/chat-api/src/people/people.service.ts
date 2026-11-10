@@ -1,3 +1,4 @@
+import type { Presence } from 'chat-events';
 import {
   Propagation,
   Transactional,
@@ -124,6 +125,7 @@ export class PeopleService {
       | 'activityReadMessage'
       | 'statusEmoji'
       | 'statusText'
+      | 'presenceChoice'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -132,18 +134,20 @@ export class PeopleService {
       .insert()
       .values(person)
       .orIgnore()
-      .returning(['created_at', 'updated_at', 'time_zone'])
+      .returning(['created_at', 'updated_at', 'time_zone', 'presence_choice'])
       .execute();
     const [row] = inserted.raw as {
       created_at: Date;
       updated_at: Date;
       time_zone: string | null;
+      presence_choice: Presence;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       timeZone: row.time_zone,
+      presenceChoice: row.presence_choice,
     });
   }
 
@@ -341,6 +345,25 @@ export class PeopleService {
       },
       where: { id: In(ids) },
     });
+  }
+
+  // Grava a escolha de presença e devolve a gravada, com a hora da gravação (spec da F09, "Rotas"):
+  // com duas gravações ao mesmo tempo, a hora ordena as continuações.
+  async savePresenceChoice(
+    personId: string,
+    choice: Presence,
+  ): Promise<{ choice: Presence; savedAt: number }> {
+    // A hora da escrita, depois de esperar a trava da linha, e não a do começo da transação: ela
+    // segue a ordem das gravações. No UPDATE, o driver devolve [linhas, contagem].
+    const [rows] = await this.txHost.tx.query<
+      [{ presence_choice: Presence; updated_at: Date }[], number]
+    >(
+      `UPDATE people SET presence_choice = $2, updated_at = clock_timestamp()
+        WHERE id = $1 RETURNING presence_choice, updated_at`,
+      [personId, choice],
+    );
+    const [row] = rows;
+    return { choice: row.presence_choice, savedAt: row.updated_at.getTime() };
   }
 
   // Quem tem Status, para o retrato (spec da F09, "Rotas"): cresce com quem tem Status, e não com o

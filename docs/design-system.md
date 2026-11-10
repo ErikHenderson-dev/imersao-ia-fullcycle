@@ -529,7 +529,7 @@ Estes detalhes não aparecem só olhando o desenho:
 - **IconButton:** `label` é obrigatório e vira o tooltip e o `aria-label`. Ícone de 18 px; tons `default`, `sidebar` e `primary`; tamanhos 28 e 36.
 - **Tooltip:** atraso de 400 ms.
 - **CountBadge:** mostra `99+` acima de 99 e some em zero.
-- **PresenceDot:** cheia é disponível; anel vazado é ausente. No UserAvatar, a bolinha recorta o fundo (`Backdrop`: `sidebar`, `raised` ou `chrome`).
+- **PresenceDot:** cheia é disponível; anel vazado é ausente. No UserAvatar, a bolinha recorta o fundo (`Backdrop`: `sidebar`, `raised`, `chrome` ou `surface`, este no autor da Mensagem). No avatar, ela é decorativa: a Presença em texto fica no painel de perfil, no cabeçalho da Conversa direta e no menu do avatar.
 - **Avatar:** iniciais em `font-black` sobre `avatar-1` a `avatar-6`. Tamanhos xs 20, sm 24, md 36, lg 48 e xl 96; xs e sm usam `text-micro`.
 - **AgentAvatar:** o robô (`Bot`) distingue agentes de pessoas.
 - **Input:** `h-9`, borda `border-strong`, placeholder em `fg-muted`. **Textarea:** `min-h-20`, `py-2`. **Field:** rótulo + controle + dica ou erro.

@@ -21,7 +21,7 @@ export function PersonRow({ person, isSelf }: PersonRowProps) {
   const detail = [`@${person.username}`, title].filter(Boolean).join(" · ");
   return (
     <span className="flex min-w-0 flex-1 items-center gap-3">
-      <PersonAvatar person={person} />
+      <PersonAvatar person={person} presenceBackdrop="raised" />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-body font-bold text-fg">
           <PersonName id={person.id} name={person.name} />{" "}

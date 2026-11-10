@@ -1,3 +1,4 @@
+import type { Presence } from 'chat-events';
 import {
   Check,
   Column,
@@ -12,6 +13,7 @@ import { BaseEntity } from '../database/base.entity';
 import {
   NAME_MAX_LENGTH,
   PHONE_PATTERN,
+  PRESENCE_CHOICES,
   STATUS_EMOJIS,
   STATUS_TEXT_MAX_LENGTH,
   TITLE_MAX_LENGTH,
@@ -38,6 +40,10 @@ import { USERNAME_PATTERN } from './username';
 @Check(
   'people_status_text_check',
   `char_length("status_text") BETWEEN 1 AND ${STATUS_TEXT_MAX_LENGTH} AND "status_text" !~ '[\\r\\n]'`,
+)
+@Check(
+  'people_presence_choice_check',
+  `"presence_choice" IN (${PRESENCE_CHOICES.map((choice) => `'${choice}'`).join(', ')})`,
 )
 @Check(
   'people_status_check',
@@ -71,6 +77,10 @@ export class Person extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   statusText!: string | null;
+
+  // A escolha de presença (spec da F09, "Pessoas"); a Presença calculada fica em memória.
+  @Column({ type: 'text', default: 'available' })
+  presenceChoice!: Presence;
 
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })

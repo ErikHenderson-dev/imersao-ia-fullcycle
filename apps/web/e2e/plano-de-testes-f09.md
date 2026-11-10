@@ -39,3 +39,17 @@ campo, nos dois temas, sem violações do axe.
 
 Acessibilidade (`acessibilidade/status-sem-violacoes.spec.ts`): o diálogo com um emoji marcado e
 a mensagem, e o próprio perfil com o Status, nos dois temas, sem violações do axe.
+
+## F09-T04 · Presença (`perfil/presenca.spec.ts`)
+
+1. **Define como ausente e disponível pelo menu:** o cabeçalho mostra "Disponível" e o item
+   "Definir como ausente"; depois, "Ausente" e "Definir como disponível"; a escolha vale ao
+   recarregar.
+2. **A falha volta à presença anterior:** a Server Action responde 500; o toast "Não foi possível
+   mudar a presença" aparece e o menu volta a "Disponível".
+3. **A outra Pessoa vê a Presença mudar sem recarregar:** no painel de perfil e no cabeçalho da
+   Conversa direta.
+4. **Fechar todas as abas deixa ausente depois da carência:** com a carência real (30 s).
+
+Acessibilidade (`acessibilidade/presenca-sem-violacoes.spec.ts`): o menu do avatar aberto, nos dois
+temas, sem violações do axe.

@@ -47,7 +47,7 @@ export function SidebarRow({ href, conversation, selfId, isOpenAndFocused }: Sid
       >
         {kind === "direct" && counterpart ? (
           <>
-            <PersonAvatar person={counterpart} size="xs" />
+            <PersonAvatar person={counterpart} size="xs" presenceBackdrop="sidebar" />
             <span className="truncate">
               <PersonName id={counterpart.id} name={counterpart.name} />
               {suffix}

@@ -89,6 +89,7 @@ describe('Status nas leituras de Pessoas', () => {
     expect(ids).not.toContain(bruno.person.id);
     expect(people.find((person) => person.id === ana.person.id)).toEqual({
       id: ana.person.id,
+      presence: 'away',
       status: VACATION,
     });
   });

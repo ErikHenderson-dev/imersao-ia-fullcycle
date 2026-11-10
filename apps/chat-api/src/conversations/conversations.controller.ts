@@ -1,3 +1,5 @@
+import type { Presence } from 'chat-events';
+import { PresenceTracker, withPresence } from '../presence/presence-tracker';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import type { PersonSummary } from '../people/person-summary';
 import { Person } from '../people/person.entity';
@@ -16,6 +18,7 @@ export class ConversationsController {
   constructor(
     private readonly conversations: ConversationsService,
     private readonly unreadCounter: UnreadCounter,
+    private readonly presence: PresenceTracker,
   ) {}
 
   @Get()
@@ -36,8 +39,13 @@ export class ConversationsController {
   async members(
     @CurrentPerson() person: Person,
     @Param('id') id: string,
-  ): Promise<{ members: PersonSummary[] }> {
-    return { members: await this.conversations.listMembers(person.id, id) };
+  ): Promise<{ members: (PersonSummary & { presence: Presence })[] }> {
+    return {
+      members: withPresence(
+        this.presence,
+        await this.conversations.listMembers(person.id, id),
+      ),
+    };
   }
 
   @Get(':id')

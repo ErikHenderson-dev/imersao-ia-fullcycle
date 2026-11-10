@@ -212,7 +212,7 @@ function FullRow({ message, timeZone, content }: RowProps) {
       <div className="flex w-9 shrink-0 justify-end">
         {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
         <OpenProfileButton personId={message.author.id} decorative className="self-start">
-          <PersonAvatar person={message.author} />
+          <PersonAvatar person={message.author} presenceBackdrop="surface" />
         </OpenProfileButton>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">

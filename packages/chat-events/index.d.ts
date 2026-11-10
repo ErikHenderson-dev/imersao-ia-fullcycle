@@ -173,6 +173,15 @@ export interface PersonUpdatedEvent {
   status: StatusPayload | null;
 }
 
+/** A Presença calculada de uma Pessoa (spec da F09, "Presença"). */
+export type Presence = "available" | "away";
+
+/** A Presença de uma Pessoa mudou, para todo o workspace; não é guardado nem reenviado. */
+export interface PresenceChangedEvent {
+  person_id: string;
+  presence: Presence;
+}
+
 export interface SyncEvent {
   /** Cursor atual da Pessoa, que a aba manda no próximo handshake. */
   cursor: string | null;
@@ -205,6 +214,7 @@ export interface ServerToClientEvents extends StoredServerToClientEvents {
   "typing.start": (event: TypingEvent) => void;
   "typing.stop": (event: TypingEvent) => void;
   "person.updated": (event: PersonUpdatedEvent) => void;
+  "presence.changed": (event: PresenceChangedEvent) => void;
 }
 
 /** Eventos que a aba emite para a API. */

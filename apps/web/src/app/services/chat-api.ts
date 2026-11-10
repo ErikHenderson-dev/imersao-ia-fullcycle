@@ -3,6 +3,7 @@ import type {
   MentionPayload,
   MessagePayload,
   QuotePayload,
+  Presence,
   StatusEmoji,
   StatusPayload,
 } from "chat-events";
@@ -35,14 +36,20 @@ type ApiPerson = {
   username: string;
   time_zone: string | null;
   status: Status | null;
+  presence_choice: Presence;
 };
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
 // (utils/initials.ts).
-export type Person = Omit<ApiPerson, "time_zone"> & { initials: string; timeZone: string | null };
+export type Person = Omit<ApiPerson, "time_zone" | "presence_choice"> & {
+  initials: string;
+  timeZone: string | null;
+  // A escolha de presença (spec da F09, "Pessoas").
+  presenceChoice: Presence;
+};
 
-function toPerson({ time_zone: timeZone, ...person }: ApiPerson): Person {
-  return { ...withInitials(person), timeZone };
+function toPerson({ time_zone: timeZone, presence_choice: presenceChoice, ...person }: ApiPerson): Person {
+  return { ...withInitials(person), timeZone, presenceChoice };
 }
 
 export type LoginResult =
@@ -191,6 +198,7 @@ export type PersonEntry = PersonSummary & {
   username: string;
   title: string | null;
   status: Status | null;
+  presence?: Presence;
 };
 
 type ApiPersonEntry = Omit<PersonEntry, "initials">;
@@ -502,6 +510,7 @@ export type Profile = {
   phone: string | null;
   timeZone: string | null;
   status: Status | null;
+  presence?: Presence;
 };
 
 type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
@@ -556,8 +565,11 @@ export async function updateProfile(
   return { kind: "ok", profile: toProfile(body.person) };
 }
 
+// Uma Pessoa no retrato: quem está disponível ou tem Status (spec da F09, "Rotas").
+export type PresenceEntry = { id: string; presence: Presence; status: Status | null };
+
 export type PresenceResult =
-  | { kind: "ok"; people: { id: string; status: Status | null }[] }
+  | { kind: "ok"; people: PresenceEntry[] }
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
@@ -569,8 +581,30 @@ export async function getPresence(token: string): Promise<PresenceResult> {
   });
   if (response?.status === 401) return { kind: "unauthenticated" };
   if (response?.status !== 200) return { kind: "failure" };
-  const body = await jsonBody<{ people: { id: string; status: Status | null }[] }>(response);
+  const body = await jsonBody<{ people: PresenceEntry[] }>(response);
   return body ? { kind: "ok", people: body.people } : { kind: "failure" };
+}
+
+export type SavePresenceChoiceResult =
+  | { kind: "ok" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Grava a escolha de presença (spec da F09, "Rotas").
+export async function savePresenceChoice(
+  token: string,
+  choice: Presence,
+): Promise<SavePresenceChoiceResult> {
+  const response = await request("/v1/people/me/presence", {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ presence_choice: choice }),
+  });
+  if (response?.status === 204) return { kind: "ok" };
+  if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 401) return { kind: "unauthenticated" };
+  return { kind: "failure" };
 }
 
 export type OpenDirectConversationResult =

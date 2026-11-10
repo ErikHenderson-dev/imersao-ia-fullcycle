@@ -1,3 +1,5 @@
+import type { Presence } from 'chat-events';
+import { PresenceTracker, withPresence } from '../presence/presence-tracker';
 import {
   Body,
   Controller,
@@ -28,7 +30,10 @@ import { SearchPeopleQuery } from './search-people.query';
 @Controller()
 @UseGuards(AuthGuard)
 export class MembershipsController {
-  constructor(private readonly memberships: MembershipsService) {}
+  constructor(
+    private readonly memberships: MembershipsService,
+    private readonly presence: PresenceTracker,
+  ) {}
 
   // Cria um Canal (F04) ou abre a Conversa direta com uma Pessoa (F05): 201 quando a Conversa
   // nasceu agora, 200 quando a Conversa direta do par já existia.
@@ -77,12 +82,12 @@ export class MembershipsController {
   async searchPeople(
     @CurrentPerson() person: Person,
     @Query() query: SearchPeopleQuery,
-  ): Promise<{ people: PersonSummary[] }> {
+  ): Promise<{ people: (PersonSummary & { presence: Presence })[] }> {
     const people = await this.memberships.searchPeople(
       person.id,
       { notMemberOf: query.not_member_of, memberOf: query.member_of },
       query.q ?? '',
     );
-    return { people };
+    return { people: withPresence(this.presence, people) };
   }
 }

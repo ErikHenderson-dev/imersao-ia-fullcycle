@@ -10,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { PeopleService } from '../people/people.service';
 import { ProfileResponse, toProfileResponse } from '../people/profile.response';
-import type { StatusPayload } from 'chat-events';
+import type { Presence, StatusPayload } from 'chat-events';
+import { PresenceTracker } from '../presence/presence-tracker';
+import { SavePresenceChoiceDto } from './save-presence-choice.dto';
 import { Person } from '../people/person.entity';
 import { toStatusResponse } from '../people/status.response';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
@@ -27,6 +29,7 @@ export class ProfilesController {
   constructor(
     private readonly people: PeopleService,
     private readonly realtime: RealtimePublisher,
+    private readonly presence: PresenceTracker,
   ) {}
 
   // O próprio Perfil (spec da F09, "Rotas"): devolve o Perfil como `GET /v1/people/:id`.
@@ -34,7 +37,7 @@ export class ProfilesController {
   async update(
     @CurrentPerson() person: Person,
     @Body() body: UpdateProfileDto,
-  ): Promise<{ person: ProfileResponse }> {
+  ): Promise<{ person: ProfileResponse & { presence: Presence } }> {
     const { previous, person: updated } = await this.people.updateProfileById(
       person.id,
       {
@@ -61,26 +64,53 @@ export class ProfilesController {
         status: toStatusResponse(updated),
       });
     }
-    return { person: toProfileResponse(updated) };
+    return { person: this.profileOf(updated) };
   }
 
-  // O retrato de quem tem Status (spec da F09, "Rotas"); antes de `:id`, que o tomaria.
+  // O retrato de quem está disponível ou tem Status (spec da F09, "Rotas"); antes de `:id`, que o
+  // tomaria.
   @Get('presence')
-  async presence(): Promise<{
-    people: { id: string; status: StatusPayload | null }[];
+  async snapshot(): Promise<{
+    people: { id: string; presence: Presence; status: StatusPayload | null }[];
   }> {
-    const people = await this.people.listWithStatus();
+    const withStatus = await this.people.listWithStatus();
+    const statusById = new Map(
+      withStatus.map((person) => [person.id, toStatusResponse(person)]),
+    );
+    const ids = new Set([
+      ...statusById.keys(),
+      ...this.presence.availableIds(),
+    ]);
     return {
-      people: people.map((person) => ({
-        id: person.id,
-        status: toStatusResponse(person),
+      people: [...ids].map((id) => ({
+        id,
+        presence: this.presence.presenceOf(id),
+        status: statusById.get(id) ?? null,
       })),
     };
   }
 
+  // A escolha de presença (spec da F09, "Rotas"): a mesma de novo não publica.
+  @Put('me/presence')
+  @HttpCode(204)
+  async savePresenceChoice(
+    @CurrentPerson() person: Person,
+    @Body() body: SavePresenceChoiceDto,
+  ): Promise<void> {
+    const saved = await this.people.savePresenceChoice(
+      person.id,
+      body.presence_choice,
+    );
+    // Sempre: o rastreador só publica se a Presença mudar, ignora uma gravação mais velha que chegue
+    // depois e corrige uma aba que conectou com a escolha velha enquanto esta gravação corria.
+    this.presence.choiceChanged(person.id, saved.choice, saved.savedAt);
+  }
+
   @Get(':id')
-  async get(@Param('id') id: string): Promise<{ person: ProfileResponse }> {
-    return { person: toProfileResponse(await this.people.getProfile(id)) };
+  async get(
+    @Param('id') id: string,
+  ): Promise<{ person: ProfileResponse & { presence: Presence } }> {
+    return { person: this.profileOf(await this.people.getProfile(id)) };
   }
 
   // O fuso do navegador da Pessoa da Sessão (spec da F05, "Busca e Perfil", "Fuso").
@@ -91,5 +121,12 @@ export class ProfilesController {
     @Body() body: SaveTimeZoneDto,
   ): Promise<void> {
     await this.people.saveTimeZone(person.id, body.time_zone);
+  }
+
+  private profileOf(person: Person): ProfileResponse & { presence: Presence } {
+    return {
+      ...toProfileResponse(person),
+      presence: this.presence.presenceOf(person.id),
+    };
   }
 }

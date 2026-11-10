@@ -1,4 +1,4 @@
-import type { StatusEmoji } from 'chat-events';
+import type { Presence, StatusEmoji } from 'chat-events';
 import { codePointLength } from '../common/validation/code-points';
 import { InvalidProfileError } from './invalid-profile.error';
 
@@ -10,6 +10,12 @@ export const NAME_MAX_LENGTH = 80;
 export const TITLE_MAX_LENGTH = 80;
 export const PHONE_MAX_LENGTH = 30;
 export const STATUS_TEXT_MAX_LENGTH = 100;
+
+// Os valores da escolha de presença (spec da F09, "Pessoas"), os mesmos da Presença calculada.
+export const PRESENCE_CHOICES = [
+  'available',
+  'away',
+] as const satisfies readonly Presence[];
 
 // As chaves dos sete emojis do Status, na ordem do diálogo (LLD, "Valores de regra", "Emojis do
 // Status"). A web troca a chave pelo emoji e pelo nome acessível.
