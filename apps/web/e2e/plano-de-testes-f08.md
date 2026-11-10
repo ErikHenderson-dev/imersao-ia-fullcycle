@@ -22,3 +22,14 @@ Pessoas, os Canais, as Conversas diretas, as Mensagens e as Menções são criad
 
 Acessibilidade (`acessibilidade/atividade-sem-violacoes.spec.ts`): a tela Atividade com um item
 lido e um não lido, sem violações do axe.
+
+## F08-T02 · Abrir a Conversa na Mensagem (`atividade/abrir-na-mensagem.spec.ts`)
+
+1. **Vai até a Mensagem fora da primeira página e a destaca:** 160 Mensagens; `?mensagem=` da
+   Mensagem 10 mostra "Indo até a mensagem…", chega a ela com o destaque, que some em 2 s.
+2. **A URL perde o parâmetro e recarregar não vai de novo:** depois da ida, a URL fica sem
+   `mensagem`, e recarregar abre no fim.
+3. **A Mensagem apagada mostra que não está mais disponível.**
+4. **Abrir na Mensagem lê a Conversa:** a Menção não lida some da barra lateral.
+5. **A Mensagem pedida vence a primeira Não lida, com o divisor no lugar.**
+6. **O item de Atividade leva à Mensagem:** Enter no item abre a Conversa na Mensagem, destacada.

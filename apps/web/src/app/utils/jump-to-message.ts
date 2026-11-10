@@ -15,3 +15,20 @@ export function jumpStep(messages: readonly Message[], targetId: string, hasOlde
   if (!hasOlder || (oldest && oldest.id < targetId)) return "missing";
   return "continue";
 }
+
+// O alvo da ida ao abrir a Conversa: a original de uma Citação ou a Mensagem pedida, ou a primeira
+// Não lida depois da Última leitura.
+export type JumpTarget = { kind: "message"; id: string } | { kind: "unread"; lastReadId: string | null };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Para onde a Conversa vai ao abrir (spec da F08, "Abrir a Conversa na Mensagem"): a Mensagem pedida
+// em `?mensagem=` vence a primeira Não lida da F07; sem ela, a primeira Não lida, quando havia Não
+// lidas ao abrir; sem as duas, nenhuma ida, e a Conversa abre no fim.
+export function openingTarget(
+  messageParam: string | null,
+  dividerAfter: { lastReadId: string | null } | null,
+): JumpTarget | null {
+  if (messageParam && UUID.test(messageParam)) return { kind: "message", id: messageParam };
+  return dividerAfter ? { kind: "unread", lastReadId: dividerAfter.lastReadId } : null;
+}
