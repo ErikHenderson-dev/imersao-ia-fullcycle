@@ -1,6 +1,6 @@
 # 04: Presença
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** a Pessoa se define como ausente ou disponível pelo menu do avatar, e os
 outros veem a bolinha de Presença mudar na hora, em todos os lugares da spec. Quem fecha todas as
@@ -18,26 +18,26 @@ Sessões e navegadores. Referências:
 
 **Bloqueada por:** 03 (Status)
 
-- [ ] **CA1** · Antes do código, o Figma ganha a bolinha de Presença no autor da Mensagem, em
+- [x] **CA1** · Antes do código, o Figma ganha a bolinha de Presença no autor da Mensagem, em
   "Membros de #nome", nos resultados de "Nova conversa" e no cabeçalho da Conversa direta, nos
   dois temas, se faltar.
-- [ ] **CA2** · A migração acrescenta a escolha de presença, com `available` por padrão;
+- [x] **CA2** · A migração acrescenta a escolha de presença, com `available` por padrão;
   `PUT /v1/people/me/presence` a grava, recusa valor fora da lista e, com a mesma escolha, não
   publica.
-- [ ] **CA3** · O rastreador de presença conta os sockets de cada Pessoa e aplica a carência, com
+- [x] **CA3** · O rastreador de presença conta os sockets de cada Pessoa e aplica a carência, com
   a variável `PRESENCE_GRACE_MS` (padrão igual ao do LLD) no schema das variáveis; os testes de
   unidade com timers falsos cobrem primeira conexão, segunda aba, fechar uma de duas, fim da
   carência, reconexão dentro dela e troca de escolha conectada e desconectada.
-- [ ] **CA4** · Toda mudança da Presença calculada publica `presence.changed` para a sala
+- [x] **CA4** · Toda mudança da Presença calculada publica `presence.changed` para a sala
   `workspace`, sem guardar nem reenviar; a Presença vai no retrato, no Perfil, na busca e nos
   Membros, e a escolha em `GET /v1/sessions/current`.
-- [ ] **CA5** · O menu do avatar mostra a Presença no cabeçalho e "Definir como ausente" ou
+- [x] **CA5** · O menu do avatar mostra a Presença no cabeçalho e "Definir como ausente" ou
   "Definir como disponível"; a escolha muda na hora e volta ao anterior com toast de erro na
   falha.
-- [ ] **CA6** · A bolinha aparece no UserAvatar em todos os lugares da spec, cheia para
+- [x] **CA6** · A bolinha aparece no UserAvatar em todos os lugares da spec, cheia para
   disponível e vazada para ausente, com texto para leitor de tela; a camada aplica
   `presence.changed` e o retrato em funções puras testadas.
-- [ ] **CA7** · O Playwright, com a carência reduzida no ambiente de teste, prova "Definir como
+- [x] **CA7** · O Playwright, com a carência reduzida no ambiente de teste, prova "Definir como
   ausente" visto pela outra Pessoa sem recarregar e a Pessoa ausente depois de fechar o contexto;
   tudo pelo teclado; e o axe no menu, sem violações.
 - [ ] **CA8** · A validação visual de "Casca / Menu do usuário" (Disponível e Ausente), do painel
