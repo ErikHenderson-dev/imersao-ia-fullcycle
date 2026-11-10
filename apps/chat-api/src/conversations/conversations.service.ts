@@ -239,6 +239,23 @@ export class ConversationsService {
     return members.map((member) => member.personId);
   }
 
+  // Na primeira Mensagem de uma Conversa direta, a outra Pessoa do par vira Membro (ADR 0025),
+  // tolerando a participação que já existe. Devolve a Pessoa que entrou agora, ou null; na
+  // Conversa consigo mesma não há outra Pessoa, e nada é gravado.
+  async joinDirectCounterpart(
+    conversation: Conversation,
+    authorId: string,
+  ): Promise<string | null> {
+    if (conversation.kind !== 'direct') return null;
+    const { directPersonLowId: low, directPersonHighId: high } = conversation;
+    const counterpartId = low === authorId ? high! : low!;
+    if (counterpartId === authorId) return null;
+    const [added] = await this.insertMembers([
+      [conversation.id, counterpartId],
+    ]);
+    return added ?? null;
+  }
+
   // A conferência de acesso única (LLD, "Segurança", "Participação numa Conversa"): toda rota e
   // todo service que recebe um id de Conversa passa por aqui.
   async getForMember(

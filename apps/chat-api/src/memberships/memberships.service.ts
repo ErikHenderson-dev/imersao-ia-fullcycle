@@ -87,6 +87,16 @@ export class MembershipsService {
     return opened;
   }
 
+  // A mesma publicação, para o envio de Mensagem esperar por ela antes de publicar a Mensagem
+  // (spec da F05, "Tempo real", "Ordem"). A falha vai para o log e não rejeita a promessa.
+  announceMemberAdded(
+    summary: ConversationSummary,
+    memberIds: string[],
+    addedIds: string[],
+  ): Promise<void> {
+    return this.memberAddedPublication(summary, memberIds, addedIds);
+  }
+
   // Publica sem prender a resposta: a gravação já aconteceu, e a falha vai para o log, como no envio
   // de Mensagem.
   private publishMemberAdded(
@@ -94,7 +104,15 @@ export class MembershipsService {
     memberIds: string[],
     addedIds: string[],
   ): void {
-    this.publisher
+    void this.memberAddedPublication(summary, memberIds, addedIds);
+  }
+
+  private memberAddedPublication(
+    summary: ConversationSummary,
+    memberIds: string[],
+    addedIds: string[],
+  ): Promise<void> {
+    return this.publisher
       .memberAdded(
         memberIds,
         // Só a Conversa direta muda de quem recebe para quem recebe; a do Canal é montada uma vez.

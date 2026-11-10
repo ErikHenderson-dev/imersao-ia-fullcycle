@@ -80,6 +80,27 @@ describe('"digitando" em tempo real', () => {
     expect(received).toHaveLength(0);
   });
 
+  it('a outra Pessoa não recebe o digitando antes da primeira Mensagem', async () => {
+    const [opener, other] = await members(2);
+    const response = await conversationRoutes.openDirect(
+      app,
+      opener.cookie,
+      other.person.id,
+    );
+    const { id } = (response.body as { conversation: { id: string } })
+      .conversation;
+    const typist = await withOpenConversation(opener, id);
+    const socket = await connected(other.token);
+    const received = collectEvents(socket, 'typing.start');
+
+    const result = await openConversation(socket, id);
+
+    typist.socket.emit('typing.start', { conversation_id: id });
+    await settle();
+    expect(result).toEqual({ ok: false, code: 'conversation_not_found' });
+    expect(received).toHaveLength(0);
+  });
+
   it('abrir outra Conversa sai da anterior', async () => {
     const [typistMember, readerMember] = await members(2);
     const first = await conversationRoutes.createChannel(app);

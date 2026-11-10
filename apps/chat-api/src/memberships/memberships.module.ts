@@ -10,5 +10,6 @@ import { MembershipsService } from './memberships.service';
   imports: [ConversationsModule, PeopleModule, RealtimeModule, SessionsModule],
   controllers: [MembershipsController],
   providers: [MembershipsService],
+  exports: [MembershipsService],
 })
 export class MembershipsModule {}

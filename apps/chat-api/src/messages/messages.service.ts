@@ -1,10 +1,12 @@
-import { TransactionHost } from '@nestjs-cls/transactional';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { LessThan, Repository } from 'typeorm';
 import { ConversationsService } from '../conversations/conversations.service';
 import { PeopleService } from '../people/people.service';
+import { Conversation } from '../conversations/conversation.entity';
+import { MembershipsService } from '../memberships/memberships.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
@@ -43,6 +45,9 @@ export interface SentMessage {
   message: MessageView;
   // Falso quando o client_id já tinha sido gravado: o reenvio não gera evento.
   created: boolean;
+  // A Pessoa que virou Membro da Conversa direta com esta Mensagem (a primeira), ou null.
+  joinedId: string | null;
+  conversation: Conversation;
 }
 
 @Injectable()
@@ -54,6 +59,7 @@ export class MessagesService {
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
     private readonly publisher: RealtimePublisher,
+    private readonly memberships: MembershipsService,
   ) {}
 
   private get messages(): Repository<Message> {
@@ -90,7 +96,7 @@ export class MessagesService {
     conversationId: string,
     newMessage: NewMessage,
   ): Promise<MessageView> {
-    const { message, created } = await this.send(
+    const { message, created, joinedId, conversation } = await this.send(
       author,
       conversationId,
       newMessage,
@@ -99,12 +105,25 @@ export class MessagesService {
       try {
         const memberIds =
           await this.conversations.listMemberIds(conversationId);
-        // A gravação no Redis e a emissão não prendem a resposta do envio.
-        void this.publisher
-          .messageCreated(memberIds, toMessageResponse(message))
-          .catch((error: unknown) =>
-            this.logger.error('Falha ao publicar a Mensagem gravada', error),
+        const [summary] = joinedId
+          ? await this.conversations.withMemberCounts([conversation])
+          : [];
+        // A gravação no Redis e a emissão não prendem a resposta do envio. Na primeira Mensagem da
+        // Conversa direta, a entrada da outra Pessoa vai antes da Mensagem, para a aba dela ter a
+        // Conversa na lista quando a Mensagem chegar (spec da F05, "Tempo real", "Ordem").
+        void (async () => {
+          if (joinedId && summary) {
+            await this.memberships.announceMemberAdded(summary, memberIds, [
+              joinedId,
+            ]);
+          }
+          await this.publisher.messageCreated(
+            memberIds,
+            toMessageResponse(message),
           );
+        })().catch((error: unknown) =>
+          this.logger.error('Falha ao publicar a Mensagem gravada', error),
+        );
       } catch (error) {
         this.logger.error('Falha ao publicar a Mensagem gravada', error);
       }
@@ -115,12 +134,18 @@ export class MessagesService {
   // Envio sem duplicar (LLD, "Concorrência e idempotência"): o mesmo `client_id` do mesmo autor
   // devolve a Mensagem já gravada, sem gravar outra; o texto do reenvio é ignorado. O conflito é
   // resolvido pela unicidade do banco, o que vale também para dois envios ao mesmo tempo.
+  // Uma transação: a Mensagem e a participação da outra Pessoa da Conversa direta, na primeira
+  // Mensagem, gravam juntas (spec da F05, "Conversa direta", "Primeira Mensagem").
+  @Transactional()
   private async send(
     author: MessageAuthor,
     conversationId: string,
     { clientId, body }: NewMessage,
   ): Promise<SentMessage> {
-    await this.conversations.getForMember(author.id, conversationId);
+    const conversation = await this.conversations.getForMember(
+      author.id,
+      conversationId,
+    );
     const inserted = await this.messages
       .createQueryBuilder()
       .insert()
@@ -150,7 +175,15 @@ export class MessagesService {
     if (message.conversationId !== conversationId) {
       throw new ClientIdConflictError();
     }
-    return { message: toView(message, author), created: Boolean(row) };
+    const joinedId = row
+      ? await this.conversations.joinDirectCounterpart(conversation, author.id)
+      : null;
+    return {
+      message: toView(message, author),
+      created: Boolean(row),
+      joinedId,
+      conversation,
+    };
   }
 
   // Os nomes dos autores vêm do PeopleService, numa consulta pelos ids da página.

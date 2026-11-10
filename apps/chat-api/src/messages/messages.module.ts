@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConversationsModule } from '../conversations/conversations.module';
+import { MembershipsModule } from '../memberships/memberships.module';
 import { PeopleModule } from '../people/people.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SessionsModule } from '../sessions/sessions.module';
@@ -16,6 +17,7 @@ import { MessagesService } from './messages.service';
     PeopleModule,
     SessionsModule,
     RealtimeModule,
+    MembershipsModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService],
