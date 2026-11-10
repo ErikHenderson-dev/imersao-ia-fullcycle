@@ -1,6 +1,6 @@
 # 02: Barra de ações, menu e copiar o texto
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** ao passar o mouse sobre uma Mensagem, ou pôr o foco nela, aparece a barra de
 ações, e "Mais ações" abre o menu da Mensagem. "Copiar texto" copia o texto e mostra o aviso
