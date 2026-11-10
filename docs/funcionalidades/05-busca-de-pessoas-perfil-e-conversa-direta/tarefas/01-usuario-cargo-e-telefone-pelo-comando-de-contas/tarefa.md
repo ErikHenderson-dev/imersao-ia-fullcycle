@@ -1,6 +1,6 @@
 # 01: @usuário, cargo e telefone pelo comando de contas
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** toda Pessoa passa a ter um `@usuário` único, e as contas que já existem o
 recebem do e-mail, sem ninguém precisar fazer nada. Quem opera a instalação informa o `@usuário`, o

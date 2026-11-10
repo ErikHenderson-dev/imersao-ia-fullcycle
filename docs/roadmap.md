@@ -21,7 +21,7 @@ O ID vira link para a pasta da funcionalidade, em `docs/funcionalidades/`, quand
 | [F02](funcionalidades/02-mensagens-em-canal-publico/) | Mensagens em canal público | Abrir um canal público, enviar mensagens e rolar o histórico até as mais antigas. | F01 | concluída |
 | [F03](funcionalidades/03-tempo-real/) | Tempo real | Ver as mensagens dos outros chegarem sem recarregar a página, ver quem está digitando e não perder nada depois de uma queda de conexão. | F02 | concluída |
 | [F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/) | Criação de canais e convite para canal privado | Criar um canal público ou privado e convidar pessoas para o privado, que só os convidados veem. | F02 | concluída |
-| [F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/) | Busca de pessoas, perfil e conversa direta | Buscar uma pessoa por nome ou @usuário, ver o perfil dela e conversar com ela numa conversa direta. | F02 | spec pronta |
+| [F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/) | Busca de pessoas, perfil e conversa direta | Buscar uma pessoa por nome ou @usuário, ver o perfil dela e conversar com ela numa conversa direta. | F02 | em andamento |
 | F06 | Ações na mensagem | Mencionar pessoas, responder citando uma mensagem, copiar o texto e editar ou apagar as próprias mensagens, com a mudança aparecendo para todos na hora. | F03 | planejada |
 | F07 | Não lidas e menções | Ver, em cada canal e conversa, quantas mensagens não lidas e quantas menções há. | F06 | planejada |
 | F08 | Notificações e Atividade | Receber um alerta na tela e, se ligar, uma notificação do navegador ao ser mencionada ou receber uma DM, clicar e cair na mensagem, e rever tudo em Atividade → Menções e DMs. | F05, F06 | planejada |
@@ -91,7 +91,7 @@ flowchart LR
   classDef concluida fill:#d1fae5,stroke:#059669,color:#111827
 
   class F01,F02,F03,F04 concluida
-  class F05 specPronta
+  class F05 emAndamento
   class F06,F07,F08,F09,F10,F11,F12,F13,F14 planejada
 ```
 

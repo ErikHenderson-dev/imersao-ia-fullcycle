@@ -46,13 +46,13 @@ A tabela `people` ganha quatro colunas, `planejadas`:
 | `time_zone` | Fuso IANA, opcional, aceito só se o `Intl.DateTimeFormat` do Node o reconhece |
 
 - **`@usuário` das contas que já existem:** a migração cria a coluna, preenche e só então a torna
-  obrigatória e única. O valor vem da parte do e-mail antes do `@`: minúsculas, sem acento
-  (`unaccent`), sem os caracteres fora da regra, sem os caracteres que não são letra ou número no
+  obrigatória e única. O valor vem da parte do e-mail antes do `@`: minúsculas, sem acento, sem
+  os caracteres fora da regra, sem os caracteres que não são letra ou número no
   começo e no fim, cortado para caber o sufixo. Quando repete, ganha `2`, `3` e assim por diante,
   pela ordem de criação da conta (o id, UUID v7), pulando um valor que já exista. Com menos de 2
   caracteres, vira `pessoa`, com o mesmo sufixo.
 - **`@usuário` de uma conta nova:** o informado no comando de contas ou, sem ele, a mesma derivação,
-  numa função pura da API que a migração espelha em SQL. Um `@usuário` informado e já usado recusa a
+  numa função pura da API, que a migração também usa. Um `@usuário` informado e já usado recusa a
   criação; o derivado ganha o sufixo.
 - **O `@usuário` não muda** depois de gravado (PRD, "Regras desta funcionalidade").
 - **Cargo e telefone vazios** são gravados como nulos.
