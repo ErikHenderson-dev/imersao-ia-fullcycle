@@ -125,14 +125,16 @@ Uma Mensagem de Bruno Lima e uma de Ana Souza (logada) num Canal em comum.
 2. **Cancelar resposta e Esc desistem sem apagar o texto.**
 3. **responder a outra troca a Citação.**
 4. **a Citação apagada em outra aba sai da caixa, com aviso.**
+5. **a Citação apagada antes do envio vira falha no envio:** a original é apagada direto no banco, sem
+   o evento; a Mensagem pendente mostra a Citação e a falha com o motivo.
 
 **File:** `e2e/tempo-real/citacao.spec.ts`
 
-5. **a Citação acompanha a edição e a exclusão da original:** duas Pessoas; a resposta da outra
+6. **a Citação acompanha a edição e a exclusão da original:** duas Pessoas; a resposta da outra
    mostra o texto editado e, depois da exclusão, "Em resposta a uma mensagem apagada".
 
 **File:** `e2e/acessibilidade/citacao-sem-violacoes.spec.ts`
 
-6. **a caixa em Citando não tem violações de acessibilidade.**
+7. **a caixa em Citando não tem violações de acessibilidade.**
 
 Os testes da barra e do menu (F06-T02 a T04) passam a contar com "Responder" como a primeira ação.

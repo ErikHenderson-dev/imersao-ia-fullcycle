@@ -7,7 +7,7 @@ import {
   openDeleteDialog,
   readyHistory,
 } from "../support/conversation-page";
-import { insertMessages } from "../support/database";
+import { insertMessages, softDeleteMessage } from "../support/database";
 
 test.describe("Responder citando uma Mensagem", () => {
   test.beforeEach(async ({ page, sharedChannel, person, otherPerson, loggedInPage }) => {
@@ -100,5 +100,27 @@ test.describe("Responder citando uma Mensagem", () => {
     await expect(page.getByText(`Respondendo a ${person.name}`)).toHaveCount(0);
     await expect(page.getByText("A mensagem que você estava respondendo foi apagada.")).toBeVisible();
     await outra.close();
+  });
+
+  test("a Citação apagada antes do envio vira falha no envio", async ({
+    page,
+    sharedChannel,
+    otherPerson,
+  }) => {
+    const original = messageItem(page, sharedChannel.name, "Alguém viu o aviso");
+    const id = await original.getAttribute("data-message-id");
+    await original.hover();
+    await original.getByRole("button", { name: "Responder" }).click();
+    await softDeleteMessage(id!);
+
+    const caixa = composer(page, sharedChannel.name);
+    await caixa.fill("Resposta tardia");
+    await caixa.press("Enter");
+
+    const pendente = messageItem(page, sharedChannel.name, "Resposta tardia");
+    await expect(pendente).toContainText(otherPerson.name);
+    await expect(pendente).toContainText(
+      "Não foi possível enviar: a mensagem citada foi apagada.",
+    );
   });
 });

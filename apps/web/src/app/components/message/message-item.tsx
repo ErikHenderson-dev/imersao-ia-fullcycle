@@ -34,6 +34,8 @@ type MessageItemProps = {
   currentPersonId?: string;
   // Responder citando esta Mensagem (spec da F06, "Citação").
   onReply?: () => void;
+  // Por que o envio falhou, quando há um motivo para mostrar.
+  failure?: "quote_deleted";
 };
 
 export type MessageEdit = {
@@ -58,6 +60,7 @@ export function MessageItem({
   edit,
   currentPersonId,
   onReply,
+  failure,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -74,7 +77,7 @@ export function MessageItem({
     <SendFailure
       onRetry={onRetry}
       onDiscard={onDiscard}
-      reason={"failure" in message ? (message.failure as string | undefined) : undefined}
+      reason={failure}
     />
   );
   const content = edit?.isEditing ? (

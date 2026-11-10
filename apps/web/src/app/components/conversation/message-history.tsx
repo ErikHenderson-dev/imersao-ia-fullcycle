@@ -350,6 +350,7 @@ function History({
                 }
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
+                failure={message.status ? (message as PendingMessage).failure : undefined}
                 edit={
                   message.author.id === currentPerson.id && !message.status
                     ? {

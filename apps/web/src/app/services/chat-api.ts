@@ -228,6 +228,8 @@ export type SendMessageResult =
   | { kind: "ok"; message: Message }
   | { kind: "invalid" }
   | { kind: "not_found" }
+  // A Mensagem citada não existe mais nesta Conversa (spec da F06, "Citação").
+  | { kind: "quote_not_found" }
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
@@ -344,6 +346,9 @@ export async function sendMessage(
     return { kind: "failure" };
   }
   if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 404 && (await errorCode(response)) === "quoted_message_not_found") {
+    return { kind: "quote_not_found" };
+  }
   return commonFailure(response);
 }
 

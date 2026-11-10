@@ -41,8 +41,8 @@ export function usePendingMessages(
           result = { kind: "failure" };
         }
         if (result.kind === "unauthenticated") return redirectToExpiredSession();
-        // Com Citação, o 404 é da Mensagem citada, apagada antes do envio (spec da F06, "Citação").
-        if (result.kind === "not_found" && quotedMessageId) {
+        // A Mensagem citada foi apagada antes do envio (spec da F06, "Citação").
+        if (result.kind === "quote_not_found") {
           return update(clientId, { status: "failed", failure: "quote_deleted" });
         }
         if (result.kind !== "ok") return update(clientId, { status: "failed" });

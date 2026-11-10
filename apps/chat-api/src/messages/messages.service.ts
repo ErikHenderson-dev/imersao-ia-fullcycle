@@ -426,11 +426,10 @@ export class MessagesService {
     );
     // O reenvio do mesmo client_id devolve a Mensagem já gravada, sem olhar a Citação nova (spec da
     // F06, "Enviar com Citação"); só o envio novo confere a Citação.
-    const isResend = await this.messages.existsBy({
-      authorId: author.id,
-      clientId,
-    });
-    if (!isResend && quotedMessageId !== undefined) {
+    if (
+      quotedMessageId !== undefined &&
+      !(await this.messages.existsBy({ authorId: author.id, clientId }))
+    ) {
       await this.assertQuotable(conversationId, quotedMessageId);
     }
     const inserted = await this.messages
@@ -442,7 +441,7 @@ export class MessagesService {
         authorId: author.id,
         clientId,
         body,
-        quotedMessageId: isResend ? null : (quotedMessageId ?? null),
+        quotedMessageId: quotedMessageId ?? null,
       })
       .orIgnore()
       .returning(['id', 'created_at'])

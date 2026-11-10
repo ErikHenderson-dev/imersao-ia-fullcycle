@@ -50,8 +50,8 @@ export function replaceEdited(pages: MessagePage[], edited: Message): MessagePag
 }
 
 // As Citações das Mensagens carregadas acompanham a original (spec da F06, "Eventos no cliente"): a
-// editada troca o texto, se a edição for mais nova e a Citação não estiver apagada; a apagada vira a
-// marca de apagada.
+// editada troca o texto, se a Citação não estiver apagada (uma edição atrasada já foi descartada por
+// quem chama); a apagada vira a marca de apagada.
 export function patchQuotes(
   pages: MessagePage[],
   original: { id: string; edited?: Message; deleted?: boolean },
@@ -69,10 +69,7 @@ export function patchQuotes(
       const edited = original.edited;
       if (!edited || edited.body === quote.body) return message;
       pageChanged = true;
-      return {
-        ...message,
-        quote: { ...quote, body: edited.body, author: { id: edited.author.id, name: edited.author.name } },
-      };
+      return { ...message, quote: { ...quote, body: edited.body } };
     });
     if (!pageChanged) return page;
     changed = true;

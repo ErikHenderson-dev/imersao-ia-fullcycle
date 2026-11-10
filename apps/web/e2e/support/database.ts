@@ -168,3 +168,11 @@ export async function timeZoneOf(personId: string): Promise<string | null> {
   );
   return result.rows[0]?.time_zone ?? null;
 }
+
+// Apaga a Mensagem direto no banco, sem o evento do tempo real: a tela ainda a mostra (F06).
+export async function softDeleteMessage(id: string): Promise<void> {
+  await pool.query(
+    "UPDATE messages SET body = NULL, deleted_at = now() WHERE id = $1",
+    [id],
+  );
+}
