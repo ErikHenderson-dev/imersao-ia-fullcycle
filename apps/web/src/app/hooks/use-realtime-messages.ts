@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useState } from "react";
-import { useRealtime } from "@/app/components/realtime/realtime-provider";
+import { type MessageDeleted, useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Message, MessagePage } from "@/app/services/chat-api";
 import { newerThan } from "@/app/utils/recent-messages";
 
@@ -37,7 +37,7 @@ export function useRealtimeMessages(
   const receiveEdit = useEffectEvent((message: Message) => {
     if (message.conversationId === conversationId) applyEdited(message);
   });
-  const receiveDelete = useEffectEvent((deleted: { conversationId: string; messageId: string }) => {
+  const receiveDelete = useEffectEvent((deleted: MessageDeleted) => {
     if (deleted.conversationId === conversationId) applyDeleted(deleted.messageId);
   });
   const onSync = useEffectEvent((reset: boolean) => {

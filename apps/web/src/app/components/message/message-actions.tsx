@@ -1,7 +1,7 @@
 "use client";
 
 import { Copy, Ellipsis, Pencil, Trash2, type LucideIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,8 +39,6 @@ type MessageActionsProps = {
 export function MessageActions({ message, onEdit, onDeleted }: MessageActionsProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
-  // Depois de apagar, o foco é de quem lista as Mensagens, e não do botão que abriu o menu.
-  const wasDeleted = useRef(false);
   const actions: MessageAction[] = [
     {
       id: "copy",
@@ -107,13 +105,7 @@ export function MessageActions({ message, onEdit, onDeleted }: MessageActionsPro
           message={message}
           open={isDeleteOpen}
           onOpenChange={setDeleteOpen}
-          onDeleted={() => {
-            wasDeleted.current = true;
-            onDeleted();
-          }}
-          onCloseAutoFocus={(event) => {
-            if (wasDeleted.current) event.preventDefault();
-          }}
+          onDeleted={onDeleted}
         />
       )}
     </div>

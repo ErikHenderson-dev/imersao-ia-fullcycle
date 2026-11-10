@@ -83,24 +83,18 @@ function History({
   } = useMessageHistory(conversation.id, initialPage);
   // A Mensagem em edição, uma por vez na Conversa (spec da F06, "Edição").
   const [editingId, setEditingId] = useState<string | null>(null);
-  const editingIdRef = useRef(editingId);
-  useLayoutEffect(() => {
-    editingIdRef.current = editingId;
-  }, [editingId]);
   const closeEdit = useCallback((messageId: string) => {
     setEditingId((current) => (current === messageId ? null : current));
   }, []);
   // Uma Mensagem que sai da Conversa (spec da F06, "Apagar"): a edição aberta dela fecha, com aviso.
-  const removeMessage = useCallback(
-    (messageId: string) => {
-      if (editingIdRef.current === messageId) {
-        setEditingId(null);
-        toast.info("Essa mensagem foi apagada.");
-      }
-      applyDeleted(messageId);
-    },
-    [applyDeleted],
-  );
+  // O tempo real a chama por um useEffectEvent, que sempre vê o editingId atual.
+  const removeMessage = (messageId: string) => {
+    if (editingId === messageId) {
+      setEditingId(null);
+      toast.info("Essa mensagem foi apagada.");
+    }
+    applyDeleted(messageId);
+  };
   const { pending, send, retry, discard, dropDelivered } = usePendingMessages(
     conversation.id,
     currentPerson,
@@ -155,7 +149,7 @@ function History({
   const isAtEnd = useRef(true);
   const [hasNewBelow, setHasNewBelow] = useState(false);
   const listRef = useRef<HTMLOListElement>(null);
-  const composerRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   // Depois de apagar a própria Mensagem, o foco vai para a seguinte da lista, ou para a caixa de
   // mensagem quando ela era a última (spec da F06, "Apagar").
   const deleteAndMoveFocus = (messageId: string) => {
@@ -168,7 +162,7 @@ function History({
             `[data-message-id="${nextId}"] :is(button, a, textarea):not([tabindex="-1"])`,
           )
         : null;
-      (next ?? composerRef.current?.querySelector<HTMLElement>("textarea"))?.focus();
+      (next ?? composerRef.current)?.focus();
     });
   };
 
@@ -361,13 +355,12 @@ function History({
         ) : null}
       </div>
       <TypingIndicator conversationId={conversation.id} />
-      <div ref={composerRef} className="contents">
-        <MessageComposer
-          label={composerLabel(conversation, currentPerson.id)}
-          onTextChange={typing.onTextChange}
-          onSend={send}
-        />
-      </div>
+      <MessageComposer
+        inputRef={composerRef}
+        label={composerLabel(conversation, currentPerson.id)}
+        onTextChange={typing.onTextChange}
+        onSend={send}
+      />
     </div>
   );
 }

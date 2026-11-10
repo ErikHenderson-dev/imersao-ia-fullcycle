@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { deleteMessage } from "@/app/actions/delete-message";
 import { ConfirmDialog } from "@/app/components/ui/confirm-dialog";
 import type { Message } from "@/app/services/chat-api";
@@ -10,9 +10,9 @@ type DeleteMessageDialogProps = {
   message: Message;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // A Mensagem saiu: apagada agora, ou já apagada antes (o 404 da API).
+  // A Mensagem saiu: apagada agora, ou já apagada antes (o 404 da API). O foco, daí em diante, é de
+  // quem lista as Mensagens.
   onDeleted: () => void;
-  onCloseAutoFocus?: (event: Event) => void;
 };
 
 // "Apagar mensagem?" (spec da F06, "Apagar"): mostra o texto, começa com o foco em Cancelar e não
@@ -23,9 +23,10 @@ export function DeleteMessageDialog({
   open,
   onOpenChange,
   onDeleted,
-  onCloseAutoFocus,
 }: DeleteMessageDialogProps) {
   const [isDeleting, setDeleting] = useState(false);
+  // Depois de apagar, o Radix não devolve o foco ao botão que abriu o menu.
+  const wasDeleted = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
@@ -38,6 +39,7 @@ export function DeleteMessageDialog({
     setDeleting(false);
     if (result.kind === "unauthenticated") return redirectToExpiredSession();
     if (result.kind === "ok" || result.kind === "not_found") {
+      wasDeleted.current = true;
       onOpenChange(false);
       return onDeleted();
     }
@@ -57,7 +59,9 @@ export function DeleteMessageDialog({
       onConfirm={() => void confirm()}
       isConfirming={isDeleting}
       error={error}
-      onCloseAutoFocus={onCloseAutoFocus}
+      onCloseAutoFocus={(event) => {
+        if (wasDeleted.current) event.preventDefault();
+      }}
     >
       <blockquote className="line-clamp-3 whitespace-pre-wrap break-words rounded-control border-l-4 border-border-strong bg-surface-inset px-3 py-2 text-body text-fg">
         {message.body}

@@ -1,5 +1,3 @@
-import request from 'supertest';
-import { App } from 'supertest/types';
 import { INestApplication } from '@nestjs/common';
 import type { MessageCreatedEvent, SyncEvent } from 'chat-events';
 import { compareStreamIds } from '../src/realtime/events.store';
@@ -9,6 +7,7 @@ import {
   collectEvents,
   listenTestApp,
   realtimeRoutes,
+  settle,
   testRedis,
   TestSocket,
   waitForCount,
@@ -129,25 +128,33 @@ describe('Recuperação depois da queda', () => {
     await conversationRoutes
       .editMessage(app, author.cookie, channel.id, messageId, 'Editada')
       .expect(200);
-    await request(app.getHttpServer() as App)
-      .delete(`/v1/conversations/${channel.id}/messages/${messageId}`)
-      .set('Cookie', author.cookie)
+    await conversationRoutes
+      .deleteMessage(app, author.cookie, channel.id, messageId)
       .expect(204);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await settle(200);
     const socket = realtimeRoutes.socket(url, {
       token: reader.token,
       cursor: seen.event_id,
     });
     sockets.push(socket);
-    const names: string[] = [];
-    socket.on('message.updated', () => names.push('message.updated'));
-    socket.on('message.deleted', () => names.push('message.deleted'));
+    // A publicação pode cruzar com a reconexão e chegar pelo reenvio e ao vivo, com o mesmo cursor:
+    // conta cada cursor uma vez, como a aba (orderForSync).
+    const received: { name: string; eventId?: string }[] = [];
+    socket.on('message.updated', (event) =>
+      received.push({ name: 'message.updated', eventId: event.event_id }),
+    );
+    socket.on('message.deleted', (event) =>
+      received.push({ name: 'message.deleted', eventId: event.event_id }),
+    );
     const syncs = collectEvents(socket, 'sync');
 
     socket.connect();
 
     const [sync] = await waitForCount(syncs, 1);
     expect(sync.reset).toBe(false);
+    const names = [
+      ...new Map(received.map((event) => [event.eventId, event.name])).values(),
+    ];
     expect(names).toEqual(['message.updated', 'message.deleted']);
   });
 

@@ -36,9 +36,12 @@ describe('apagar Mensagem', () => {
   }
 
   function remove(cookie: string, conversationId: string, messageId: string) {
-    return request(server)
-      .delete(`/v1/conversations/${conversationId}/messages/${messageId}`)
-      .set('Cookie', cookie);
+    return conversationRoutes.deleteMessage(
+      app,
+      cookie,
+      conversationId,
+      messageId,
+    );
   }
 
   async function storedRow(messageId: string) {

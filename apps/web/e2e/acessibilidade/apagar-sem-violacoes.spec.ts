@@ -2,7 +2,7 @@
 // seed: e2e/seed.spec.ts
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "../fixtures";
-import { messageItem, readyHistory } from "../support/conversation-page";
+import { messageItem, openDeleteDialog, readyHistory } from "../support/conversation-page";
 import { insertHistory } from "../support/database";
 
 test.describe("Acessibilidade", () => {
@@ -16,10 +16,7 @@ test.describe("Acessibilidade", () => {
     await insertHistory(memberChannel, person, 2);
     await page.goto(`/conversas/${memberChannel.id}`);
     await readyHistory(page, memberChannel.name);
-    const item = messageItem(page, memberChannel.name, "Mensagem 2");
-    await item.hover();
-    await item.getByRole("button", { name: "Mais ações" }).click();
-    await page.getByRole("menuitem", { name: "Apagar" }).click();
+    await openDeleteDialog(page, messageItem(page, memberChannel.name, "Mensagem 2"));
     await expect(page.getByRole("alertdialog")).toBeVisible();
 
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

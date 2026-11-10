@@ -4,8 +4,6 @@ import type {
   MessageDeletedEvent,
   MessageUpdatedEvent,
 } from 'chat-events';
-import request from 'supertest';
-import { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
@@ -223,9 +221,12 @@ describe('Mensagens em tempo real', () => {
       'message.deleted',
     );
 
-    const response = await request(app.getHttpServer() as App)
-      .delete(`/v1/conversations/${channel.id}/messages/${messageId}`)
-      .set('Cookie', author.cookie);
+    const response = await conversationRoutes.deleteMessage(
+      app,
+      author.cookie,
+      channel.id,
+      messageId,
+    );
 
     const [event] = await waitForCount(forReader, 1);
     await settle();

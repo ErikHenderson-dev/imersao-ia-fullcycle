@@ -104,9 +104,9 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     [mutate, initialPage],
   );
 
-  // Uma Mensagem apagada, pela própria exclusão ou pelo tempo real: sai do cache e das gravadas
-  // nesta abertura, para não voltar (spec da F06, "Eventos no cliente").
-  // As apagadas nesta abertura: a recarga do reset não as traz de volta.
+  // Uma Mensagem apagada, pela própria exclusão ou pelo tempo real, sai do cache e das gravadas nesta
+  // abertura, e fica no conjunto das apagadas, que a recarga do reset não traz de volta (spec da F06,
+  // "Eventos no cliente").
   const deleted = useRef(new Set<string>());
   const applyDeleted = useCallback(
     (messageId: string) => {

@@ -31,6 +31,14 @@ export function messageItem(page: Page, channelName: string, text: string): Loca
   return messageList(page, channelName).getByRole("listitem").filter({ hasText: text });
 }
 
+// Abre "Apagar mensagem?" pelo menu da Mensagem (F06) e devolve o diálogo.
+export async function openDeleteDialog(page: Page, item: Locator): Promise<Locator> {
+  await item.hover();
+  await item.getByRole("button", { name: "Mais ações" }).click();
+  await page.getByRole("menuitem", { name: "Apagar" }).click();
+  return page.getByRole("alertdialog", { name: "Apagar mensagem?" });
+}
+
 // A caixa de mensagem do Canal.
 export function composer(page: Page, channelName: string): Locator {
   return page.getByRole("textbox", { name: `Mensagem para #${channelName}` });

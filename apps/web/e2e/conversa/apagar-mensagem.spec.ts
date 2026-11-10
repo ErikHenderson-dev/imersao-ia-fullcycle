@@ -5,6 +5,7 @@ import { expect, test } from "../fixtures";
 import {
   composer,
   messageItem,
+  openDeleteDialog as openDelete,
   readyHistory,
   routeSendMessage,
 } from "../support/conversation-page";
@@ -14,13 +15,6 @@ import { insertMessages } from "../support/database";
 async function byId(page: Page, item: Locator): Promise<Locator> {
   const id = await item.getAttribute("data-message-id");
   return page.locator(`[data-message-id="${id}"]`);
-}
-
-async function openDelete(page: Page, item: Locator) {
-  await item.hover();
-  await item.getByRole("button", { name: "Mais ações" }).click();
-  await page.getByRole("menuitem", { name: "Apagar" }).click();
-  return page.getByRole("alertdialog", { name: "Apagar mensagem?" });
 }
 
 test.describe("Apagar a própria Mensagem", () => {

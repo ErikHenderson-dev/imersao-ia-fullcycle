@@ -1,7 +1,7 @@
 // spec: e2e/plano-de-testes-f06.md
 // seed: e2e/seed.spec.ts
 import { expect, test } from "../fixtures";
-import { messageItem, readyHistory } from "../support/conversation-page";
+import { messageItem, openDeleteDialog, readyHistory } from "../support/conversation-page";
 import { insertMessages } from "../support/database";
 
 test.describe("Exclusão em tempo real", () => {
@@ -21,11 +21,11 @@ test.describe("Exclusão em tempo real", () => {
     await expect(messageItem(otherPage, sharedChannel.name, "Vai sumir para todos")).toBeVisible();
 
     // 1. A autora apaga
-    const item = messageItem(page, sharedChannel.name, "Vai sumir para todos");
-    await item.hover();
-    await item.getByRole("button", { name: "Mais ações" }).click();
-    await page.getByRole("menuitem", { name: "Apagar" }).click();
-    await page.getByRole("alertdialog").getByRole("button", { name: "Apagar" }).click();
+    const dialogo = await openDeleteDialog(
+      page,
+      messageItem(page, sharedChannel.name, "Vai sumir para todos"),
+    );
+    await dialogo.getByRole("button", { name: "Apagar" }).click();
 
     // 2. Some para a outra Pessoa, sem recarregar
     await expect(messageItem(otherPage, sharedChannel.name, "Vai sumir para todos")).toHaveCount(0);
