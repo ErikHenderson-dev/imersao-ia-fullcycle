@@ -48,6 +48,15 @@ export class Message extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   editedAt!: Date | null;
 
+  // A Mensagem citada, da mesma Conversa (spec da F06, "Enviar com Citação").
+  @Index('messages_quoted_message_id_idx')
+  @Column({ type: 'uuid', nullable: true })
+  quotedMessageId!: string | null;
+
+  @ManyToOne(() => Message, { onDelete: 'NO ACTION' })
+  @JoinColumn({ name: 'quoted_message_id' })
+  quotedMessage?: Message;
+
   // A hora da exclusão; a linha fica só para as Citações (spec da F06, "Apagar").
   @Column({ type: 'timestamptz', nullable: true })
   deletedAt!: Date | null;

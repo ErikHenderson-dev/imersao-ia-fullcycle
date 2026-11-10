@@ -20,7 +20,14 @@ export interface MessagePayload {
   edited_at: string | null;
   /** As Pessoas mencionadas, resolvidas ao gravar (spec da F06, "Menções, ao gravar"). */
   mentions: MentionPayload[];
+  /** A Citação, ou nula (spec da F06, "A Mensagem no REST e nos eventos"). */
+  quote: QuotePayload | null;
 }
+
+/** A Mensagem citada: o autor e o texto atual, ou só a marca de apagada. */
+export type QuotePayload =
+  | { id: string; deleted: false; author: MessageAuthorPayload; body: string }
+  | { id: string; deleted: true };
 
 /** Uma Pessoa mencionada numa Mensagem. */
 export interface MentionPayload {
