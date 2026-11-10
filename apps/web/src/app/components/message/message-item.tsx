@@ -1,4 +1,7 @@
+"use client";
+
 import { CircleAlert } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { Avatar } from "@/app/components/ui/avatar";
 import { buttonVariants } from "@/app/components/ui/button";
@@ -22,12 +25,16 @@ type MessageItemProps = {
   status?: "sent" | "sending" | "failed";
   onRetry?: () => void;
   onDiscard?: () => void;
-  // A edição (spec da F06, "Edição"): `onEdit` só nas Mensagens da Pessoa logada; com `isEditing`,
-  // a MessageEditor toma o lugar do texto.
-  onEdit?: () => void;
-  isEditing?: boolean;
-  onEditSaved?: (message: Message) => void;
-  onEditClose?: () => void;
+  // A edição (spec da F06, "Edição"), só nas Mensagens da Pessoa logada: com `isEditing`, a
+  // MessageEditor toma o lugar do texto.
+  edit?: MessageEdit;
+};
+
+export type MessageEdit = {
+  isEditing: boolean;
+  start: () => void;
+  onSaved: (message: Message) => void;
+  onClose: () => void;
 };
 
 // Mensagem (MessageItem), no layout completo ou compacto. A barra de ações e o menu (spec da F06,
@@ -40,20 +47,23 @@ export function MessageItem({
   status = "sent",
   onRetry,
   onDiscard,
-  onEdit,
-  isEditing = false,
-  onEditSaved,
-  onEditClose,
+  edit,
 }: MessageItemProps) {
+  const isEditing = edit?.isEditing ?? false;
+  const itemRef = useRef<HTMLLIElement>(null);
+  // Ao fechar a edição, o foco volta para a Mensagem, no "Editar" da barra.
+  const wasEditing = useRef(isEditing);
+  useEffect(() => {
+    if (wasEditing.current && !isEditing) {
+      itemRef.current?.querySelector<HTMLElement>('[data-action="edit"]')?.focus();
+    }
+    wasEditing.current = isEditing;
+  }, [isEditing]);
   const failed = status === "failed" && (
     <SendFailure onRetry={onRetry} onDiscard={onDiscard} />
   );
-  const content = isEditing ? (
-    <MessageEditor
-      message={message}
-      onSaved={(saved) => onEditSaved?.(saved)}
-      onClose={() => onEditClose?.()}
-    />
+  const content = edit?.isEditing ? (
+    <MessageEditor message={message} onSaved={edit.onSaved} onClose={edit.onClose} />
   ) : (
     <>
       <MessageBody text={message.body} edited={message.editedAt} timeZone={timeZone} />
@@ -62,6 +72,7 @@ export function MessageItem({
   );
   return (
     <li
+      ref={itemRef}
       data-message-id={message.id}
       data-layout={compact ? "compact" : "full"}
       data-status={status}
@@ -75,7 +86,9 @@ export function MessageItem({
         ) : (
           <FullRow message={message} timeZone={timeZone} content={content} />
         )}
-        {status === "sent" && !isEditing && <MessageActions message={message} onEdit={onEdit} />}
+        {status === "sent" && !isEditing && (
+          <MessageActions message={message} onEdit={edit?.start} />
+        )}
       </div>
     </li>
   );

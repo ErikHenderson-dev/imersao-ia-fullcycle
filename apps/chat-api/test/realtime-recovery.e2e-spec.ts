@@ -1,5 +1,3 @@
-import request from 'supertest';
-import { App } from 'supertest/types';
 import { INestApplication } from '@nestjs/common';
 import type { MessageCreatedEvent, SyncEvent } from 'chat-events';
 import { compareStreamIds } from '../src/realtime/events.store';
@@ -126,10 +124,14 @@ describe('Recuperação depois da queda', () => {
     const messageId = (sent.body as { message: { id: string } }).message.id;
     const [seen] = await waitForCount(first.messages, 1);
     first.socket.disconnect();
-    await request(app.getHttpServer() as App)
-      .patch(`/v1/conversations/${channel.id}/messages/${messageId}`)
-      .set('Cookie', author.cookie)
-      .send({ body: 'Editada na queda' })
+    await conversationRoutes
+      .editMessage(
+        app,
+        author.cookie,
+        channel.id,
+        messageId,
+        'Editada na queda',
+      )
       .expect(200);
     const socket = realtimeRoutes.socket(url, {
       token: reader.token,

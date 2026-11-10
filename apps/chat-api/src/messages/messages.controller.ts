@@ -58,7 +58,7 @@ export class MessagesController {
     @Body() body: EditMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.messages.editMessage(
-      person.id,
+      { id: person.id, name: person.name },
       conversationId,
       id,
       body.body,

@@ -47,10 +47,13 @@ describe('editar Mensagem', () => {
     messageId: string,
     body: unknown,
   ) {
-    return request(server)
-      .patch(`/v1/conversations/${conversationId}/messages/${messageId}`)
-      .set('Cookie', cookie)
-      .send({ body });
+    return conversationRoutes.editMessage(
+      app,
+      cookie,
+      conversationId,
+      messageId,
+      body,
+    );
   }
 
   async function storedRow(messageId: string) {

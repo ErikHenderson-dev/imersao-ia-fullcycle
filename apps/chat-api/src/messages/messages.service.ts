@@ -156,55 +156,66 @@ export class MessagesService {
   // mudou, publica o message.updated para os Membros depois do commit. Como no envio, a falha da
   // publicação só vai para o log.
   async editMessage(
-    personId: string,
+    author: MessageAuthor,
     conversationId: string,
     messageId: string,
     body: string,
   ): Promise<MessageView> {
     const { message, changed } = await this.edit(
-      personId,
+      author,
       conversationId,
       messageId,
       body,
     );
-    if (!changed) return message;
+    if (changed) {
+      this.publishToMembers(
+        conversationId,
+        (memberIds) =>
+          this.publisher.messageUpdated(memberIds, toMessageResponse(message)),
+        'Falha ao publicar a Mensagem editada',
+      );
+    }
+    return message;
+  }
+
+  // Publica um evento para os Membros da Conversa depois do commit, sem prender a resposta: a
+  // gravação já valeu, e a falha só vai para o log (LLD, "Transações").
+  private publishToMembers(
+    conversationId: string,
+    publish: (memberIds: string[]) => Promise<void>,
+    failureLog: string,
+  ): void {
     void this.conversations
       .listMemberIds(conversationId)
-      .then((memberIds) =>
-        this.publisher.messageUpdated(memberIds, toMessageResponse(message)),
-      )
-      .catch((error: unknown) =>
-        this.logger.error('Falha ao publicar a Mensagem editada', error),
-      );
-    return message;
+      .then(publish)
+      .catch((error: unknown) => this.logger.error(failureLog, error));
   }
 
   // A trava de linha põe a edição e a exclusão da mesma Mensagem em fila (LLD, "Concorrência e
   // idempotência", "Editar e apagar mensagem"): a que chega depois lê a linha já gravada.
   @Transactional()
   private async edit(
-    personId: string,
+    author: MessageAuthor,
     conversationId: string,
     messageId: string,
     body: string,
   ): Promise<{ message: MessageView; changed: boolean }> {
     const message = await this.lockOwnMessage(
-      personId,
+      author.id,
       conversationId,
       messageId,
     );
-    if (message.body === body) {
-      const [view] = await this.withAuthors([message]);
-      return { message: view, changed: false };
+    const changed = message.body !== body;
+    if (changed) {
+      message.body = body;
+      message.editedAt = new Date();
+      await this.messages.update(
+        { id: message.id },
+        { body, editedAt: message.editedAt },
+      );
     }
-    message.body = body;
-    message.editedAt = new Date();
-    await this.messages.update(
-      { id: message.id },
-      { body, editedAt: message.editedAt },
-    );
-    const [view] = await this.withAuthors([message]);
-    return { message: view, changed: true };
+    // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
+    return { message: toView(message, author), changed };
   }
 
   // A Mensagem do autor, lida com trava de linha. A Conversa sem participação, ou com id

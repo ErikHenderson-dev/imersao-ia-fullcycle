@@ -6,7 +6,7 @@ import { Button } from "@/app/components/ui/button";
 import { Kbd } from "@/app/components/ui/kbd";
 import type { Message } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
-import { codePointLength, MESSAGE_MAX_LENGTH } from "@/app/utils/message-text";
+import { overLimitBy, overLimitLabel } from "@/app/utils/message-text";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 
 type MessageEditorProps = {
@@ -24,7 +24,7 @@ export function MessageEditor({ message, onSaved, onClose }: MessageEditorProps)
   const counterId = useId();
   const errorId = useId();
   const body = text.trim();
-  const overLimit = codePointLength(body) - MESSAGE_MAX_LENGTH;
+  const overLimit = overLimitBy(body);
   const canSave = status !== "saving" && body !== "" && overLimit <= 0;
 
   // O foco entra no fim do texto.
@@ -99,9 +99,7 @@ export function MessageEditor({ message, onSaved, onClose }: MessageEditorProps)
       </div>
       {overLimit > 0 && (
         <p id={counterId} className="text-caption text-danger-fg">
-          {overLimit === 1
-            ? "1 caractere acima do limite"
-            : `${overLimit} caracteres acima do limite`}
+          {overLimitLabel(overLimit)}
         </p>
       )}
       {status === "error" && (

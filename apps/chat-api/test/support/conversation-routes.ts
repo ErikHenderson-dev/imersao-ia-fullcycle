@@ -97,6 +97,21 @@ export const conversationRoutes = {
       });
   },
 
+  // Pelo REST, como a web: edita a Mensagem (spec da F06, "Rotas"). Aceita qualquer corpo, para os
+  // testes da validação.
+  editMessage(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+    messageId: string,
+    body: unknown,
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .patch(`/v1/conversations/${conversationId}/messages/${messageId}`)
+      .set('Cookie', cookie)
+      .send({ body });
+  },
+
   async removeMembership(
     app: INestApplication,
     conversationId: string,

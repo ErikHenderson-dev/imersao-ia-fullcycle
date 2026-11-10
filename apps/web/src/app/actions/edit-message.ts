@@ -5,7 +5,7 @@ import {
   type EditMessageResult,
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
-import { codePointLength, MESSAGE_MAX_LENGTH } from "@/app/utils/message-text";
+import { messageBodyToSave } from "@/app/utils/message-text";
 
 // Editar a própria Mensagem (spec da F06, "BFF"): valida o texto como a API e grava pelo service.
 export async function editMessage(
@@ -13,13 +13,8 @@ export async function editMessage(
   messageId: string,
   body: string,
 ): Promise<EditMessageResult> {
-  const text = typeof body === "string" ? body.trim() : "";
-  if (
-    typeof conversationId !== "string" ||
-    typeof messageId !== "string" ||
-    text === "" ||
-    codePointLength(text) > MESSAGE_MAX_LENGTH
-  ) {
+  const text = messageBodyToSave(body);
+  if (typeof conversationId !== "string" || typeof messageId !== "string" || text === null) {
     return { kind: "invalid" };
   }
   const token = await readSessionToken();

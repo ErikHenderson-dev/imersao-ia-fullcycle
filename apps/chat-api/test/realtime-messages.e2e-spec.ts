@@ -1,7 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import type { MessageCreatedEvent, MessageUpdatedEvent } from 'chat-events';
-import request from 'supertest';
-import { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
@@ -122,10 +120,13 @@ describe('Mensagens em tempo real', () => {
     messageId: string,
     body: string,
   ) {
-    return request(app.getHttpServer() as App)
-      .patch(`/v1/conversations/${conversationId}/messages/${messageId}`)
-      .set('Cookie', cookie)
-      .send({ body });
+    return conversationRoutes.editMessage(
+      app,
+      cookie,
+      conversationId,
+      messageId,
+      body,
+    );
   }
 
   async function sentId(cookie: string, conversationId: string) {

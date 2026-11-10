@@ -32,17 +32,21 @@ export function isNewerEdit(current: Message, edited: Message): boolean {
   return !current.editedAt || edited.editedAt > current.editedAt;
 }
 
-// Troca, pelo id, a Mensagem editada no cache, só se a edição for mais nova. Uma Mensagem que não
-// está no cache não entra: a edição não traz Mensagens de volta.
+// A Mensagem editada no lugar da que está na lista, se ela estiver lá e a edição for mais nova; senão,
+// a mesma lista. Uma Mensagem que não está na lista não entra: a edição não traz Mensagens de volta.
+export function withEdit<T extends readonly Message[]>(messages: T, edited: Message): T | Message[] {
+  const index = messages.findIndex((message) => message.id === edited.id);
+  if (index < 0 || !isNewerEdit(messages[index], edited)) return messages;
+  return messages.with(index, edited);
+}
+
+// Troca, pelo id, a Mensagem editada no cache, só se a edição for mais nova.
 export function replaceEdited(pages: MessagePage[], edited: Message): MessagePage[] {
-  let changed = false;
-  const next = pages.map((page) => {
-    const index = page.messages.findIndex((message) => message.id === edited.id);
-    if (index < 0 || !isNewerEdit(page.messages[index], edited)) return page;
-    changed = true;
-    return { ...page, messages: page.messages.with(index, edited) };
-  });
-  return changed ? next : pages;
+  const index = pages.findIndex((page) => page.messages.some((message) => message.id === edited.id));
+  if (index < 0) return pages;
+  const messages = withEdit(pages[index].messages, edited);
+  if (messages === pages[index].messages) return pages;
+  return pages.with(index, { ...pages[index], messages });
 }
 
 // Encaixa a Mensagem na ordem do id (UUID v7, a ordem da Conversa). Quem chama já descartou o id
