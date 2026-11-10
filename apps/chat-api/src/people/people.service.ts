@@ -2,6 +2,7 @@ import { Propagation, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { EntityManager, In, Repository } from 'typeorm';
+import { isUUID } from 'class-validator';
 import { randomUUIDv7 } from 'node:crypto';
 import { EmailAlreadyExistsError } from './email-already-exists.error';
 import { normalizeEmail } from './normalize-email';
@@ -203,6 +204,14 @@ export class PeopleService {
 
   findByEmail(email: string): Promise<Person | null> {
     return this.people.findOneBy({ email: normalizeEmail(email) });
+  }
+
+  // O Perfil de qualquer Pessoa (spec da F05, "Busca e Perfil"); um id que não é UUID é uma Pessoa
+  // que não existe.
+  async getProfile(id: string): Promise<Person> {
+    const person = isUUID(id) ? await this.findById(id) : null;
+    if (!person) throw new PersonNotFoundError();
+    return person;
   }
 
   findById(id: string): Promise<Person | null> {
