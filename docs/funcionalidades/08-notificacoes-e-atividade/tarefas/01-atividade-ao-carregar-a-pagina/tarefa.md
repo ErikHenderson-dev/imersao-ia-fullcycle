@@ -1,6 +1,6 @@
 # 01: Atividade ao carregar a página
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o rail ganha o ícone Atividade, com o número de Notificações não lidas, e ele
 abre a tela Atividade, com as abas Todas, Menções e Mensagens diretas, cada uma com o seu contador.
