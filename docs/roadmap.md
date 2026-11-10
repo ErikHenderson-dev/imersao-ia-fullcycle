@@ -22,7 +22,7 @@ O ID vira link para a pasta da funcionalidade, em `docs/funcionalidades/`, quand
 | [F03](funcionalidades/03-tempo-real/) | Tempo real | Ver as mensagens dos outros chegarem sem recarregar a página, ver quem está digitando e não perder nada depois de uma queda de conexão. | F02 | concluída |
 | [F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/) | Criação de canais e convite para canal privado | Criar um canal público ou privado e convidar pessoas para o privado, que só os convidados veem. | F02 | concluída |
 | [F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/) | Busca de pessoas, perfil e conversa direta | Buscar uma pessoa por nome ou @usuário, ver o perfil dela e conversar com ela numa conversa direta. | F02 | concluída |
-| [F06](funcionalidades/06-acoes-na-mensagem/) | Ações na mensagem | Mencionar pessoas, responder citando uma mensagem, copiar o texto e editar ou apagar as próprias mensagens, com a mudança aparecendo para todos na hora. | F03 | spec pronta |
+| [F06](funcionalidades/06-acoes-na-mensagem/) | Ações na mensagem | Mencionar pessoas, responder citando uma mensagem, copiar o texto e editar ou apagar as próprias mensagens, com a mudança aparecendo para todos na hora. | F03 | em andamento |
 | F07 | Não lidas e menções | Ver, em cada canal e conversa, quantas mensagens não lidas e quantas menções há. | F06 | planejada |
 | F08 | Notificações e Atividade | Receber um alerta na tela e, se ligar, uma notificação do navegador ao ser mencionada ou receber uma DM, clicar e cair na mensagem, e rever tudo em Atividade → Menções e DMs. | F05, F06 | planejada |
 | F09 | Perfil e tema | Editar nome, cargo, telefone, status e presença, e trocar entre o tema claro e o escuro. | F05 | planejada |
@@ -91,7 +91,7 @@ flowchart LR
   classDef concluida fill:#d1fae5,stroke:#059669,color:#111827
 
   class F01,F02,F03,F04,F05 concluida
-  class F06 specPronta
+  class F06 emAndamento
   class F07,F08,F09,F10,F11,F12,F13,F14 planejada
 ```
 

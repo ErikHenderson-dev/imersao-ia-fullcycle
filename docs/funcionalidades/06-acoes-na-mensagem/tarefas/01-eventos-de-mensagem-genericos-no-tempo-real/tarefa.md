@@ -1,6 +1,6 @@
 # 01: Eventos de Mensagem genéricos no tempo real
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** refatoração prévia, sem mudança de comportamento. O publisher, o reenvio na
 reconexão do gateway e o provedor de tempo real da web deixam de supor que todo evento guardado de
