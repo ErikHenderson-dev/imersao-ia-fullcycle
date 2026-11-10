@@ -28,9 +28,9 @@ test.describe("Não lidas na barra lateral", () => {
     otherPerson,
   }) => {
     // O primeiro da lista, sem Mensagens: a Home o abre, e abrir uma Conversa a lê (F07-T02).
-    const primeiro = await insertChannel([person], { name: `e2e-0-${Date.now()}` });
-    const comMencao = await insertChannel([person, otherPerson], { name: `e2e-a-${Date.now()}` });
-    const semMencao = await insertChannel([person, otherPerson], { name: `e2e-b-${Date.now()}` });
+    const primeiro = await insertChannel([person], { name: `e2e-0-${crypto.randomUUID()}` });
+    const comMencao = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
+    const semMencao = await insertChannel([person, otherPerson], { name: `e2e-b-${crypto.randomUUID()}` });
     const direta = await insertDirect(person, otherPerson);
     const [mencao] = await messagesFrom(comMencao, otherPerson, [`Oi @${person.username}`, "Mais uma"]);
     await insertMention(mencao.id, person);
@@ -59,9 +59,9 @@ test.describe("Não lidas na barra lateral", () => {
   });
 
   test("a seção recolhida mostra só as Conversas Não lidas", async ({ page, person, otherPerson }) => {
-    const primeiro = await insertChannel([person], { name: `e2e-0-${Date.now()}` });
-    const naoLido = await insertChannel([person, otherPerson], { name: `e2e-c-${Date.now()}` });
-    const lido = await insertChannel([person], { name: `e2e-d-${Date.now()}` });
+    const primeiro = await insertChannel([person], { name: `e2e-0-${crypto.randomUUID()}` });
+    const naoLido = await insertChannel([person, otherPerson], { name: `e2e-c-${crypto.randomUUID()}` });
+    const lido = await insertChannel([person], { name: `e2e-d-${crypto.randomUUID()}` });
     await messagesFrom(naoLido, otherPerson, [`Oi @${person.username}`]);
     await logIn(page, person);
     await readyHistory(page, primeiro.name);

@@ -70,7 +70,7 @@ O arquivo de teste leva o nome do arquivo testado. O sufixo define o nível do t
 | Integração | `.int-spec.ts` | Ao lado do código, em `src/` | Testes de integração exercitam uma peça com suas dependências reais |
 | Ponta a ponta | `.e2e-spec.ts` | Em `test/` | A aplicação inteira por HTTP |
 
-**Banco dos testes:** as suítes e2e e de integração rodam no banco `chat_test`, criado pelo script de inicialização do Postgres e, num volume que já existe, pelo `globalSetup`, que também roda as migrações. Detalhes no `docs/lld.md`, "Ambiente de desenvolvimento".
+**Banco dos testes:** as suítes e2e e de integração rodam no banco `chat_test`, que o `globalSetup` apaga, cria de novo e migra a cada execução. Detalhes no `docs/lld.md`, "Ambiente de desenvolvimento".
 
 **Onde cada regra é provada:** as regras de negócio são provadas pelos testes de ponta a ponta, pelas rotas, com banco real. O teste de unidade de um service é opcional, e vale quando a regra tem muitos casos que seriam lentos ou repetitivos pelas rotas. Funções puras têm teste de unidade. A spec da funcionalidade pode restringir isso, e ela prevalece.
 

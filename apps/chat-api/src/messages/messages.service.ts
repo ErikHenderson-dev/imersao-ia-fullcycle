@@ -17,6 +17,7 @@ import { extractMentionUsernames } from './mentions';
 import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
 import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
+import { UnreadPublisher } from './unread.publisher';
 import { toMessageResponse } from './message.response';
 
 export interface MessageAuthor {
@@ -84,6 +85,7 @@ export class MessagesService {
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
     private readonly publisher: RealtimePublisher,
+    private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
   ) {}
 
@@ -167,6 +169,9 @@ export class MessagesService {
           memberIds,
           toMessageResponse(message),
         );
+        // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
+        // própria, por Conversa: a fila da Mensagem não espera por eles.
+        void this.unreadPublisher.publish(conversationId, memberIds);
       })
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a Mensagem gravada', error),
@@ -235,15 +240,21 @@ export class MessagesService {
   ): Promise<MessageView> {
     const { message } = await this.withPublication(
       (reserve) => this.edit(author, conversationId, messageId, body, reserve),
-      ({ message: edited, changed }) =>
+      ({ message: edited, changed, mentionChangedIds }) =>
         changed
           ? this.toMembers(
               conversationId,
-              (memberIds) =>
-                this.publisher.messageUpdated(
+              async (memberIds) => {
+                await this.publisher.messageUpdated(
                   memberIds,
                   toMessageResponse(edited),
-                ),
+                );
+                // Só quem entrou ou saiu das Menções tem os números mudados (spec da F07).
+                void this.unreadPublisher.publish(
+                  conversationId,
+                  mentionChangedIds.filter((id) => memberIds.includes(id)),
+                );
+              },
               'Falha ao publicar a Mensagem editada',
             )
           : null,
@@ -263,11 +274,21 @@ export class MessagesService {
       () =>
         this.toMembers(
           conversationId,
-          (memberIds) =>
-            this.publisher.messageDeleted(memberIds, {
+          async (memberIds) => {
+            await this.publisher.messageDeleted(memberIds, {
               conversation_id: conversationId,
               message_id: messageId,
-            }),
+            });
+            // Só quem ainda não tinha lido a Mensagem tem os números mudados (spec da F07).
+            void this.conversations
+              .listMemberIdsReadBefore(conversationId, messageId, personId)
+              .then((readerIds) =>
+                this.unreadPublisher.publish(conversationId, readerIds),
+              )
+              .catch((error: unknown) =>
+                this.logger.error('Falha ao publicar as Não lidas', error),
+              );
+          },
           'Falha ao publicar a Mensagem apagada',
         ),
     );
@@ -317,7 +338,11 @@ export class MessagesService {
     messageId: string,
     body: string,
     reserve: (messageId: string) => void,
-  ): Promise<{ message: MessageView; changed: boolean }> {
+  ): Promise<{
+    message: MessageView;
+    changed: boolean;
+    mentionChangedIds: string[];
+  }> {
     const message = await this.lockOwnMessage(
       author.id,
       conversationId,
@@ -339,14 +364,19 @@ export class MessagesService {
       );
     }
     // Só regrava as Menções quando os @usuário escritos mudaram, e não a cada correção do texto.
+    const previousMentions = await this.mentionsOf(message.id);
     const mentions =
       changed && !sameUsernames(previousBody, body)
         ? await this.saveMentions(message, body, true)
-        : await this.mentionsOf(message.id);
+        : previousMentions;
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return {
       message: toView(message, author, mentions, await this.quoteOf(message)),
       changed,
+      mentionChangedIds: symmetricDifference(
+        previousMentions.map((mention) => mention.id),
+        mentions.map((mention) => mention.id),
+      ),
     };
   }
 
@@ -667,4 +697,10 @@ function toView(
     mentions,
     quote,
   };
+}
+
+// Os ids que estão em só uma das listas: quem entrou ou saiu das Menções.
+function symmetricDifference(before: string[], after: string[]): string[] {
+  const kept = new Set(before.filter((id) => after.includes(id)));
+  return [...new Set([...before, ...after])].filter((id) => !kept.has(id));
 }

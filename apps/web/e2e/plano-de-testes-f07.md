@@ -37,3 +37,17 @@ vazio, o primeiro da lista, que a Home abre.
 2. **a aba em segundo plano não marca como lida:** numa aba com `document.visibilityState`
    "hidden" e `document.hasFocus()` falso (script de inicialização), abrir um Canal Não lido não o
    lê; entrar de novo numa aba em foco mostra o Canal ainda Não lido.
+
+### 3. Números em tempo real (F07-T03)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/nao-lidas/tempo-real.spec.ts`
+
+Os Canais de teste levam um sufixo aleatório no nome: os nomes são únicos, e testes em paralelo
+criam Canais no mesmo milissegundo.
+
+1. **a Menção sobe o contador sem recarregar:** a outra Pessoa menciona a primeira pela caixa de
+   mensagem; na primeira, o Canal aparece em negrito com o contador 1.
+2. **ler numa aba tira o negrito na outra:** com um Canal com uma Menção Não lida e duas abas,
+   abrir o Canal numa delas tira o negrito e o contador na outra.
+3. **apagar a Mensagem com a Menção zera o contador:** a outra Pessoa menciona e depois apaga a
+   Mensagem pelo menu; o Canal deixa de estar Não lido na primeira.

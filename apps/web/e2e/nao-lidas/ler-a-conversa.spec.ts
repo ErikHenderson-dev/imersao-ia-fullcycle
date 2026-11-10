@@ -7,8 +7,8 @@ import { sidebarLink, unreadRowName } from "../support/sidebar";
 
 test.describe("Ler a Conversa", () => {
   test("abrir o Canal o deixa lido", async ({ page, person, otherPerson }) => {
-    const primeiro = await insertChannel([person, otherPerson], { name: `e2e-a-${Date.now()}` });
-    const comMencao = await insertChannel([person, otherPerson], { name: `e2e-b-${Date.now()}` });
+    const primeiro = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
+    const comMencao = await insertChannel([person, otherPerson], { name: `e2e-b-${crypto.randomUUID()}` });
     const [mencao] = await insertMessages(comMencao, [
       { author: otherPerson, body: `Oi @${person.username}`, at: new Date(Date.now() - 60_000) },
     ]);
@@ -34,8 +34,8 @@ test.describe("Ler a Conversa", () => {
   });
 
   test("a aba em segundo plano não marca como lida", async ({ browser, baseURL, person, otherPerson }) => {
-    const primeiro = await insertChannel([person, otherPerson], { name: `e2e-a-${Date.now()}` });
-    const naoLido = await insertChannel([person, otherPerson], { name: `e2e-b-${Date.now()}` });
+    const primeiro = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
+    const naoLido = await insertChannel([person, otherPerson], { name: `e2e-b-${crypto.randomUUID()}` });
     await insertMessages(naoLido, [{ author: otherPerson, body: "Novidade", at: new Date(Date.now() - 60_000) }]);
     const context = await browser.newContext({ baseURL });
     // No Chromium sem interface toda página diz que está visível e em foco: aqui, ela não está.

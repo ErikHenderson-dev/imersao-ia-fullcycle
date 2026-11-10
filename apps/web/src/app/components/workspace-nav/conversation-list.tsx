@@ -8,6 +8,7 @@ import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
 import {
   applyMemberAdded,
+  applyUnread,
   CONVERSATIONS_URL,
   conversationsKey,
 } from "@/app/utils/conversation-list";
@@ -71,6 +72,14 @@ export function ConversationList({ initialConversations, personId }: Conversatio
             (current) =>
               applyMemberAdded(current ?? initialConversations, conversation, personIds, personId),
             { revalidate: hasJoined },
+          );
+        },
+        // Os números calculados pelo servidor (spec da F07, "Tempo real"); a Última leitura anterior
+        // à do cache é descartada.
+        onUnread: ({ conversationId, unread }) => {
+          void mutate(
+            (current) => applyUnread(current ?? initialConversations, conversationId, unread),
+            { revalidate: false },
           );
         },
         onSync: (event) => {

@@ -11,6 +11,7 @@ import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 import { ReadController } from './read.controller';
 import { ReadService } from './read.service';
+import { UnreadPublisher } from './unread.publisher';
 
 @Module({
   // O forFeature registra a entidade no autoLoadEntities; o service usa o TransactionHost.
@@ -23,6 +24,6 @@ import { ReadService } from './read.service';
     MembershipsModule,
   ],
   controllers: [MessagesController, ReadController],
-  providers: [MessagesService, ReadService],
+  providers: [MessagesService, ReadService, UnreadPublisher],
 })
 export class MessagesModule {}

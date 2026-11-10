@@ -57,6 +57,17 @@ export class RealtimePublisher {
     }));
   }
 
+  // Os números de cada Pessoa numa Conversa, montados para ela (spec da F07, "Tempo real").
+  conversationUnread(
+    perPerson: Map<string, StoredEventPayloads['conversation.unread']>,
+  ): Promise<void> {
+    return this.publish(
+      'conversation.unread',
+      [...perPerson.keys()],
+      (personId) => perPerson.get(personId)!,
+    );
+  }
+
   private async publish<N extends StoredEventName>(
     name: N,
     memberIds: string[],
