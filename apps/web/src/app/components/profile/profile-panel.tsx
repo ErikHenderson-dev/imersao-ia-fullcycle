@@ -1,17 +1,14 @@
 "use client";
 
 import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import useSWR, { useSWRConfig } from "swr";
-import { openDirectConversation } from "@/app/actions/open-direct-conversation";
-import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
+import useSWR from "swr";
+import { useOpenDirectConversation } from "@/app/hooks/use-open-direct-conversation";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
-import type { Conversation, Profile } from "@/app/services/chat-api";
-import { applyMemberAdded } from "@/app/utils/conversation-list";
+import type { Profile } from "@/app/services/chat-api";
 import { localTimeLabel, msUntilNextMinute } from "@/app/utils/local-time";
 import { isValidTimeZone } from "@/app/utils/time-zone";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -190,37 +187,7 @@ function OpenDirectConversationButton({
   personId: string;
   sessionPersonId: string;
 }) {
-  const router = useRouter();
-  const { mutate } = useSWRConfig();
-  const [state, setState] = useState<"idle" | "opening" | "failed">("idle");
-  const pathname = usePathname();
-
-  async function open() {
-    setState("opening");
-    const result = await openDirectConversation(personId).catch(() => null);
-    if (result?.kind === "unauthenticated") return redirectToExpiredSession();
-    if (result?.kind !== "ok") return setState("failed");
-    const { conversation } = result;
-    await mutate(
-      conversationsKey(sessionPersonId),
-      // Sem a lista no cache, nada a inserir: a barra lateral a lê com a Conversa nova.
-      (current: readonly Conversation[] | undefined) =>
-        current && applyMemberAdded(current, conversation, [sessionPersonId], sessionPersonId),
-      { revalidate: false },
-    );
-    const target = `/conversas/${conversation.id}`;
-    // Já na própria Conversa, a página não troca: o botão volta na hora.
-    if (target === pathname) return setState("idle");
-    // O botão fica em "Abrindo" até a página trocar (logo abaixo), sem um segundo clique.
-    router.push(target);
-  }
-
-  const [openedAt, setOpenedAt] = useState(pathname);
-  if (openedAt !== pathname) {
-    setOpenedAt(pathname);
-    if (state === "opening") setState("idle");
-  }
-
+  const { state, open } = useOpenDirectConversation(sessionPersonId);
   return (
     <div className="flex flex-col items-start gap-1">
       <Button
@@ -228,7 +195,7 @@ function OpenDirectConversationButton({
         variant="secondary"
         icon={MessageSquare}
         loading={state === "opening"}
-        onClick={() => void open()}
+        onClick={() => void open(personId)}
       >
         {state === "opening" ? "Abrindo…" : "Mensagem"}
       </Button>

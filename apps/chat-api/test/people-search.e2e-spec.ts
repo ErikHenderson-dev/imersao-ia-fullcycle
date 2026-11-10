@@ -4,7 +4,9 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
+import { PeopleService } from '../src/people/people.service';
 import { createTestApp } from './support/create-test-app';
+import { uniqueEmail } from './support/unique-email';
 
 type PeopleBody = { people: { id: string; name: string }[] };
 
@@ -34,6 +36,9 @@ describe('busca de Pessoas', () => {
   function search(cookie: string, query: Record<string, string>) {
     return request(server).get('/v1/people').query(query).set('Cookie', cookie);
   }
+
+  const ids = (response: request.Response) =>
+    (response.body as PeopleBody).people.map((person) => person.id);
 
   const names = (response: request.Response) =>
     (response.body as PeopleBody).people.map((person) => person.name);
@@ -122,19 +127,69 @@ describe('busca de Pessoas', () => {
     );
   });
 
-  it('responde 400 sem not_member_of válido', async () => {
+  it('responde 400 com not_member_of malformado', async () => {
     const { owner } = await privateChannel();
 
-    const responses = await Promise.all([
-      search(owner.cookie, { q: 'a' }),
-      search(owner.cookie, { not_member_of: 'abc' }),
-    ]);
+    const response = await search(owner.cookie, { not_member_of: 'abc' });
 
-    for (const response of responses) {
-      expect(response.status).toBe(400);
-      expect((response.body as { code: string }).code).toBe(
-        'validation_failed',
-      );
+    expect(response.status).toBe(400);
+    expect((response.body as { code: string }).code).toBe('validation_failed');
+  });
+
+  describe('busca pelo @usuário (F05)', () => {
+    async function personWith(username: string, title?: string) {
+      return app.get(PeopleService).create({
+        email: uniqueEmail(),
+        name: `Pessoa ${username}`,
+        password: 'senha-de-teste',
+        username,
+        title,
+      });
     }
+
+    it('acha pelo @usuário, com e sem o @', async () => {
+      const { cookie } = await authRoutes.loggedIn(app);
+      const username = `u${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+      const regina = await personWith(username);
+
+      const [withAt, withoutAt] = await Promise.all([
+        search(cookie, { q: `@${username}` }),
+        search(cookie, { q: username }),
+      ]);
+
+      for (const response of [withAt, withoutAt]) {
+        expect(response.status).toBe(200);
+        expect(ids(response)).toEqual([regina.id]);
+      }
+    });
+
+    it('sem not_member_of, inclui quem busca', async () => {
+      const username = `u${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+      const me = await personWith(username);
+      const cookie = authRoutes.sessionCookie(
+        await authRoutes.login(app, me.email, 'senha-de-teste'),
+      );
+
+      const response = await search(cookie, { q: username });
+
+      expect(ids(response)).toEqual([me.id]);
+    });
+
+    it('cada Pessoa traz o @usuário e o cargo', async () => {
+      const { cookie } = await authRoutes.loggedIn(app);
+      const username = `u${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+      const regina = await personWith(username, 'Engenheira de Software');
+
+      const response = await search(cookie, { q: username });
+
+      expect((response.body as { people: unknown[] }).people).toEqual([
+        {
+          id: regina.id,
+          name: `Pessoa ${username}`,
+          username,
+          title: 'Engenheira de Software',
+        },
+      ]);
+    });
   });
 });

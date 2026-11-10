@@ -7,15 +7,15 @@ import { Button } from "@/app/components/ui/button";
 import { DialogBody, DialogContent, DialogFooter } from "@/app/components/ui/dialog";
 import { Spinner } from "@/app/components/ui/spinner";
 import { PersonRow } from "@/app/components/user/person-row";
-import type { ConversationKind, PersonSummary } from "@/app/services/chat-api";
+import type { ConversationKind, PersonEntry } from "@/app/services/chat-api";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { AddPeopleStep } from "./add-people-step";
 
-async function fetchMembers(url: string): Promise<PersonSummary[]> {
+async function fetchMembers(url: string): Promise<PersonEntry[]> {
   const response = await fetch(url);
   if (response.status === 401) return redirectToExpiredSession();
   if (!response.ok) throw new Error("Não foi possível carregar os Membros.");
-  return (await response.json()) as PersonSummary[];
+  return (await response.json()) as PersonEntry[];
 }
 
 type MembersDialogProps = {

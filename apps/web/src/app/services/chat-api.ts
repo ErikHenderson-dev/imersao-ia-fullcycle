@@ -162,6 +162,12 @@ type ApiMessage = MessagePayload;
 // Uma Pessoa com as iniciais já calculadas, para o avatar.
 export type PersonSummary = { id: string; name: string; initials: string };
 
+// Uma Pessoa nas listas de Pessoas (busca e Membros), com o @usuário e o cargo (spec da F05,
+// "Pessoa nas listas").
+export type PersonEntry = PersonSummary & { username: string; title: string | null };
+
+type ApiPersonEntry = Omit<PersonEntry, "initials">;
+
 function withInitials<T extends { name: string }>(person: T): T & { initials: string } {
   return { ...person, initials: initials(person.name) };
 }
@@ -326,7 +332,7 @@ export async function sendMessage(
 // Busca de Pessoas e adição ao Canal privado (spec da F04, "Rotas").
 
 export type SearchPeopleResult =
-  | { kind: "ok"; people: PersonSummary[] }
+  | { kind: "ok"; people: PersonEntry[] }
   | { kind: "invalid" }
   | { kind: "not_found" }
   | { kind: "unauthenticated" }
@@ -334,16 +340,19 @@ export type SearchPeopleResult =
 
 export async function searchPeople(
   token: string,
-  { q, notMemberOf }: { q: string; notMemberOf: string },
+  { q, notMemberOf }: { q: string; notMemberOf?: string },
 ): Promise<SearchPeopleResult> {
-  const query = new URLSearchParams({ q, not_member_of: notMemberOf });
+  // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca").
+  const query = new URLSearchParams(
+    notMemberOf === undefined ? { q } : { q, not_member_of: notMemberOf },
+  );
   const response = await request(`/v1/people?${query.toString()}`, {
     method: "GET",
     headers: authenticated(token),
   });
   if (response?.status === 400) return { kind: "invalid" };
   if (response?.status !== 200) return commonFailure(response);
-  const body = await jsonBody<{ people: { id: string; name: string }[] }>(response);
+  const body = await jsonBody<{ people: ApiPersonEntry[] }>(response);
   return body ? { kind: "ok", people: body.people.map(withInitials) } : { kind: "failure" };
 }
 
@@ -455,14 +464,14 @@ export async function addMembers(
 }
 
 export type MembersResult =
-  | { kind: "ok"; members: PersonSummary[] }
+  | { kind: "ok"; members: PersonEntry[] }
   | { kind: "not_found" }
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
 // Os Membros de uma Conversa, em ordem alfabética (spec da F04, "Rotas").
 export async function listMembers(token: string, conversationId: string): Promise<MembersResult> {
-  const result = await getJson<{ members: { id: string; name: string }[] }>(
+  const result = await getJson<{ members: ApiPersonEntry[] }>(
     token,
     conversationPath(conversationId, "/members"),
   );

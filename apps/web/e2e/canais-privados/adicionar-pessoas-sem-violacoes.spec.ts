@@ -14,15 +14,15 @@ test.describe("Acessibilidade", () => {
     try {
       // 1. O passo com os resultados da busca e uma escolhida
       const step = await createPrivateChannel(page, name);
-      await step.getByRole("searchbox", { name: "Buscar pessoas" }).fill(guest.name);
-      await step.getByRole("button", { name: guest.name, exact: true }).click();
+      await step.getByRole("combobox", { name: "Buscar pessoas" }).fill(guest.name);
+      await step.getByRole("option", { name: guest.name }).click();
       await expect(step.getByRole("list", { name: "Escolhidas" })).toBeVisible();
 
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
       // 2. O passo sem ninguém encontrado
-      await step.getByRole("searchbox", { name: "Buscar pessoas" }).fill(`${guest.name} inexistente`);
-      await expect(step.getByText("Ninguém encontrado com esse nome.")).toBeVisible();
+      await step.getByRole("combobox", { name: "Buscar pessoas" }).fill(`${guest.name} inexistente`);
+      await expect(step.getByText("Ninguém encontrado.")).toBeVisible();
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     } finally {
       await deleteChannelsNamed([name]);

@@ -26,12 +26,12 @@ test.describe("Adicionar Pessoas ao Canal privado", () => {
     try {
       // 1. Quem cria passa ao passo, com o foco na busca, e escolhe pelo teclado
       const step = await createPrivateChannel(ownerSession.page, name);
-      const searchBox = step.getByRole("searchbox", { name: "Buscar pessoas" });
+      const searchBox = step.getByRole("combobox", { name: "Buscar pessoas" });
       await expect(searchBox).toBeFocused();
       await ownerSession.page.keyboard.type(guest.name);
-      const option = step.getByRole("button", { name: guest.name, exact: true });
+      const option = step.getByRole("option", { name: guest.name });
       await expect(option).toBeVisible();
-      await option.focus();
+      // A primeira da lista já vem destacada: Enter a escolhe (combobox, F05).
       await ownerSession.page.keyboard.press("Enter");
       await expect(step.getByRole("list", { name: "Escolhidas" })).toContainText(guest.name);
       await expect(step.getByRole("button", { name: `Tirar ${guest.name}` })).toBeVisible();
@@ -62,4 +62,24 @@ test.describe("Adicionar Pessoas ao Canal privado", () => {
       await deleteChannelsNamed([name]);
     }
   });
+
+  test("acha pelo @usuário", async ({ browser, baseURL }) => {
+    // 1. Buscar a outra Pessoa pelo @usuário dela, com o @
+    const { name } = uniqueTypedChannelName();
+    const owner = await insertUniquePerson("Ana");
+    const guest = await insertUniquePerson("Bruno");
+    const ownerSession = await loggedInContext(browser, baseURL, owner);
+    try {
+      const step = await createPrivateChannel(ownerSession.page, name);
+      await step.getByRole("combobox", { name: "Buscar pessoas" }).fill(`@${guest.username}`);
+
+      const option = step.getByRole("option", { name: guest.name });
+      await expect(option).toBeVisible();
+      await expect(option).toContainText(`@${guest.username}`);
+    } finally {
+      await ownerSession.context.close();
+      await deleteChannelsNamed([name]);
+    }
+  });
 });
+
