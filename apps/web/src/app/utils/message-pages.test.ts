@@ -4,6 +4,7 @@ import {
   appendToLatestPage,
   flattenPages,
   patchQuotes,
+  recordEdit,
   removeDeleted,
   replaceEdited,
 } from "./message-pages";
@@ -190,5 +191,17 @@ describe("patchQuotes", () => {
 
     expect(deleted[0].messages[0].quote).toEqual({ id: "a", deleted: true });
     expect(late).toBe(deleted);
+  });
+});
+
+describe("recordEdit", () => {
+  it("aceita a edição mais nova e descarta a atrasada", () => {
+    const versions = new Map<string, string>();
+    const newer = { ...message("a"), editedAt: "2026-11-09T12:05:00.000Z" };
+    const older = { ...message("a"), editedAt: "2026-11-09T12:04:00.000Z" };
+
+    expect(recordEdit(versions, newer)).toBe(true);
+    expect(recordEdit(versions, older)).toBe(false);
+    expect(recordEdit(versions, newer)).toBe(false);
   });
 });

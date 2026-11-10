@@ -78,6 +78,17 @@ export function patchQuotes(
   return changed ? next : pages;
 }
 
+// A última edição vista de cada Mensagem, pelo editedAt: decide se uma edição que chega é nova
+// também para as Citações, cuja original pode não estar carregada. Devolve se a edição é nova, e a
+// guarda quando é.
+export function recordEdit(versions: Map<string, string>, edited: Message): boolean {
+  if (!edited.editedAt) return false;
+  const seen = versions.get(edited.id);
+  if (seen && edited.editedAt <= seen) return false;
+  versions.set(edited.id, edited.editedAt);
+  return true;
+}
+
 // Tira a Mensagem apagada do cache, pelo id (spec da F06, "Eventos no cliente").
 export function removeDeleted(pages: MessagePage[], messageId: string): MessagePage[] {
   const index = pages.findIndex((page) => page.messages.some((message) => message.id === messageId));

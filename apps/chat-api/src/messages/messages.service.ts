@@ -543,17 +543,20 @@ export class MessagesService {
     return byMessage;
   }
 
-  // A Citação precisa ser de uma Mensagem viva da mesma Conversa.
+  // A Citação precisa ser de uma Mensagem viva da mesma Conversa. A linha da original fica travada
+  // em modo compartilhado até o commit, em série com a exclusão (que a trava para escrita): uma
+  // exclusão não grava no meio deste envio.
   private async assertQuotable(
     conversationId: string,
     quotedMessageId: string,
   ): Promise<void> {
-    const quotable = await this.messages.existsBy({
-      id: quotedMessageId,
-      conversationId,
-      deletedAt: IsNull(),
-    });
-    if (!quotable) throw new QuotedMessageNotFoundError();
+    const quoted = await this.messages
+      .createQueryBuilder('message')
+      .setLock('pessimistic_read')
+      .where('message.id = :quotedMessageId', { quotedMessageId })
+      .andWhere('message.conversationId = :conversationId', { conversationId })
+      .getOne();
+    if (!quoted || quoted.deletedAt) throw new QuotedMessageNotFoundError();
   }
 
   private async quoteOf(message: Message): Promise<QuoteView | null> {
