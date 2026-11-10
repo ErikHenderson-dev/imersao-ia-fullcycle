@@ -351,16 +351,17 @@ function History({
   const advanceJump = useEffectEvent(() => {
     if (!jumpTarget || !step) return;
     const isUnread = jumpTarget.kind === "unread";
-    // A ida pedida pela URL termina aqui, achando ou não: a URL perde o parâmetro, sem renderizar a
+    // A ida termina, achando ou não; a pedida pela URL tira o parâmetro dela, sem renderizar a
     // página de novo no servidor, e recarregar não vai de novo.
-    if (!isUnread && !(step === "continue" && !(olderFailed && jumpRequestedLoad.current))) {
-      dropMessageParam();
-    }
+    const finish = () => {
+      isJumping.current = false;
+      setJumpTarget(null);
+      if (!isUnread) dropMessageParam();
+    };
     if (step === "continue") {
       if (isLoadingOlder) return;
       if (olderFailed && jumpRequestedLoad.current) {
-        isJumping.current = false;
-        setJumpTarget(null);
+        finish();
         // Sem chegar à primeira Não lida, a Conversa fica onde está, sem divisor: ele ficaria
         // acima de uma Mensagem com Não lidas antes dela.
         if (isUnread) setDividerAfter(null);
@@ -371,8 +372,7 @@ function History({
       loadOlder(JUMP_PAGE_SIZE);
       return;
     }
-    isJumping.current = false;
-    setJumpTarget(null);
+    finish();
     if (isUnread) showDivider();
     else if (step === "found") showMessage(jumpTarget.id);
     else toast("A mensagem não está mais disponível");
