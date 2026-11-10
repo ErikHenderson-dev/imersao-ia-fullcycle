@@ -1,13 +1,17 @@
 "use client";
 
 import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
+import { openDirectConversation } from "@/app/actions/open-direct-conversation";
+import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
-import type { Profile } from "@/app/services/chat-api";
+import type { Conversation, Profile } from "@/app/services/chat-api";
+import { applyMemberAdded } from "@/app/utils/conversation-list";
 import { localTimeLabel, msUntilNextMinute } from "@/app/utils/local-time";
 import { isValidTimeZone } from "@/app/utils/time-zone";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -31,7 +35,7 @@ async function fetchProfile(url: string): Promise<Profile> {
 // O painel de perfil ("Painel de perfil", Figma): ao lado da Conversa a partir de 1280 px, sobre ela
 // abaixo disso, e na largura toda abaixo de 640 px (design system, "Layout e responsividade").
 // O próprio Perfil é igual ao dos outros: "Editar perfil" só entra com a F09.
-export function ProfilePanel() {
+export function ProfilePanel({ sessionPersonId }: { sessionPersonId: string }) {
   const personId = useProfilePanelPerson();
   const { closeProfile, focusPanel, panelFocusTarget } = useProfilePanelActions();
 
@@ -67,13 +71,19 @@ export function ProfilePanel() {
         <IconButton ref={panelFocusTarget} icon={X} label="Fechar perfil" onClick={closeProfile} />
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        <ProfileContent personId={personId} />
+        <ProfileContent personId={personId} sessionPersonId={sessionPersonId} />
       </div>
     </aside>
   );
 }
 
-function ProfileContent({ personId }: { personId: string }) {
+function ProfileContent({
+  personId,
+  sessionPersonId,
+}: {
+  personId: string;
+  sessionPersonId: string;
+}) {
   const { data: profile, error, isLoading, mutate } = useSWR(
     profileKey(personId),
     fetchProfile,
@@ -122,12 +132,7 @@ function ProfileContent({ personId }: { personId: string }) {
       </div>
       {/* Um fuso que este navegador não formata some, em vez de quebrar o painel. */}
       {isValidTimeZone(profile.timeZone) && <LocalTime timeZone={profile.timeZone} />}
-      <div className="flex flex-wrap gap-2">
-        {/* A Conversa direta só existe a partir da F05-T04. */}
-        <Button type="button" variant="secondary" icon={MessageSquare} disabled>
-          Mensagem
-        </Button>
-      </div>
+      <OpenDirectConversationButton personId={profile.id} sessionPersonId={sessionPersonId} />
       <section
         aria-labelledby="profile-contact-title"
         className="flex flex-col gap-3 border-t border-border-subtle pt-5"
@@ -172,6 +177,56 @@ function LocalTime({ timeZone }: { timeZone: string }) {
       <Clock size={16} aria-hidden />
       {localTimeLabel(timeZone, now)}
     </p>
+  );
+}
+
+// "Mensagem": abre a Conversa direta com a Pessoa do Perfil, inclusive a própria (spec da F05,
+// "Painel de perfil"). A Conversa entra na barra lateral na hora, e o member_added que chega depois
+// é ignorado pelo id repetido.
+function OpenDirectConversationButton({
+  personId,
+  sessionPersonId,
+}: {
+  personId: string;
+  sessionPersonId: string;
+}) {
+  const router = useRouter();
+  const { mutate } = useSWRConfig();
+  const [state, setState] = useState<"idle" | "opening" | "failed">("idle");
+
+  async function open() {
+    setState("opening");
+    const result = await openDirectConversation(personId).catch(() => null);
+    if (result?.kind === "unauthenticated") return redirectToExpiredSession();
+    if (result?.kind !== "ok") return setState("failed");
+    const { conversation } = result;
+    await mutate(
+      conversationsKey(sessionPersonId),
+      (current: readonly Conversation[] | undefined) =>
+        applyMemberAdded(current ?? [], conversation, [sessionPersonId], sessionPersonId),
+      { revalidate: false },
+    );
+    router.push(`/conversas/${conversation.id}`);
+    setState("idle");
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        type="button"
+        variant="secondary"
+        icon={MessageSquare}
+        loading={state === "opening"}
+        onClick={() => void open()}
+      >
+        Mensagem
+      </Button>
+      {state === "failed" && (
+        <p role="alert" className="text-small text-danger-fg">
+          Não foi possível abrir a conversa. Tente de novo.
+        </p>
+      )}
+    </div>
   );
 }
 

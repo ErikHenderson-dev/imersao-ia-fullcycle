@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { listConversations } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
-import { ChannelList } from "./channel-list";
+import { ConversationList } from "./conversation-list";
 import { SidebarError } from "./sidebar-error";
 import { SidebarSkeleton } from "./sidebar-skeleton";
 
-// Lista de Conversas. Só a seção "Canais", lida no servidor e mantida no cliente pelo tempo real
-// (ChannelList), com "Adicionar canal" no fim (F04); as outras entram com as funcionalidades delas
-// (F05, F10). Abaixo de md ela fica na gaveta, com o Rail (NavigationDrawer).
+// Lista de Conversas: "Canais", com "Adicionar canal" no fim (F04), e "Mensagens diretas" (F05),
+// lidas no servidor e mantidas no cliente pelo tempo real (ConversationList); a de Agentes entra com
+// a F10. Abaixo de md ela fica na gaveta, com o Rail (NavigationDrawer).
 export function Sidebar({ personId }: { personId: string }) {
   return (
     <aside
@@ -32,5 +32,5 @@ async function Channels({ personId }: { personId: string }) {
   // Sem Sessão, o layout já leva a Pessoa para "Entrar"; aqui a lista só fica vazia.
   if (result?.kind === "failure") return <SidebarError />;
   const conversations = result?.kind === "ok" ? result.conversations : [];
-  return <ChannelList initialConversations={conversations} personId={personId} />;
+  return <ConversationList initialConversations={conversations} personId={personId} />;
 }

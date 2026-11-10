@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import useSWR from "swr";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { Dialog, DialogTrigger } from "@/app/components/ui/dialog";
-import { conversationsKey } from "@/app/components/workspace-nav/channel-list";
+import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
 import type { Conversation } from "@/app/services/chat-api";
 import { MembersDialog } from "./members-dialog";
 

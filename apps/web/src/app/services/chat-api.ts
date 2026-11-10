@@ -137,14 +137,20 @@ export async function logout(token: string): Promise<void> {
 
 // Conversas e Mensagens (spec da F02, "Rotas").
 
-export type ConversationKind = "public_channel" | "private_channel";
+export type ConversationKind = "public_channel" | "private_channel" | "direct";
+
+// A outra Pessoa de uma Conversa direta (a própria, na Conversa consigo mesma), com as iniciais.
+export type Counterpart = { id: string; name: string; username: string; initials: string };
 
 export type Conversation = {
   id: string;
   kind: ConversationKind;
+  // Vazio na Conversa direta, que não tem nome.
   name: string;
   topic: string | null;
   memberCount: number;
+  // Só na Conversa direta (spec da F05, "Conversa direta").
+  counterpart: Counterpart | null;
 };
 
 // A Conversa da API é a mesma do evento do tempo real (pacote chat-events).
@@ -371,6 +377,34 @@ export async function getProfile(token: string, personId: string): Promise<GetPr
   if (!body) return { kind: "failure" };
   const { time_zone: timeZone, ...person } = body.person;
   return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+}
+
+export type OpenDirectConversationResult =
+  | { kind: "ok"; conversation: Conversation }
+  | { kind: "invalid" }
+  | { kind: "not_found" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Abre a Conversa direta com a Pessoa (spec da F05, "Rotas"): 201 quando nasce agora, 200 quando já
+// existia.
+export async function openDirectConversation(
+  token: string,
+  personId: string,
+): Promise<OpenDirectConversationResult> {
+  const response = await request("/v1/conversations", {
+    method: "POST",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ kind: "direct", person_id: personId }),
+  });
+  if (response?.status === 200 || response?.status === 201) {
+    const body = await jsonBody<{ conversation: ApiConversation }>(response);
+    return body
+      ? { kind: "ok", conversation: conversationFromPayload(body.conversation) }
+      : { kind: "failure" };
+  }
+  if (response?.status === 400) return { kind: "invalid" };
+  return commonFailure(response);
 }
 
 export type SaveTimeZoneResult =

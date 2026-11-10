@@ -25,7 +25,7 @@ test.describe("Ver um Perfil", () => {
     await expect(panel.getByText(regina.name, { exact: true })).toBeVisible();
     await expect(panel.getByText("Engenheira de Software")).toBeVisible();
     await expect(panel.getByText(`@${regina.username}`)).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Mensagem" })).toBeDisabled();
+    await expect(panel.getByRole("button", { name: "Mensagem" })).toBeEnabled();
     await expect(panel.getByRole("link", { name: regina.email })).toHaveAttribute(
       "href",
       `mailto:${regina.email}`,

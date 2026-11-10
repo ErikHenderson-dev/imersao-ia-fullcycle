@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChannelIcon } from "@/app/components/conversation/channel-icon";
-import type { ConversationKind } from "@/app/services/chat-api";
+import { Avatar } from "@/app/components/ui/avatar";
+import type { Conversation } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
 
 type SidebarRowProps = {
   href: string;
-  name: string;
-  kind: ConversationKind;
+  conversation: Pick<Conversation, "kind" | "name" | "counterpart">;
+  // A Pessoa da Sessão: a Conversa direta consigo mesma leva "você" ao lado do nome.
+  selfId: string;
 };
 
 // Linha de Conversa da barra lateral (SidebarRow): h-7, ou 44 px abaixo de md, raio item. A da Conversa aberta fica
-// ativa, com o fundo de seleção e aria-current.
-export function SidebarRow({ href, name, kind }: SidebarRowProps) {
+// ativa, com o fundo de seleção e aria-current. Na Conversa direta, o avatar e o nome da outra
+// Pessoa no lugar do ícone e do nome do Canal (spec da F05, "Lista de Conversas e barra lateral").
+export function SidebarRow({ href, conversation, selfId }: SidebarRowProps) {
+  const { kind, name, counterpart } = conversation;
   const isActive = usePathname() === href;
   return (
     <li>
@@ -28,8 +32,18 @@ export function SidebarRow({ href, name, kind }: SidebarRowProps) {
             : "text-sidebar-fg hover:bg-sidebar-hover",
         )}
       >
-        <ChannelIcon kind={kind} size={16} className="shrink-0" />
-        <span className="truncate">{name}</span>
+        {kind === "direct" && counterpart ? (
+          <>
+            <Avatar initials={counterpart.initials} seed={counterpart.id} size="xs" />
+            <span className="truncate">{counterpart.name}</span>
+            {counterpart.id === selfId && <span className="shrink-0 opacity-70">você</span>}
+          </>
+        ) : (
+          <>
+            <ChannelIcon kind={kind} size={16} className="shrink-0" />
+            <span className="truncate">{name}</span>
+          </>
+        )}
       </Link>
     </li>
   );

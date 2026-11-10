@@ -27,17 +27,17 @@ async function fetchConversations(): Promise<readonly Conversation[]> {
   return (await response.json()) as Conversation[];
 }
 
-type ChannelListProps = {
+type ConversationListProps = {
   // A lista lida pelo Server Component, ponto de partida do cache.
   initialConversations: readonly Conversation[];
   // A Pessoa da Sessão: o evento põe a Conversa na lista só de quem acabou de entrar nela.
   personId: string;
 };
 
-// A seção "Canais" no cliente (spec da F04, "Lista de Conversas no cliente"): o
-// conversation.member_added muda o cache sem nova requisição, e o reset do tempo real busca a
-// lista de novo. Uma falha nessa busca mantém a lista que já está na tela.
-export function ChannelList({ initialConversations, personId }: ChannelListProps) {
+// As seções "Canais" e "Mensagens diretas" no cliente (spec da F04, "Lista de Conversas no
+// cliente"; spec da F05): o conversation.member_added muda o cache sem nova requisição, e o reset
+// do tempo real busca a lista de novo. Uma falha nessa busca mantém a lista que já está na tela.
+export function ConversationList({ initialConversations, personId }: ConversationListProps) {
   const { data: conversations, mutate } = useSWR(conversationsKey(personId), fetchConversations, {
     fallbackData: initialConversations,
     revalidateOnMount: false,
@@ -70,17 +70,23 @@ export function ChannelList({ initialConversations, personId }: ChannelListProps
     [subscribe, mutate, initialConversations, personId],
   );
 
+  const channels = conversations.filter((conversation) => conversation.kind !== "direct");
+  const directs = conversations.filter((conversation) => conversation.kind === "direct");
+  const row = (conversation: Conversation) => (
+    <SidebarRow
+      key={conversation.id}
+      href={`/conversas/${conversation.id}`}
+      conversation={conversation}
+      selfId={personId}
+    />
+  );
   return (
-    <SidebarSection title="Canais">
-      {conversations.map((conversation) => (
-        <SidebarRow
-          key={conversation.id}
-          href={`/conversas/${conversation.id}`}
-          name={conversation.name}
-          kind={conversation.kind}
-        />
-      ))}
-      <AddChannelAction />
-    </SidebarSection>
+    <>
+      <SidebarSection title="Canais">
+        {channels.map(row)}
+        <AddChannelAction />
+      </SidebarSection>
+      <SidebarSection title="Mensagens diretas">{directs.map(row)}</SidebarSection>
+    </>
   );
 }

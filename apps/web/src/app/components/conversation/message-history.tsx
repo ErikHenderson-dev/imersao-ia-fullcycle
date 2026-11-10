@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { SWRConfig } from "swr";
 import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
@@ -247,7 +248,7 @@ function History({
           ref={scrollRef}
           onScroll={measureEnd}
           role="region"
-          aria-label={`Histórico de #${conversation.name}`}
+          aria-label={`Histórico de ${conversationTitle(conversation)}`}
           // Marca o histórico em dia com o tempo real, que os testes esperam antes de agir.
           data-synced={isSynced ? "" : undefined}
           tabIndex={0}
@@ -276,13 +277,9 @@ function History({
               </button>
             </div>
           ) : (
-            <ConversationIntro
-              name={conversation.name}
-              topic={conversation.topic}
-              kind={conversation.kind}
-            />
+            <ConversationIntro conversation={conversation} selfId={currentPerson.id} />
           )}
-          <ol ref={listRef} aria-label={`Mensagens em #${conversation.name}`} className="flex flex-col">
+          <ol ref={listRef} aria-label={`Mensagens em ${conversationTitle(conversation)}`} className="flex flex-col">
             {rows.map(({ message, compact, dayLabel }) => (
               <MessageItem
                 // Pela autora e pelo client_id, a Mensagem "enviando" vira a gravada no mesmo item.
@@ -306,7 +303,7 @@ function History({
       </div>
       <TypingIndicator conversationId={conversation.id} />
       <MessageComposer
-        conversationName={conversation.name}
+        label={composerLabel(conversation, currentPerson.id)}
         onTextChange={typing.onTextChange}
         onSend={send}
       />
