@@ -5,17 +5,22 @@ import {
 } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
-import { EntityManager, In, Repository } from 'typeorm';
+import { EntityManager, In, IsNull, Not, Repository } from 'typeorm';
 import { isUUID } from 'class-validator';
 import { randomUUIDv7 } from 'node:crypto';
 import { EmailAlreadyExistsError } from './email-already-exists.error';
 import { normalizeEmail } from './normalize-email';
 import { PasswordHasher } from './password-hasher';
-import type { PersonSummary } from './person-summary';
+import type { SummarySource } from './person-summary';
 import { PersonNotFoundError } from './person-not-found.error';
 import { canonicalTimeZone } from './time-zone';
 import { Person } from './person.entity';
-import { parseName, parsePhone, parseTitle } from './profile-values';
+import {
+  parseName,
+  parsePhone,
+  parseStatus,
+  parseTitle,
+} from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
 import { InvalidProfileError } from './invalid-profile.error';
 import { parseUsername, usernameBase, usernameCandidates } from './username';
@@ -39,6 +44,8 @@ export interface PersonProfileChanges {
   name?: string;
   title?: string | null;
   phone?: string | null;
+  statusEmoji?: string | null;
+  statusText?: string | null;
 }
 
 // Quantas vezes a criação tenta o próximo sufixo quando outra criação, ao mesmo tempo, toma o
@@ -115,6 +122,8 @@ export class PeopleService {
       | 'generateId'
       | 'activityReadMessageId'
       | 'activityReadMessage'
+      | 'statusEmoji'
+      | 'statusText'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -181,12 +190,22 @@ export class PeopleService {
       where: { id: personId },
       lock: { mode: 'pessimistic_write' },
     });
-    const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
+    const update: Partial<
+      Pick<Person, 'name' | 'title' | 'phone' | 'statusEmoji' | 'statusText'>
+    > = {};
     if (changes.name !== undefined) update.name = parseName(changes.name);
     if (changes.title !== undefined)
       update.title = parseTitle(changes.title ?? '');
     if (changes.phone !== undefined)
       update.phone = parsePhone(changes.phone ?? '');
+    if (changes.statusEmoji !== undefined || changes.statusText !== undefined) {
+      const status = parseStatus(
+        { emoji: previous.statusEmoji, text: previous.statusText },
+        { emoji: changes.statusEmoji, text: changes.statusText },
+      );
+      update.statusEmoji = status.emoji;
+      update.statusText = status.text;
+    }
     if (Object.keys(update).length > 0) {
       await this.people.update({ id: personId }, update);
     }
@@ -309,11 +328,27 @@ export class PeopleService {
   }
 
   // O id, o nome, o @usuário e o cargo das Pessoas pedidas, para as listas por nome.
-  findSummariesByIds(ids: string[]): Promise<PersonSummary[]> {
+  findSummariesByIds(ids: string[]): Promise<SummarySource[]> {
     if (ids.length === 0) return Promise.resolve([]);
     return this.people.find({
-      select: { id: true, name: true, username: true, title: true },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        title: true,
+        statusEmoji: true,
+        statusText: true,
+      },
       where: { id: In(ids) },
+    });
+  }
+
+  // Quem tem Status, para o retrato (spec da F09, "Rotas"): cresce com quem tem Status, e não com o
+  // tamanho do workspace.
+  listWithStatus(): Promise<Person[]> {
+    return this.people.find({
+      select: { id: true, statusEmoji: true, statusText: true },
+      where: { statusEmoji: Not(IsNull()) },
     });
   }
 

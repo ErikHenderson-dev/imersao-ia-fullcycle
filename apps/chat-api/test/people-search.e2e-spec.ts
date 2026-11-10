@@ -188,6 +188,7 @@ describe('busca de Pessoas', () => {
           name: `Pessoa ${username}`,
           username,
           title: 'Engenheira de Software',
+          status: null,
         },
       ]);
     });

@@ -4,6 +4,8 @@ import { App } from 'supertest/types';
 import { authRoutes } from './support/auth-routes';
 import { createTestApp } from './support/create-test-app';
 
+type ProfileBody = { person: { status: unknown } };
+
 describe('edição do próprio Perfil', () => {
   let app: INestApplication;
   let server: App;
@@ -90,6 +92,58 @@ describe('edição do próprio Perfil', () => {
     expect((await profileOf(cookie, person.id)).body).toMatchObject({
       person: { name: person.name },
     });
+  });
+
+  it('grava o Status, e o texto sem emoji ganha o speech', async () => {
+    const { cookie } = await authRoutes.loggedIn(app);
+
+    const withEmoji = await update(cookie, {
+      status_emoji: 'vacation',
+      status_text: ' De férias até sexta ',
+    });
+    const onlyText = await update(cookie, {
+      status_emoji: null,
+      status_text: 'Em reunião',
+    });
+
+    expect((withEmoji.body as ProfileBody).person.status).toEqual({
+      emoji: 'vacation',
+      text: 'De férias até sexta',
+    });
+    expect((onlyText.body as ProfileBody).person.status).toEqual({
+      emoji: 'speech',
+      text: 'Em reunião',
+    });
+  });
+
+  it('aceita o emoji sem mensagem e limpa o Status com os dois nulos', async () => {
+    const { cookie } = await authRoutes.loggedIn(app);
+    const onlyEmoji = await update(cookie, { status_emoji: 'headphones' });
+
+    const cleared = await update(cookie, {
+      status_emoji: null,
+      status_text: null,
+    });
+
+    expect((onlyEmoji.body as ProfileBody).person.status).toEqual({
+      emoji: 'headphones',
+      text: null,
+    });
+    expect((cleared.body as ProfileBody).person.status).toBeNull();
+  });
+
+  it.each([
+    ['a chave fora das sete', { status_emoji: 'party' }],
+    ['a mensagem com 101 caracteres', { status_text: 's'.repeat(101) }],
+    ['a mensagem com quebra de linha', { status_text: 'a\nb' }],
+    ['a mensagem com o caractere nulo', { status_text: 'a\u0000' }],
+  ])('responde 400 validation_failed para %s', async (_case, body) => {
+    const { cookie } = await authRoutes.loggedIn(app);
+
+    const response = await update(cookie, body);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'validation_failed' });
   });
 
   it('responde 401 sem Sessão', async () => {

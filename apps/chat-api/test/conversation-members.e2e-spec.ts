@@ -50,18 +50,21 @@ describe('Membros de uma Conversa', () => {
         name: 'Ábaco Lima',
         username: ana.person.username,
         title: null,
+        status: null,
       },
       {
         id: bruno.person.id,
         name: 'abelha Costa',
         username: bruno.person.username,
         title: null,
+        status: null,
       },
       {
         id: owner.person.id,
         name: 'Zélia Souza',
         username: owner.person.username,
         title: null,
+        status: null,
       },
     ]);
   });

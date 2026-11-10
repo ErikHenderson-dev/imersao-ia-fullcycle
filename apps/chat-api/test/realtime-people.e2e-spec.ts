@@ -70,6 +70,7 @@ describe('Perfil em tempo real', () => {
         name: 'Ana Lima',
         username: editor.person.username,
         title: null,
+        status: null,
       },
     ]);
   });
@@ -99,6 +100,17 @@ describe('Perfil em tempo real', () => {
 
     await settle();
     expect(updates).toEqual([]);
+  });
+
+  it('a mudança só do Status publica', async () => {
+    const editor = await authRoutes.loggedIn(app);
+    const socket = await connected(editor.token);
+    const updates = updatesOf(socket, editor.person.id);
+
+    await editProfile(editor.cookie, { status_emoji: 'meal' });
+
+    await waitForCount(updates, 1);
+    expect(updates[0].status).toEqual({ emoji: 'meal', text: null });
   });
 
   it('não volta na reconexão com cursor', async () => {

@@ -47,6 +47,7 @@ describe('Perfil de uma Pessoa', () => {
         email,
         phone: '+55 11 98888-0001',
         time_zone: null,
+        status: null,
       },
     });
   });

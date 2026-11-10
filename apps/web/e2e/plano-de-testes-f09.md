@@ -27,3 +27,15 @@ campo, nos dois temas, sem violações do axe.
    barra lateral, no painel, nos Membros do Canal e no cabeçalho da Conversa direta.
 2. **As outras abas de quem editou mudam o Rail e o menu do avatar:** uma segunda aba da mesma
    Sessão passa a "Menu de Ana Lima".
+
+## F09-T03 · Status (`perfil/status.spec.ts`)
+
+1. **Escolhe e limpa o Status pelo teclado:** as setas mudam o emoji marcado; a mensagem acima de
+   100 mostra o erro embaixo dela; salvar grava; espaço no marcado o desmarca, e salvar com a
+   mensagem vazia limpa o Status.
+2. **O Status chega sem recarregar, aparece onde o nome aparece e sai ao limpar:** o Bruno vê o
+   emoji da Ana na Mensagem, na barra lateral, no painel de perfil (com a mensagem), no Tooltip,
+   nos Membros e no cabeçalho da Conversa direta; quando ela limpa, o emoji some.
+
+Acessibilidade (`acessibilidade/status-sem-violacoes.spec.ts`): o diálogo com um emoji marcado e
+a mensagem, e o próprio perfil com o Status, nos dois temas, sem violações do axe.

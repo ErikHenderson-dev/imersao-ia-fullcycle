@@ -145,6 +145,22 @@ export type StoredServerToClientEvents = {
   [N in StoredEventName]: (event: StoredEvent<N>) => void;
 };
 
+/** As chaves dos sete emojis do Status (LLD, "Valores de regra", "Emojis do Status"). */
+export type StatusEmoji =
+  | "speech"
+  | "headphones"
+  | "calendar"
+  | "meal"
+  | "home"
+  | "vacation"
+  | "sick";
+
+/** O Status de uma Pessoa: o emoji e, opcional, a mensagem (spec da F09, "Pessoas"). */
+export interface StatusPayload {
+  emoji: StatusEmoji;
+  text: string | null;
+}
+
 /**
  * O Perfil de uma Pessoa que mudou, para todo o workspace; não é guardado nem reenviado (spec da
  * F09, "Tempo real").
@@ -154,6 +170,7 @@ export interface PersonUpdatedEvent {
   name: string;
   username: string;
   title: string | null;
+  status: StatusPayload | null;
 }
 
 export interface SyncEvent {

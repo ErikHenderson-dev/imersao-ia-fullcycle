@@ -1,18 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { parseProfileFields } from "./profile-fields";
 
-const VALID = { name: "Ana Lima", title: "Engenheira", phone: "+55 11 98888-0001" };
+const VALID = {
+  name: "Ana Lima",
+  title: "Engenheira",
+  phone: "+55 11 98888-0001",
+  statusEmoji: null,
+  statusText: "",
+};
 
 describe("parseProfileFields", () => {
   it("apara os campos e troca o cargo e o telefone vazios por nulo", () => {
-    expect(parseProfileFields({ name: "  Ana Lima ", title: "  ", phone: "" })).toEqual({
+    expect(parseProfileFields({ ...VALID, name: "  Ana Lima ", title: "  ", phone: "" })).toEqual({
       kind: "ok",
-      fields: { name: "Ana Lima", title: null, phone: null },
+      fields: { name: "Ana Lima", title: null, phone: null, statusEmoji: null, statusText: null },
     });
   });
 
   it("aceita os limites, contados em code points", () => {
     const result = parseProfileFields({
+      ...VALID,
+      statusText: "s".repeat(100),
       name: "😀".repeat(80),
       title: "c".repeat(80),
       phone: "9".repeat(30),
@@ -48,12 +56,40 @@ describe("parseProfileFields", () => {
   });
 
   it("devolve o erro de cada campo, na ordem da tela", () => {
-    const result = parseProfileFields({ name: "", title: "c".repeat(81), phone: "x" });
+    const result = parseProfileFields({ ...VALID, name: "", title: "c".repeat(81), phone: "x" });
     expect(result.kind === "invalid" && result.errors.map((error) => error.field)).toEqual([
       "name",
       "title",
       "phone",
     ]);
+  });
+
+  it("a mensagem de status sem emoji ganha o speech, e com emoji fica com ele", () => {
+    const onlyText = parseProfileFields({ ...VALID, statusText: " Em reunião " });
+    const withEmoji = parseProfileFields({ ...VALID, statusEmoji: "vacation", statusText: "" });
+
+    expect(onlyText.kind === "ok" && onlyText.fields).toMatchObject({
+      statusEmoji: "speech",
+      statusText: "Em reunião",
+    });
+    expect(withEmoji.kind === "ok" && withEmoji.fields).toMatchObject({
+      statusEmoji: "vacation",
+      statusText: null,
+    });
+  });
+
+  it.each([
+    ["com 101 caracteres", "s".repeat(101), "A mensagem de status pode ter no máximo 100 caracteres."],
+    ["com quebra de linha", "a\nb", "A mensagem de status precisa ficar numa linha só."],
+  ])("recusa a mensagem de status %s", (_case, statusText, message) => {
+    expect(parseProfileFields({ ...VALID, statusText })).toEqual({
+      kind: "invalid",
+      errors: [{ field: "statusText", message }],
+    });
+  });
+
+  it("recusa a chave de emoji fora das sete", () => {
+    expect(parseProfileFields({ ...VALID, statusEmoji: "party" }).kind).toBe("invalid");
   });
 
   it("recusa o campo que não é texto, apontando para ele", () => {

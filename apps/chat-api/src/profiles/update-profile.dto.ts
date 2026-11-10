@@ -18,4 +18,13 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   phone?: string | null;
+
+  @IsOptional()
+  @IsString()
+  status_emoji?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @NoNullCharacter()
+  status_text?: string | null;
 }

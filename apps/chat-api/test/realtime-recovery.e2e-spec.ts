@@ -39,10 +39,28 @@ describe('Recuperação depois da queda', () => {
     const messages = collectEvents(socket, 'message.created');
     // Os números de Não lidas saem depois de cada Mensagem (F07): também contam para o cursor.
     const unread = collectEvents(socket, 'conversation.unread');
+    // Os cursores de todos os eventos guardados que chegaram até o sync, de qualquer tipo: outros
+    // testes criam Canais públicos ao mesmo tempo, e o member_added deles também avança o cursor.
+    const cursorsBeforeSync: string[] = [];
+    const received: string[] = [];
+    for (const name of [
+      'message.created',
+      'message.updated',
+      'message.deleted',
+      'conversation.member_added',
+      'conversation.unread',
+      'activity.unread',
+    ] as const) {
+      collectEvents(socket, name);
+      socket.on(name, (event: { event_id?: string }) => {
+        if (event.event_id) received.push(event.event_id);
+      });
+    }
     const syncs = collectEvents(socket, 'sync');
+    socket.once('sync', () => cursorsBeforeSync.push(...received));
     socket.connect();
     const [sync] = await waitForCount(syncs, 1);
-    return { socket, messages, unread, sync };
+    return { socket, messages, unread, sync, cursorsBeforeSync };
   }
 
   // Duas Pessoas no mesmo Canal: a autora envia, a leitora recebe.
@@ -88,7 +106,7 @@ describe('Recuperação depois da queda', () => {
     await send('Durante a queda 1');
     await send('Durante a queda 2');
 
-    const { messages, unread, sync } = await connectAndSync(
+    const { messages, sync, cursorsBeforeSync } = await connectAndSync(
       reader.token,
       seen.event_id,
     );
@@ -112,8 +130,7 @@ describe('Recuperação depois da queda', () => {
     ]);
     // O cursor do sync é o do último evento reenviado, de qualquer tipo, como os números de Não
     // lidas que saem depois de cada Mensagem (F07).
-    const lastCursor = [...messages, ...unread]
-      .map((event) => event.event_id!)
+    const lastCursor = [...cursorsBeforeSync]
       .sort((a, b) => compareStreamIds(a.split(':')[1], b.split(':')[1]))
       .at(-1);
     expect(sync).toEqual({ cursor: lastCursor, reset: false });
