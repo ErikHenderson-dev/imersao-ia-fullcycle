@@ -1,6 +1,6 @@
 # 02: Perfil em tempo real
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quando uma Pessoa salva o Perfil, as outras veem o nome novo na hora, sem
 recarregar e em todas as abas: nas Mensagens já carregadas, nas Citações, na barra lateral, em
