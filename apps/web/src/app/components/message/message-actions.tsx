@@ -41,8 +41,7 @@ export function MessageActions({ message }: MessageActionsProps) {
       onSelect: () => void copyMessageText(message.body),
     },
   ];
-  const barActions = actions.filter((action) => action.tone !== "danger");
-  const menuActions = barActions;
+  const regularActions = actions.filter((action) => action.tone !== "danger");
   const dangerActions = actions.filter((action) => action.tone === "danger");
 
   return (
@@ -57,13 +56,12 @@ export function MessageActions({ message }: MessageActionsProps) {
         isMenuOpen && "pointer-events-auto opacity-100",
       )}
     >
-      {barActions.map((action) => (
+      {regularActions.map((action) => (
         <IconButton
           key={action.id}
           icon={action.icon}
           label={action.label}
           size="sm"
-          hasTooltip
           onClick={action.onSelect}
         />
       ))}
@@ -71,10 +69,10 @@ export function MessageActions({ message }: MessageActionsProps) {
           deixaria controles focáveis escondidos. */}
       <DropdownMenu open={isMenuOpen} onOpenChange={setMenuOpen} modal={false}>
         <DropdownMenuTrigger asChild>
-          <IconButton icon={Ellipsis} label="Mais ações" size="sm" hasTooltip />
+          <IconButton icon={Ellipsis} label="Mais ações" size="sm" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" inline>
-          {menuActions.map((action) => (
+          {regularActions.map((action) => (
             <MenuItem key={action.id} action={action} />
           ))}
           {dangerActions.length > 0 && <DropdownMenuSeparator />}

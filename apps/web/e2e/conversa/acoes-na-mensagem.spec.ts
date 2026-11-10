@@ -1,7 +1,12 @@
 // spec: e2e/plano-de-testes-f06.md
 // seed: e2e/seed.spec.ts
 import { expect, test } from "../fixtures";
-import { messageItem, readyHistory, routeSendMessage } from "../support/conversation-page";
+import {
+  composer,
+  messageItem,
+  readyHistory,
+  routeSendMessage,
+} from "../support/conversation-page";
 import { insertMessages } from "../support/database";
 
 const TEXTO = "Primeira linha\ncom link https://example.com/a";
@@ -112,7 +117,7 @@ test.describe("Barra de ações e copiar o texto", () => {
 
   test("a Mensagem com falha no envio não tem barra", async ({ page, memberChannel }) => {
     const restore = await routeSendMessage(page, (route) => route.abort());
-    const caixa = page.getByRole("textbox", { name: `Mensagem para #${memberChannel.name}` });
+    const caixa = composer(page, memberChannel.name);
     await caixa.fill("Vai falhar");
     await caixa.press("Enter");
     const item = messageItem(page, memberChannel.name, "Vai falhar");

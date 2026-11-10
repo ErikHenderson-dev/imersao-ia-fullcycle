@@ -5,30 +5,42 @@ import { Tooltip as Primitive } from "radix-ui";
 // Atraso da dica (design system, "Tooltip").
 const TOOLTIP_DELAY_MS = 400;
 
+// Um Provider só, no layout raiz: o atraso vale uma vez, e passar de uma dica para a vizinha não
+// espera de novo.
+export function TooltipProvider({ children }: { children: React.ReactNode }) {
+  return <Primitive.Provider delayDuration={TOOLTIP_DELAY_MS}>{children}</Primitive.Provider>;
+}
+
+// O Esc que só fechou uma dica. O Radix marca esse Esc como tratado (preventDefault), e quem fecha
+// com Esc e ignora o que já foi tratado, como o painel de perfil, consulta esta marca para não
+// perder o Esc só porque o foco estava num botão com dica.
+const tooltipEscapes = new WeakSet<KeyboardEvent>();
+
+export function isTooltipEscape(event: KeyboardEvent): boolean {
+  return tooltipEscapes.has(event);
+}
+
 type TooltipProps = {
   label: string;
   children: React.ReactElement;
-  side?: React.ComponentProps<typeof Primitive.Content>["side"];
 };
 
 // Dica de um controle, ao passar o mouse ou focar. O nome acessível continua no próprio controle;
-// a dica só repete o rótulo para quem vê. Cada dica traz o próprio Provider, para funcionar em
-// qualquer tela, inclusive fora do layout das telas logadas.
-export function Tooltip({ label, children, side = "top" }: TooltipProps) {
+// a dica repete o rótulo para quem vê.
+export function Tooltip({ label, children }: TooltipProps) {
   return (
-    <Primitive.Provider delayDuration={TOOLTIP_DELAY_MS}>
     <Primitive.Root>
       <Primitive.Trigger asChild>{children}</Primitive.Trigger>
-      <Primitive.Portal>
-        <Primitive.Content
-          side={side}
-          sideOffset={6}
-          className="z-50 animate-pop-in rounded-item bg-fg px-2 py-1 text-caption font-bold text-fg-inverse shadow-2"
-        >
-          {label}
-        </Primitive.Content>
-      </Primitive.Portal>
+      {/* Sem portal: a dica fica junto do controle, dentro da landmark dele, e o posicionamento
+          fixo do Radix a tira do fluxo. */}
+      <Primitive.Content
+        side="top"
+        sideOffset={6}
+        onEscapeKeyDown={(event) => tooltipEscapes.add(event)}
+        className="z-50 animate-pop-in rounded-item bg-fg px-2 py-1 text-caption font-bold text-fg-inverse shadow-2"
+      >
+        {label}
+      </Primitive.Content>
     </Primitive.Root>
-    </Primitive.Provider>
   );
 }

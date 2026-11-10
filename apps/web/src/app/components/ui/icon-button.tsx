@@ -26,8 +26,6 @@ type IconButtonProps = Omit<React.ComponentProps<"button">, "children"> &
     icon: LucideIcon;
     // Obrigatório: vira o nome acessível e a dica (design system, "IconButton").
     label: string;
-    // A dica do design system (Tooltip, ao passar o mouse e ao focar) no lugar do title nativo.
-    hasTooltip?: boolean;
   };
 
 export function IconButton({
@@ -37,19 +35,20 @@ export function IconButton({
   size,
   className,
   type = "button",
-  hasTooltip = false,
   ...props
 }: IconButtonProps) {
-  const button = (
-    <button
-      type={type}
-      aria-label={label}
-      title={hasTooltip ? undefined : label}
-      className={cn(iconButtonVariants({ tone, size }), className)}
-      {...props}
-    >
-      <Icon size={18} aria-hidden />
-    </button>
+  // A dica do design system, ao passar o mouse e ao focar. As props de um Trigger com asChild que
+  // envolva o IconButton chegam aqui e vão para o botão.
+  return (
+    <Tooltip label={label}>
+      <button
+        type={type}
+        aria-label={label}
+        className={cn(iconButtonVariants({ tone, size }), className)}
+        {...props}
+      >
+        <Icon size={18} aria-hidden />
+      </button>
+    </Tooltip>
   );
-  return hasTooltip ? <Tooltip label={label}>{button}</Tooltip> : button;
 }
