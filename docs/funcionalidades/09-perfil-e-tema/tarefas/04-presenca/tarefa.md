@@ -1,6 +1,6 @@
 # 04: Presença
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa se define como ausente ou disponível pelo menu do avatar, e os
 outros veem a bolinha de Presença mudar na hora, em todos os lugares da spec. Quem fecha todas as
