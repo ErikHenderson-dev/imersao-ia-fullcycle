@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { updateProfile } from "@/app/actions/update-profile";
+import { usePeopleStore } from "@/app/components/people/people-provider";
 import { Button } from "@/app/components/ui/button";
 import { Dialog, DialogBody, DialogClose, DialogContent, DialogFooter } from "@/app/components/ui/dialog";
 import { EmptyState } from "@/app/components/ui/empty-state";
@@ -140,6 +141,7 @@ type EditProfileFormProps = {
 
 function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditProfileFormProps) {
   const { mutate } = useSWRConfig();
+  const people = usePeopleStore();
   const [values, setValues] = useState<Record<ProfileField, string>>({
     name: profile.name,
     title: profile.title ?? "",
@@ -176,8 +178,10 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
     onSavingChange(false);
     switch (result.kind) {
       case "ok":
-        // Outros lugares que leem este Perfil (o painel aberto) passam a mostrar o novo.
+        // O painel aberto e a camada de Pessoas (Rail, menu, Mensagens) mostram o novo na hora, sem
+        // esperar o person.updated.
         void mutate(profileKey(result.profile.id), result.profile, { revalidate: false });
+        people.apply(result.profile);
         onSaved();
         return;
       case "invalid":

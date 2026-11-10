@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   updateProfile as updateProfileInChat,
   type UpdateProfileResult,
@@ -23,8 +22,7 @@ export async function updateProfile(input: {
   if (parsed.kind === "invalid") return parsed;
   const token = await readSessionToken();
   if (!token) return { kind: "unauthenticated" };
-  const result = await updateProfileInChat(token, parsed.fields);
-  // O Rail e o menu do avatar, renderizados no servidor, passam a ter o nome novo.
-  if (result.kind === "ok") revalidatePath("/", "layout");
-  return result;
+  // O nome novo chega ao Rail e ao menu pela camada de Pessoas, sem renderizar o layout de novo
+  // (spec da F09, "Cliente").
+  return updateProfileInChat(token, parsed.fields);
 }

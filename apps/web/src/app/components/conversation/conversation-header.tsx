@@ -1,5 +1,5 @@
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
-import { Avatar } from "@/app/components/ui/avatar";
+import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { OpenNavigationButton } from "@/app/components/workspace-nav/navigation-drawer";
 import type { Conversation } from "@/app/services/chat-api";
 import { ChannelIcon } from "./channel-icon";
@@ -25,8 +25,10 @@ export function ConversationHeader({ conversation, members }: ConversationHeader
             personId={counterpart.id}
             className="flex min-w-0 items-center gap-2 hover:underline"
           >
-            <Avatar initials={counterpart.initials} seed={counterpart.id} size="sm" />
-            <span className="truncate">{counterpart.name}</span>
+            <PersonAvatar person={counterpart} size="sm" />
+            <span className="truncate">
+              <PersonName id={counterpart.id} name={counterpart.name} />
+            </span>
           </OpenProfileButton>
         </h1>
       </header>

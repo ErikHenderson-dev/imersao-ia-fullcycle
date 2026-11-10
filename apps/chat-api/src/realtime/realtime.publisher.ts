@@ -1,13 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   ConversationPayload,
+  PersonUpdatedEvent,
   MessagePayload,
   StoredEventName,
   StoredEventPayloads,
 } from 'chat-events';
 import { EventsStore } from './events.store';
 import { RealtimeGateway } from './realtime.gateway';
-import { emitStoredEvent, personRoom } from './realtime-socket';
+import { emitStoredEvent, personRoom, WORKSPACE_ROOM } from './realtime-socket';
 
 // Emite os eventos guardados por Pessoa para as abas dela (spec da F03, "Eventos por Pessoa e
 // reconexão"). Quem chama publica depois da gravação. Cada evento entra antes no stream de cada
@@ -73,6 +74,17 @@ export class RealtimePublisher {
     payloadFor: (personId: string) => StoredEventPayloads['activity.unread'],
   ): Promise<void> {
     return this.publish('activity.unread', personIds, payloadFor);
+  }
+
+  // O Perfil que mudou, para todo o workspace, sem guardar: quem perde o evento numa queda vê o nome
+  // novo ao recarregar (spec da F09, "Tempo real"). O nome também muda no "digitando".
+  personUpdated(person: PersonUpdatedEvent): void {
+    this.gateway.renamePerson(person.id, person.name);
+    try {
+      this.gateway.server.to(WORKSPACE_ROOM).emit('person.updated', person);
+    } catch (error) {
+      this.logger.error('Falha ao publicar o Perfil', error);
+    }
   }
 
   private async publish<N extends StoredEventName>(

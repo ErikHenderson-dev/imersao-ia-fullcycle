@@ -4,6 +4,7 @@ import { Bell, BellOff, CircleUser, LogOut, Pencil } from "lucide-react";
 import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
 import { useEditProfile } from "@/app/components/profile/edit-profile-dialog";
+import { usePerson } from "@/app/components/people/people-provider";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
 import { Avatar } from "@/app/components/ui/avatar";
@@ -23,7 +24,9 @@ type UserMenuProps = { person: Person };
 // Menu do avatar do Rail: o cabeçalho, sem a linha de presença, "Perfil" (F05), "Editar perfil"
 // (F09), a opção da notificação do navegador (F08) e "Sair do Full Cycle". A presença entra na
 // F09-T04.
-export function UserMenu({ person }: UserMenuProps) {
+export function UserMenu({ person: sessionPerson }: UserMenuProps) {
+  // O nome atual, também depois de editado em outra aba (spec da F09, "Camada de Pessoas").
+  const person = usePerson(sessionPerson);
   const [isPending, startTransition] = useTransition();
   const profile = useOpenProfileFromOverlay();
   const trigger = useRef<HTMLButtonElement>(null);

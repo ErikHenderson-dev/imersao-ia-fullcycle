@@ -1,4 +1,4 @@
-import { Avatar } from "@/app/components/ui/avatar";
+import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import type { PersonEntry } from "@/app/services/chat-api";
 
 type PersonRowProps = {
@@ -14,10 +14,10 @@ export function PersonRow({ person, isSelf }: PersonRowProps) {
   const detail = [`@${person.username}`, person.title].filter(Boolean).join(" · ");
   return (
     <span className="flex min-w-0 flex-1 items-center gap-3">
-      <Avatar initials={person.initials} seed={person.id} />
+      <PersonAvatar person={person} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-body font-bold text-fg">
-          {person.name}
+          <PersonName id={person.id} name={person.name} />
           {isSelf && <span className="font-normal text-fg-muted"> (você)</span>}
         </span>
         <span className="truncate text-small text-fg-muted">{detail}</span>
