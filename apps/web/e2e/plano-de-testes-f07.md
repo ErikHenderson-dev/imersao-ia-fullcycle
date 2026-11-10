@@ -51,3 +51,12 @@ criam Canais no mesmo milissegundo.
    abrir o Canal numa delas tira o negrito e o contador na outra.
 3. **apagar a Mensagem com a Menção zera o contador:** a outra Pessoa menciona e depois apaga a
    Mensagem pelo menu; o Canal deixa de estar Não lido na primeira.
+
+### 5. Título da aba e marcador no rail (F07-T05)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/nao-lidas/titulo-e-rail.spec.ts`
+
+1. **o título e o marcador do Início avisam e somem ao ler:** com a Pessoa num Canal vazio, uma
+   Menção em outro Canal muda o título para "(1) Full Cycle Chat", o nome do Início para "Início,
+   há mensagens não lidas" e mostra o marcador; abrir o Canal volta o título a "Full Cycle Chat" e
+   tira o marcador.

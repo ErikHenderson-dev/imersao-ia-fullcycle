@@ -9,6 +9,7 @@ import type { Conversation } from "@/app/services/chat-api";
 import {
   applyMemberAdded,
   applyUnread,
+  conversationHref,
   CONVERSATIONS_URL,
   conversationsKey,
 } from "@/app/utils/conversation-list";
@@ -19,10 +20,6 @@ import { SidebarRow } from "./sidebar-row";
 import { SidebarSection } from "./sidebar-section";
 
 export { conversationsKey };
-
-function hrefOf(conversation: Conversation): string {
-  return `/conversas/${conversation.id}`;
-}
 
 
 // Um 401 aqui é só uma falha: a lista que está na tela fica, e quem leva a "Entrar" é o fim da
@@ -94,11 +91,11 @@ export function ConversationList({ initialConversations, personId }: Conversatio
   const directs = conversations.filter((conversation) => conversation.kind === "direct");
   // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
   const isOpenAndFocused = (conversation: Conversation) =>
-    isTabFocused && hrefOf(conversation) === pathname;
+    isTabFocused && conversationHref(conversation) === pathname;
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}
-      href={hrefOf(conversation)}
+      href={conversationHref(conversation)}
       conversation={conversation}
       selfId={personId}
       isOpenAndFocused={isOpenAndFocused(conversation)}

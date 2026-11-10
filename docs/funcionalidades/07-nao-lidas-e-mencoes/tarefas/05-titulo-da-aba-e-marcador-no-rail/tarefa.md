@@ -1,6 +1,6 @@
 # 05: Título da aba e marcador no rail
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** o título da aba do navegador começa com a soma dos contadores visíveis da
 barra lateral, como "(3) Full Cycle Chat", e o ícone Início do rail ganha um marcador quando há ao
@@ -16,14 +16,14 @@ entra em nenhum dos dois. Referências:
 
 **Bloqueada por:** 02 (Ler a Conversa)
 
-- [ ] **CA1** · No Figma, antes do código: criar o marcador de Não lidas no ícone Início, em
+- [x] **CA1** · No Figma, antes do código: criar o marcador de Não lidas no ícone Início, em
   "Casca / Rail / Início ativo" e "Casca / Rail / Atividade ativa".
-- [ ] **CA2** · O título mostra a soma das Menções dos Canais e das Não lidas das Conversas
+- [x] **CA2** · O título mostra a soma das Menções dos Canais e das Não lidas das Conversas
   diretas, sem a Conversa aberta em foco, com `(99+)` acima de 99 e sem número em zero, e é
   reaplicado a cada navegação; a soma é uma função pura com teste.
-- [ ] **CA3** · O Início ganha o ponto na cor `badge` com ao menos uma Conversa Não lida, fora a
+- [x] **CA3** · O Início ganha o ponto na cor `badge` com ao menos uma Conversa Não lida, fora a
   aberta em foco, e o rótulo acessível passa a avisar as Não lidas.
-- [ ] **CA4** · O Playwright prova o título com "(1)" e o marcador no Início depois de uma Menção
+- [x] **CA4** · O Playwright prova o título com "(1)" e o marcador no Início depois de uma Menção
   em outra Conversa, também na tela Atividade, e os dois sumindo ao ler.
-- [ ] **CA5** · A validação visual do rail com o marcador, nos dois temas, contra os frames, fica
+- [x] **CA5** · A validação visual do rail com o marcador, nos dois temas, contra os frames, fica
   nesta pasta.
