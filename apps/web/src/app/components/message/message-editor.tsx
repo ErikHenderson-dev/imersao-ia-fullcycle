@@ -29,13 +29,8 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
   const mentions = useMentionPicker({
     conversationId: message.conversationId,
     text,
-    replaceText: (value, caret) => {
-      setText(value);
-      requestAnimationFrame(() => {
-        textareaRef.current?.setSelectionRange(caret, caret);
-        mentions.onCaret(caret);
-      });
-    },
+    setText,
+    textareaRef,
   });
   const errorId = useId();
   const body = text.trim();
@@ -87,7 +82,7 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
         {mentions.list && <MentionPicker {...mentions.list} />}
         <textarea
           ref={textareaRef}
-          {...mentions.inputProps}
+          {...mentions.textareaProps}
           aria-label="Editar mensagem"
           aria-invalid={overLimit > 0 || status === "error" || undefined}
           aria-describedby={
@@ -98,12 +93,11 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
           readOnly={status === "saving"}
           onChange={(event) => {
             setText(event.target.value);
-            mentions.onCaret(event.target.selectionStart);
+            mentions.handleChange(event);
             if (status === "error") setStatus("editing");
           }}
-          onSelect={(event) => mentions.onCaret(event.currentTarget.selectionStart)}
           onKeyDown={(event) => {
-            if (mentions.onKeyDown(event)) return;
+            if (mentions.handleKeyDown(event)) return;
             if (event.key === "Escape") {
               // O Esc é da edição: não fecha o painel de perfil nem outra camada.
               event.preventDefault();

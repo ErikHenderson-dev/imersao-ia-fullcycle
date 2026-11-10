@@ -221,6 +221,14 @@ describe('busca de Pessoas', () => {
       expect(response.status).toBe(404);
     });
 
+    it('responde 400 com member_of malformado', async () => {
+      const { owner } = await privateChannel();
+
+      const response = await search(owner.cookie, { member_of: 'abc' });
+
+      expect(response.status).toBe(400);
+    });
+
     it('responde 400 com member_of e not_member_of juntos', async () => {
       const { owner, channelId } = await privateChannel();
 

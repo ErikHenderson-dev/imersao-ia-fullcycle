@@ -1,6 +1,7 @@
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
+import type { MentionPayload } from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
@@ -23,10 +24,7 @@ export interface MessageAuthor {
 }
 
 // Uma Pessoa mencionada (spec da F06, "A Mensagem no REST e nos eventos").
-export interface MentionView {
-  id: string;
-  username: string;
-}
+export type MentionView = MentionPayload;
 
 export interface MessageView {
   id: string;
@@ -320,7 +318,8 @@ export class MessagesService {
       messageId,
     );
     reserve(message.id);
-    const changed = message.body !== body;
+    const previousBody = message.body ?? '';
+    const changed = previousBody !== body;
     if (changed) {
       message.body = body;
       // Estritamente crescente por Mensagem, mesmo com duas edições no mesmo milissegundo: a aba só
@@ -333,9 +332,11 @@ export class MessagesService {
         { body, editedAt: message.editedAt },
       );
     }
-    const mentions = changed
-      ? await this.saveMentions(message, body, true)
-      : await this.mentionsOf(message.id);
+    // Só regrava as Menções quando os @usuário escritos mudaram, e não a cada correção do texto.
+    const mentions =
+      changed && !sameUsernames(previousBody, body)
+        ? await this.saveMentions(message, body, true)
+        : await this.mentionsOf(message.id);
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return { message: toView(message, author, mentions), changed };
   }
@@ -468,16 +469,10 @@ export class MessagesService {
     replace: boolean,
   ): Promise<MentionView[]> {
     const usernames = extractMentionUsernames(body);
-    const mentioned =
-      usernames.length === 0
-        ? []
-        : await this.txHost.tx.query<MentionView[]>(
-            `SELECT p.id, p.username FROM people p
-               JOIN conversation_members m
-                 ON m.person_id = p.id AND m.conversation_id = $1
-              WHERE p.username = ANY($2)`,
-            [message.conversationId, usernames],
-          );
+    const mentioned = await this.conversations.findMembersByUsernames(
+      message.conversationId,
+      usernames,
+    );
     const ids = mentioned.map((person) => person.id);
     if (replace) {
       await this.mentions.delete({
@@ -547,6 +542,15 @@ export class MessagesService {
       ),
     );
   }
+}
+
+function sameUsernames(before: string, after: string): boolean {
+  const previous = extractMentionUsernames(before).sort();
+  const next = extractMentionUsernames(after).sort();
+  return (
+    previous.length === next.length &&
+    previous.every((username, index) => username === next[index])
+  );
 }
 
 // Em ordem de @usuário, para a resposta não depender da ordem do banco.

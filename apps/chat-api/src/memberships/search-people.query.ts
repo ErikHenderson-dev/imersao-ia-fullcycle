@@ -1,10 +1,4 @@
-import {
-  IsEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  ValidateIf,
-} from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 // Busca de Pessoas (spec da F04, "Busca de Pessoas"; spec da F05, "Busca"): para adicionar a uma
 // Conversa, sem os Membros dela; no "Nova conversa", sem filtro; ou na lista de menções, só com os
@@ -18,9 +12,7 @@ export class SearchPeopleQuery {
   @IsUUID()
   not_member_of?: string;
 
-  // Junto com not_member_of, a busca não faz sentido: a validação recusa.
-  @ValidateIf((query: SearchPeopleQuery) => query.not_member_of !== undefined)
-  @IsEmpty()
+  // Junto com not_member_of, a busca não faz sentido: o service recusa (ConflictingPeopleFiltersError).
   @IsOptional()
   @IsUUID()
   member_of?: string;

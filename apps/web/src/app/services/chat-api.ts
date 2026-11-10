@@ -1,4 +1,4 @@
-import type { ConversationPayload, MessagePayload } from "chat-events";
+import type { ConversationPayload, MessagePayload, MentionPayload } from "chat-events";
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
@@ -187,7 +187,7 @@ export type Message = {
   mentions: Mention[];
 };
 
-export type Mention = { id: string; username: string };
+export type Mention = MentionPayload;
 
 export type MessagePage = { messages: Message[]; hasMore: boolean };
 

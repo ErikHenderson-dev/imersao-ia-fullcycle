@@ -44,19 +44,11 @@ export function MessageComposer({
   const [text, setText] = useState("");
   const localRef = useRef<HTMLTextAreaElement>(null);
   const textarea = inputRef ?? localRef;
-  // Troca o texto (escolha na lista, botão @) e põe o cursor na posição, depois de renderizar.
-  function replaceText(value: string, caret: number) {
-    changeText(value);
-    requestAnimationFrame(() => {
-      textarea.current?.focus();
-      textarea.current?.setSelectionRange(caret, caret);
-      mentions.onCaret(caret);
-    });
-  }
   const mentions = useMentionPicker({
-    conversationId: conversationId ?? "",
-    text: conversationId ? text : "",
-    replaceText,
+    conversationId,
+    text,
+    setText: changeText,
+    textareaRef: textarea,
   });
   const body = text.trim();
   const overLimit = overLimitBy(body);
@@ -88,7 +80,7 @@ export function MessageComposer({
         <div className="flex px-3 pt-3 pb-1">
           <textarea
             ref={textarea}
-            {...(conversationId ? mentions.inputProps : {})}
+            {...mentions.textareaProps}
             aria-label={label}
             aria-invalid={overLimit > 0 || undefined}
             aria-describedby={overLimit > 0 ? counterId : undefined}
@@ -99,11 +91,10 @@ export function MessageComposer({
             value={text}
             onChange={(event) => {
               changeText(event.target.value);
-              mentions.onCaret(event.target.selectionStart);
+              mentions.handleChange(event);
             }}
-            onSelect={(event) => mentions.onCaret(event.currentTarget.selectionStart)}
             onKeyDown={(event) => {
-              if (mentions.onKeyDown(event)) return;
+              if (mentions.handleKeyDown(event)) return;
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 submit();
@@ -123,7 +114,7 @@ export function MessageComposer({
               onClick={() => {
                 const caret = textarea.current?.selectionStart ?? text.length;
                 const next = insertAt(text, caret);
-                replaceText(next.text, next.caret);
+                mentions.replaceText(next.text, next.caret);
               }}
             />
           )}

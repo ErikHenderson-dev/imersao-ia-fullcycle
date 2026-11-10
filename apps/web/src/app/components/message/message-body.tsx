@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { Mention } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { splitMessageBody } from "@/app/utils/message-segments";
@@ -20,9 +21,11 @@ export function MessageBody({
   edited?: string | null;
   timeZone?: string;
 }) {
+  // A divisão só muda com o texto e as Menções, e não a cada renderização do histórico.
+  const segments = useMemo(() => splitMessageBody(text, mentions), [text, mentions]);
   return (
     <p className="whitespace-pre-wrap break-words text-body text-fg">
-      {splitMessageBody(text, mentions).map((segment, index) =>
+      {segments.map((segment, index) =>
         segment.kind === "mention" ? (
           <MentionChip
             key={index}

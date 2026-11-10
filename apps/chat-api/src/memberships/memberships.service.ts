@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConflictingPeopleFiltersError } from './conflicting-people-filters.error';
 import { toConversationResponse } from '../conversations/conversation.response';
 import type {
   ConversationSummary,
@@ -39,6 +40,9 @@ export class MembershipsService {
     { notMemberOf, memberOf }: { notMemberOf?: string; memberOf?: string },
     q: string,
   ): Promise<PersonSummary[]> {
+    if (notMemberOf !== undefined && memberOf !== undefined) {
+      throw new ConflictingPeopleFiltersError();
+    }
     const conversationId = notMemberOf ?? memberOf;
     let memberIds: string[] = [];
     if (conversationId !== undefined) {
