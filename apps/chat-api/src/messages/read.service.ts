@@ -39,8 +39,7 @@ export class ReadService {
       messageId,
     );
     // As outras abas de quem leu recebem os números, sem segurar a resposta (spec da F07).
-    if (advanced)
-      void this.unreadPublisher.publish(conversation.id, [personId]);
+    if (advanced) this.unreadPublisher.publish(conversation.id, [personId]);
     return this.unreadCounter.countOne({
       conversationId: conversation.id,
       personId,

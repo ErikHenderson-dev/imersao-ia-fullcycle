@@ -37,10 +37,12 @@ describe('Recuperação depois da queda', () => {
     const socket = realtimeRoutes.socket(url, { token, cursor });
     sockets.push(socket);
     const messages = collectEvents(socket, 'message.created');
+    // Os números de Não lidas saem depois de cada Mensagem (F07): também contam para o cursor.
+    const unread = collectEvents(socket, 'conversation.unread');
     const syncs = collectEvents(socket, 'sync');
     socket.connect();
     const [sync] = await waitForCount(syncs, 1);
-    return { socket, messages, sync };
+    return { socket, messages, unread, sync };
   }
 
   // Duas Pessoas no mesmo Canal: a autora envia, a leitora recebe.
@@ -86,7 +88,7 @@ describe('Recuperação depois da queda', () => {
     await send('Durante a queda 1');
     await send('Durante a queda 2');
 
-    const { messages, sync } = await connectAndSync(
+    const { messages, unread, sync } = await connectAndSync(
       reader.token,
       seen.event_id,
     );
@@ -108,15 +110,13 @@ describe('Recuperação depois da queda', () => {
       'Durante a queda 1',
       'Durante a queda 2',
     ]);
-    // O cursor do sync é o do último evento reenviado, que pode ser de outro tipo, como os números
-    // de Não lidas que saem depois de cada Mensagem (F07): não fica antes da última Mensagem.
-    expect(sync.reset).toBe(false);
-    expect(
-      compareStreamIds(
-        sync.cursor!.split(':')[1],
-        messages.at(-1)!.event_id!.split(':')[1],
-      ),
-    ).toBeGreaterThanOrEqual(0);
+    // O cursor do sync é o do último evento reenviado, de qualquer tipo, como os números de Não
+    // lidas que saem depois de cada Mensagem (F07).
+    const lastCursor = [...messages, ...unread]
+      .map((event) => event.event_id!)
+      .sort((a, b) => compareStreamIds(a.split(':')[1], b.split(':')[1]))
+      .at(-1);
+    expect(sync).toEqual({ cursor: lastCursor, reset: false });
   });
 
   it('a edição e a exclusão feitas durante a queda voltam na reconexão, nessa ordem', async () => {

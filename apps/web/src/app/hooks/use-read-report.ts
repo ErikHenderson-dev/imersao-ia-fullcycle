@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef } from "react";
-import { mutate } from "swr";
-import type { Conversation, MarkReadResult, Unread } from "@/app/services/chat-api";
-import { applyUnread, conversationsKey } from "@/app/utils/conversation-list";
+import type { MarkReadResult, Unread } from "@/app/services/chat-api";
 import { hasUnreadToReport, readReportDelay } from "@/app/utils/read-report";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useTabFocus } from "./use-tab-focus";
@@ -43,9 +41,10 @@ async function putRead(
 
 // Informa a leitura da Conversa aberta com a aba em foco (spec da F07, "Informar a leitura"): ao
 // abrir, ao voltar o foco e quando chega Mensagem, no máximo um aviso por intervalo, com a posição
-// mais nova do momento do envio. O `ok` aplica os números na lista de Conversas, que mora no cache
-// global do SWR; a falha não mostra nada, e a próxima ocasião tenta de novo. Um aviso que esperava
-// a vez sai na hora quando a Pessoa deixa a Conversa: ela já viu aquela Mensagem.
+// mais nova do momento do envio. Os números da lista de Conversas chegam pelo conversation.unread,
+// que o servidor ordena na fila da Conversa, e não pela resposta, que pode chegar depois de um
+// evento mais novo; a falha não mostra nada, e a próxima ocasião tenta de novo. Um aviso que
+// esperava a vez sai na hora quando a Pessoa deixa a Conversa: ela já viu aquela Mensagem.
 export function useReadReport({
   conversationId,
   personId,
@@ -64,14 +63,7 @@ export function useReadReport({
   const latestId = useRef(newestSavedId);
 
   const applyResult = (result: MarkReadResult) => {
-    if (result.kind === "unauthenticated") return redirectToExpiredSession();
-    if (result.kind !== "ok") return;
-    void mutate(
-      conversationsKey(personId),
-      (list: readonly Conversation[] | undefined) =>
-        list && applyUnread(list, conversationId, result.unread),
-      { revalidate: false },
-    );
+    if (result.kind === "unauthenticated") void redirectToExpiredSession();
   };
 
   const send = useEffectEvent(async () => {

@@ -59,13 +59,12 @@ export class RealtimePublisher {
 
   // Os números de cada Pessoa numa Conversa, montados para ela (spec da F07, "Tempo real").
   conversationUnread(
-    perPerson: Map<string, StoredEventPayloads['conversation.unread']>,
+    personIds: string[],
+    payloadFor: (
+      personId: string,
+    ) => StoredEventPayloads['conversation.unread'],
   ): Promise<void> {
-    return this.publish(
-      'conversation.unread',
-      [...perPerson.keys()],
-      (personId) => perPerson.get(personId)!,
-    );
+    return this.publish('conversation.unread', personIds, payloadFor);
   }
 
   private async publish<N extends StoredEventName>(

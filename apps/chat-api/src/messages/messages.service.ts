@@ -18,6 +18,7 @@ import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
 import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
 import { UnreadPublisher } from './unread.publisher';
+import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
 import { toMessageResponse } from './message.response';
 
 export interface MessageAuthor {
@@ -171,7 +172,7 @@ export class MessagesService {
         );
         // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
         // própria, por Conversa: a fila da Mensagem não espera por eles.
-        void this.unreadPublisher.publish(conversationId, memberIds);
+        this.unreadPublisher.publish(conversationId, memberIds);
       })
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a Mensagem gravada', error),
@@ -185,17 +186,10 @@ export class MessagesService {
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
   // ordem em que foram gravadas, mesmo publicando depois do commit. A API roda numa instância só.
-  private readonly messageQueues = new Map<string, Promise<void>>();
+  private readonly messageQueues = new KeyedSerialQueue();
 
   private queueForMessage(messageId: string, publish: () => Promise<void>) {
-    const previous = this.messageQueues.get(messageId) ?? Promise.resolve();
-    const next = previous.then(publish);
-    this.messageQueues.set(messageId, next);
-    void next.finally(() => {
-      if (this.messageQueues.get(messageId) === next) {
-        this.messageQueues.delete(messageId);
-      }
-    });
+    void this.messageQueues.run(messageId, publish);
   }
 
   // Reserva o lugar da publicação na fila da Mensagem ainda com a trava de linha, antes do commit:
@@ -249,11 +243,20 @@ export class MessagesService {
                   memberIds,
                   toMessageResponse(edited),
                 );
-                // Só quem entrou ou saiu das Menções tem os números mudados (spec da F07).
-                void this.unreadPublisher.publish(
-                  conversationId,
-                  mentionChangedIds.filter((id) => memberIds.includes(id)),
-                );
+                // Só quem entrou ou saiu das Menções e ainda não tinha lido a Mensagem tem os
+                // números mudados (spec da F07).
+                if (mentionChangedIds.length > 0) {
+                  this.unreadPublisher.publish(conversationId, async () => {
+                    const changed = new Set(mentionChangedIds);
+                    return (
+                      await this.conversations.listMemberIdsReadBefore(
+                        conversationId,
+                        messageId,
+                        author.id,
+                      )
+                    ).filter((id) => changed.has(id));
+                  });
+                }
               },
               'Falha ao publicar a Mensagem editada',
             )
@@ -280,14 +283,13 @@ export class MessagesService {
               message_id: messageId,
             });
             // Só quem ainda não tinha lido a Mensagem tem os números mudados (spec da F07).
-            void this.conversations
-              .listMemberIdsReadBefore(conversationId, messageId, personId)
-              .then((readerIds) =>
-                this.unreadPublisher.publish(conversationId, readerIds),
-              )
-              .catch((error: unknown) =>
-                this.logger.error('Falha ao publicar as Não lidas', error),
-              );
+            this.unreadPublisher.publish(conversationId, () =>
+              this.conversations.listMemberIdsReadBefore(
+                conversationId,
+                messageId,
+                personId,
+              ),
+            );
           },
           'Falha ao publicar a Mensagem apagada',
         ),
@@ -365,18 +367,20 @@ export class MessagesService {
     }
     // Só regrava as Menções quando os @usuário escritos mudaram, e não a cada correção do texto.
     const previousMentions = await this.mentionsOf(message.id);
-    const mentions =
-      changed && !sameUsernames(previousBody, body)
-        ? await this.saveMentions(message, body, true)
-        : previousMentions;
+    const rewritesMentions = changed && !sameUsernames(previousBody, body);
+    const mentions = rewritesMentions
+      ? await this.saveMentions(message, body, true)
+      : previousMentions;
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return {
       message: toView(message, author, mentions, await this.quoteOf(message)),
       changed,
-      mentionChangedIds: symmetricDifference(
-        previousMentions.map((mention) => mention.id),
-        mentions.map((mention) => mention.id),
-      ),
+      mentionChangedIds: rewritesMentions
+        ? symmetricDifference(
+            previousMentions.map((mention) => mention.id),
+            mentions.map((mention) => mention.id),
+          )
+        : [],
     };
   }
 
@@ -701,6 +705,9 @@ function toView(
 
 // Os ids que estão em só uma das listas: quem entrou ou saiu das Menções.
 function symmetricDifference(before: string[], after: string[]): string[] {
-  const kept = new Set(before.filter((id) => after.includes(id)));
-  return [...new Set([...before, ...after])].filter((id) => !kept.has(id));
+  const [a, b] = [new Set(before), new Set(after)];
+  return [
+    ...[...a].filter((id) => !b.has(id)),
+    ...[...b].filter((id) => !a.has(id)),
+  ];
 }
