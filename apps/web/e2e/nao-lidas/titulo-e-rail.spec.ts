@@ -33,10 +33,19 @@ test.describe("Título da aba e marcador no rail", () => {
     await expect(inicio).toHaveAccessibleName("Início, há mensagens não lidas");
     await expect(inicio.locator("[data-unread-marker]")).toBeVisible();
 
-    // 3. Abrir o Canal tira os dois
+    // 3. Abrir o Canal tira os dois, e eles continuam fora ao voltar ao primeiro Canal: a leitura
+    // chegou ao servidor, e não é só a Conversa aberta em foco
     await sidebarLink(page, unreadRowName(canal.name, ", não lidas, 1 menção")).click();
     await readyHistory(page, canal.name);
     await expect(page).toHaveTitle("Full Cycle Chat");
+    await expect
+      .poll(async () => {
+        await page.goto(`/conversas/${primeiro.id}`);
+        await readyHistory(page, primeiro.name);
+        return page.title();
+      })
+      .toBe("Full Cycle Chat");
     await expect(inicio.locator("[data-unread-marker]")).toHaveCount(0);
+    await expect(inicio).toHaveAccessibleName("Início");
   });
 });
