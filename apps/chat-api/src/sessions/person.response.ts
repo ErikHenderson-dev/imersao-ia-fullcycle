@@ -1,3 +1,5 @@
+import type { StatusPayload } from 'chat-events';
+import { toStatusResponse } from '../people/status.response';
 import { Person } from '../people/person.entity';
 
 export interface PersonResponse {
@@ -6,6 +8,7 @@ export interface PersonResponse {
   email: string;
   username: string;
   time_zone: string | null;
+  status: StatusPayload | null;
 }
 
 export function toPersonResponse(person: Person): PersonResponse {
@@ -15,5 +18,6 @@ export function toPersonResponse(person: Person): PersonResponse {
     email: person.email,
     username: person.username,
     time_zone: person.timeZone,
+    status: toStatusResponse(person),
   };
 }

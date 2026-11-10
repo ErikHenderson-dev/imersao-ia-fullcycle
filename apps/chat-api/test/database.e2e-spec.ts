@@ -121,6 +121,40 @@ describe('banco de testes', () => {
       await expect(insert).rejects.toThrow(violation);
     });
 
+    it.each([
+      [
+        'a chave de emoji fora das sete',
+        "'party', NULL",
+        /people_status_emoji_check/,
+      ],
+      [
+        'o texto do Status com quebra de linha',
+        "'sick', E'a\\nb'",
+        /people_status_text_check/,
+      ],
+      [
+        'o texto do Status com 101 caracteres',
+        `'sick', '${'s'.repeat(101)}'`,
+        /people_status_text_check/,
+      ],
+      [
+        'o texto do Status sem emoji',
+        "NULL, 'Em reunião'",
+        /people_status_check/,
+      ],
+    ])('people recusa %s', async (_case, values, violation) => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const update = app
+        .get(DataSource)
+        .query(
+          `UPDATE people SET (status_emoji, status_text) = (${values}) WHERE id = $1`,
+          [person.id],
+        );
+
+      await expect(update).rejects.toThrow(violation);
+    });
+
     it('people recusa um @usuário repetido', async () => {
       const username = freeUsername();
       await insertPerson({ username });

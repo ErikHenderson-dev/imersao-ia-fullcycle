@@ -8,6 +8,21 @@ import { InvalidProfileError } from './invalid-profile.error';
 export const NAME_MAX_LENGTH = 80;
 export const TITLE_MAX_LENGTH = 80;
 export const PHONE_MAX_LENGTH = 30;
+export const STATUS_TEXT_MAX_LENGTH = 100;
+
+// As chaves dos sete emojis do Status, na ordem do diálogo (LLD, "Valores de regra", "Emojis do
+// Status"). A web troca a chave pelo emoji e pelo nome acessível.
+export const STATUS_EMOJIS = [
+  'speech',
+  'headphones',
+  'calendar',
+  'meal',
+  'home',
+  'vacation',
+  'sick',
+] as const;
+
+export type StatusEmoji = (typeof STATUS_EMOJIS)[number];
 
 export const PHONE_PATTERN = new RegExp(`^[0-9 +()-]{1,${PHONE_MAX_LENGTH}}$`);
 
@@ -61,4 +76,25 @@ export function parsePhone(value: string): string | null {
   throw new InvalidProfileError(
     `O telefone aceita só dígitos, espaço, +, -, ( e ), até ${PHONE_MAX_LENGTH} caracteres.`,
   );
+}
+
+// O Status pronto para gravar a partir do que já estava e do que mudou (spec da F09, "Pessoas"): um
+// campo ausente fica como estava, o texto sem emoji ganha o `speech`, e os dois nulos limpam.
+export function parseStatus(
+  current: { emoji: string | null; text: string | null },
+  changes: { emoji?: string | null; text?: string | null },
+): { emoji: StatusEmoji | null; text: string | null } {
+  const emoji = changes.emoji === undefined ? current.emoji : changes.emoji;
+  if (emoji !== null && !(STATUS_EMOJIS as readonly string[]).includes(emoji)) {
+    throw new InvalidProfileError('Escolha um dos emojis do Status.');
+  }
+  const text =
+    changes.text === undefined ? current.text : blankToNull(changes.text ?? '');
+  if (text !== null) {
+    assertSingleLine(text, STATUS_TEXT_MAX_LENGTH, 'A mensagem de status');
+  }
+  return {
+    emoji: (emoji ?? (text === null ? null : 'speech')) as StatusEmoji | null,
+    text,
+  };
 }

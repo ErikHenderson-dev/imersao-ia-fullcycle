@@ -12,12 +12,14 @@ import { BaseEntity } from '../database/base.entity';
 import {
   NAME_MAX_LENGTH,
   PHONE_PATTERN,
+  STATUS_EMOJIS,
+  STATUS_TEXT_MAX_LENGTH,
   TITLE_MAX_LENGTH,
 } from './profile-values';
 import { USERNAME_PATTERN } from './username';
 
-// Os CHECK ficam também nas migrações AddPersonProfile e AddPersonNameCheck, escritas à mão: o
-// TypeORM não percebe a mudança na expressão de um CHECK.
+// Os CHECK ficam também nas migrações AddPersonProfile, AddPersonNameCheck e AddPersonStatus,
+// escritas à mão: o TypeORM não percebe a mudança na expressão de um CHECK.
 @Entity('people')
 @Check(
   'people_name_check',
@@ -29,6 +31,18 @@ import { USERNAME_PATTERN } from './username';
   `char_length("title") BETWEEN 1 AND ${TITLE_MAX_LENGTH} AND "title" !~ '[\\r\\n]'`,
 )
 @Check('people_phone_check', `"phone" ~ '${PHONE_PATTERN.source}'`)
+@Check(
+  'people_status_emoji_check',
+  `"status_emoji" IN (${STATUS_EMOJIS.map((key) => `'${key}'`).join(', ')})`,
+)
+@Check(
+  'people_status_text_check',
+  `char_length("status_text") BETWEEN 1 AND ${STATUS_TEXT_MAX_LENGTH} AND "status_text" !~ '[\\r\\n]'`,
+)
+@Check(
+  'people_status_check',
+  `"status_text" IS NULL OR "status_emoji" IS NOT NULL`,
+)
 @Index('people_username_key', ['username'], { unique: true })
 export class Person extends BaseEntity {
   @Column({ type: 'text', unique: true })
@@ -50,6 +64,13 @@ export class Person extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   phone!: string | null;
+
+  // O Status (spec da F09, "Pessoas"): a chave do emoji e a mensagem, os dois opcionais.
+  @Column({ type: 'text', nullable: true })
+  statusEmoji!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  statusText!: string | null;
 
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })
