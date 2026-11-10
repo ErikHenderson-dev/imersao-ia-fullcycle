@@ -12,7 +12,12 @@ const NO_CONVERSATIONS: readonly Conversation[] = [];
 // regra da Conversa aberta com a aba em foco (spec da F07): o título da aba e o marcador do Início
 // leem os números dela. O cache só tem a lista porque a barra lateral põe nele a lista do servidor
 // ao montar (o fallbackData não grava no cache).
-export function useVisibleUnread(personId: string): {
+// `fallback` é a lista que quem chama já leu no servidor: com ela, a primeira renderização (no
+// servidor e na hidratação) já sai com a Última leitura certa (F08, a tela Atividade).
+export function useVisibleUnread(
+  personId: string,
+  fallback?: readonly Conversation[],
+): {
   conversations: readonly Conversation[];
   isOpenAndFocused: (conversation: Conversation) => boolean;
 } {
@@ -23,5 +28,8 @@ export function useVisibleUnread(personId: string): {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
-  return { conversations: data ?? NO_CONVERSATIONS, isOpenAndFocused: useIsOpenAndFocused() };
+  return {
+    conversations: data ?? fallback ?? NO_CONVERSATIONS,
+    isOpenAndFocused: useIsOpenAndFocused(),
+  };
 }

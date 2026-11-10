@@ -3,7 +3,7 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { randomUUIDv7 } from 'node:crypto';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import type { NewPerson } from '../people/people.service';
 import { PeopleService } from '../people/people.service';
 import type { Person } from '../people/person.entity';
@@ -136,6 +136,14 @@ export class ConversationsService {
           Number(b.conversation.kind === 'direct') ||
         compareNames(sortName(a), sortName(b)),
     );
+  }
+
+  // As Conversas desses ids, com a quantidade de Membros, sem ordem garantida: a Conversa dos itens
+  // de Atividade (spec da F08, "Rotas").
+  async summariesByIds(ids: string[]): Promise<ConversationSummary[]> {
+    if (ids.length === 0) return [];
+    const conversations = await this.conversations.findBy({ id: In(ids) });
+    return this.withMemberCounts(conversations);
   }
 
   // As Conversas com a quantidade de Membros de cada uma, na mesma ordem, e, nas Conversas diretas,

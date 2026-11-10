@@ -603,3 +603,68 @@ export async function listMembers(token: string, conversationId: string): Promis
     ? { kind: "ok", members: result.body.members.map(withInitials) }
     : result;
 }
+
+// Atividade (spec da F08, "Rotas"): o filtro da lista, o tipo de cada item e os números.
+export type ActivityFilter = "all" | "mentions" | "direct";
+export type NotificationKind = "mention" | "direct";
+
+// Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela.
+export type ActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
+
+export type ActivityPage = { items: ActivityItem[]; hasMore: boolean };
+
+export type ActivityUnread = { totalCount: number; mentionCount: number; directCount: number };
+
+export type ActivityPageResult =
+  | { kind: "ok"; page: ActivityPage }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export type ActivityUnreadResult =
+  | { kind: "ok"; unread: ActivityUnread }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+type ApiActivityItem = { kind: NotificationKind; message: ApiMessage; conversation: ApiConversation };
+
+// Uma página de Atividade: as anteriores a `before`, ou as mais novas sem ele, em ordem cronológica.
+export async function listActivity(
+  token: string,
+  { kind, before }: { kind: ActivityFilter; before?: string },
+): Promise<ActivityPageResult> {
+  const params = new URLSearchParams({ kind });
+  if (before) params.set("before", before);
+  const result = await getJson<{ items: ApiActivityItem[]; has_more: boolean }>(
+    token,
+    `/v1/activity?${params.toString()}`,
+  );
+  if (result.kind !== "ok") return result.kind === "unauthenticated" ? result : { kind: "failure" };
+  return {
+    kind: "ok",
+    page: {
+      items: result.body.items.map((item) => ({
+        kind: item.kind,
+        message: messageFromEvent(item.message),
+        conversation: conversationFromPayload(item.conversation),
+      })),
+      hasMore: result.body.has_more,
+    },
+  };
+}
+
+// Os números de Atividade da Pessoa da Sessão.
+export async function getActivityUnread(token: string): Promise<ActivityUnreadResult> {
+  const result = await getJson<{ total_count: number; mention_count: number; direct_count: number }>(
+    token,
+    "/v1/activity/unread",
+  );
+  if (result.kind !== "ok") return result.kind === "unauthenticated" ? result : { kind: "failure" };
+  return {
+    kind: "ok",
+    unread: {
+      totalCount: result.body.total_count,
+      mentionCount: result.body.mention_count,
+      directCount: result.body.direct_count,
+    },
+  };
+}

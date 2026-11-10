@@ -2,7 +2,9 @@
 
 import { House } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useVisibleUnread } from "@/app/hooks/use-visible-unread";
+import { cn } from "@/app/utils/cn";
 import { hasVisibleUnread } from "@/app/utils/unread";
 
 // O Início do rail, com o ponto `badge` sobre o ícone quando há ao menos uma Conversa Não lida, fora
@@ -11,14 +13,21 @@ import { hasVisibleUnread } from "@/app/utils/unread";
 export function HomeLink({ personId }: { personId: string }) {
   const { conversations, isOpenAndFocused } = useVisibleUnread(personId);
   const hasUnread = hasVisibleUnread(conversations, isOpenAndFocused);
+  // Ativo em todas as telas logadas, menos na Atividade (spec da F08, "Rail").
+  const isActive = !usePathname().startsWith("/atividade");
   return (
     <Link
       href="/"
-      aria-current="page"
+      aria-current={isActive ? "page" : undefined}
       aria-label={hasUnread ? "Início, há mensagens não lidas" : undefined}
       className="flex w-full flex-col items-center gap-1 rounded-card py-1 text-sidebar-fg"
     >
-      <span className="relative flex size-9 items-center justify-center rounded-card bg-sidebar-field">
+      <span
+        className={cn(
+          "relative flex size-9 items-center justify-center rounded-card",
+          isActive && "bg-sidebar-field",
+        )}
+      >
         <House size={20} aria-hidden />
         {hasUnread && (
           <span
