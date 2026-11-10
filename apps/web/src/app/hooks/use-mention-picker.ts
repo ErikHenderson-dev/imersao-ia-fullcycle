@@ -33,8 +33,10 @@ export function useMentionPicker({
   if (dismissedAt !== null && query?.start !== dismissedAt) setDismissedAt(null);
   const isWanted = query !== null && query.start !== dismissedAt;
   const search = usePeopleSearch(query?.query ?? "", { memberOf: conversationId }, isWanted);
-  // Enquanto a busca do texto atual não responde, a lista é a da anterior.
-  const people: PersonEntry[] = isWanted && search.kind === "ok" ? search.people : [];
+  // Só o resultado da busca do texto atual: enquanto ela não responde, a lista some, para Enter não
+  // escolher uma Pessoa que não corresponde ao que foi digitado.
+  const people: PersonEntry[] =
+    isWanted && search.kind === "ok" && search.query === query.query ? search.people : [];
   const isOpen = people.length > 0;
   const activeIndex = Math.min(active, Math.max(people.length - 1, 0));
   const optionId = (index: number) => `${listId}-${index}`;
