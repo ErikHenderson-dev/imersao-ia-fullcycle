@@ -1,6 +1,6 @@
 # 04: Abrir uma Conversa direta pelo Perfil
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa clica em "Mensagem" no Perfil de alguém, ou no próprio, e a Conversa
 direta abre, com o foco na caixa de mensagem, e entra na seção "Mensagens diretas" da barra
