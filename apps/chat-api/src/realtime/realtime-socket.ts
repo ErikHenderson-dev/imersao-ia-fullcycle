@@ -39,6 +39,7 @@ export type RealtimeSocket = Socket<
 // ficar de fora da reconexão sem aviso.
 const STORED_EVENTS: Record<StoredEventName, true> = {
   'message.created': true,
+  'message.updated': true,
   'conversation.member_added': true,
 };
 

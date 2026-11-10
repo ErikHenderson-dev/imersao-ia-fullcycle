@@ -21,6 +21,8 @@ const DETAILS: Record<ErrorCode, string> = {
   conversation_not_found: 'Conversa não encontrada.',
   channel_name_taken: 'Já existe um canal com esse nome.',
   members_not_editable: 'Só é possível adicionar pessoas a um canal privado.',
+  message_not_found: 'Mensagem não encontrada.',
+  message_not_owned: 'Só quem escreveu a Mensagem pode mudá-la.',
   not_found: 'Recurso não encontrado.',
   payload_too_large: 'O corpo da requisição é grande demais.',
   request_rejected: 'A requisição foi recusada.',

@@ -26,6 +26,11 @@ export class RealtimePublisher {
     return this.publish('message.created', memberIds, { message });
   }
 
+  // A Mensagem editada, inteira, para os Membros (spec da F06, "Tempo real").
+  messageUpdated(memberIds: string[], message: MessagePayload): Promise<void> {
+    return this.publish('message.updated', memberIds, { message });
+  }
+
   // Pessoas que entraram numa Conversa: vai para todos os Membros dela depois da gravação (spec da
   // F04, "Tempo real"). Quem entrou agora recebe person_ids só com ela mesma; quem já era Membro
   // recebe as Pessoas adicionadas. Assim o Canal público novo não leva o workspace inteiro em cada

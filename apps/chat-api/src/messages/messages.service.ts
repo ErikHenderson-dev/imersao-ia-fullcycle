@@ -2,13 +2,17 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
+import { isUUID } from 'class-validator';
 import { LessThan, Repository } from 'typeorm';
+import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PeopleService } from '../people/people.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
+import { MessageNotFoundError } from './message-not-found.error';
+import { MessageNotOwnedError } from './message-not-owned.error';
 import { toMessageResponse } from './message.response';
 
 export interface MessageAuthor {
@@ -23,6 +27,7 @@ export interface MessageView {
   author: MessageAuthor;
   body: string;
   createdAt: Date;
+  editedAt: Date | null;
 }
 
 export interface MessagePage {
@@ -147,6 +152,89 @@ export class MessagesService {
     return message;
   }
 
+  // Edita a própria Mensagem (spec da F06, "Editar"): grava numa transação e, só quando o texto
+  // mudou, publica o message.updated para os Membros depois do commit. Como no envio, a falha da
+  // publicação só vai para o log.
+  async editMessage(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+    body: string,
+  ): Promise<MessageView> {
+    const { message, changed } = await this.edit(
+      personId,
+      conversationId,
+      messageId,
+      body,
+    );
+    if (!changed) return message;
+    void this.conversations
+      .listMemberIds(conversationId)
+      .then((memberIds) =>
+        this.publisher.messageUpdated(memberIds, toMessageResponse(message)),
+      )
+      .catch((error: unknown) =>
+        this.logger.error('Falha ao publicar a Mensagem editada', error),
+      );
+    return message;
+  }
+
+  // A trava de linha põe a edição e a exclusão da mesma Mensagem em fila (LLD, "Concorrência e
+  // idempotência", "Editar e apagar mensagem"): a que chega depois lê a linha já gravada.
+  @Transactional()
+  private async edit(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+    body: string,
+  ): Promise<{ message: MessageView; changed: boolean }> {
+    const message = await this.lockOwnMessage(
+      personId,
+      conversationId,
+      messageId,
+    );
+    if (message.body === body) {
+      const [view] = await this.withAuthors([message]);
+      return { message: view, changed: false };
+    }
+    message.body = body;
+    message.editedAt = new Date();
+    await this.messages.update(
+      { id: message.id },
+      { body, editedAt: message.editedAt },
+    );
+    const [view] = await this.withAuthors([message]);
+    return { message: view, changed: true };
+  }
+
+  // A Mensagem do autor, lida com trava de linha. A Conversa sem participação, ou com id
+  // malformado, e a Mensagem que não existe ou é de outra Conversa respondem do mesmo jeito, para
+  // não revelar qual dos casos; a de outra Pessoa, que o Membro já vê, responde que não é dele.
+  private async lockOwnMessage(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<Message> {
+    try {
+      await this.conversations.getForMember(personId, conversationId);
+    } catch (error) {
+      if (error instanceof ConversationNotFoundError) {
+        throw new MessageNotFoundError();
+      }
+      throw error;
+    }
+    if (!isUUID(messageId)) throw new MessageNotFoundError();
+    const message = await this.messages
+      .createQueryBuilder('message')
+      .setLock('pessimistic_write')
+      .where('message.id = :messageId', { messageId })
+      .andWhere('message.conversationId = :conversationId', { conversationId })
+      .getOne();
+    if (!message) throw new MessageNotFoundError();
+    if (message.authorId !== personId) throw new MessageNotOwnedError();
+    return message;
+  }
+
   // As barreiras das Conversas diretas cuja outra Pessoa acabou de entrar e ainda não foi anunciada.
   // A API roda numa instância só.
   private readonly barriers = new Map<string, Barrier>();
@@ -250,5 +338,6 @@ function toView(message: Message, author: MessageAuthor): MessageView {
     author,
     body: message.body,
     createdAt: message.createdAt,
+    editedAt: message.editedAt ?? null,
   };
 }

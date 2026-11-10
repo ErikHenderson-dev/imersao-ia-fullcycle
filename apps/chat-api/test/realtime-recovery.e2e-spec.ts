@@ -1,3 +1,5 @@
+import request from 'supertest';
+import { App } from 'supertest/types';
 import { INestApplication } from '@nestjs/common';
 import type { MessageCreatedEvent, SyncEvent } from 'chat-events';
 import { compareStreamIds } from '../src/realtime/events.store';
@@ -110,6 +112,43 @@ describe('Recuperação depois da queda', () => {
     expect(sync).toEqual<SyncEvent>({
       cursor: messages.at(-1)!.event_id!,
       reset: false,
+    });
+  });
+
+  it('a edição feita durante a queda volta na reconexão', async () => {
+    const author = await authRoutes.loggedIn(app);
+    const reader = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const first = await connectAndSync(reader.token);
+    const sent = await conversationRoutes
+      .sendMessage(app, author.cookie, channel.id, { body: 'Antes' })
+      .expect(201);
+    const messageId = (sent.body as { message: { id: string } }).message.id;
+    const [seen] = await waitForCount(first.messages, 1);
+    first.socket.disconnect();
+    await request(app.getHttpServer() as App)
+      .patch(`/v1/conversations/${channel.id}/messages/${messageId}`)
+      .set('Cookie', author.cookie)
+      .send({ body: 'Editada na queda' })
+      .expect(200);
+    const socket = realtimeRoutes.socket(url, {
+      token: reader.token,
+      cursor: seen.event_id,
+    });
+    sockets.push(socket);
+    const updates = collectEvents(socket, 'message.updated');
+    const syncs = collectEvents(socket, 'sync');
+
+    socket.connect();
+
+    const [sync] = await waitForCount(syncs, 1);
+    expect(sync.reset).toBe(false);
+    // A publicação sai depois da resposta e pode cruzar com a reconexão: o mesmo evento chega pelo
+    // reenvio e ao vivo, com o mesmo cursor, e a aba descarta o repetido (orderForSync).
+    expect(new Set(updates.map((event) => event.event_id)).size).toBe(1);
+    expect(updates[0].message).toMatchObject({
+      id: messageId,
+      body: 'Editada na queda',
     });
   });
 
