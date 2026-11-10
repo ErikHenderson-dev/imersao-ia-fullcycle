@@ -1,6 +1,6 @@
 # 03: Atividade em tempo real
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o número do rail, os contadores das abas, os itens de Atividade e o estado de
 lido mudam na hora, em todas as abas e navegadores da Pessoa, sem recarregar: uma Notificação nova
