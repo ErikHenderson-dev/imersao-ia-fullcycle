@@ -86,12 +86,20 @@ function History({
   const closeEdit = useCallback((messageId: string) => {
     setEditingId((current) => (current === messageId ? null : current));
   }, []);
-  // Uma Mensagem que sai da Conversa (spec da F06, "Apagar"): a edição aberta dela fecha, com aviso.
-  // O tempo real a chama por um useEffectEvent, que sempre vê o editingId atual.
+  // A Mensagem que a próxima vai citar (spec da F06, "Citação"). O histórico monta de novo a cada
+  // Conversa, então trocar de Conversa desiste dela.
+  const [quoting, setQuoting] = useState<Message | null>(null);
+  // Uma Mensagem que sai da Conversa (spec da F06, "Apagar"): a edição aberta dela fecha, e a Citação
+  // dela sai da caixa, com aviso. O tempo real a chama por um useEffectEvent, que sempre vê o estado
+  // atual.
   const removeMessage = (messageId: string) => {
     if (editingId === messageId) {
       setEditingId(null);
       toast.info("Essa mensagem foi apagada.");
+    }
+    if (quoting?.id === messageId) {
+      setQuoting(null);
+      toast.info("A mensagem que você estava respondendo foi apagada.");
     }
     applyDeleted(messageId);
   };
@@ -332,8 +340,17 @@ function History({
                 dayLabel={dayLabel}
                 status={message.status ?? "sent"}
                 currentPersonId={currentPerson.id}
+                onReply={
+                  message.status
+                    ? undefined
+                    : () => {
+                        setQuoting(message);
+                        composerRef.current?.focus();
+                      }
+                }
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
+                failure={message.status ? (message as PendingMessage).failure : undefined}
                 edit={
                   message.author.id === currentPerson.id && !message.status
                     ? {
@@ -359,9 +376,14 @@ function History({
       <MessageComposer
         inputRef={composerRef}
         conversationId={conversation.id}
+        quoting={quoting && { authorName: quoting.author.name, body: quoting.body }}
+        onCancelQuote={() => setQuoting(null)}
         label={composerLabel(conversation, currentPerson.id)}
         onTextChange={typing.onTextChange}
-        onSend={send}
+        onSend={(body) => {
+          send(body, quoting ?? undefined);
+          setQuoting(null);
+        }}
       />
     </div>
   );

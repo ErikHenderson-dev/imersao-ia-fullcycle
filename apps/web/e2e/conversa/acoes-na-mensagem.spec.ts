@@ -37,8 +37,14 @@ test.describe("Barra de ações e copiar o texto", () => {
     // 2. "Mais ações" abre o menu com "Copiar texto"
     await item.getByRole("button", { name: "Mais ações" }).click();
     const menu = page.getByRole("menu", { name: "Mais ações" });
-    // A Mensagem é da própria Pessoa: o menu tem também "Editar" (F06-T03) e "Apagar" (F06-T04).
-    await expect(menu.getByRole("menuitem")).toHaveText(["Copiar texto", "Editar", "Apagar"]);
+    // A Mensagem é da própria Pessoa: o menu tem também "Responder" (F06-T06), "Editar" (F06-T03) e
+    // "Apagar" (F06-T04).
+    await expect(menu.getByRole("menuitem")).toHaveText([
+      "Responder",
+      "Copiar texto",
+      "Editar",
+      "Apagar",
+    ]);
     await page.keyboard.press("Escape");
 
     // 3. Fora do hover e sem foco, a barra some; o foco a mostra de novo
@@ -94,8 +100,11 @@ test.describe("Barra de ações e copiar o texto", () => {
 
   test("usa a barra e o menu só pelo teclado", async ({ page, memberChannel }) => {
     const item = messageItem(page, memberChannel.name, "Primeira linha");
-    // 1. Do último controle do texto (o link), o Tab chega a "Copiar texto" e a "Mais ações"
+    // 1. Do último controle do texto (o link), o Tab passa por "Responder" e chega a "Copiar texto"
+    // e a "Mais ações"
     await item.getByRole("link").focus();
+    await page.keyboard.press("Tab");
+    await expect(item.getByRole("button", { name: "Responder" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(item.getByRole("button", { name: "Copiar texto" })).toBeFocused();
     await page.keyboard.press("Tab");
@@ -106,7 +115,10 @@ test.describe("Barra de ações e copiar o texto", () => {
 
     // 2. Enter abre o menu, as setas mudam o item, Esc fecha e devolve o foco
     await page.keyboard.press("Enter");
+    // O primeiro item é "Responder" (F06-T06); a seta leva a "Copiar texto" e volta.
     const opcao = page.getByRole("menuitem", { name: "Copiar texto" });
+    await expect(page.getByRole("menuitem", { name: "Responder" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
     await expect(opcao).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(page.getByRole("menuitem", { name: "Editar" })).toBeFocused();
@@ -118,6 +130,9 @@ test.describe("Barra de ações e copiar o texto", () => {
 
     // 3. Espaço também abre, e Enter no item copia
     await page.keyboard.press(" ");
+    await expect(page.getByRole("menuitem", { name: "Responder" })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(opcao).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByText("Texto copiado")).toBeVisible();
   });

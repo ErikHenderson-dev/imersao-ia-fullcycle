@@ -140,6 +140,6 @@ test.describe("Editar a própria Mensagem", () => {
     await expect(item.getByRole("button", { name: "Copiar texto" })).toBeVisible();
     await expect(item.getByRole("button", { name: "Editar" })).toHaveCount(0);
     await item.getByRole("button", { name: "Mais ações" }).click();
-    await expect(page.getByRole("menuitem")).toHaveText(["Copiar texto"]);
+    await expect(page.getByRole("menuitem")).toHaveText(["Responder", "Copiar texto"]);
   });
 });

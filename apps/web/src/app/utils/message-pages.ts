@@ -49,6 +49,46 @@ export function replaceEdited(pages: MessagePage[], edited: Message): MessagePag
   return pages.with(index, { ...pages[index], messages });
 }
 
+// As Citações das Mensagens carregadas acompanham a original (spec da F06, "Eventos no cliente"): a
+// editada troca o texto, se a Citação não estiver apagada (uma edição atrasada já foi descartada por
+// quem chama); a apagada vira a marca de apagada.
+export function patchQuotes(
+  pages: MessagePage[],
+  original: { id: string; edited?: Message; deleted?: boolean },
+): MessagePage[] {
+  let changed = false;
+  const next = pages.map((page) => {
+    let pageChanged = false;
+    const messages = page.messages.map((message) => {
+      const quote = message.quote;
+      if (!quote || quote.id !== original.id || quote.deleted) return message;
+      if (original.deleted) {
+        pageChanged = true;
+        return { ...message, quote: { id: quote.id, deleted: true as const } };
+      }
+      const edited = original.edited;
+      if (!edited || edited.body === quote.body) return message;
+      pageChanged = true;
+      return { ...message, quote: { ...quote, body: edited.body } };
+    });
+    if (!pageChanged) return page;
+    changed = true;
+    return { ...page, messages };
+  });
+  return changed ? next : pages;
+}
+
+// A última edição vista de cada Mensagem, pelo editedAt: decide se uma edição que chega é nova
+// também para as Citações, cuja original pode não estar carregada. Devolve se a edição é nova, e a
+// guarda quando é.
+export function recordEdit(versions: Map<string, string>, edited: Message): boolean {
+  if (!edited.editedAt) return false;
+  const seen = versions.get(edited.id);
+  if (seen && edited.editedAt <= seen) return false;
+  versions.set(edited.id, edited.editedAt);
+  return true;
+}
+
 // Tira a Mensagem apagada do cache, pelo id (spec da F06, "Eventos no cliente").
 export function removeDeleted(pages: MessagePage[], messageId: string): MessagePage[] {
   const index = pages.findIndex((page) => page.messages.some((message) => message.id === messageId));

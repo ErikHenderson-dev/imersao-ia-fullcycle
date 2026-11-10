@@ -46,7 +46,11 @@ export class MessagesController {
     const message = await this.messages.sendMessage(
       { id: person.id, name: person.name },
       conversationId,
-      { clientId: body.client_id, body: body.body },
+      {
+        clientId: body.client_id,
+        body: body.body,
+        quotedMessageId: body.quoted_message_id,
+      },
     );
     return { message: toMessageResponse(message) };
   }

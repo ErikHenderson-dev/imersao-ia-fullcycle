@@ -1,7 +1,7 @@
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
-import type { MentionPayload } from 'chat-events';
+import type { MentionPayload, QuotePayload } from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
@@ -16,6 +16,7 @@ import { MessageMention } from './message-mention.entity';
 import { extractMentionUsernames } from './mentions';
 import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
+import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
 import { toMessageResponse } from './message.response';
 
 export interface MessageAuthor {
@@ -26,6 +27,9 @@ export interface MessageAuthor {
 // Uma Pessoa mencionada (spec da F06, "A Mensagem no REST e nos eventos").
 export type MentionView = MentionPayload;
 
+// A Mensagem citada (spec da F06, "A Mensagem no REST e nos eventos").
+export type QuoteView = QuotePayload;
+
 export interface MessageView {
   id: string;
   conversationId: string;
@@ -35,6 +39,7 @@ export interface MessageView {
   createdAt: Date;
   editedAt: Date | null;
   mentions: MentionView[];
+  quote: QuoteView | null;
 }
 
 export interface MessagePage {
@@ -50,6 +55,7 @@ export interface PageRequest {
 export interface NewMessage {
   clientId: string;
   body: string;
+  quotedMessageId?: string;
 }
 
 export interface SentMessage {
@@ -338,7 +344,10 @@ export class MessagesService {
         ? await this.saveMentions(message, body, true)
         : await this.mentionsOf(message.id);
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
-    return { message: toView(message, author, mentions), changed };
+    return {
+      message: toView(message, author, mentions, await this.quoteOf(message)),
+      changed,
+    };
   }
 
   // A Mensagem do autor, lida com trava de linha. A Conversa sem participação, ou com id
@@ -408,13 +417,21 @@ export class MessagesService {
   private async send(
     author: MessageAuthor,
     conversationId: string,
-    { clientId, body }: NewMessage,
+    { clientId, body, quotedMessageId }: NewMessage,
     onBarrier: (barrier: Barrier) => void,
   ): Promise<SentMessage> {
     const conversation = await this.conversations.getForMember(
       author.id,
       conversationId,
     );
+    // O reenvio do mesmo client_id devolve a Mensagem já gravada, sem olhar a Citação nova (spec da
+    // F06, "Enviar com Citação"); só o envio novo confere a Citação.
+    if (
+      quotedMessageId !== undefined &&
+      !(await this.messages.existsBy({ authorId: author.id, clientId }))
+    ) {
+      await this.assertQuotable(conversationId, quotedMessageId);
+    }
     const inserted = await this.messages
       .createQueryBuilder()
       .insert()
@@ -424,6 +441,7 @@ export class MessagesService {
         authorId: author.id,
         clientId,
         body,
+        quotedMessageId: quotedMessageId ?? null,
       })
       .orIgnore()
       .returning(['id', 'created_at'])
@@ -437,6 +455,7 @@ export class MessagesService {
           authorId: author.id,
           clientId,
           body,
+          quotedMessageId: quotedMessageId ?? null,
           createdAt: row.created_at,
         })
       : await this.messages.findOneByOrFail({ authorId: author.id, clientId });
@@ -455,7 +474,7 @@ export class MessagesService {
       ? await this.saveMentions(message, body, false)
       : await this.mentionsOf(message.id);
     return {
-      message: toView(message, author, mentions),
+      message: toView(message, author, mentions, await this.quoteOf(message)),
       created: Boolean(row),
       joinedId,
     };
@@ -524,12 +543,72 @@ export class MessagesService {
     return byMessage;
   }
 
-  // Os autores e as Menções de uma página, numa consulta para cada.
+  // A Citação precisa ser de uma Mensagem viva da mesma Conversa. A linha da original fica travada
+  // em modo compartilhado até o commit, em série com a exclusão (que a trava para escrita): uma
+  // exclusão não grava no meio deste envio.
+  private async assertQuotable(
+    conversationId: string,
+    quotedMessageId: string,
+  ): Promise<void> {
+    const quoted = await this.messages
+      .createQueryBuilder('message')
+      .setLock('pessimistic_read')
+      .where('message.id = :quotedMessageId', { quotedMessageId })
+      .andWhere('message.conversationId = :conversationId', { conversationId })
+      .getOne();
+    if (!quoted || quoted.deletedAt) throw new QuotedMessageNotFoundError();
+  }
+
+  private async quoteOf(message: Message): Promise<QuoteView | null> {
+    if (!message.quotedMessageId) return null;
+    return (await this.quotesById([message.quotedMessageId])).get(
+      message.quotedMessageId,
+    )!;
+  }
+
+  // As Mensagens citadas, com o autor e o texto atual, ou só a marca de apagada, numa consulta para
+  // as Mensagens e outra para os autores.
+  private async quotesById(ids: string[]): Promise<Map<string, QuoteView>> {
+    const quotes = new Map<string, QuoteView>();
+    if (ids.length === 0) return quotes;
+    const quoted = await this.messages.findBy({ id: In(ids) });
+    const authors = new Map(
+      (
+        await this.people.findByIds([
+          ...new Set(quoted.map((message) => message.authorId)),
+        ])
+      ).map((person) => [person.id, { id: person.id, name: person.name }]),
+    );
+    for (const message of quoted) {
+      quotes.set(
+        message.id,
+        message.deletedAt
+          ? { id: message.id, deleted: true }
+          : {
+              id: message.id,
+              deleted: false,
+              author: authors.get(message.authorId)!,
+              body: message.body ?? '',
+            },
+      );
+    }
+    return quotes;
+  }
+
+  // Os autores, as Menções e as Citações de uma página, numa consulta para cada.
   private async withDetails(messages: Message[]): Promise<MessageView[]> {
     const authorIds = [...new Set(messages.map((message) => message.authorId))];
-    const [people, mentions] = await Promise.all([
+    const quotedIds = [
+      ...new Set(
+        messages.flatMap((message) =>
+          message.quotedMessageId ? [message.quotedMessageId] : [],
+        ),
+      ),
+    ];
+    const [people, mentions, quotes] = await Promise.all([
       this.people.findByIds(authorIds),
       this.mentionsByMessage(messages.map((message) => message.id)),
+      this.quotesById(quotedIds),
     ]);
     const authors = new Map(
       people.map((person) => [person.id, { id: person.id, name: person.name }]),
@@ -539,6 +618,9 @@ export class MessagesService {
         message,
         authors.get(message.authorId)!,
         mentions.get(message.id) ?? [],
+        message.quotedMessageId
+          ? (quotes.get(message.quotedMessageId) ?? null)
+          : null,
       ),
     );
   }
@@ -562,6 +644,7 @@ function toView(
   message: Message,
   author: MessageAuthor,
   mentions: MentionView[],
+  quote: QuoteView | null,
 ): MessageView {
   return {
     id: message.id,
@@ -573,5 +656,6 @@ function toView(
     createdAt: message.createdAt,
     editedAt: message.editedAt ?? null,
     mentions,
+    quote,
   };
 }

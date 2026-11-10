@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Ellipsis, Pencil, Trash2, type LucideIcon } from "lucide-react";
+import { Copy, CornerUpLeft, Ellipsis, Pencil, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -32,14 +32,19 @@ type MessageActionsProps = {
   // menu"). `onDeleted` é chamado quando a Mensagem saiu, para quem lista mover o foco.
   onEdit?: () => void;
   onDeleted?: () => void;
+  // Responder citando, em qualquer Mensagem enviada (spec da F06, "Citação").
+  onReply?: () => void;
 };
 
 // Barra de ações (MessageActions) e menu da Mensagem (MessageMenu), no canto superior direito da
 // linha. Aparece ao passar o mouse, com o foco dentro da Mensagem e enquanto o menu está aberto.
-export function MessageActions({ message, onEdit, onDeleted }: MessageActionsProps) {
+export function MessageActions({ message, onEdit, onDeleted, onReply }: MessageActionsProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
   const actions: MessageAction[] = [
+    ...(onReply
+      ? [{ id: "reply", label: "Responder", icon: CornerUpLeft, onSelect: onReply }]
+      : []),
     {
       id: "copy",
       label: "Copiar texto",

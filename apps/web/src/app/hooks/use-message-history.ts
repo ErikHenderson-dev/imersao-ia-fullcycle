@@ -6,6 +6,8 @@ import type { Message, MessagePage } from "@/app/services/chat-api";
 import {
   appendToLatestPage,
   flattenPages,
+  patchQuotes,
+  recordEdit,
   removeDeleted,
   replaceEdited,
 } from "@/app/utils/message-pages";
@@ -94,12 +96,20 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
 
   // Uma Mensagem editada, pela própria edição ou pelo tempo real: troca no cache só se for mais nova
   // (spec da F06, "Eventos no cliente").
+  // A última edição vista de cada Mensagem: uma edição atrasada não volta o texto das Citações.
+  const editVersions = useRef(new Map<string, string>());
   const applyEdited = useCallback(
     (message: Message) => {
+      if (!recordEdit(editVersions.current, message)) return;
       saved.current = rememberEdit(saved.current, message);
-      void mutate((current) => replaceEdited(current ?? [initialPage], message), {
-        revalidate: false,
-      });
+      void mutate(
+        (current) =>
+          patchQuotes(replaceEdited(current ?? [initialPage], message), {
+            id: message.id,
+            edited: message,
+          }),
+        { revalidate: false },
+      );
     },
     [mutate, initialPage],
   );
@@ -112,9 +122,14 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     (messageId: string) => {
       deleted.current.add(messageId);
       saved.current = forgetMessage(saved.current, messageId);
-      void mutate((current) => removeDeleted(current ?? [initialPage], messageId), {
-        revalidate: false,
-      });
+      void mutate(
+        (current) =>
+          patchQuotes(removeDeleted(current ?? [initialPage], messageId), {
+            id: messageId,
+            deleted: true,
+          }),
+        { revalidate: false },
+      );
     },
     [mutate, initialPage],
   );
@@ -146,11 +161,18 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     if (request !== reloadRequest.current) return;
     // Uma edição que chegou durante a leitura é mais nova que a página lida: volta por cima dela.
     // Uma exclusão que chegou durante a leitura também vale.
+    // As Citações também: a edição e a exclusão vistas valem para as respostas da página lida.
     const edited = saved.current.reduce<MessagePage[]>(
-      (pages, message) => (message.editedAt ? replaceEdited(pages, message) : pages),
+      (pages, message) =>
+        message.editedAt
+          ? patchQuotes(replaceEdited(pages, message), { id: message.id, edited: message })
+          : pages,
       [page],
     );
-    const merged = [...deleted.current].reduce(removeDeleted, edited)[0];
+    const merged = [...deleted.current].reduce(
+      (pages, messageId) => patchQuotes(removeDeleted(pages, messageId), { id: messageId, deleted: true }),
+      edited,
+    )[0];
     latestPage.current = merged;
     await setSize(1);
     await mutate([merged], { revalidate: false });

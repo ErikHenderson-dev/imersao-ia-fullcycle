@@ -113,3 +113,28 @@ Duas Pessoas num Canal em comum (Ana Souza, logada, e Bruno Lima).
 **File:** `e2e/acessibilidade/mencoes-sem-violacoes.spec.ts`
 
 8. **a lista de menções não tem violações de acessibilidade.**
+
+### 5. Responder citando uma Mensagem (F06-T06)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa/responder-citando.spec.ts`
+
+Uma Mensagem de Bruno Lima e uma de Ana Souza (logada) num Canal em comum.
+
+1. **responde citando só pelo teclado:** Enter em "Responder" põe a caixa em "Respondendo a Bruno
+   Lima" com o foco nela; o envio mostra a Citação na Mensagem nova e limpa a caixa.
+2. **Cancelar resposta e Esc desistem sem apagar o texto.**
+3. **responder a outra troca a Citação.**
+4. **a Citação apagada em outra aba sai da caixa, com aviso.**
+5. **a Citação apagada antes do envio vira falha no envio:** a original é apagada direto no banco, sem
+   o evento; a Mensagem pendente mostra a Citação e a falha com o motivo.
+
+**File:** `e2e/tempo-real/citacao.spec.ts`
+
+6. **a Citação acompanha a edição e a exclusão da original:** duas Pessoas; a resposta da outra
+   mostra o texto editado e, depois da exclusão, "Em resposta a uma mensagem apagada".
+
+**File:** `e2e/acessibilidade/citacao-sem-violacoes.spec.ts`
+
+7. **a caixa em Citando não tem violações de acessibilidade.**
+
+Os testes da barra e do menu (F06-T02 a T04) passam a contar com "Responder" como a primeira ação.

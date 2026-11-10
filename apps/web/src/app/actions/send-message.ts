@@ -13,17 +13,20 @@ export async function sendMessage(
   conversationId: string,
   clientId: string,
   body: string,
+  // A Mensagem citada (spec da F06, "Citação").
+  quotedMessageId?: string,
 ): Promise<SendMessageResult> {
   const text = messageBodyToSave(body);
   if (
     typeof conversationId !== "string" ||
     typeof clientId !== "string" ||
     !isUUID(clientId) ||
-    text === null
+    text === null ||
+    (quotedMessageId !== undefined && (typeof quotedMessageId !== "string" || !isUUID(quotedMessageId)))
   ) {
     return { kind: "invalid" };
   }
   const token = await readSessionToken();
   if (!token) return { kind: "unauthenticated" };
-  return sendMessageToChat(token, conversationId, { clientId, body: text });
+  return sendMessageToChat(token, conversationId, { clientId, body: text, quotedMessageId });
 }

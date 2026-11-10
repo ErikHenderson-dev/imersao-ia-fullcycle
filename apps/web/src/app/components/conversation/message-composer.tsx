@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, SendHorizontal } from "lucide-react";
+import { AtSign, CornerUpLeft, SendHorizontal, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { MentionPicker } from "@/app/components/message/mention-picker";
 import { useMentionPicker } from "@/app/hooks/use-mention-picker";
@@ -19,6 +19,9 @@ type MessageComposerProps = {
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   // A Conversa da lista de menções (spec da F06); sem ela, a caixa não tem a lista nem o botão @.
   conversationId?: string;
+  // A Mensagem que a próxima vai citar, e como desistir dela (spec da F06, "Citação").
+  quoting?: { authorName: string; body: string } | null;
+  onCancelQuote?: () => void;
 } & (
   | {
       // Recebe o texto já sem as pontas; a lista mostra a Mensagem como "enviando" e a fila a
@@ -38,6 +41,8 @@ export function MessageComposer({
   onTextChange,
   inputRef,
   conversationId,
+  quoting,
+  onCancelQuote,
   onSend,
   disabled,
 }: MessageComposerProps) {
@@ -77,6 +82,23 @@ export function MessageComposer({
         className="relative flex flex-col rounded-card border border-border-strong bg-surface focus-within:outline-2 focus-within:outline-focus"
       >
         {mentions.list && <MentionPicker {...mentions.list} />}
+        {quoting && (
+          <div className="flex min-w-0 items-center gap-2 border-b border-border-subtle px-3 py-2 text-small">
+            <CornerUpLeft size={16} aria-hidden className="shrink-0 text-fg-muted" />
+            <span className="shrink-0 font-bold text-fg">Respondendo a {quoting.authorName}</span>
+            <span className="truncate text-fg-muted">{quoting.body}</span>
+            <IconButton
+              icon={X}
+              label="Cancelar resposta"
+              size="sm"
+              className="ml-auto"
+              onClick={() => {
+                onCancelQuote?.();
+                textarea.current?.focus();
+              }}
+            />
+          </div>
+        )}
         <div className="flex px-3 pt-3 pb-1">
           <textarea
             ref={textarea}
@@ -95,6 +117,12 @@ export function MessageComposer({
             }}
             onKeyDown={(event) => {
               if (mentions.handleKeyDown(event)) return;
+              // Com a lista de menções fechada, o Esc desiste da Citação, sem apagar o texto.
+              if (event.key === "Escape" && quoting) {
+                event.preventDefault();
+                onCancelQuote?.();
+                return;
+              }
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 submit();

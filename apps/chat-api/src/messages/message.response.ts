@@ -1,3 +1,4 @@
+import type { QuotePayload } from 'chat-events';
 import { MessageView } from './messages.service';
 
 export interface MessageResponse {
@@ -9,6 +10,7 @@ export interface MessageResponse {
   created_at: string;
   edited_at: string | null;
   mentions: { id: string; username: string }[];
+  quote: QuotePayload | null;
 }
 
 export function toMessageResponse(message: MessageView): MessageResponse {
@@ -21,5 +23,6 @@ export function toMessageResponse(message: MessageView): MessageResponse {
     created_at: message.createdAt.toISOString(),
     edited_at: message.editedAt?.toISOString() ?? null,
     mentions: message.mentions,
+    quote: message.quote,
   };
 }
