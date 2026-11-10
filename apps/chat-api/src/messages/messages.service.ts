@@ -186,13 +186,15 @@ export class MessagesService {
         );
         // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
         // própria, por Conversa: a fila da Mensagem não espera por eles.
-        this.unreadPublisher.publish(conversationId, memberIds);
+        const unread = this.unreadPublisher.publish(conversationId, memberIds);
         // Os números de Atividade (spec da F08, "Tempo real"): numa Conversa direta, as duas
         // Pessoas; num Canal, o autor, que leu até aqui, e as Pessoas mencionadas.
-        this.activityPublisher.publish(async () =>
-          (await this.conversations.isDirect(conversationId))
-            ? memberIds
-            : [author.id, ...message.mentions.map((mention) => mention.id)],
+        this.activityPublisher.publish(
+          async () =>
+            (await this.conversations.isDirect(conversationId))
+              ? memberIds
+              : [author.id, ...message.mentions.map((mention) => mention.id)],
+          unread,
         );
       })
       .catch((error: unknown) =>
@@ -277,9 +279,12 @@ export class MessagesService {
                     )
                     .then((ids) => ids.filter((id) => changed.has(id)));
                   affected.catch(() => {});
-                  this.unreadPublisher.publish(conversationId, () => affected);
+                  const unread = this.unreadPublisher.publish(
+                    conversationId,
+                    () => affected,
+                  );
                   // As Notificações das mesmas Pessoas (spec da F08).
-                  this.activityPublisher.publish(() => affected);
+                  this.activityPublisher.publish(() => affected, unread);
                 }
               },
               'Falha ao publicar a Mensagem editada',
@@ -315,7 +320,10 @@ export class MessagesService {
                 messageId,
                 personId,
               ));
-            this.unreadPublisher.publish(conversationId, readBefore);
+            const unread = this.unreadPublisher.publish(
+              conversationId,
+              readBefore,
+            );
             // Dessas Pessoas, as que tinham a Mensagem como Notificação (spec da F08): a outra
             // Pessoa da Conversa direta, ou as mencionadas num Canal. As Menções ficam na exclusão.
             this.activityPublisher.publish(async () => {
@@ -327,7 +335,7 @@ export class MessagesService {
               if (isDirect) return stillUnread;
               const mentioned = new Set(mentions.map((mention) => mention.id));
               return stillUnread.filter((id) => mentioned.has(id));
-            });
+            }, unread);
           },
           'Falha ao publicar a Mensagem apagada',
         ),

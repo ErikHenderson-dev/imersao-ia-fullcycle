@@ -42,9 +42,9 @@ export class ReadService {
     );
     // As outras abas de quem leu recebem os números, sem segurar a resposta (spec da F07).
     if (advanced) {
-      this.unreadPublisher.publish(conversation.id, [personId]);
+      const unread = this.unreadPublisher.publish(conversation.id, [personId]);
       // A leitura também lê as Notificações da Conversa (spec da F08, "Tempo real").
-      this.activityPublisher.publish([personId]);
+      this.activityPublisher.publish([personId], unread);
     }
     return this.unreadCounter.countOne({
       conversationId: conversation.id,

@@ -79,9 +79,13 @@ export function ActivityList({
   useEffect(
     () =>
       subscribe({
-        onMemberAdded: ({ conversation }) => {
+        onMemberAdded: ({ conversation, personIds }) => {
           joined.current.set(conversation.id, conversation);
-          setJoinedIds((current) => new Set(current).add(conversation.id));
+          // Só quem acabou de entrar não leu nada dela; um Membro antigo recebe o evento quando
+          // outra Pessoa entra.
+          if (personIds.includes(personId)) {
+            setJoinedIds((current) => new Set(current).add(conversation.id));
+          }
         },
         onMessage: (message) => {
           const item = itemFor(message);
@@ -99,7 +103,7 @@ export function ActivityList({
         },
         replayLastReset: true,
       }),
-    [subscribe, mutate, filter],
+    [subscribe, mutate, filter, personId],
   );
   const lastRead = new Map(conversations.map((conversation) => [conversation.id, conversation.lastReadMessageId]));
   // O fallbackData já devolve a primeira página enquanto o cache está vazio.

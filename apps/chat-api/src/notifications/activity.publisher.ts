@@ -23,11 +23,12 @@ export class ActivityPublisher {
     private readonly publisher: RealtimePublisher,
   ) {}
 
-  publish(recipients: ActivityRecipients): void {
-    const resolved =
-      typeof recipients === 'function'
-        ? recipients()
-        : Promise.resolve(recipients);
+  // `after` é a publicação dos números da Conversa da mesma mudança: os de Atividade saem depois
+  // dela (spec da F08, "Tempo real").
+  publish(recipients: ActivityRecipients, after?: Promise<void>): void {
+    const resolved = (after ?? Promise.resolve()).then(() =>
+      typeof recipients === 'function' ? recipients() : recipients,
+    );
     void resolved
       .then((personIds) => new Set(personIds).forEach((id) => this.enqueue(id)))
       .catch((error: unknown) =>
