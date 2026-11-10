@@ -79,7 +79,8 @@ export function PeoplePicker({
         <Input
           id={inputId}
           role="combobox"
-          aria-expanded={options.length > 0}
+          // Aberto quando a busca respondeu, mesmo sem ninguém: o aviso aparece no lugar da lista.
+          aria-expanded={people !== null}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={options.length > 0 ? optionId(activeIndex) : undefined}
@@ -117,7 +118,8 @@ export function PeoplePicker({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
                   setActive(index);
-                  if (!disabled) onPick(person);
+                  // A lista de um texto anterior espera a busca nova, como no Enter.
+                  if (!disabled && !isStale) onPick(person);
                 }}
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-item p-2",
