@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import type { MessageCreatedEvent } from 'chat-events';
+import type { MessageCreatedEvent, MessageUpdatedEvent } from 'chat-events';
 import { compareStreamIds } from '../src/realtime/events.store';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
@@ -214,7 +214,11 @@ describe('Recuperação depois da queda', () => {
       cursor: seen.event_id,
     });
     sockets.push(socket);
-    const updates = collectEvents(socket, 'message.updated');
+    // Só os desta Mensagem: um Canal público criado por outra suíte inclui a Pessoa e traz os dele.
+    const ours: MessageUpdatedEvent[] = [];
+    socket.on('message.updated', (event) => {
+      if (event.message.id === messageId) ours.push(event);
+    });
     const syncs = collectEvents(socket, 'sync');
 
     socket.connect();
@@ -224,9 +228,9 @@ describe('Recuperação depois da queda', () => {
     // A publicação sai depois da resposta e pode cruzar com a reconexão: o mesmo evento chega pelo
     // reenvio e ao vivo, com o mesmo cursor, e a aba descarta o repetido (orderForSync); ainda em
     // andamento, chega ao vivo logo depois do sync.
-    await waitForCount(updates, 1, 5000);
-    expect(new Set(updates.map((event) => event.event_id)).size).toBe(1);
-    expect(updates[0].message).toMatchObject({
+    await waitForCount(ours, 1, 5000);
+    expect(new Set(ours.map((event) => event.event_id)).size).toBe(1);
+    expect(ours[0].message).toMatchObject({
       id: messageId,
       body: 'Editada na queda',
     });
