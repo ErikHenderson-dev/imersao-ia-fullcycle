@@ -17,7 +17,7 @@ import { isTooltipEscape } from "@/app/components/ui/tooltip";
 import { useEditProfile } from "./edit-profile-dialog";
 import { UserStatusLine } from "@/app/components/people/user-status";
 import { useKnownPresence } from "@/app/components/people/people-provider";
-import { PresenceDot, presenceLabel } from "@/app/components/ui/presence-dot";
+import { PresenceLine } from "@/app/components/ui/presence-dot";
 import type { Presence } from "chat-events";
 
 class ProfileNotFoundError extends Error {}
@@ -176,12 +176,7 @@ function ProfileContent({
 function ProfilePresence({ personId, presence: fromPayload }: { personId: string; presence?: Presence }) {
   const presence = useKnownPresence(personId, fromPayload);
   if (!presence) return null;
-  return (
-    <p className="flex items-center gap-2 text-body text-fg">
-      <PresenceDot presence={presence} decorative />
-      {presenceLabel(presence)}
-    </p>
-  );
+  return <PresenceLine presence={presence} className="text-body" />;
 }
 
 // A hora atual no fuso da Pessoa, que muda na virada de cada minuto (Figma, "Local time").

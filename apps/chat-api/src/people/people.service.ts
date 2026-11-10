@@ -1,3 +1,4 @@
+import type { Presence } from 'chat-events';
 import {
   Propagation,
   Transactional,
@@ -133,18 +134,20 @@ export class PeopleService {
       .insert()
       .values(person)
       .orIgnore()
-      .returning(['created_at', 'updated_at', 'time_zone'])
+      .returning(['created_at', 'updated_at', 'time_zone', 'presence_choice'])
       .execute();
     const [row] = inserted.raw as {
       created_at: Date;
       updated_at: Date;
       time_zone: string | null;
+      presence_choice: Presence;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       timeZone: row.time_zone,
+      presenceChoice: row.presence_choice,
     });
   }
 
@@ -347,7 +350,7 @@ export class PeopleService {
   // Grava a escolha de presença; devolve se ela mudou (spec da F09, "Rotas").
   async savePresenceChoice(
     personId: string,
-    choice: 'available' | 'away',
+    choice: Presence,
   ): Promise<boolean> {
     const result = await this.people
       .createQueryBuilder()

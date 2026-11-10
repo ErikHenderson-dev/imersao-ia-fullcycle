@@ -164,6 +164,12 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
         );
       statuses = next;
       hasSnapshot = true;
+      // As marcas até a deste retrato já não protegem nada: o próximo retrato é mais novo que elas.
+      for (const marks of [statusChangedAt, presenceChangedAt]) {
+        for (const [personId, changedAt] of marks) {
+          if (changedAt <= mark) marks.delete(personId);
+        }
+      }
       if (changed) notify();
     },
     version: () => currentVersion,

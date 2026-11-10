@@ -97,4 +97,25 @@ describe('rastreador de presença', () => {
 
     expect(presence.availableIds()).toEqual(['ana']);
   });
+
+  it('uma desconexão a mais não encurta a carência', () => {
+    const { presence } = tracker();
+    presence.connected('ana', 'available');
+
+    presence.disconnected('ana');
+    presence.disconnected('ana');
+    jest.advanceTimersByTime(GRACE_MS - 1);
+
+    expect(presence.presenceOf('ana')).toBe('available');
+  });
+
+  it('uma aba nova não troca a escolha de quem já está conectado', () => {
+    const { presence } = tracker();
+    presence.connected('ana', 'available');
+    presence.choiceChanged('ana', 'away');
+
+    presence.connected('ana', 'available');
+
+    expect(presence.presenceOf('ana')).toBe('away');
+  });
 });

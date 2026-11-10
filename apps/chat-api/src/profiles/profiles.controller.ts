@@ -97,11 +97,10 @@ export class ProfilesController {
     @CurrentPerson() person: Person,
     @Body() body: SavePresenceChoiceDto,
   ): Promise<void> {
-    const changed = await this.people.savePresenceChoice(
-      person.id,
-      body.presence_choice,
-    );
-    if (changed) this.presence.choiceChanged(person.id, body.presence_choice);
+    await this.people.savePresenceChoice(person.id, body.presence_choice);
+    // Sempre: o rastreador só publica se a Presença mudar, e corrige uma aba que conectou com a
+    // escolha velha enquanto esta gravação corria.
+    this.presence.choiceChanged(person.id, body.presence_choice);
   }
 
   @Get(':id')

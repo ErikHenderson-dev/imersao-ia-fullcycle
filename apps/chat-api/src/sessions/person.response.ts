@@ -1,4 +1,4 @@
-import type { StatusPayload } from 'chat-events';
+import type { Presence, StatusPayload } from 'chat-events';
 import { toStatusResponse } from '../people/status.response';
 import { Person } from '../people/person.entity';
 
@@ -9,7 +9,7 @@ export interface PersonResponse {
   username: string;
   time_zone: string | null;
   status: StatusPayload | null;
-  presence_choice: 'available' | 'away';
+  presence_choice: Presence;
 }
 
 export function toPersonResponse(person: Person): PersonResponse {

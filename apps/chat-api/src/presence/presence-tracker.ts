@@ -3,20 +3,22 @@ import { ConfigService } from '@nestjs/config';
 import type { Presence } from 'chat-events';
 import type { Env } from '../config/env.schema';
 
-export type PresenceChoice = 'available' | 'away';
+// A escolha de presença tem os mesmos valores da Presença calculada.
+export type PresenceChoice = Presence;
+
+// O que o rastreador sabe de cada Pessoa conectada ou na carência.
+interface Tracked {
+  sockets: number;
+  choice: PresenceChoice;
+  graceTimer?: ReturnType<typeof setTimeout>;
+}
 
 // A Presença das Pessoas, em memória (spec da F09, "Presença"; LLD, "Estados e regras", "Presença"):
 // conta os sockets de cada Pessoa e espera a `carência da presença` antes de dar como desconectada
 // quem perdeu o último. Vale para uma instância da API (HLD, seção 6.2).
 @Injectable()
 export class PresenceTracker implements OnModuleDestroy {
-  private readonly sockets = new Map<string, number>();
-  private readonly graceTimers = new Map<
-    string,
-    ReturnType<typeof setTimeout>
-  >();
-  // A escolha de quem está conectado ou na carência.
-  private readonly choices = new Map<string, PresenceChoice>();
+  private readonly tracked = new Map<string, Tracked>();
   private readonly listeners = new Set<
     (personId: string, presence: Presence) => void
   >();
@@ -34,60 +36,60 @@ export class PresenceTracker implements OnModuleDestroy {
     return () => this.listeners.delete(listener);
   }
 
+  // Disponível só conectada (ou na carência) e com a escolha `available`.
   presenceOf(personId: string): Presence {
-    const isConnected =
-      (this.sockets.get(personId) ?? 0) > 0 || this.graceTimers.has(personId);
-    return isConnected && this.choices.get(personId) === 'available'
+    return this.tracked.get(personId)?.choice === 'available'
       ? 'available'
       : 'away';
   }
 
   // Quem está disponível agora, para o retrato.
   availableIds(): string[] {
-    return [...this.choices.keys()].filter(
-      (personId) => this.presenceOf(personId) === 'available',
-    );
+    return [...this.tracked]
+      .filter(([, entry]) => entry.choice === 'available')
+      .map(([personId]) => personId);
   }
 
+  // Uma aba conectou. A escolha lida no handshake só vale para quem não estava sendo seguido: a de
+  // quem já está conectado é a mais nova, trocada pela rota enquanto o handshake corria.
   connected(personId: string, choice: PresenceChoice): void {
     this.track(personId, () => {
-      const timer = this.graceTimers.get(personId);
-      if (timer) {
-        clearTimeout(timer);
-        this.graceTimers.delete(personId);
+      const entry = this.tracked.get(personId);
+      if (!entry) {
+        this.tracked.set(personId, { sockets: 1, choice });
+        return;
       }
-      this.sockets.set(personId, (this.sockets.get(personId) ?? 0) + 1);
-      this.choices.set(personId, choice);
+      clearTimeout(entry.graceTimer);
+      entry.graceTimer = undefined;
+      entry.sockets += 1;
     });
   }
 
   disconnected(personId: string): void {
-    const remaining = (this.sockets.get(personId) ?? 0) - 1;
-    if (remaining > 0) {
-      this.sockets.set(personId, remaining);
-      return;
-    }
-    this.sockets.delete(personId);
+    const entry = this.tracked.get(personId);
+    if (!entry || entry.sockets === 0) return;
+    entry.sockets -= 1;
+    if (entry.sockets > 0) return;
     // A carência: uma queda curta, ou trocar de página, não muda o que os outros veem.
-    const timer = setTimeout(() => {
-      this.track(personId, () => {
-        this.graceTimers.delete(personId);
-        this.choices.delete(personId);
-      });
+    clearTimeout(entry.graceTimer);
+    entry.graceTimer = setTimeout(() => {
+      this.track(personId, () => this.tracked.delete(personId));
     }, this.graceMs);
-    timer.unref?.();
-    this.graceTimers.set(personId, timer);
+    entry.graceTimer.unref?.();
   }
 
-  // A Pessoa trocou a escolha: muda a Presença só de quem está conectado.
+  // A Pessoa trocou a escolha: muda a Presença só de quem está sendo seguido.
   choiceChanged(personId: string, choice: PresenceChoice): void {
-    if (!this.choices.has(personId)) return;
-    this.track(personId, () => this.choices.set(personId, choice));
+    const entry = this.tracked.get(personId);
+    if (!entry) return;
+    this.track(personId, () => {
+      entry.choice = choice;
+    });
   }
 
   onModuleDestroy(): void {
-    this.graceTimers.forEach((timer) => clearTimeout(timer));
-    this.graceTimers.clear();
+    this.tracked.forEach((entry) => clearTimeout(entry.graceTimer));
+    this.tracked.clear();
   }
 
   private track(personId: string, change: () => void): void {

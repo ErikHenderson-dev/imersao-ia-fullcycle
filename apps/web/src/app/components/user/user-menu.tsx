@@ -12,12 +12,12 @@ import {
   useKnownPresence,
   usePeopleStore,
 } from "@/app/components/people/people-provider";
-import { PresenceDot, presenceLabel } from "@/app/components/ui/presence-dot";
+import { PersonAvatar } from "@/app/components/people/person-display";
+import { PresenceLine, presenceLabel } from "@/app/components/ui/presence-dot";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { UserStatus } from "@/app/components/people/user-status";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
-import { Avatar } from "@/app/components/ui/avatar";
 import { Spinner } from "@/app/components/ui/spinner";
 import {
   DropdownMenu,
@@ -48,29 +48,27 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
   const editingProfile = useRef(false);
   const people = usePeopleStore();
   // A própria Presença: com a aba aberta, é a escolha (spec da F09, "Escolha de presença").
-  const presence = useKnownPresence(person.id, sessionPerson.presenceChoice) ?? "available";
+  const presence = useKnownPresence(person.id, sessionPerson.presenceChoice)!;
+  const nextPresence: Presence = presence === "available" ? "away" : "available";
 
-  // Aplica a escolha na hora e volta à anterior se a gravação falhar.
+  // Aplica a escolha na hora e volta à anterior se a gravação falhar, a não ser que um evento mais
+  // novo já tenha mudado a Presença enquanto a gravação corria.
   async function choosePresence(next: Presence) {
     const previous = presence;
     people.applyPresence(person.id, next);
     const result = await savePresenceChoice(next).catch(() => ({ kind: "failure" }) as const);
     if (result.kind === "ok") return;
     if (result.kind === "unauthenticated") return redirectToExpiredSession();
-    people.applyPresence(person.id, previous);
+    if (people.getPresence(person.id) === next) people.applyPresence(person.id, previous);
     toast.error("Não foi possível mudar a presença");
   }
 
+  const avatarPerson = { ...person, presence };
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger ref={trigger} className="relative rounded-item" title={person.name}>
-        <Avatar initials={person.initials} seed={person.id} />
-        <PresenceDot
-          presence={presence}
-          backdrop="chrome"
-          decorative
-          className="absolute -right-0.5 -bottom-0.5"
-        />
+      <DropdownMenuTrigger ref={trigger} className="rounded-item" title={person.name}>
+        <PersonAvatar person={avatarPerson} presenceBackdrop="chrome" />
         <span className="sr-only">Menu de {person.name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -86,39 +84,19 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
         }}
       >
         <div className="flex items-center gap-3 px-4 pt-1 pb-2">
-          <span className="relative inline-flex shrink-0">
-            <Avatar initials={person.initials} seed={person.id} />
-            <PresenceDot
-              presence={presence}
-              backdrop="raised"
-              decorative
-              className="absolute -right-0.5 -bottom-0.5"
-            />
-          </span>
+          <PersonAvatar person={avatarPerson} presenceBackdrop="raised" />
           <div className="flex min-w-0 flex-1 flex-col">
             <p className="flex min-w-0 items-center gap-1 text-body font-black text-fg">
               <span className="truncate">{person.name}</span>
               <UserStatus personId={person.id} status={sessionPerson.status} />
             </p>
-            <p className="flex items-center gap-1 text-small text-fg-muted">
-              <PresenceDot presence={presence} decorative />
-              {presenceLabel(presence)}
-            </p>
+            <PresenceLine presence={presence} className="gap-1 text-small text-fg-muted" />
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() => void choosePresence(presence === "available" ? "away" : "available")}
-        >
-          {presence === "available" ? (
-            <>
-              Definir como <span className="font-bold">ausente</span>
-            </>
-          ) : (
-            <>
-              Definir como <span className="font-bold">disponível</span>
-            </>
-          )}
+        <DropdownMenuItem onSelect={() => void choosePresence(nextPresence)}>
+          Definir como{" "}
+          <span className="font-bold">{presenceLabel(nextPresence).toLowerCase()}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
