@@ -15,6 +15,9 @@ type ReadReport = {
   initialLastReadId: string | null;
   // O histórico em dia com o tempo real: antes disso, a lista pode não ter a Mensagem mais nova.
   isReady: boolean;
+  // Quando o foco da aba volta, com a Última leitura conhecida antes do aviso que a volta dispara:
+  // a referência do divisor de novas Mensagens (spec da F07).
+  onFocusReturn?: (lastReadId: string | null) => void;
 };
 
 // O aviso pela rota do BFF; a rede caída vira falha. Com `keepalive`, o pedido sobrevive à troca
@@ -51,6 +54,7 @@ export function useReadReport({
   newestSaved,
   initialLastReadId,
   isReady,
+  onFocusReturn,
 }: ReadReport): void {
   const isFocused = useTabFocus();
   const newestSavedId = newestSaved?.id;
@@ -78,6 +82,15 @@ export function useReadReport({
     if (result.kind !== "ok" && knownLastRead.current === messageId) knownLastRead.current = previous;
     applyResult(result);
   });
+
+  // A volta do foco, antes do efeito que agenda o aviso, que é declarado depois.
+  const wasFocused = useRef(isFocused);
+  const focusReturned = useEffectEvent(() => onFocusReturn?.(knownLastRead.current));
+  useEffect(() => {
+    const was = wasFocused.current;
+    wasFocused.current = isFocused;
+    if (!was && isFocused) focusReturned();
+  }, [isFocused]);
 
   useEffect(() => {
     latestId.current = newestSavedId;

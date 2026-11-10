@@ -189,7 +189,10 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - Se não está na página carregada (a página começa depois da Última leitura e há mais), a Conversa
   usa a ida da F06-T07 (spec da F06, "Ir até a Mensagem citada"): mostra "Indo até a mensagem" e
   carrega páginas anteriores de 100 até a que contém a primeira Não lida ou começa antes dela.
-  Com a Última leitura nula, carrega até o começo do histórico.
+  Com a Última leitura nula, carrega até o começo do histórico. Enquanto carrega, o divisor não
+  aparece; se uma página falha, a Conversa fica onde está, sem divisor, porque ele ficaria acima de
+  uma Mensagem com Não lidas antes dela. A primeira Não lida mostra sempre o nome e o avatar de
+  quem a escreveu, logo abaixo do divisor.
 - O divisor não se move enquanto a pessoa fica na Conversa: as Mensagens que chegam com a aba em
   foco entram abaixo dele, já lidas. Trocar de Conversa e voltar recalcula, sem divisor se não
   houver Não lidas.
