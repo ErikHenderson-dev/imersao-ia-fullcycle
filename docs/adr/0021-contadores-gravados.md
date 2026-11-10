@@ -1,5 +1,5 @@
 ---
-status: aceita
+status: substituída pela 0026
 ---
 
 # 0021 · Contadores de não lidas e de menções gravados na transação

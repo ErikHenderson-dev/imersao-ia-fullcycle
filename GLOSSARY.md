@@ -56,6 +56,16 @@ _Avoid_: marcação, tag
 A referência, numa Mensagem, a outra Mensagem da mesma Conversa a que ela responde.
 _Avoid_: resposta, reply (ficam para a thread)
 
+**Última leitura**:
+Até que Mensagem uma Pessoa leu uma Conversa. Avança quando ela abre a Conversa com a aba do
+navegador em foco, e nunca volta.
+_Avoid_: visto, lida por
+
+**Não lida**:
+Mensagem de outro autor, numa Conversa de que a Pessoa é Membro, que chegou depois da Última
+leitura dela.
+_Avoid_: nova, como sinônimo
+
 **Sessão**:
 O acesso de uma Pessoa ao chat num navegador, do momento em que ela entra até sair, a Sessão
 vencer por falta de uso ou ser revogada. Vale para todas as abas daquele navegador.

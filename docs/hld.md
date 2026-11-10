@@ -272,7 +272,7 @@ chat avisa quem delegou.
 
 | Onde | O que guarda |
 | --- | --- |
-| Banco do chat (Postgres) | Pessoas, com perfil, papel de administrador e permissão de dados; sessões; canais e membros; conversas diretas; mensagens, com autor pessoa ou bot, citação e a marca "dados de negócio"; menções; última leitura por pessoa e conversa (de onde saem as não lidas); notificações; tarefas; pedidos aos agentes, com o identificador; perguntas pendentes; referência ao PDF de uma mensagem |
+| Banco do chat (Postgres) | Pessoas, com perfil, papel de administrador e permissão de dados; sessões; canais e membros; conversas diretas; mensagens, com autor pessoa ou bot, citação e a marca "dados de negócio"; menções; última leitura por pessoa e conversa (de onde saem as não lidas e as menções por conversa); notificações; tarefas; pedidos aos agentes, com o identificador; perguntas pendentes; referência ao PDF de uma mensagem |
 | Banco dos agentes (Postgres, mesma instância) | Registro de agentes conectados; sessões do ADK |
 | Banco de negócio (Postgres, mesma instância) | Dados de vendas (pedidos, clientes, vendedores), carregados por script; o sistema só lê |
 | Redis | Fila de pedidos demorados; eventos recentes por pessoa para a reconexão; contadores de limite de pedidos e de custo |
@@ -280,9 +280,12 @@ chat avisa quem delegou.
 
 Regras que pesam no desenho:
 
-- Gravar uma mensagem e gerar as menções, as notificações e a contagem de não lidas que ela causa
-  é uma transação só no Banco do chat; o mesmo vale para criar, concluir e reabrir uma tarefa com a
-  notificação dela. Só depois de confirmada a transação o evento sai pelo WebSocket.
+- Gravar uma mensagem e gerar as menções e as notificações que ela causa é uma transação só no
+  Banco do chat; o mesmo vale para criar, concluir e reabrir uma tarefa com a notificação dela. Só
+  depois de confirmada a transação o evento sai pelo WebSocket.
+- As não lidas e as menções de cada pessoa por conversa são calculadas a partir da última leitura,
+  e não gravadas: apagar ou editar uma mensagem não exige corrigir contadores (detalhes no LLD,
+  seção "Concorrência e idempotência").
 - Apagar uma mensagem apaga o conteúdo de vez e a tira da conversa; a marca "mensagem apagada" fica
   só para as citações a ela.
 - Os agentes não acessam o Banco do chat: as mensagens de que precisam chegam pela API do chat.
