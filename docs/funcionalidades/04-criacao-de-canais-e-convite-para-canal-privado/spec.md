@@ -115,7 +115,7 @@ A operação nova do comando da F02 (spec da F02, "Comando de canais"):
 
 | Operação | Recebe | Efeito |
 | --- | --- | --- |
-| `remove-member` | Nome do Canal privado; e-mail da Pessoa | Apaga a participação. Canal inexistente ou público, e Pessoa sem conta ou que não é Membro, são recusados com mensagem |
+| `remove-member` | Nome do Canal privado; e-mail da Pessoa | Apaga a participação. Canal inexistente ou público, Pessoa sem conta ou que não é Membro, e o último Membro do Canal são recusados com mensagem: sem Membros, o Canal ficaria sem ninguém para adicionar Pessoas, com o nome preso |
 
 A remoção não publica evento: a Pessoa para de receber as Mensagens na hora, porque a publicação lê
 os Membros a cada envio, e o Canal some da barra lateral dela ao recarregar a página. O `create`

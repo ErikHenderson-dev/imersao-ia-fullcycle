@@ -7,9 +7,11 @@ const USAGE = `Uso: pnpm channels <operação> [argumentos]
 Operações:
   create <nome> ["<tópico>"]  Cria um Canal público, com todas as Pessoas como Membros
   set-topic <nome> "<tópico>" Troca o Tópico do Canal; "" apaga
-  list                        Lista os Canais, com o número de Membros e o Tópico`;
+  list                        Lista os Canais, com o número de Membros e o Tópico
+  remove-member <nome> <e-mail>
+                              Tira a Pessoa de um Canal privado`;
 
-// Comando de canais de quem opera a instalação (spec da F02, "Comando de canais").
+// Comando de canais de quem opera a instalação (spec da F02 e da F04, "Comando de canais").
 // Devolve o código de saída do processo.
 export class ChannelsCommand implements Command {
   constructor(
@@ -27,6 +29,8 @@ export class ChannelsCommand implements Command {
           return await this.setTopic(rest);
         case 'list':
           return await this.list(rest);
+        case 'remove-member':
+          return await this.removeMember(rest);
         default:
           this.output.error(USAGE);
           return 1;
@@ -64,6 +68,20 @@ export class ChannelsCommand implements Command {
         ? `Tópico de #${channel.name} apagado.`
         : `Tópico de #${channel.name} trocado.`,
     );
+    return 0;
+  }
+
+  private async removeMember([
+    name,
+    email,
+    ...extra
+  ]: string[]): Promise<number> {
+    if (name === undefined || email === undefined || extra.length > 0) {
+      this.output.error('Uso: pnpm channels remove-member <nome> <e-mail>');
+      return 1;
+    }
+    const removed = await this.conversations.removeMember(name, email);
+    this.output.info(`${removed.personName} saiu de #${removed.channelName}.`);
     return 0;
   }
 

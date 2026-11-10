@@ -19,7 +19,12 @@ import { ConversationNotFoundError } from './conversation-not-found.error';
 import { Conversation, ConversationKind } from './conversation.entity';
 import { InvalidChannelError } from './invalid-channel.error';
 import { compareNames } from './name-order';
+import { ChannelNotPrivateError } from './channel-not-private.error';
+import { LastMemberError } from './last-member.error';
 import { MembersNotEditableError } from './members-not-editable.error';
+import { NotAMemberError } from './not-a-member.error';
+import { normalizeEmail } from '../people/normalize-email';
+import { PersonNotFoundError } from '../people/person-not-found.error';
 import { lockPublicMembership } from './public-membership-lock';
 import { InvalidPeopleError } from '../people/invalid-people.error';
 import { PersonSummary, sortedSummaries } from '../people/person-summary';
@@ -189,11 +194,14 @@ export class ConversationsService {
       throw new MembersNotEditableError();
     }
     // Duas adições ao mesmo Canal acontecem uma depois da outra: a segunda lê os Membros já com os
-    // da primeira, e o evento dela chega a todos.
+    // da primeira, e o evento dela chega a todos. A remoção pelo comando toma a mesma trava, e a
+    // participação de quem pede é conferida de novo depois dela: quem foi removido enquanto
+    // esperava não adiciona ninguém.
     await this.txHost.tx.query(
       'SELECT 1 FROM conversations WHERE id = $1 FOR UPDATE',
       [conversation.id],
     );
+    await this.getForMember(personId, conversation.id);
     const people = await this.people.findByIds(personIds);
     if (people.length !== new Set(personIds).size) {
       throw new InvalidPeopleError();
@@ -273,6 +281,38 @@ export class ConversationsService {
     );
     if (!result.affected) throw new ChannelNotFoundError(name);
     return { name, topic: topic.value };
+  }
+
+  // Tira uma Pessoa de um Canal privado, pelo comando de canais (spec da F04, "Comando de
+  // canais"). Sem evento: a Pessoa para de receber as Mensagens na hora, porque a publicação lê os
+  // Membros a cada envio. Devolve o nome da Pessoa e o do Canal, normalizado.
+  @Transactional()
+  async removeMember(
+    rawChannelName: string,
+    email: string,
+  ): Promise<{ personName: string; channelName: string }> {
+    const name = normalizeChannelName(rawChannelName);
+    const channel = await this.conversations.findOneBy({ name });
+    if (!channel) throw new ChannelNotFoundError(name);
+    if (channel.kind !== 'private_channel') {
+      throw new ChannelNotPrivateError(name);
+    }
+    // Em série com as adições ao mesmo Canal (addMembers).
+    await this.txHost.tx.query(
+      'SELECT 1 FROM conversations WHERE id = $1 FOR UPDATE',
+      [channel.id],
+    );
+    const person = await this.people.findByEmail(email);
+    if (!person) throw new PersonNotFoundError(normalizeEmail(email));
+    const memberIds = await this.listMemberIds(channel.id);
+    if (!memberIds.includes(person.id)) {
+      throw new NotAMemberError(person.name, name);
+    }
+    if (memberIds.length === 1) throw new LastMemberError(person.name, name);
+    await this.txHost.tx
+      .getRepository(ConversationMember)
+      .delete({ conversationId: channel.id, personId: person.id });
+    return { personName: person.name, channelName: name };
   }
 
   // Canais públicos em ordem alfabética ("name-order.ts"), com o número de Membros.
