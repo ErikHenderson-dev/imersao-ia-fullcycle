@@ -45,6 +45,7 @@ export function useAnyTabFocused(): () => Promise<boolean> {
     await new Promise((resolve) => setTimeout(resolve, TAB_FOCUS_WAIT_MS));
     const answers = received.current;
     received.current = answers.filter((message) => message.type === "answer" && message.askId !== askId);
-    return anyFocusedAnswer(answers, askId);
+    // Esta aba pode ter ganhado o foco durante a espera.
+    return isThisTabFocused() || anyFocusedAnswer(answers, askId);
   }, []);
 }

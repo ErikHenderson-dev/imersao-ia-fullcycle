@@ -22,14 +22,18 @@ function subscribe(onChange: () => void): () => void {
   window.addEventListener("storage", onStorage);
   // A permissão também muda fora do chat (o cadeado da barra de endereço, as configurações do site).
   let status: PermissionStatus | null = null;
+  // A consulta pode voltar depois de a assinatura acabar: aí ela não liga mais nada.
+  let isActive = true;
   void navigator.permissions
     ?.query({ name: "notifications" })
     .then((result) => {
+      if (!isActive) return;
       status = result;
       result.addEventListener("change", onChange);
     })
     .catch(() => {});
   return () => {
+    isActive = false;
     listeners.delete(onChange);
     window.removeEventListener("storage", onStorage);
     status?.removeEventListener("change", onChange);

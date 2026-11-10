@@ -11,6 +11,7 @@ import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import { useNotificationItems } from "@/app/hooks/use-notification-items";
 import type { Message } from "@/app/services/chat-api";
 import { notificationTitle } from "@/app/utils/activity";
+import { notificationPreview } from "@/app/utils/browser-notifications";
 import { fetchConversationList } from "@/app/services/conversation-list";
 import { conversationsKey, messageHref } from "@/app/utils/conversation-list";
 import { ALERT_DURATION_MS, notificationDestination } from "@/app/utils/notification-destination";
@@ -52,7 +53,10 @@ export function AlertCenter({ personId }: { personId: string }) {
       // Todas as abas sem foco criam a mesma notificação, com o id da Mensagem no tag: o navegador
       // mostra uma só. O clique traz esta aba para a frente na Mensagem.
       try {
-        const notification = new Notification(notificationTitle(item), { body: message.body, tag: message.id });
+        const notification = new Notification(notificationTitle(item), {
+          body: notificationPreview(message.body),
+          tag: message.id,
+        });
         notification.onclick = () => {
           window.focus();
           router.push(href);
