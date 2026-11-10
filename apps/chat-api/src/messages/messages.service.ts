@@ -121,21 +121,16 @@ export class MessagesService {
     return { messages: await this.withDetails(page), hasMore };
   }
 
-  // As Mensagens vivas desses ids, montadas como no histórico (autor, Menções e Citação), na ordem
-  // dos ids; a que foi apagada ou não existe fica fora. É a Mensagem dos itens de Atividade (spec da
-  // F08, "Notificações e contagem", "Versão por Pessoa").
+  // As Mensagens vivas desses ids, montadas como no histórico (autor, Menções e Citação), sem ordem
+  // garantida; a que foi apagada ou não existe fica fora. É a Mensagem dos itens de Atividade (spec
+  // da F08, "Notificações e contagem", "Versão por Pessoa").
   async viewsByIds(ids: string[]): Promise<MessageView[]> {
     if (ids.length === 0) return [];
     const found = await this.messages.findBy({
       id: In(ids),
       deletedAt: IsNull(),
     });
-    const byId = new Map(found.map((message) => [message.id, message]));
-    const ordered = ids.flatMap((id) => {
-      const message = byId.get(id);
-      return message ? [message] : [];
-    });
-    return this.withDetails(ordered);
+    return this.withDetails(found);
   }
 
   // Envia a Mensagem: grava e, só quando a gravação é nova, publica o evento para os Membros, depois

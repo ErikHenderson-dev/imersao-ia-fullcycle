@@ -1,18 +1,25 @@
 import type {
   ActivityFilter,
   ActivityItem,
+  ActivityUnread,
   Conversation,
 } from "@/app/services/chat-api";
 import { cachedFormatter } from "./date-formatters";
-import { formatCount } from "./unread";
+import { spoken } from "./unread";
 
 // As abas da tela Atividade (spec da F08, "Tela Atividade"): o valor de `?aba=` e o filtro da API.
 // Todas fica sem query.
+// `count` é o número de ActivityUnread que o contador da aba mostra.
 export const ACTIVITY_TABS = [
-  { filter: "all", param: null, label: "Todas" },
-  { filter: "mentions", param: "mencoes", label: "Menções" },
-  { filter: "direct", param: "diretas", label: "Mensagens diretas" },
-] as const satisfies readonly { filter: ActivityFilter; param: string | null; label: string }[];
+  { filter: "all", param: null, label: "Todas", count: "totalCount" },
+  { filter: "mentions", param: "mencoes", label: "Menções", count: "mentionCount" },
+  { filter: "direct", param: "diretas", label: "Mensagens diretas", count: "directCount" },
+] as const satisfies readonly {
+  filter: ActivityFilter;
+  param: string | null;
+  label: string;
+  count: keyof ActivityUnread;
+}[];
 
 // O filtro da aba pedida em `?aba=`; uma aba desconhecida vale como Todas.
 export function activityFilterFromTab(tab: string | string[] | undefined): ActivityFilter {
@@ -75,5 +82,5 @@ export function notificationSuffix(isRead: boolean): string {
 // CountBadge esconde dele: ", 3 não lidas".
 export function unreadSuffix(count: number): string {
   if (count <= 0) return "";
-  return `, ${formatCount(count)} ${count === 1 ? "não lida" : "não lidas"}`;
+  return `, ${spoken(count)} ${count === 1 ? "não lida" : "não lidas"}`;
 }

@@ -7,12 +7,6 @@ import type { ActivityFilter, ActivityUnread } from "@/app/services/chat-api";
 import { ACTIVITY_TABS, activityTabHref, unreadSuffix } from "@/app/utils/activity";
 import { cn } from "@/app/utils/cn";
 
-const COUNT_OF: Record<ActivityFilter, keyof ActivityUnread> = {
-  all: "totalCount",
-  mentions: "mentionCount",
-  direct: "directCount",
-};
-
 // As abas Todas, Menções e Mensagens diretas (TabsTrigger, design system), cada uma uma URL, com o
 // contador das suas Notificações não lidas. A aba Tarefas entra na F12.
 export function ActivityTabs({
@@ -29,7 +23,7 @@ export function ActivityTabs({
     <nav aria-label="Tipos de atividade" className="flex shrink-0 gap-4 border-b border-border-subtle px-5">
       {ACTIVITY_TABS.map((tab) => {
         const isActive = tab.filter === active;
-        const count = unread[COUNT_OF[tab.filter]];
+        const count = unread[tab.count];
         return (
           <Link
             key={tab.filter}

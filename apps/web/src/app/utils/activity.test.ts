@@ -62,7 +62,7 @@ describe("Atividade", () => {
     expect(unreadSuffix(0)).toBe("");
     expect(unreadSuffix(1)).toBe(", 1 não lida");
     expect(unreadSuffix(3)).toBe(", 3 não lidas");
-    expect(unreadSuffix(100)).toBe(", 99+ não lidas");
+    expect(unreadSuffix(100)).toBe(", mais de 99 não lidas");
   });
 
   it("a aba da URL e o caminho de cada aba", () => {

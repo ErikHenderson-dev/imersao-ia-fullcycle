@@ -33,7 +33,7 @@ function rowSuffix(isDirect: boolean, isUnread: boolean, count: number): string 
 }
 
 // O número como o leitor de tela o diz: "mais de 99" no lugar do "99+".
-function spoken(count: number): string {
+export function spoken(count: number): string {
   return count > COUNT_DISPLAY_LIMIT ? `mais de ${COUNT_DISPLAY_LIMIT}` : String(count);
 }
 

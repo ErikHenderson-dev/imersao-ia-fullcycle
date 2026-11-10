@@ -652,8 +652,11 @@ export async function listActivity(
   };
 }
 
-// Os números de Atividade da Pessoa da Sessão.
-export async function getActivityUnread(token: string): Promise<ActivityUnreadResult> {
+// Os números de Atividade da Pessoa da Sessão, memorizados por requisição: o rail e a tela
+// Atividade leem os mesmos.
+export const getActivityUnread = cache(fetchActivityUnread);
+
+async function fetchActivityUnread(token: string): Promise<ActivityUnreadResult> {
   const result = await getJson<{ total_count: number; mention_count: number; direct_count: number }>(
     token,
     "/v1/activity/unread",

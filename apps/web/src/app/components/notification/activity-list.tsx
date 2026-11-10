@@ -52,7 +52,8 @@ export function ActivityList({
   );
   const { conversations } = useVisibleUnread(personId, initialConversations);
   const lastRead = new Map(conversations.map((conversation) => [conversation.id, conversation.lastReadMessageId]));
-  const pages = data ?? [initialPage];
+  // O fallbackData já devolve a primeira página enquanto o cache está vazio.
+  const pages = data ?? [];
   const items = pages.flatMap((page) => page.items.toReversed());
   const hasMore = pages.at(-1)?.hasMore ?? false;
   const isLoadingMore = isValidating && size > pages.length;
