@@ -117,6 +117,19 @@ describe('banco de testes', () => {
       await expect(insert).rejects.toThrow(/people_username_key/);
     });
 
+    it('people tem a marca de Atividade, nula por padrão', async () => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const [row] = await app
+        .get(DataSource)
+        .query<{ activity_read_message_id: string | null }[]>(
+          'SELECT activity_read_message_id FROM people WHERE id = $1',
+          [person.id],
+        );
+
+      expect(row).toEqual({ activity_read_message_id: null });
+    });
+
     it('people aceita cargo, telefone e fuso nulos ou preenchidos', async () => {
       const insert = Promise.all([
         insertPerson({ username: freeUsername() }),

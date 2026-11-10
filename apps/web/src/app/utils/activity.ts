@@ -66,10 +66,15 @@ export function relativeTime(isoDate: string, now: number, timeZone: string): st
   ).format(new Date(isoDate));
 }
 
-// A Notificação está lida quando a Mensagem é igual ou anterior à Última leitura da Conversa (spec
-// da F08, "Tela Atividade"). Os ids são UUID v7, em ordem de criação, comparados como texto.
-export function isNotificationRead(messageId: string, lastReadMessageId: string | null): boolean {
-  return lastReadMessageId !== null && messageId <= lastReadMessageId;
+// A Notificação está lida quando a Mensagem é igual ou anterior ao maior entre a Última leitura da
+// Conversa e a marca de "Marcar tudo como lido" (spec da F08, "Tela Atividade"). Os ids são UUID v7,
+// em ordem de criação, comparados como texto.
+export function isNotificationRead(
+  messageId: string,
+  lastReadMessageId: string | null,
+  activityReadMessageId: string | null = null,
+): boolean {
+  return [lastReadMessageId, activityReadMessageId].some((mark) => mark !== null && messageId <= mark);
 }
 
 // O que o leitor de tela ouve depois do texto visível do item, já que o ponto não tem texto: ",

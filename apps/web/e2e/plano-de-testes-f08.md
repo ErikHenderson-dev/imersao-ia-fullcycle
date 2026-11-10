@@ -44,3 +44,11 @@ A outra Pessoa envia e apaga pela API do chat (`support/chat-api.ts`), com o coo
 3. **Ler a Conversa deixa o item lido e baixa o número nas duas abas.**
 4. **A queda de conexão termina com os números certos:** a Menção que chegou sem rede conta no rail
    ao reconectar.
+
+## F08-T04 · Marcar tudo como lido (`atividade/marcar-tudo.spec.ts`)
+
+1. **O botão fica desabilitado sem não lidas.**
+2. **A falha mostra o toast de erro:** a rota do BFF interceptada com 502 e meio segundo de espera;
+   o botão fica ocupado enquanto espera e volta a ficar habilitado depois do toast.
+3. **Marcar tudo zera o rail nas duas abas e mantém o negrito da barra lateral:** o item fica lido,
+   o botão fica desabilitado, e o Canal da Menção continua em negrito, com o contador.

@@ -4,7 +4,12 @@ import useSWR from "swr";
 import type { ActivityUnread } from "@/app/services/chat-api";
 import { activityUnreadKey } from "@/app/utils/activity-cache";
 
-const NONE: ActivityUnread = { totalCount: 0, mentionCount: 0, directCount: 0 };
+const NONE: ActivityUnread = {
+  activityReadMessageId: null,
+  totalCount: 0,
+  mentionCount: 0,
+  directCount: 0,
+};
 
 // Os números de Atividade no cache global do SWR, por Pessoa (spec da F08, "Números de
 // Atividade"): o rail e as abas leem o mesmo. Quem os traz do servidor passa `initial`; sem busca

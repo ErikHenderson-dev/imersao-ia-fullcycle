@@ -44,6 +44,7 @@ export class ActivityPublisher {
       try {
         const counts = await this.notifications.countOne(personId);
         await this.publisher.activityUnread([personId], () => ({
+          activity_read_message_id: counts.activityReadMessageId,
           total_count: counts.totalCount,
           mention_count: counts.mentionCount,
           direct_count: counts.directCount,

@@ -25,6 +25,8 @@ export interface NotificationPage {
 
 // Os números de Atividade de uma Pessoa, cada um parando no teto.
 export interface ActivityCounts {
+  // A marca de "Marcar tudo como lido", ou nula.
+  activityReadMessageId: string | null;
   totalCount: number;
   mentionCount: number;
   directCount: number;
@@ -122,33 +124,45 @@ export class NotificationFinder {
     return { notifications, hasMore };
   }
 
-  // Os números de várias Pessoas numa consulta só: as Notificações posteriores à Última leitura da
-  // Conversa, por tipo, cada contagem parando no teto, e o total também.
+  // Os números de várias Pessoas numa consulta só: as Notificações posteriores ao maior entre a
+  // Última leitura da Conversa e a marca de Atividade, por tipo, cada contagem parando no teto, e o
+  // total também.
   async countFor(personIds: string[]): Promise<Map<string, ActivityCounts>> {
     if (personIds.length === 0) return new Map();
     const rows = await this.txHost.tx.query<
-      { person_id: string; mention_count: number; direct_count: number }[]
+      {
+        person_id: string;
+        activity_read_message_id: string | null;
+        mention_count: number;
+        direct_count: number;
+      }[]
     >(
-      `SELECT person.id AS person_id,
+      `SELECT person.id AS person_id, person.activity_read_message_id,
               (SELECT count(*)::int FROM (
                  SELECT 1 ${MENTIONS_OF_PERSON}
-                    AND mention.message_id > COALESCE(member.last_read_message_id, $3::uuid)
+                    AND mention.message_id > GREATEST(
+                          COALESCE(member.last_read_message_id, $3::uuid),
+                          COALESCE(person.activity_read_message_id, $3::uuid))
                   LIMIT $2) AS mentioned) AS mention_count,
               (SELECT count(*)::int FROM (
                  SELECT 1 ${DIRECT_MEMBERS}
                   CROSS JOIN LATERAL (
                     SELECT 1 ${DIRECT_OF_MEMBER}
-                       AND message.id > COALESCE(member.last_read_message_id, $3::uuid)
+                       AND message.id > GREATEST(
+                             COALESCE(member.last_read_message_id, $3::uuid),
+                             COALESCE(person.activity_read_message_id, $3::uuid))
                      LIMIT $2) AS unread
                   ${OF_PERSON}
                   LIMIT $2) AS direct) AS direct_count
-         FROM unnest($1::uuid[]) AS person(id)`,
+         FROM people person
+        WHERE person.id = ANY($1::uuid[])`,
       [personIds, UNREAD_COUNT_LIMIT, NOTHING_READ],
     );
     return new Map(
       rows.map((row) => [
         row.person_id,
         {
+          activityReadMessageId: row.activity_read_message_id,
           mentionCount: row.mention_count,
           directCount: row.direct_count,
           totalCount: Math.min(
@@ -160,11 +174,46 @@ export class NotificationFinder {
     );
   }
 
+  // Avança a marca de Atividade até a Mensagem, só para frente (spec da F08, "Avançar a marca de
+  // Atividade"). A Mensagem precisa ser de uma Conversa de que a Pessoa é Membro, apagada ou não,
+  // porque é só uma posição. Devolve se a Mensagem vale e se a marca avançou.
+  async advanceMark(
+    personId: string,
+    messageId: string,
+  ): Promise<{ isKnown: boolean; advanced: boolean }> {
+    const rows = await this.txHost.tx.query<{ advanced: boolean }[]>(
+      `WITH known AS (
+         SELECT message.id
+           FROM messages message
+           JOIN conversation_members member
+             ON member.conversation_id = message.conversation_id
+            AND member.person_id = $1
+          WHERE message.id = $2
+       ), moved AS (
+         UPDATE people
+            SET activity_read_message_id = $2
+          WHERE id = $1
+            AND EXISTS (SELECT 1 FROM known)
+            AND (activity_read_message_id IS NULL OR activity_read_message_id < $2)
+         RETURNING 1
+       )
+       SELECT EXISTS (SELECT 1 FROM moved) AS advanced
+         FROM known`,
+      [personId, messageId],
+    );
+    return { isKnown: rows.length > 0, advanced: rows[0]?.advanced ?? false };
+  }
+
   // Os números de uma Pessoa.
   async countOne(personId: string): Promise<ActivityCounts> {
     const counts = await this.countFor([personId]);
     return (
-      counts.get(personId) ?? { totalCount: 0, mentionCount: 0, directCount: 0 }
+      counts.get(personId) ?? {
+        activityReadMessageId: null,
+        totalCount: 0,
+        mentionCount: 0,
+        directCount: 0,
+      }
     );
   }
 }
