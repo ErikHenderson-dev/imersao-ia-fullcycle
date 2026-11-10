@@ -1,6 +1,6 @@
 # 03: Atividade em tempo real
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** o número do rail, os contadores das abas, os itens de Atividade e o estado de
 lido mudam na hora, em todas as abas e navegadores da Pessoa, sem recarregar: uma Notificação nova
@@ -20,21 +20,21 @@ reaproveitam. Referências:
 
 **Bloqueada por:** 01 (Atividade ao carregar a página)
 
-- [ ] **CA1** · O `activity.unread` entra no pacote de eventos, guardado por Pessoa e reenviado na
+- [x] **CA1** · O `activity.unread` entra no pacote de eventos, guardado por Pessoa e reenviado na
   reconexão.
-- [ ] **CA2** · Ele chega a quem a spec manda: na Mensagem enviada, ao autor, às Pessoas
+- [x] **CA2** · Ele chega a quem a spec manda: na Mensagem enviada, ao autor, às Pessoas
   mencionadas num Canal e à outra Pessoa de uma Conversa direta; na edição que muda Menção, só às
   Pessoas que entraram ou saíram; na exclusão, só a quem não tinha lido; na leitura, a todas as
   abas da própria Pessoa. O que não muda nada não publica.
-- [ ] **CA3** · Uma fila por Pessoa calcula os números na hora de publicar e junta as publicações
+- [x] **CA3** · Uma fila por Pessoa calcula os números na hora de publicar e junta as publicações
   que esperam; Mensagens em várias Conversas em sequência rápida terminam, no último evento
   recebido, com os números iguais aos da rota.
-- [ ] **CA4** · A função pura que diz se uma Mensagem é Notificação para a Pessoa, e as que
+- [x] **CA4** · A função pura que diz se uma Mensagem é Notificação para a Pessoa, e as que
   aplicam `message.created`, `message.updated` e `message.deleted` ao cache das abas de Atividade,
   têm testes.
-- [ ] **CA5** · O estado de lido acompanha a Última leitura da lista de Conversas, sem recarregar.
-- [ ] **CA6** · Na reconexão com `reset`, os números são buscados de novo e ficam iguais aos de
+- [x] **CA5** · O estado de lido acompanha a Última leitura da lista de Conversas, sem recarregar.
+- [x] **CA6** · Na reconexão com `reset`, os números são buscados de novo e ficam iguais aos de
   uma página recarregada.
-- [ ] **CA7** · O Playwright prova, entre duas Pessoas e duas abas, a Notificação entrando em
+- [x] **CA7** · O Playwright prova, entre duas Pessoas e duas abas, a Notificação entrando em
   Atividade e no rail, a exclusão tirando o item e ler a Conversa baixando o número nas duas abas,
   sem recarregar.
