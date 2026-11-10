@@ -152,6 +152,9 @@ describe('Canais novos em tempo real', () => {
   it('abrir de novo a Conversa direta não publica', async () => {
     const opener = await authRoutes.loggedIn(app);
     const other = await authRoutes.loggedIn(app);
+    // Ouvindo desde antes da primeira abertura: o evento dela sai depois da resposta e, sem esperar
+    // por ele, poderia chegar depois da segunda e contar como dela.
+    const events = await listening(opener.token);
     const first = await conversationRoutes.openDirect(
       app,
       opener.cookie,
@@ -159,12 +162,16 @@ describe('Canais novos em tempo real', () => {
     );
     const { id } = (first.body as { conversation: ConversationBody })
       .conversation;
-    const events = await listening(opener.token);
+    // Outros testes criam Canais públicos ao mesmo tempo: espera o evento desta Conversa.
+    const deadline = Date.now() + 2000;
+    while (eventsOf(events, id).length === 0 && Date.now() < deadline) {
+      await settle(10);
+    }
 
     await conversationRoutes.openDirect(app, opener.cookie, other.person.id);
 
     await settle();
-    expect(eventsOf(events, id)).toHaveLength(0);
+    expect(eventsOf(events, id)).toHaveLength(1);
   });
 
   const privateChannelOf = (cookie: string) =>
