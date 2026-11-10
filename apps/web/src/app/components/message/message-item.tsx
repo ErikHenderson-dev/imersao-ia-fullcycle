@@ -1,4 +1,7 @@
+"use client";
+
 import { CircleAlert } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { Avatar } from "@/app/components/ui/avatar";
 import { buttonVariants } from "@/app/components/ui/button";
@@ -8,6 +11,7 @@ import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
 import { MessageActions } from "./message-actions";
 import { MessageBody } from "./message-body";
+import { MessageEditor } from "./message-editor";
 
 type MessageItemProps = {
   message: Message;
@@ -21,6 +25,16 @@ type MessageItemProps = {
   status?: "sent" | "sending" | "failed";
   onRetry?: () => void;
   onDiscard?: () => void;
+  // A edição (spec da F06, "Edição"), só nas Mensagens da Pessoa logada: com `isEditing`, a
+  // MessageEditor toma o lugar do texto.
+  edit?: MessageEdit;
+};
+
+export type MessageEdit = {
+  isEditing: boolean;
+  start: () => void;
+  onSaved: (message: Message) => void;
+  onClose: () => void;
 };
 
 // Mensagem (MessageItem), no layout completo ou compacto. A barra de ações e o menu (spec da F06,
@@ -33,12 +47,32 @@ export function MessageItem({
   status = "sent",
   onRetry,
   onDiscard,
+  edit,
 }: MessageItemProps) {
+  const isEditing = edit?.isEditing ?? false;
+  const itemRef = useRef<HTMLLIElement>(null);
+  // Ao fechar a edição, o foco volta para a Mensagem, no "Editar" da barra.
+  const wasEditing = useRef(isEditing);
+  useEffect(() => {
+    if (wasEditing.current && !isEditing) {
+      itemRef.current?.querySelector<HTMLElement>('[data-action="edit"]')?.focus();
+    }
+    wasEditing.current = isEditing;
+  }, [isEditing]);
   const failed = status === "failed" && (
     <SendFailure onRetry={onRetry} onDiscard={onDiscard} />
   );
+  const content = edit?.isEditing ? (
+    <MessageEditor message={message} onSaved={edit.onSaved} onClose={edit.onClose} />
+  ) : (
+    <>
+      <MessageBody text={message.body} edited={message.editedAt} timeZone={timeZone} />
+      {failed}
+    </>
+  );
   return (
     <li
+      ref={itemRef}
       data-message-id={message.id}
       data-layout={compact ? "compact" : "full"}
       data-status={status}
@@ -48,17 +82,19 @@ export function MessageItem({
       {dayLabel && <DayDivider label={dayLabel} />}
       <div className="group/message relative hover:bg-surface-subtle focus-within:bg-surface-subtle">
         {compact ? (
-          <CompactRow message={message} timeZone={timeZone} extra={failed} />
+          <CompactRow message={message} timeZone={timeZone} content={content} />
         ) : (
-          <FullRow message={message} timeZone={timeZone} extra={failed} />
+          <FullRow message={message} timeZone={timeZone} content={content} />
         )}
-        {status === "sent" && <MessageActions message={message} />}
+        {status === "sent" && !isEditing && (
+          <MessageActions message={message} onEdit={edit?.start} />
+        )}
       </div>
     </li>
   );
 }
 
-type RowProps = { message: Message; timeZone: string; extra?: React.ReactNode };
+type RowProps = { message: Message; timeZone: string; content?: React.ReactNode };
 
 // "Não foi possível enviar." com "Tentar de novo" e "Descartar" (22:12030).
 function SendFailure({ onRetry, onDiscard }: { onRetry?: () => void; onDiscard?: () => void }) {
@@ -79,7 +115,7 @@ function SendFailure({ onRetry, onDiscard }: { onRetry?: () => void; onDiscard?:
   );
 }
 
-function CompactRow({ message, timeZone, extra }: RowProps) {
+function CompactRow({ message, timeZone, content }: RowProps) {
   return (
     <div className="group flex gap-2 px-5 py-1">
       {/* Sem o nome à vista, como no Figma; o leitor de tela ainda ouve de quem é. */}
@@ -91,15 +127,12 @@ function CompactRow({ message, timeZone, extra }: RowProps) {
           className="opacity-0 group-hover:opacity-100 group-focus-visible/history:opacity-100"
         />
       </div>
-      <div className="min-w-0 flex-1">
-        <MessageBody text={message.body} />
-        {extra}
-      </div>
+      <div className="min-w-0 flex-1">{content}</div>
     </div>
   );
 }
 
-function FullRow({ message, timeZone, extra }: RowProps) {
+function FullRow({ message, timeZone, content }: RowProps) {
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
       <div className="flex w-9 shrink-0 justify-end">
@@ -118,8 +151,7 @@ function FullRow({ message, timeZone, extra }: RowProps) {
           </OpenProfileButton>
           <MessageTime message={message} timeZone={timeZone} />
         </p>
-        <MessageBody text={message.body} />
-        {extra}
+        {content}
       </div>
     </div>
   );

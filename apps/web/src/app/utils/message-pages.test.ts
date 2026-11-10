@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "@/app/services/chat-api";
-import { appendToLatestPage, flattenPages } from "./message-pages";
+import { appendToLatestPage, flattenPages, replaceEdited } from "./message-pages";
 
 function message(id: string): Message {
   return {
@@ -10,6 +10,7 @@ function message(id: string): Message {
     author: { id: "p1", name: "Ana Souza", initials: "AS" },
     body: `Mensagem ${id}`,
     createdAt: "2026-11-09T12:00:00.000Z",
+    editedAt: null,
   };
 }
 
@@ -92,5 +93,39 @@ describe("appendToLatestPage", () => {
     expect(appendToLatestPage([], message("1"))).toEqual([
       { messages: [message("1")], hasMore: false },
     ]);
+  });
+});
+
+describe("replaceEdited", () => {
+  const edited = (id: string, at: string, body = "Texto novo"): Message => ({
+    ...message(id),
+    body,
+    editedAt: at,
+  });
+
+  it("troca pelo id só com editedAt mais novo", () => {
+    const pages = [{ messages: [message("a"), message("b")], hasMore: false }];
+
+    const next = replaceEdited(pages, edited("b", "2026-11-09T12:05:00.000Z"));
+
+    expect(next[0].messages.map((item) => item.body)).toEqual(["Mensagem a", "Texto novo"]);
+  });
+
+  it("descarta a edição atrasada", () => {
+    const pages = [
+      { messages: [edited("a", "2026-11-09T12:05:00.000Z", "Mais nova")], hasMore: false },
+    ];
+
+    const next = replaceEdited(pages, edited("a", "2026-11-09T12:04:00.000Z", "Atrasada"));
+
+    expect(next).toBe(pages);
+  });
+
+  it("não insere Mensagem fora do cache", () => {
+    const pages = [{ messages: [message("a")], hasMore: false }];
+
+    const next = replaceEdited(pages, edited("z", "2026-11-09T12:05:00.000Z"));
+
+    expect(next).toBe(pages);
   });
 });

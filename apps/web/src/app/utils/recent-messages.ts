@@ -1,5 +1,5 @@
 import type { Message } from "@/app/services/chat-api";
-import { insertById } from "./message-pages";
+import { insertById, withEdit } from "./message-pages";
 
 // Quantas Mensagens recebidas o provedor guarda por Conversa (spec da F03, "Cliente").
 export const RECENT_MESSAGES_LIMIT = 100;
@@ -14,6 +14,12 @@ export function rememberMessage(
 ): readonly Message[] {
   if (recent.some((existing) => existing.id === message.id)) return recent;
   return insertById(recent, message).slice(-limit);
+}
+
+// A Mensagem editada no lugar da guardada, se ela estiver lá e a edição for mais nova: a Conversa
+// que monta depois não mostra o texto antigo.
+export function rememberEdit(recent: readonly Message[], edited: Message): readonly Message[] {
+  return withEdit(recent, edited);
 }
 
 // As Mensagens mais novas que `newestId`, ou todas sem ele.

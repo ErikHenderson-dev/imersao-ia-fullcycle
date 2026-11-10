@@ -10,6 +10,7 @@ describe("messageFromEvent", () => {
       author: { id: "p1", name: "Bruno Lima" },
       body: "Olá",
       created_at: "2026-11-09T12:00:00.000Z",
+      edited_at: null,
     });
 
     expect(message).toEqual({
@@ -19,6 +20,7 @@ describe("messageFromEvent", () => {
       author: { id: "p1", name: "Bruno Lima", initials: "BL" },
       body: "Olá",
       createdAt: "2026-11-09T12:00:00.000Z",
+      editedAt: null,
     });
   });
 });

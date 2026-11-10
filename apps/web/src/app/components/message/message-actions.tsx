@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Ellipsis, type LucideIcon } from "lucide-react";
+import { Copy, Ellipsis, Pencil, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -27,11 +27,13 @@ export type MessageAction = {
 
 type MessageActionsProps = {
   message: Message;
+  // Presente só nas Mensagens da Pessoa logada: "Editar" (spec da F06, "Barra de ações e menu").
+  onEdit?: () => void;
 };
 
 // Barra de ações (MessageActions) e menu da Mensagem (MessageMenu), no canto superior direito da
 // linha. Aparece ao passar o mouse, com o foco dentro da Mensagem e enquanto o menu está aberto.
-export function MessageActions({ message }: MessageActionsProps) {
+export function MessageActions({ message, onEdit }: MessageActionsProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const actions: MessageAction[] = [
     {
@@ -40,6 +42,7 @@ export function MessageActions({ message }: MessageActionsProps) {
       icon: Copy,
       onSelect: () => void copyMessageText(message.body),
     },
+    ...(onEdit ? [{ id: "edit", label: "Editar", icon: Pencil, onSelect: onEdit }] : []),
   ];
   const regularActions = actions.filter((action) => action.tone !== "danger");
   const dangerActions = actions.filter((action) => action.tone === "danger");
@@ -59,6 +62,7 @@ export function MessageActions({ message }: MessageActionsProps) {
       {regularActions.map((action) => (
         <IconButton
           key={action.id}
+          data-action={action.id}
           icon={action.icon}
           label={action.label}
           size="sm"

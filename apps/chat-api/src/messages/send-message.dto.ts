@@ -1,21 +1,9 @@
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import { MaxCodePoints } from '../common/validation/max-code-points';
-import { NoNullCharacter } from '../common/validation/no-null-character';
-import { MESSAGE_MAX_LENGTH } from './message-values';
+import { IsUUID } from 'class-validator';
+import { EditMessageDto } from './edit-message.dto';
 
-export class SendMessageDto {
+// O envio leva o texto, com as mesmas regras da edição, e o identificador gerado no cliente.
+export class SendMessageDto extends EditMessageDto {
   // Identificador gerado no cliente (LLD, "Concorrência e idempotência").
   @IsUUID()
   client_id!: string;
-
-  // Os espaços e as quebras de linha das pontas saem antes de validar (spec da F02, "Mensagens").
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  @IsString()
-  @IsNotEmpty()
-  @MaxCodePoints(MESSAGE_MAX_LENGTH)
-  @NoNullCharacter()
-  body!: string;
 }

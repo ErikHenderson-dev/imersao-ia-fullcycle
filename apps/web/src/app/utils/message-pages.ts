@@ -24,6 +24,31 @@ export function appendToLatestPage(pages: MessagePage[], message: Message): Mess
   return [{ ...latest, messages: insertById(latest.messages, message) }, ...older];
 }
 
+// Uma edição é mais nova que a Mensagem que a tela tem quando o editedAt dela é posterior (spec da
+// F06, "Eventos no cliente"): uma edição atrasada, que chega depois de outra mais nova, não volta o
+// texto antigo.
+export function isNewerEdit(current: Message, edited: Message): boolean {
+  if (!edited.editedAt) return false;
+  return !current.editedAt || edited.editedAt > current.editedAt;
+}
+
+// A Mensagem editada no lugar da que está na lista, se ela estiver lá e a edição for mais nova; senão,
+// a mesma lista. Uma Mensagem que não está na lista não entra: a edição não traz Mensagens de volta.
+export function withEdit<T extends readonly Message[]>(messages: T, edited: Message): T | Message[] {
+  const index = messages.findIndex((message) => message.id === edited.id);
+  if (index < 0 || !isNewerEdit(messages[index], edited)) return messages;
+  return messages.with(index, edited);
+}
+
+// Troca, pelo id, a Mensagem editada no cache, só se a edição for mais nova.
+export function replaceEdited(pages: MessagePage[], edited: Message): MessagePage[] {
+  const index = pages.findIndex((page) => page.messages.some((message) => message.id === edited.id));
+  if (index < 0) return pages;
+  const messages = withEdit(pages[index].messages, edited);
+  if (messages === pages[index].messages) return pages;
+  return pages.with(index, { ...pages[index], messages });
+}
+
 // Encaixa a Mensagem na ordem do id (UUID v7, a ordem da Conversa). Quem chama já descartou o id
 // repetido.
 export function insertById(messages: readonly Message[], message: Message): Message[] {

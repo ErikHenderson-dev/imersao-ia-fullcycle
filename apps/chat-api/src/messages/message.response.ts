@@ -7,6 +7,7 @@ export interface MessageResponse {
   author: { id: string; name: string };
   body: string;
   created_at: string;
+  edited_at: string | null;
 }
 
 export function toMessageResponse(message: MessageView): MessageResponse {
@@ -17,5 +18,6 @@ export function toMessageResponse(message: MessageView): MessageResponse {
     author: message.author,
     body: message.body,
     created_at: message.createdAt.toISOString(),
+    edited_at: message.editedAt?.toISOString() ?? null,
   };
 }

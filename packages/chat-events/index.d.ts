@@ -16,6 +16,8 @@ export interface MessagePayload {
   author: MessageAuthorPayload;
   body: string;
   created_at: string;
+  /** A hora da última edição que mudou o texto, ou nulo (spec da F06, "Mensagens"). */
+  edited_at: string | null;
 }
 
 /** Pessoa que está digitando. */
@@ -25,6 +27,13 @@ export interface TypingPersonPayload {
 }
 
 export interface MessageCreatedEvent {
+  /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
+  event_id?: string;
+  message: MessagePayload;
+}
+
+/** Uma Mensagem editada, inteira (spec da F06, "Tempo real"). */
+export interface MessageUpdatedEvent {
   /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
   event_id?: string;
   message: MessagePayload;
@@ -66,6 +75,7 @@ export interface ConversationMemberAddedEvent {
  */
 export interface StoredEventPayloads {
   "message.created": Omit<MessageCreatedEvent, "event_id">;
+  "message.updated": Omit<MessageUpdatedEvent, "event_id">;
   "conversation.member_added": Omit<ConversationMemberAddedEvent, "event_id">;
 }
 

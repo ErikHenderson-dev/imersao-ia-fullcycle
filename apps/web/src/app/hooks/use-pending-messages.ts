@@ -60,6 +60,7 @@ export function usePendingMessages(
           author,
           body,
           createdAt: new Date().toISOString(),
+          editedAt: null,
           status: "sending",
         },
       ]);

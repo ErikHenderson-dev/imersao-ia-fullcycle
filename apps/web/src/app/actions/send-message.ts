@@ -6,7 +6,7 @@ import {
   type SendMessageResult,
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
-import { codePointLength, MESSAGE_MAX_LENGTH } from "@/app/utils/message-text";
+import { messageBodyToSave } from "@/app/utils/message-text";
 
 // Envio de Mensagem (spec da F02, "Envio"): valida o texto como a API e grava pelo service.
 export async function sendMessage(
@@ -14,13 +14,12 @@ export async function sendMessage(
   clientId: string,
   body: string,
 ): Promise<SendMessageResult> {
-  const text = typeof body === "string" ? body.trim() : "";
+  const text = messageBodyToSave(body);
   if (
     typeof conversationId !== "string" ||
     typeof clientId !== "string" ||
     !isUUID(clientId) ||
-    text === "" ||
-    codePointLength(text) > MESSAGE_MAX_LENGTH
+    text === null
   ) {
     return { kind: "invalid" };
   }

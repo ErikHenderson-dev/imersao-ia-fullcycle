@@ -5,6 +5,7 @@ import type {
   ConversationMemberAddedEvent,
   HandshakeErrorCode,
   MessageCreatedEvent,
+  MessageUpdatedEvent,
   ServerToClientEvents,
   StoredEvent,
   StoredEventName,
@@ -16,7 +17,7 @@ import type { Conversation, Message } from "@/app/services/chat-api";
 import { conversationFromPayload } from "@/app/utils/conversation-event";
 import { laterCursor, orderForSync } from "@/app/utils/event-cursor";
 import { messageFromEvent } from "@/app/utils/message-event";
-import { rememberMessage } from "@/app/utils/recent-messages";
+import { rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
 import { clearLeaving, hasAskedToLeave } from "@/app/utils/leaving";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 
@@ -29,6 +30,8 @@ export type MemberAdded = { conversation: Conversation; personIds: readonly stri
 
 export type RealtimeListener = {
   onMessage?: (message: Message) => void;
+  // Uma Mensagem editada (spec da F06, "Eventos no cliente").
+  onMessageUpdated?: (message: Message) => void;
   onMemberAdded?: (event: MemberAdded) => void;
   onSync?: (event: SyncEvent) => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
@@ -172,6 +175,14 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       );
       listeners.current.forEach((listener) => listener.onMessage?.(message));
     };
+    const applyMessageUpdated = (event: MessageUpdatedEvent) => {
+      const message = messageFromEvent(event.message);
+      const recentOfConversation = received.get(message.conversationId);
+      if (recentOfConversation) {
+        received.set(message.conversationId, rememberEdit(recentOfConversation, message));
+      }
+      listeners.current.forEach((listener) => listener.onMessageUpdated?.(message));
+    };
     const applyMemberAdded = (event: ConversationMemberAddedEvent) => {
       const added = {
         conversation: conversationFromPayload(event.conversation),
@@ -182,6 +193,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     // Uma entrada por evento guardado: um evento novo no contrato não compila até ter a sua.
     const handlers: StoredEventHandlers = {
       "message.created": applyMessage,
+      "message.updated": applyMessageUpdated,
       "conversation.member_added": applyMemberAdded,
     };
     // Os eventos guardados por Pessoa, na ordem do cursor: aplica e avança o cursor.

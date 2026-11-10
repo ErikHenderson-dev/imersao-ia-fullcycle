@@ -41,4 +41,8 @@ export class Message extends BaseEntity {
 
   @Column({ type: 'text' })
   body!: string;
+
+  // A hora da última edição que mudou o texto (spec da F06, "Mensagens").
+  @Column({ type: 'timestamptz', nullable: true })
+  editedAt!: Date | null;
 }

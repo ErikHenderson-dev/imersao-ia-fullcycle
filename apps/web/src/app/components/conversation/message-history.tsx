@@ -69,8 +69,21 @@ function History({
   renderedAt,
   currentPerson,
 }: MessageHistoryProps) {
-  const { messages: saved, hasOlder, isLoadingOlder, olderFailed, loadOlder, appendSaved, reloadLatest } =
-    useMessageHistory(conversation.id, initialPage);
+  const {
+    messages: saved,
+    hasOlder,
+    isLoadingOlder,
+    olderFailed,
+    loadOlder,
+    appendSaved,
+    applyEdited,
+    reloadLatest,
+  } = useMessageHistory(conversation.id, initialPage);
+  // A Mensagem em edição, uma por vez na Conversa (spec da F06, "Edição").
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const closeEdit = useCallback((messageId: string) => {
+    setEditingId((current) => (current === messageId ? null : current));
+  }, []);
   const { pending, send, retry, discard, dropDelivered } = usePendingMessages(
     conversation.id,
     currentPerson,
@@ -79,6 +92,7 @@ function History({
   const { isSynced } = useRealtimeMessages(conversation.id, initialPage, {
     currentPersonId: currentPerson.id,
     appendSaved,
+    applyEdited,
     dropDelivered,
     reloadLatest,
   });
@@ -291,6 +305,16 @@ function History({
                 status={message.status ?? "sent"}
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
+                edit={
+                  message.author.id === currentPerson.id && !message.status
+                    ? {
+                        isEditing: editingId === message.id,
+                        start: () => setEditingId(message.id),
+                        onSaved: applyEdited,
+                        onClose: () => closeEdit(message.id),
+                      }
+                    : undefined
+                }
               />
             ))}
           </ol>

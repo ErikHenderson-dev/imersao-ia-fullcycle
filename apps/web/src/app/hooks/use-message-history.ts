@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import useSWRInfinite from "swr/infinite";
 import type { Message, MessagePage } from "@/app/services/chat-api";
-import { appendToLatestPage, flattenPages } from "@/app/utils/message-pages";
-import { rememberMessage } from "@/app/utils/recent-messages";
+import { appendToLatestPage, flattenPages, replaceEdited } from "@/app/utils/message-pages";
+import { rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
 
 // Quantas Mensagens gravadas nesta abertura o histórico guarda para devolver ao cache.
 const SAVED_LIMIT = 100;
@@ -87,6 +87,18 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     [mutate, initialPage],
   );
 
+  // Uma Mensagem editada, pela própria edição ou pelo tempo real: troca no cache só se for mais nova
+  // (spec da F06, "Eventos no cliente").
+  const applyEdited = useCallback(
+    (message: Message) => {
+      saved.current = rememberEdit(saved.current, message);
+      void mutate((current) => replaceEdited(current ?? [initialPage], message), {
+        revalidate: false,
+      });
+    },
+    [mutate, initialPage],
+  );
+
   useEffect(() => {
     const present = new Set(messages.map((message) => message.id));
     const missing = saved.current.filter((message) => !present.has(message.id));
@@ -112,9 +124,14 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
       return;
     }
     if (request !== reloadRequest.current) return;
-    latestPage.current = page;
+    // Uma edição que chegou durante a leitura é mais nova que a página lida: volta por cima dela.
+    const merged = saved.current.reduce<MessagePage[]>(
+      (pages, message) => (message.editedAt ? replaceEdited(pages, message) : pages),
+      [page],
+    )[0];
+    latestPage.current = merged;
     await setSize(1);
-    await mutate([page], { revalidate: false });
+    await mutate([merged], { revalidate: false });
   }, [conversationId, mutate, setSize]);
 
   return {
@@ -124,6 +141,7 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     olderFailed: Boolean(error),
     loadOlder,
     appendSaved,
+    applyEdited,
     reloadLatest,
   };
 }

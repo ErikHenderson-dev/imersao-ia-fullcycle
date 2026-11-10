@@ -181,6 +181,8 @@ export type Message = {
   author: MessageAuthor;
   body: string;
   createdAt: string;
+  // A hora da última edição, ou nulo (spec da F06, "A Mensagem no REST e nos eventos").
+  editedAt: string | null;
 };
 
 export type MessagePage = { messages: Message[]; hasMore: boolean };
@@ -326,6 +328,40 @@ export async function sendMessage(
     return { kind: "failure" };
   }
   if (response?.status === 400) return { kind: "invalid" };
+  return commonFailure(response);
+}
+
+// Editar a própria Mensagem (spec da F06, "Rotas").
+
+export type EditMessageResult =
+  | { kind: "ok"; message: Message }
+  | { kind: "invalid" }
+  | { kind: "not_found" }
+  | { kind: "forbidden" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function editMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+  body: string,
+): Promise<EditMessageResult> {
+  const response = await request(
+    conversationPath(conversationId, `/messages/${encodeURIComponent(messageId)}`),
+    {
+      method: "PATCH",
+      headers: { ...authenticated(token), "content-type": "application/json" },
+      body: JSON.stringify({ body }),
+    },
+  );
+  if (response?.status === 200) {
+    const parsed = await jsonBody<{ message: ApiMessage }>(response);
+    if (parsed) return { kind: "ok", message: messageFromEvent(parsed.message) };
+    return { kind: "failure" };
+  }
+  if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 403) return { kind: "forbidden" };
   return commonFailure(response);
 }
 

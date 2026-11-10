@@ -37,7 +37,8 @@ test.describe("Barra de ações e copiar o texto", () => {
     // 2. "Mais ações" abre o menu com "Copiar texto"
     await item.getByRole("button", { name: "Mais ações" }).click();
     const menu = page.getByRole("menu", { name: "Mais ações" });
-    await expect(menu.getByRole("menuitem")).toHaveText(["Copiar texto"]);
+    // A Mensagem é da própria Pessoa: o menu tem também "Editar" (F06-T03).
+    await expect(menu.getByRole("menuitem")).toHaveText(["Copiar texto", "Editar"]);
     await page.keyboard.press("Escape");
 
     // 3. Fora do hover e sem foco, a barra some; o foco a mostra de novo
@@ -98,6 +99,8 @@ test.describe("Barra de ações e copiar o texto", () => {
     await page.keyboard.press("Tab");
     await expect(item.getByRole("button", { name: "Copiar texto" })).toBeFocused();
     await page.keyboard.press("Tab");
+    await expect(item.getByRole("button", { name: "Editar" })).toBeFocused();
+    await page.keyboard.press("Tab");
     const mais = item.getByRole("button", { name: "Mais ações" });
     await expect(mais).toBeFocused();
 
@@ -106,6 +109,8 @@ test.describe("Barra de ações e copiar o texto", () => {
     const opcao = page.getByRole("menuitem", { name: "Copiar texto" });
     await expect(opcao).toBeFocused();
     await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitem", { name: "Editar" })).toBeFocused();
+    await page.keyboard.press("ArrowUp");
     await expect(opcao).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("menu")).toHaveCount(0);
