@@ -49,18 +49,19 @@ test.describe("Ver um Perfil", () => {
     await expect(panel.getByText("E-mail")).toBeVisible();
   });
 
-  test("abre o próprio Perfil pelo menu do avatar, sem Editar perfil", async ({
+  test("abre o próprio Perfil pelo menu do avatar, com Editar perfil", async ({
     loggedInPage: page,
     person,
   }) => {
     // 1. Abrir o menu do avatar pelo teclado e escolher "Perfil"
     await page.getByRole("button", { name: `Menu de ${person.name}` }).focus();
     await page.keyboard.press("Enter");
-    await page.getByRole("menuitem", { name: "Perfil" }).press("Enter");
+    await page.getByRole("menuitem", { name: "Perfil", exact: true }).press("Enter");
 
     const panel = profilePanel(page);
     await expect(panel.getByText(`@${person.username}`)).toBeVisible();
-    await expect(panel.getByRole("button", { name: "Editar perfil" })).toHaveCount(0);
+    // "Editar perfil" entrou com a F09.
+    await expect(panel.getByRole("button", { name: "Editar perfil" })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Fechar perfil" })).toBeFocused();
   });
 

@@ -1,4 +1,8 @@
-import { Propagation, TransactionHost } from '@nestjs-cls/transactional';
+import {
+  Propagation,
+  Transactional,
+  TransactionHost,
+} from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { EntityManager, In, Repository } from 'typeorm';
@@ -11,7 +15,7 @@ import type { PersonSummary } from './person-summary';
 import { PersonNotFoundError } from './person-not-found.error';
 import { canonicalTimeZone } from './time-zone';
 import { Person } from './person.entity';
-import { parsePhone, parseTitle } from './profile-values';
+import { parseName, parsePhone, parseTitle } from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
 import { InvalidProfileError } from './invalid-profile.error';
 import { parseUsername, usernameBase, usernameCandidates } from './username';
@@ -28,6 +32,14 @@ export interface NewPerson {
 
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
 export type ProfileChanges = Pick<NewPerson, 'title' | 'phone'>;
+
+// O que muda no Perfil, pela própria Pessoa (spec da F09, "Rotas") ou pelo comando de contas: um campo ausente fica como está, e
+// o nulo ou o vazio apagam o cargo e o telefone.
+export interface PersonProfileChanges {
+  name?: string;
+  title?: string | null;
+  phone?: string | null;
+}
 
 // Quantas vezes a criação tenta o próximo sufixo quando outra criação, ao mesmo tempo, toma o
 // @usuário derivado.
@@ -52,7 +64,7 @@ export class PeopleService {
     const email = normalizeEmail(newPerson.email);
     const fields = {
       email,
-      name: newPerson.name.trim(),
+      name: parseName(newPerson.name),
       title: parseTitle(newPerson.title ?? ''),
       phone: parsePhone(newPerson.phone ?? ''),
     };
@@ -154,12 +166,26 @@ export class PeopleService {
   async updateProfile(email: string, changes: ProfileChanges): Promise<Person> {
     const person = await this.findByEmail(email);
     if (!person) throw new PersonNotFoundError(normalizeEmail(email));
-    const update: Partial<Pick<Person, 'title' | 'phone'>> = {};
-    if (changes.title !== undefined) update.title = parseTitle(changes.title);
-    if (changes.phone !== undefined) update.phone = parsePhone(changes.phone);
-    if (Object.keys(update).length === 0) return person;
-    await this.people.update({ id: person.id }, update);
-    return this.people.findOneByOrFail({ id: person.id });
+    return this.updateProfileById(person.id, changes);
+  }
+
+  // Grava o Perfil numa escrita só, depois de validar cada campo presente. A releitura fica na
+  // mesma transação: a resposta é o que esta gravação deixou, mesmo com outra ao mesmo tempo.
+  @Transactional()
+  async updateProfileById(
+    personId: string,
+    changes: PersonProfileChanges,
+  ): Promise<Person> {
+    const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
+    if (changes.name !== undefined) update.name = parseName(changes.name);
+    if (changes.title !== undefined)
+      update.title = parseTitle(changes.title ?? '');
+    if (changes.phone !== undefined)
+      update.phone = parsePhone(changes.phone ?? '');
+    if (Object.keys(update).length > 0) {
+      await this.people.update({ id: personId }, update);
+    }
+    return this.people.findOneByOrFail({ id: personId });
   }
 
   // Devolve a Pessoa só quando a senha confere. O e-mail sem conta passa pelo hash

@@ -47,7 +47,7 @@ test.describe("Abrir a Conversa direta pelo Perfil", () => {
   test("a Conversa consigo mesma aparece com você", async ({ loggedInPage: page, person }) => {
     // 1. O próprio Perfil, pelo menu do avatar
     await page.getByRole("button", { name: `Menu de ${person.name}` }).click();
-    await page.getByRole("menuitem", { name: "Perfil" }).click();
+    await page.getByRole("menuitem", { name: "Perfil", exact: true }).click();
     await profilePanel(page).getByRole("button", { name: "Mensagem" }).click();
 
     await expect(page.getByRole("textbox", { name: "Mensagem para você" })).toBeVisible();

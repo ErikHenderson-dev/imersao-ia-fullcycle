@@ -9,12 +9,20 @@ import {
 } from 'typeorm';
 import { Message } from '../messages/message.entity';
 import { BaseEntity } from '../database/base.entity';
-import { PHONE_PATTERN, TITLE_MAX_LENGTH } from './profile-values';
+import {
+  NAME_MAX_LENGTH,
+  PHONE_PATTERN,
+  TITLE_MAX_LENGTH,
+} from './profile-values';
 import { USERNAME_PATTERN } from './username';
 
-// Os CHECK ficam também na migração AddPersonProfile, escrita à mão: o TypeORM não percebe a
-// mudança na expressão de um CHECK.
+// Os CHECK ficam também nas migrações AddPersonProfile e AddPersonNameCheck, escritas à mão: o
+// TypeORM não percebe a mudança na expressão de um CHECK.
 @Entity('people')
+@Check(
+  'people_name_check',
+  `char_length("name") BETWEEN 1 AND ${NAME_MAX_LENGTH} AND "name" !~ '[\\r\\n]'`,
+)
 @Check('people_username_check', `"username" ~ '${USERNAME_PATTERN.source}'`)
 @Check(
   'people_title_check',

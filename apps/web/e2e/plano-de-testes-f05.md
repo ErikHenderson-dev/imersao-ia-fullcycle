@@ -16,7 +16,7 @@ criados direto no banco, com cargo e telefone quando o cenário pede.
    foco em "Fechar perfil".
 2. **esconde cargo e telefone que não existem:** o Perfil de quem não tem os dois não mostra
    "Telefone".
-3. **abre o próprio Perfil pelo menu do avatar, sem Editar perfil:** pelo teclado, Enter no
+3. **abre o próprio Perfil pelo menu do avatar, com Editar perfil (desde a F09):** pelo teclado, Enter no
    avatar e Enter em "Perfil"; o foco vai para o painel.
 4. **abre pela lista de Membros:** escolher a Pessoa fecha o diálogo e abre o painel; Esc fecha e
    devolve o foco ao botão de Membros.

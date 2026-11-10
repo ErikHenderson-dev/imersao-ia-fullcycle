@@ -13,10 +13,10 @@ test.describe("Sair", () => {
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: `Menu de ${person.name}` })).toBeFocused();
 
-    // 2. Enter abre o menu; seta para baixo destaca o item; Enter sai
+    // 2. Enter abre o menu; End destaca o último item, "Sair do Full Cycle"; Enter sai
     await page.keyboard.press("Enter");
     await expect(page.getByRole("menu")).toBeVisible();
-    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
     await expect(page.getByRole("menuitem", { name: "Sair do Full Cycle" })).toBeFocused();
     await page.keyboard.press("Enter");
 

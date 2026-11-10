@@ -34,13 +34,14 @@ describe('banco de testes', () => {
   describe('people', () => {
     function insertPerson(values: {
       username: string | null;
+      name?: string;
       title?: string | null;
       phone?: string | null;
       timeZone?: string | null;
     }) {
       return app.get(DataSource).query(
         `INSERT INTO people (id, email, name, password_hash, username, title, phone, time_zone)
-           VALUES ($1, $2, 'Ana', 'hash', $3, $4, $5, $6)`,
+           VALUES ($1, $2, $7, 'hash', $3, $4, $5, $6)`,
         [
           randomUUID(),
           uniqueEmail(),
@@ -48,6 +49,7 @@ describe('banco de testes', () => {
           values.title ?? null,
           values.phone ?? null,
           values.timeZone ?? null,
+          values.name ?? 'Ana',
         ],
       );
     }
@@ -100,6 +102,17 @@ describe('banco de testes', () => {
         /people_phone_check/,
       ],
       ['o telefone vazio', { phone: '' }, /people_phone_check/],
+      ['o nome vazio', { name: '' }, /people_name_check/],
+      [
+        'o nome com 81 caracteres',
+        { name: 'n'.repeat(81) },
+        /people_name_check/,
+      ],
+      [
+        'o nome com quebra de linha',
+        { name: 'Ana\nSouza' },
+        /people_name_check/,
+      ],
     ])('people recusa %s', async (_case, values, violation) => {
       const username = 'username' in values ? values.username : freeUsername();
 
