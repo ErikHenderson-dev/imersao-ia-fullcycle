@@ -29,8 +29,11 @@ export type PeopleStore = {
   forgetAllBut: (keepId: string) => void;
   // O Status de uma Pessoa: o dela, nulo sem Status, ou indefinido antes do primeiro retrato.
   getStatus: (personId: string) => StatusPayload | null | undefined;
-  // O retrato de quem tem Status (spec da F09, "Camada de Pessoas"): quem não está nele fica sem.
-  applySnapshot: (people: { id: string; status: StatusPayload | null }[]) => void;
+  // Marca o começo de uma leitura do retrato: o que mudar depois dela vale mais que ele.
+  snapshotMark: () => number;
+  // O retrato de quem tem Status (spec da F09, "Camada de Pessoas"), lido desde `mark`: quem não
+  // está nele fica sem, menos quem mudou depois da marca, por um evento ou pelo próprio Perfil.
+  applySnapshot: (people: { id: string; status: StatusPayload | null }[], mark: number) => void;
   // Cresce a cada mudança: quem lê várias Pessoas de uma vez assina por ela.
   version: () => number;
   subscribe: (listener: () => void) => () => void;
@@ -45,15 +48,24 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
   // O Status fica à parte: o retrato traz quem tem Status, sem o nome.
   let statuses = new Map<string, StatusPayload | null>();
   let hasSnapshot = false;
+  // Quando o Status de cada Pessoa mudou por último, na contagem de `statusClock`.
+  const statusChangedAt = new Map<string, number>();
+  let statusClock = 0;
+
+  function readStatus(personId: string): StatusPayload | null | undefined {
+    if (statuses.has(personId)) return statuses.get(personId);
+    return hasSnapshot ? null : undefined;
+  }
 
   function sameStatus(a: StatusPayload | null | undefined, b: StatusPayload | null | undefined) {
     return a === b || (!!a && !!b && a.emoji === b.emoji && a.text === b.text);
   }
 
   function putStatus(personId: string, status: StatusPayload | null): boolean {
-    const current = statuses.has(personId) ? statuses.get(personId) : hasSnapshot ? null : undefined;
-    if (sameStatus(current, status)) return false;
+    if (sameStatus(readStatus(personId), status)) return false;
     statuses.set(personId, status);
+    statusClock += 1;
+    statusChangedAt.set(personId, statusClock);
     return true;
   }
 
@@ -97,14 +109,27 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
       if (kept) entries.set(keepId, kept);
       notify();
     },
-    getStatus(personId) {
-      if (statuses.has(personId)) return statuses.get(personId);
-      return hasSnapshot ? null : undefined;
-    },
-    applySnapshot(people) {
-      statuses = new Map(people.map((person) => [person.id, person.status]));
+    getStatus: readStatus,
+    snapshotMark: () => statusClock,
+    applySnapshot(people, mark) {
+      const next = new Map<string, StatusPayload | null>();
+      for (const person of people) {
+        const current = statuses.get(person.id);
+        // O mesmo Status guarda o objeto de antes: quem o mostra não renderiza de novo.
+        next.set(person.id, sameStatus(current, person.status) ? (current ?? null) : person.status);
+      }
+      // O que mudou depois de a leitura começar é mais novo que o retrato.
+      for (const [personId, changedAt] of statusChangedAt) {
+        if (changedAt > mark) next.set(personId, statuses.get(personId) ?? null);
+      }
+      const changed =
+        !hasSnapshot ||
+        [...new Set([...statuses.keys(), ...next.keys()])].some(
+          (personId) => !sameStatus(statuses.get(personId) ?? null, next.get(personId) ?? null),
+        );
+      statuses = next;
       hasSnapshot = true;
-      notify();
+      if (changed) notify();
     },
     version: () => currentVersion,
     subscribe(listener) {

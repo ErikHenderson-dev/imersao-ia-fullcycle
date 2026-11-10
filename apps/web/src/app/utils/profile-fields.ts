@@ -73,11 +73,12 @@ export function parseProfileFields(input: {
   statusEmoji: unknown;
   statusText: unknown;
 }): ProfileFieldsResult {
-  const notText = (["name", "title", "phone", "statusText"] as const).filter(
+  // Os campos de tipo errado: texto onde se espera texto, ou uma chave fora das sete.
+  const notText: ProfileField[] = (["name", "title", "phone", "statusText"] as const).filter(
     (field) => typeof input[field] !== "string",
   );
   if (input.statusEmoji !== null && !isStatusEmoji(input.statusEmoji)) {
-    return { kind: "invalid", errors: [{ field: "statusEmoji", message: "Dados inválidos." }] };
+    notText.push("statusEmoji");
   }
   if (notText.length > 0) {
     return {
@@ -90,7 +91,7 @@ export function parseProfileFields(input: {
     name: (input.name as string).trim(),
     title: blankToNull(input.title as string),
     phone: blankToNull(input.phone as string),
-    statusEmoji: input.statusEmoji ?? (statusText === null ? null : "speech"),
+    statusEmoji: (input.statusEmoji as StatusEmoji | null) ?? (statusText === null ? null : "speech"),
     statusText,
   };
   const errors: ProfileFieldError[] = [];

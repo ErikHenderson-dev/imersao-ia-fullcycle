@@ -1,3 +1,4 @@
+import type { StatusEmoji } from 'chat-events';
 import { codePointLength } from '../common/validation/code-points';
 import { InvalidProfileError } from './invalid-profile.error';
 
@@ -20,9 +21,11 @@ export const STATUS_EMOJIS = [
   'home',
   'vacation',
   'sick',
-] as const;
+] as const satisfies readonly StatusEmoji[];
 
-export type StatusEmoji = (typeof STATUS_EMOJIS)[number];
+function isStatusEmoji(value: string): value is StatusEmoji {
+  return (STATUS_EMOJIS as readonly string[]).includes(value);
+}
 
 export const PHONE_PATTERN = new RegExp(`^[0-9 +()-]{1,${PHONE_MAX_LENGTH}}$`);
 
@@ -85,7 +88,7 @@ export function parseStatus(
   changes: { emoji?: string | null; text?: string | null },
 ): { emoji: StatusEmoji | null; text: string | null } {
   const emoji = changes.emoji === undefined ? current.emoji : changes.emoji;
-  if (emoji !== null && !(STATUS_EMOJIS as readonly string[]).includes(emoji)) {
+  if (emoji !== null && !isStatusEmoji(emoji)) {
     throw new InvalidProfileError('Escolha um dos emojis do Status.');
   }
   const text =
@@ -93,8 +96,5 @@ export function parseStatus(
   if (text !== null) {
     assertSingleLine(text, STATUS_TEXT_MAX_LENGTH, 'A mensagem de status');
   }
-  return {
-    emoji: (emoji ?? (text === null ? null : 'speech')) as StatusEmoji | null,
-    text,
-  };
+  return { emoji: emoji ?? (text === null ? null : 'speech'), text };
 }

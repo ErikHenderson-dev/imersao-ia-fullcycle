@@ -14,7 +14,7 @@ type UserStatusProps = {
 };
 
 // UserStatus (design system, Entities): o emoji do Status ao lado do nome, com a mensagem no
-// Tooltip e no nome acessível (spec da F09, "Componentes novos"). Sem Status, nada.
+// Tooltip (pelo mouse) e no nome acessível (spec da F09, "Componentes novos"). Sem Status, nada.
 export function UserStatus({ personId, status: fromPayload, className }: UserStatusProps) {
   const status = useKnownStatus(personId, fromPayload);
   if (!status) return null;
@@ -24,8 +24,7 @@ export function UserStatus({ personId, status: fromPayload, className }: UserSta
     <span
       role="img"
       aria-label={label}
-      // Com mensagem, focável: o Tooltip e o nome acessível a levam ao teclado.
-      tabIndex={status.text ? 0 : undefined}
+      // Não é focável: ele fica dentro de links e opções, e o nome acessível já leva a mensagem.
       className={cn("shrink-0 rounded-control font-normal", className)}
     >
       {emoji}

@@ -67,12 +67,18 @@ export function PeopleProvider({
 }
 
 // O retrato pela rota do BFF; uma falha deixa o Status como estava, até a próxima conexão.
+// Só a leitura mais nova vale: duas reconexões seguidas podem responder fora de ordem.
+let latestSnapshotRequest = 0;
+
 async function loadSnapshot(store: PeopleStore): Promise<void> {
+  const request = ++latestSnapshotRequest;
+  const mark = store.snapshotMark();
   try {
     const response = await fetch("/api/people/presence");
     if (!response.ok) return;
     const body = (await response.json()) as { people: { id: string; status: Status | null }[] };
-    store.applySnapshot(body.people);
+    if (request !== latestSnapshotRequest) return;
+    store.applySnapshot(body.people, mark);
   } catch {
     // Rede fora: a próxima conexão lê de novo.
   }

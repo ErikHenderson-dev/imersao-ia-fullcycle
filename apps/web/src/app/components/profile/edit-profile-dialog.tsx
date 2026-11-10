@@ -201,10 +201,14 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
         });
         onSaved();
         return;
-      case "invalid":
+      case "invalid": {
         setErrors(result.errors);
-        inputs.current[result.errors[0].field]?.focus();
+        // Um erro sem campo na tela (uma chave de emoji inválida) vira o erro geral.
+        const input = inputs.current[result.errors[0].field as TextField];
+        if (input) input.focus();
+        else setHasFailed(true);
         return;
+      }
       case "unauthenticated":
         return redirectToExpiredSession();
       default:
@@ -248,10 +252,7 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
         <StatusEmojiPicker
           value={statusEmoji}
           disabled={isSaving}
-          onChange={(emoji) => {
-            setStatusEmoji(emoji);
-            setErrors((current) => current.filter((error) => error.field !== "statusEmoji"));
-          }}
+          onChange={setStatusEmoji}
         />
         <Field
           label="Mensagem de status"
