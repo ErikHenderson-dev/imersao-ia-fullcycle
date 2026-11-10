@@ -4,9 +4,7 @@ import { Person } from '../people/person.entity';
 import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
 import {
-  ConversationResponse,
   ListedConversationResponse,
-  toConversationResponse,
   toListedConversationResponse,
 } from './conversation.response';
 import { ConversationsService } from './conversations.service';
