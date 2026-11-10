@@ -162,11 +162,9 @@ describe('Canais novos em tempo real', () => {
     );
     const { id } = (first.body as { conversation: ConversationBody })
       .conversation;
-    // Outros testes criam Canais públicos ao mesmo tempo: espera o evento desta Conversa.
-    const deadline = Date.now() + 2000;
-    while (eventsOf(events, id).length === 0 && Date.now() < deadline) {
-      await settle(10);
-    }
+    // Outros testes criam Canais públicos ao mesmo tempo: espera o evento desta Conversa, e falha se
+    // ele não chegar.
+    await waitForConversation(events, id);
 
     await conversationRoutes.openDirect(app, opener.cookie, other.person.id);
 
