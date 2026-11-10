@@ -11,5 +11,6 @@ export function messageFromEvent(payload: MessagePayload): Message {
     author: { ...payload.author, initials: initials(payload.author.name) },
     body: payload.body,
     createdAt: payload.created_at,
+    editedAt: payload.edited_at,
   };
 }

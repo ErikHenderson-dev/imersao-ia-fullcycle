@@ -32,3 +32,31 @@ Uma Mensagem da Pessoa logada, com uma quebra de linha e um link, e as permissõ
 
 7. **a barra e o menu não têm violações de acessibilidade:** o axe sem violações com a barra à
    vista e com o menu aberto.
+
+### 2. Editar a própria Mensagem (F06-T03)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa/editar-mensagem.spec.ts`
+
+Duas Mensagens da Pessoa logada e uma de outra Pessoa num Canal em comum. A linha da Mensagem é
+localizada pelo id, porque em edição o texto vai para a caixa.
+
+1. **edita pela barra e cancela com Esc:** "Editar" põe o texto na caixa com o foco no fim; Esc
+   cancela e devolve o foco a "Editar"; pelo menu, Shift+Enter quebra a linha e Enter salva, com
+   "(editada)"; editar outra Mensagem fecha a primeira.
+2. **não salva vazio nem acima do limite:** com espaços ou 4002 caracteres, Salvar fica desabilitado
+   e Enter não fecha a caixa, com "2 caracteres acima do limite".
+3. **mostra a falha e tenta de novo:** com a Server Action presa, Salvar fica ocupado; abortada,
+   aparece "Não foi possível salvar a edição." com o texto mantido; com a rede de volta, "Tentar de
+   novo" salva.
+4. **edita só pelo teclado:** da caixa de mensagem, Shift+Tab chega a "Editar"; Enter abre a caixa,
+   Enter salva e o foco volta a "Editar".
+5. **a Mensagem de outra Pessoa não tem Editar:** nem na barra nem no menu.
+
+**File:** `e2e/tempo-real/edicao-sem-recarregar.spec.ts`
+
+6. **a edição aparece para a outra Pessoa sem recarregar:** duas Pessoas em dois contextos; a autora
+   edita e a outra vê o texto novo e "(editada)".
+
+**File:** `e2e/acessibilidade/edicao-sem-violacoes.spec.ts`
+
+7. **a edição não tem violações de acessibilidade:** o axe com a caixa de edição aberta.

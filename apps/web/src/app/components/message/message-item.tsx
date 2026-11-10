@@ -8,6 +8,7 @@ import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
 import { MessageActions } from "./message-actions";
 import { MessageBody } from "./message-body";
+import { MessageEditor } from "./message-editor";
 
 type MessageItemProps = {
   message: Message;
@@ -21,6 +22,12 @@ type MessageItemProps = {
   status?: "sent" | "sending" | "failed";
   onRetry?: () => void;
   onDiscard?: () => void;
+  // A edição (spec da F06, "Edição"): `onEdit` só nas Mensagens da Pessoa logada; com `isEditing`,
+  // a MessageEditor toma o lugar do texto.
+  onEdit?: () => void;
+  isEditing?: boolean;
+  onEditSaved?: (message: Message) => void;
+  onEditClose?: () => void;
 };
 
 // Mensagem (MessageItem), no layout completo ou compacto. A barra de ações e o menu (spec da F06,
@@ -33,9 +40,25 @@ export function MessageItem({
   status = "sent",
   onRetry,
   onDiscard,
+  onEdit,
+  isEditing = false,
+  onEditSaved,
+  onEditClose,
 }: MessageItemProps) {
   const failed = status === "failed" && (
     <SendFailure onRetry={onRetry} onDiscard={onDiscard} />
+  );
+  const content = isEditing ? (
+    <MessageEditor
+      message={message}
+      onSaved={(saved) => onEditSaved?.(saved)}
+      onClose={() => onEditClose?.()}
+    />
+  ) : (
+    <>
+      <MessageBody text={message.body} edited={message.editedAt} timeZone={timeZone} />
+      {failed}
+    </>
   );
   return (
     <li
@@ -48,17 +71,17 @@ export function MessageItem({
       {dayLabel && <DayDivider label={dayLabel} />}
       <div className="group/message relative hover:bg-surface-subtle focus-within:bg-surface-subtle">
         {compact ? (
-          <CompactRow message={message} timeZone={timeZone} extra={failed} />
+          <CompactRow message={message} timeZone={timeZone} content={content} />
         ) : (
-          <FullRow message={message} timeZone={timeZone} extra={failed} />
+          <FullRow message={message} timeZone={timeZone} content={content} />
         )}
-        {status === "sent" && <MessageActions message={message} />}
+        {status === "sent" && !isEditing && <MessageActions message={message} onEdit={onEdit} />}
       </div>
     </li>
   );
 }
 
-type RowProps = { message: Message; timeZone: string; extra?: React.ReactNode };
+type RowProps = { message: Message; timeZone: string; content?: React.ReactNode };
 
 // "Não foi possível enviar." com "Tentar de novo" e "Descartar" (22:12030).
 function SendFailure({ onRetry, onDiscard }: { onRetry?: () => void; onDiscard?: () => void }) {
@@ -79,7 +102,7 @@ function SendFailure({ onRetry, onDiscard }: { onRetry?: () => void; onDiscard?:
   );
 }
 
-function CompactRow({ message, timeZone, extra }: RowProps) {
+function CompactRow({ message, timeZone, content }: RowProps) {
   return (
     <div className="group flex gap-2 px-5 py-1">
       {/* Sem o nome à vista, como no Figma; o leitor de tela ainda ouve de quem é. */}
@@ -91,15 +114,12 @@ function CompactRow({ message, timeZone, extra }: RowProps) {
           className="opacity-0 group-hover:opacity-100 group-focus-visible/history:opacity-100"
         />
       </div>
-      <div className="min-w-0 flex-1">
-        <MessageBody text={message.body} />
-        {extra}
-      </div>
+      <div className="min-w-0 flex-1">{content}</div>
     </div>
   );
 }
 
-function FullRow({ message, timeZone, extra }: RowProps) {
+function FullRow({ message, timeZone, content }: RowProps) {
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
       <div className="flex w-9 shrink-0 justify-end">
@@ -118,8 +138,7 @@ function FullRow({ message, timeZone, extra }: RowProps) {
           </OpenProfileButton>
           <MessageTime message={message} timeZone={timeZone} />
         </p>
-        <MessageBody text={message.body} />
-        {extra}
+        {content}
       </div>
     </div>
   );

@@ -69,8 +69,27 @@ function History({
   renderedAt,
   currentPerson,
 }: MessageHistoryProps) {
-  const { messages: saved, hasOlder, isLoadingOlder, olderFailed, loadOlder, appendSaved, reloadLatest } =
-    useMessageHistory(conversation.id, initialPage);
+  const {
+    messages: saved,
+    hasOlder,
+    isLoadingOlder,
+    olderFailed,
+    loadOlder,
+    appendSaved,
+    applyEdited,
+    reloadLatest,
+  } = useMessageHistory(conversation.id, initialPage);
+  // A Mensagem em edição, uma por vez na Conversa (spec da F06, "Edição").
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const closeEdit = useCallback((messageId: string) => {
+    setEditingId((current) => (current === messageId ? null : current));
+    // Ao fechar, o foco volta para a Mensagem, no botão "Editar" da barra.
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(`[data-message-id="${messageId}"] [data-action="edit"]`)
+        ?.focus();
+    });
+  }, []);
   const { pending, send, retry, discard, dropDelivered } = usePendingMessages(
     conversation.id,
     currentPerson,
@@ -79,6 +98,7 @@ function History({
   const { isSynced } = useRealtimeMessages(conversation.id, initialPage, {
     currentPersonId: currentPerson.id,
     appendSaved,
+    applyEdited,
     dropDelivered,
     reloadLatest,
   });
@@ -291,6 +311,14 @@ function History({
                 status={message.status ?? "sent"}
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
+                onEdit={
+                  message.author.id === currentPerson.id
+                    ? () => setEditingId(message.id)
+                    : undefined
+                }
+                isEditing={!message.status && editingId === message.id}
+                onEditSaved={applyEdited}
+                onEditClose={() => closeEdit(message.id)}
               />
             ))}
           </ol>
