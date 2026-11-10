@@ -11,6 +11,7 @@ describe("messageFromEvent", () => {
       body: "Olá",
       created_at: "2026-11-09T12:00:00.000Z",
       edited_at: null,
+      mentions: [],
     });
 
     expect(message).toEqual({
@@ -21,6 +22,7 @@ describe("messageFromEvent", () => {
       body: "Olá",
       createdAt: "2026-11-09T12:00:00.000Z",
       editedAt: null,
+      mentions: [],
     });
   });
 });

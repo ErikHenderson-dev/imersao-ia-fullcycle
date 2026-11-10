@@ -28,6 +28,9 @@ type MessageItemProps = {
   // A edição (spec da F06, "Edição"), só nas Mensagens da Pessoa logada: com `isEditing`, a
   // MessageEditor toma o lugar do texto.
   edit?: MessageEdit;
+  // A Pessoa logada: a Menção a ela é amarela, e a Mensagem que a menciona ganha o destaque de
+  // "Menciona você" (spec da F06, "Texto da Mensagem").
+  currentPersonId?: string;
 };
 
 export type MessageEdit = {
@@ -50,7 +53,9 @@ export function MessageItem({
   onRetry,
   onDiscard,
   edit,
+  currentPersonId,
 }: MessageItemProps) {
+  const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
   const itemRef = useRef<HTMLLIElement>(null);
   // Ao fechar a edição, o foco volta para a Mensagem, no "Editar" da barra.
@@ -73,7 +78,13 @@ export function MessageItem({
     />
   ) : (
     <>
-      <MessageBody text={message.body} edited={message.editedAt} timeZone={timeZone} />
+      <MessageBody
+        text={message.body}
+        mentions={message.mentions}
+        currentPersonId={currentPersonId}
+        edited={message.editedAt}
+        timeZone={timeZone}
+      />
       {failed}
     </>
   );
@@ -87,7 +98,15 @@ export function MessageItem({
       className={cn("flex flex-col", status === "sending" && "opacity-60")}
     >
       {dayLabel && <DayDivider label={dayLabel} />}
-      <div className="group/message relative hover:bg-surface-subtle focus-within:bg-surface-subtle">
+      <div
+        data-mentions-me={mentionsMe || undefined}
+        className={cn(
+          "group/message relative",
+          mentionsMe
+            ? "border-l-2 border-highlight-border bg-highlight-bg"
+            : "hover:bg-surface-subtle focus-within:bg-surface-subtle",
+        )}
+      >
         {compact ? (
           <CompactRow message={message} timeZone={timeZone} content={content} />
         ) : (

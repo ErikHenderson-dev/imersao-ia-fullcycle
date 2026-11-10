@@ -12,5 +12,6 @@ export function messageFromEvent(payload: MessagePayload): Message {
     body: payload.body,
     createdAt: payload.created_at,
     editedAt: payload.edited_at,
+    mentions: payload.mentions,
   };
 }

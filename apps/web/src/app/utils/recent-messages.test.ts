@@ -11,6 +11,7 @@ function message(id: string): Message {
     body: `Mensagem ${id}`,
     createdAt: "2026-11-09T12:00:00.000Z",
     editedAt: null,
+    mentions: [],
   };
 }
 
