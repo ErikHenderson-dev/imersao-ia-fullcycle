@@ -1,6 +1,6 @@
 # 03: Hora local no Perfil
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o Perfil mostra que horas são para a Pessoa ("14:32 no horário local"), e a
 hora avança enquanto o painel está aberto. O fuso vem do navegador da Pessoa e é gravado sempre
