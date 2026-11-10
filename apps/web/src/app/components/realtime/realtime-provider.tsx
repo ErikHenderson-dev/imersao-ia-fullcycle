@@ -255,11 +255,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       cursor = laterCursor(cursor, event.cursor);
       lastSync.current = event;
       const syncListeners = [...listeners.current].filter((listener) => listener.onSync);
-      // O reset fica guardado para quem guarda os eventos e ainda vai assinar (o histórico): quem
-      // assina com replayLastReset (a barra lateral, a Atividade) recebe o do último sync de todo
-      // jeito, e não conta aqui nem o consome.
-      const keepers = syncListeners.filter((listener) => !listener.replayLastReset);
-      pendingReset.current = event.reset && keepers.length === 0 ? event : null;
+      pendingReset.current = event.reset && syncListeners.length === 0 ? event : null;
       syncListeners.forEach((listener) => listener.onSync?.(event));
     });
 
@@ -291,6 +287,8 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
   const subscribe = useCallback((listener: RealtimeListener) => {
     listeners.current.add(listener);
     const pending = pendingReset.current;
+    // Quem assina com replayLastReset (a barra lateral, a Atividade) recebe o reset do último sync de
+    // todo jeito e não consome o guardado para o histórico.
     if (pending && listener.onSync && !listener.replayLastReset) {
       pendingReset.current = null;
       listener.onSync(pending);
