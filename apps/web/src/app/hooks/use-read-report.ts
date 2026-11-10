@@ -2,8 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef } from "react";
 import { mutate } from "swr";
-import { markConversationRead } from "@/app/actions/mark-conversation-read";
-import type { Conversation } from "@/app/services/chat-api";
+import type { Conversation, MarkReadResult, Unread } from "@/app/services/chat-api";
 import { applyUnread, conversationsKey } from "@/app/utils/conversation-list";
 import { hasUnreadToReport, readReportDelay } from "@/app/utils/read-report";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -24,6 +23,22 @@ type ReadReport = {
 // abrir, ao voltar o foco e quando chega Mensagem, no máximo um aviso por intervalo, com a posição
 // mais nova do momento do envio. O `ok` aplica os números na lista de Conversas, que mora no cache
 // global do SWR; a falha não mostra nada, e a próxima ocasião tenta de novo.
+// O aviso pela rota do BFF; a rede caída vira falha.
+async function putRead(conversationId: string, messageId: string): Promise<MarkReadResult> {
+  try {
+    const response = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}/read`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ messageId }),
+    });
+    if (response.ok) return { kind: "ok", unread: (await response.json()) as Unread };
+    if (response.status === 401) return { kind: "unauthenticated" };
+    return { kind: "failure" };
+  } catch {
+    return { kind: "failure" };
+  }
+}
+
 export function useReadReport({
   conversationId,
   personId,
@@ -46,7 +61,7 @@ export function useReadReport({
     const previous = knownLastRead.current;
     lastSentAt.current = Date.now();
     knownLastRead.current = messageId;
-    const result = await markConversationRead(conversationId, messageId);
+    const result = await putRead(conversationId, messageId);
     if (result.kind === "unauthenticated") return redirectToExpiredSession();
     if (result.kind !== "ok") {
       // A próxima ocasião tenta de novo a partir da posição de antes.

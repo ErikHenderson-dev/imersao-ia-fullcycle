@@ -92,6 +92,7 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 | Rota | Entrada | Sucesso | Erros |
 | --- | --- | --- | --- |
 | `GET /v1/conversations`, muda | Como hoje | Como hoje, e cada Conversa ganha `last_read_message_id`, `unread_count` e `mention_count` | Os de hoje |
+| `GET /v1/conversations/:conversationId`, muda | Como hoje | Como hoje, e a Conversa ganha os mesmos três campos da lista: a página da Conversa começa pela Última leitura dela, sem ler a lista inteira | Os de hoje |
 | `PUT /v1/conversations/:conversationId/read`, `planejada` | `message_id` | 200 com `conversation_id`, `last_read_message_id`, `unread_count` e `mention_count` | `conversation_not_found` (404), `message_not_found` (404), `validation_failed` (400) |
 
 - `PUT .../read`: quem não é Membro recebe `conversation_not_found`, como nas outras rotas da
@@ -132,8 +133,11 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 
 ### BFF (web)
 
-- **Server Action** `markConversationRead` (Conversa e Mensagem), com a união discriminada da F01
-  (`ok`, `unauthenticated`, `not_found`, `failure`); devolve os números no `ok`.
+- **Rota** `PUT /api/conversations/:id/read`, com `messageId` no corpo: devolve os números no 200;
+  401, 404 e 400 como a API, e o resto como 502. É uma rota, e não um Server Action, porque os
+  Server Actions de uma aba rodam em série: o aviso de leitura, que sai sozinho a cada Mensagem que
+  chega, seguraria o envio e a edição atrás dele (LLD, "Cliente", "Leituras e tempo real").
+- **A Conversa de `getConversation`** passa a trazer a Última leitura e os números.
 - **O tipo `Conversation` da web** ganha `lastReadMessageId`, `unreadCount` e `mentionCount`.
 - **401** leva a `GET /api/session/expired`, como na F02.
 
@@ -148,7 +152,7 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 **Informar a leitura**
 
 - Com a Conversa aberta, a aba em foco e o histórico carregado, o cliente chama
-  `markConversationRead` com o id da Mensagem salva mais nova da lista, quando ele é posterior à
+  a rota de leitura com o id da Mensagem salva mais nova da lista, quando ele é posterior à
   Última leitura conhecida: ao abrir a Conversa, quando a aba volta ao foco e quando chega uma
   Mensagem com a aba em foco.
 - As chamadas de uma Conversa são agrupadas em no máximo uma por segundo, com a última posição do

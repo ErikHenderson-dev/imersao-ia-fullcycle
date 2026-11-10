@@ -1,6 +1,6 @@
 # 02: Ler a Conversa
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** abrir uma Conversa com a aba do navegador em foco a marca como lida, e as
 Mensagens que chegam com ela aberta e em foco já entram lidas. Com a aba em segundo plano, ou com
@@ -20,19 +20,19 @@ outras abas mudam na 03; aqui, ao recarregar. Referências:
 
 **Bloqueada por:** 01 (Números na barra lateral)
 
-- [ ] **CA1** · `PUT /v1/conversations/:conversationId/read` avança a Última leitura só para frente
+- [x] **CA1** · `PUT /v1/conversations/:conversationId/read` avança a Última leitura só para frente
   e responde com a posição e os números; uma posição igual ou anterior responde 200 sem gravar;
   Mensagem inexistente ou de outra Conversa: 404 `message_not_found`; quem não é Membro: 404
   `conversation_not_found`; sem Sessão: 401. A Mensagem apagada vale como posição.
-- [ ] **CA2** · A Server Action `markConversationRead` segue a união discriminada da F01, e o 401
+- [x] **CA2** · A Server Action `markConversationRead` segue a união discriminada da F01, e o 401
   leva a `GET /api/session/expired`.
-- [ ] **CA3** · Um hook diz se a aba está em foco (visível e com foco), atualizado por
+- [x] **CA3** · Um hook diz se a aba está em foco (visível e com foco), atualizado por
   `visibilitychange`, `focus` e `blur`.
-- [ ] **CA4** · Com a Conversa aberta, a aba em foco e o histórico carregado, o cliente informa a
+- [x] **CA4** · Com a Conversa aberta, a aba em foco e o histórico carregado, o cliente informa a
   Mensagem salva mais nova ao abrir, ao voltar o foco e quando chega Mensagem, em no máximo um
   aviso por Conversa por intervalo, só quando ela é posterior à Última leitura conhecida; o `ok`
   aplica os números na lista, e a falha não mostra nada. O agrupamento é uma função pura com teste.
-- [ ] **CA5** · A Conversa aberta com a aba em foco é exibida sem negrito e sem contador, qualquer
+- [x] **CA5** · A Conversa aberta com a aba em foco é exibida sem negrito e sem contador, qualquer
   que seja o número no cache, por uma função pura com teste.
-- [ ] **CA6** · O Playwright prova abrir um Canal com Menção e, ao recarregar, ver a linha sem
+- [x] **CA6** · O Playwright prova abrir um Canal com Menção e, ao recarregar, ver a linha sem
   negrito nem contador, e que a aba em segundo plano não marca como lida.
