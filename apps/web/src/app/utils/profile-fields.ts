@@ -9,6 +9,8 @@ export const PHONE_MAX_LENGTH = 30;
 
 const PHONE_PATTERN = new RegExp(`^[0-9 +()-]{1,${PHONE_MAX_LENGTH}}$`);
 const LINE_BREAK = /[\r\n]/;
+// O text do Postgres recusa o U+0000, e a API também (NoNullCharacter).
+const NULL_CHARACTER = String.fromCharCode(0);
 
 export type ProfileField = "name" | "title" | "phone";
 
@@ -28,6 +30,7 @@ function blankToNull(value: string): string | null {
 
 // O erro do texto com quebra de linha ou acima do limite; `noun` entra na mensagem.
 function singleLineError(value: string, max: number, noun: string): string | null {
+  if (value.includes(NULL_CHARACTER)) return `${noun} tem um caractere inválido.`;
   if (LINE_BREAK.test(value)) return `${noun} precisa ficar numa linha só.`;
   if (codePointLength(value) > max) return `${noun} pode ter no máximo ${max} caracteres.`;
   return null;
@@ -53,17 +56,19 @@ export function parseProfileFields(input: {
   title: unknown;
   phone: unknown;
 }): ProfileFieldsResult {
-  if (
-    typeof input.name !== "string" ||
-    typeof input.title !== "string" ||
-    typeof input.phone !== "string"
-  ) {
-    return { kind: "invalid", errors: [{ field: "name", message: "Dados inválidos." }] };
+  const notText = (["name", "title", "phone"] as const).filter(
+    (field) => typeof input[field] !== "string",
+  );
+  if (notText.length > 0) {
+    return {
+      kind: "invalid",
+      errors: notText.map((field) => ({ field, message: "Dados inválidos." })),
+    };
   }
   const fields: ProfileFields = {
-    name: input.name.trim(),
-    title: blankToNull(input.title),
-    phone: blankToNull(input.phone),
+    name: (input.name as string).trim(),
+    title: blankToNull(input.title as string),
+    phone: blankToNull(input.phone as string),
   };
   const errors: ProfileFieldError[] = [];
   const checks: [ProfileField, string | null][] = [

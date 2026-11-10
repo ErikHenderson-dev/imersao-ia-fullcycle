@@ -26,6 +26,8 @@ describe("parseProfileFields", () => {
     ["o nome com 81 caracteres", { name: "n".repeat(81) }, "name", "O nome pode ter no máximo 80 caracteres."],
     ["o cargo com 81 caracteres", { title: "c".repeat(81) }, "title", "O cargo pode ter no máximo 80 caracteres."],
     ["o cargo com quebra de linha", { title: "a\nb" }, "title", "O cargo precisa ficar numa linha só."],
+    ["o nome com o caractere nulo", { name: "Ana\u0000" }, "name", "O nome tem um caractere inválido."],
+    ["o cargo com o caractere nulo", { title: "Produto\u0000" }, "title", "O cargo tem um caractere inválido."],
     [
       "o telefone com letra",
       { phone: "+55 11 ABCD" },
@@ -54,7 +56,10 @@ describe("parseProfileFields", () => {
     ]);
   });
 
-  it("recusa campo que não é texto", () => {
-    expect(parseProfileFields({ ...VALID, name: 42 }).kind).toBe("invalid");
+  it("recusa o campo que não é texto, apontando para ele", () => {
+    expect(parseProfileFields({ ...VALID, title: 42 })).toEqual({
+      kind: "invalid",
+      errors: [{ field: "title", message: "Dados inválidos." }],
+    });
   });
 });

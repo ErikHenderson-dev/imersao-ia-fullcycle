@@ -1,5 +1,5 @@
 import { InvalidProfileError } from './invalid-profile.error';
-import { namesOutsideRule, parseName } from './profile-values';
+import { namesOutsideRuleMessage, parseName } from './profile-values';
 
 describe('regra do nome', () => {
   it('apara as pontas', () => {
@@ -19,22 +19,14 @@ describe('regra do nome', () => {
   });
 });
 
-describe('nomes fora da regra, para a migração', () => {
-  it('não acusa nada quando todos cabem', () => {
-    expect(
-      namesOutsideRule([{ id: '1', email: 'ana@x.dev', name: 'Ana Souza' }]),
-    ).toBeNull();
-  });
-
-  it('acusa o id e o e-mail de quem passa da regra', () => {
-    const message = namesOutsideRule([
-      { id: '1', email: 'ana@x.dev', name: 'Ana Souza' },
-      { id: '2', email: 'bia@x.dev', name: 'b'.repeat(81) },
-      { id: '3', email: 'caio@x.dev', name: ' Caio' },
+describe('recusa da migração do nome', () => {
+  it('lista o id e o e-mail de quem está fora da regra', () => {
+    const message = namesOutsideRuleMessage([
+      { id: '2', email: 'bia@x.dev' },
+      { id: '3', email: 'caio@x.dev' },
     ]);
 
     expect(message).toContain('2 <bia@x.dev>');
     expect(message).toContain('3 <caio@x.dev>');
-    expect(message).not.toContain('ana@x.dev');
   });
 });

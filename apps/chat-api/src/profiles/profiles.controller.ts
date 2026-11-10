@@ -29,7 +29,7 @@ export class ProfilesController {
     @CurrentPerson() person: Person,
     @Body() body: UpdateProfileDto,
   ): Promise<{ person: ProfileResponse }> {
-    const updated = await this.people.updateOwnProfile(person.id, body);
+    const updated = await this.people.updateProfileById(person.id, body);
     return { person: toProfileResponse(updated) };
   }
 

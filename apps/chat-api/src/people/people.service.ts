@@ -1,4 +1,8 @@
-import { Propagation, TransactionHost } from '@nestjs-cls/transactional';
+import {
+  Propagation,
+  Transactional,
+  TransactionHost,
+} from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { EntityManager, In, Repository } from 'typeorm';
@@ -29,9 +33,9 @@ export interface NewPerson {
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
 export type ProfileChanges = Pick<NewPerson, 'title' | 'phone'>;
 
-// O que a Pessoa troca no próprio Perfil (spec da F09, "Rotas"): um campo ausente fica como está, e
+// O que muda no Perfil, pela própria Pessoa (spec da F09, "Rotas") ou pelo comando de contas: um campo ausente fica como está, e
 // o nulo ou o vazio apagam o cargo e o telefone.
-export interface OwnProfileChanges {
+export interface PersonProfileChanges {
   name?: string;
   title?: string | null;
   phone?: string | null;
@@ -162,13 +166,15 @@ export class PeopleService {
   async updateProfile(email: string, changes: ProfileChanges): Promise<Person> {
     const person = await this.findByEmail(email);
     if (!person) throw new PersonNotFoundError(normalizeEmail(email));
-    return this.updateOwnProfile(person.id, changes);
+    return this.updateProfileById(person.id, changes);
   }
 
-  // Grava o próprio Perfil numa escrita só, depois de validar cada campo presente.
-  async updateOwnProfile(
+  // Grava o Perfil numa escrita só, depois de validar cada campo presente. A releitura fica na
+  // mesma transação: a resposta é o que esta gravação deixou, mesmo com outra ao mesmo tempo.
+  @Transactional()
+  async updateProfileById(
     personId: string,
-    changes: OwnProfileChanges,
+    changes: PersonProfileChanges,
   ): Promise<Person> {
     const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
     if (changes.name !== undefined) update.name = parseName(changes.name);

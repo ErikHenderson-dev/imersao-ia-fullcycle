@@ -32,25 +32,17 @@ function assertSingleLine(value: string, max: number, noun: string): void {
 // O nome pronto para gravar, ou a recusa com o motivo. Obrigatório, numa linha só, como o cargo.
 export function parseName(value: string): string {
   const name = value.trim();
-  if (name === '') throw new InvalidProfileError('Informe o nome completo.');
+  if (name === '') throw new InvalidProfileError('Informe seu nome completo.');
   assertSingleLine(name, NAME_MAX_LENGTH, 'O nome');
   return name;
 }
 
-// Pessoas com o nome fora da regra, que a migração do CHECK recusa com elas no erro, em vez de
-// cortar o nome em silêncio.
-export function namesOutsideRule(
-  people: { id: string; email: string; name: string }[],
-): string | null {
-  const outside = people.filter((person) => {
-    try {
-      return parseName(person.name) !== person.name;
-    } catch {
-      return true;
-    }
-  });
-  if (outside.length === 0) return null;
-  return `Nomes fora da regra (1 a ${NAME_MAX_LENGTH} caracteres, numa linha, sem espaços nas pontas): ${outside
+// A recusa da migração do CHECK do nome, com quem está fora da regra: ela falha em vez de cortar o
+// nome em silêncio.
+export function namesOutsideRuleMessage(
+  people: { id: string; email: string }[],
+): string {
+  return `Nomes fora da regra (1 a 80 caracteres, numa linha só): ${people
     .map((person) => `${person.id} <${person.email}>`)
     .join(', ')}`;
 }
