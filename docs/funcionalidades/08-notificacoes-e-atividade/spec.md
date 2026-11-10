@@ -155,9 +155,12 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - **Sem Alerta do reenvio:** os eventos reenviados na reconexão chegam antes do `sync`
   (spec da F03, "Eventos por Pessoa e reconexão"). A aba só alerta depois do `sync` da conexão
   atual, e as Notificações que chegaram durante a queda só aparecem em Atividade e nos números.
-- **Foco entre abas:** as abas de um navegador trocam o próprio foco (o hook `useTabFocus` da F07)
-  por um `BroadcastChannel` e mantêm o conjunto das abas em foco. Uma aba que fecha avisa a saída,
-  e uma que abre pergunta o estado às outras.
+- **Foco entre abas:** a aba sem foco pergunta às outras do mesmo navegador, por um
+  `BroadcastChannel`, se alguma está em foco, e cada uma responde com o foco real dela (o mesmo
+  critério do hook `useTabFocus` da F07); a pergunta espera as respostas um instante (150 ms) e
+  confere o próprio foco de novo no fim. Sem guardar quem estava em foco, uma aba que fechou sem
+  avisar, congelou ou voltou do bfcache não deixa estado velho. Sem `BroadcastChannel`, a opção do
+  navegador não aparece.
 - **Para onde vai a Notificação**, também numa função pura:
   - aba em foco com a Conversa da Mensagem aberta: nada;
   - aba em foco com outra Conversa ou outra tela: Alerta, só nela;
