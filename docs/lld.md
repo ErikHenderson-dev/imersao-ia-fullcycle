@@ -260,7 +260,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
-| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`); @usuário, cargo, telefone e fuso `planejados` ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas"); papel e permissão a detalhar |
+| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas"); papel e permissão a detalhar |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
