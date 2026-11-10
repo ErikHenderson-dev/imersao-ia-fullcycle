@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import { createTestApp } from './support/create-test-app';
@@ -174,15 +175,21 @@ describe('Não lidas e Menções', () => {
 
   it('as contagens param em 100', async () => {
     const { author, reader, channelId } = await channelWithReader();
-    await conversationRoutes.insertMessages(app, {
+    const ids = await conversationRoutes.insertMessages(app, {
       conversationId: channelId,
       authorId: author.person.id,
       count: 101,
       startAt: new Date(Date.now() + 60_000),
     });
+    await app.get(DataSource).query(
+      `INSERT INTO message_mentions (id, message_id, person_id)
+       SELECT gen_random_uuid(), message_id, $2 FROM unnest($1::uuid[]) AS message_id`,
+      [ids, reader.person.id],
+    );
 
-    expect(numbers(await listed(reader.cookie, channelId))).toMatchObject({
+    expect(numbers(await listed(reader.cookie, channelId))).toEqual({
       unread: 100,
+      mentions: 100,
     });
   });
 
