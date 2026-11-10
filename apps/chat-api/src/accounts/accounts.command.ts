@@ -5,6 +5,8 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { normalizeEmail } from '../people/normalize-email';
 import { PASSWORD_MAX_LENGTH } from '../people/password-policy';
 import { PeopleService } from '../people/people.service';
+import { parsePhone, parseTitle } from '../people/profile-values';
+import { parseUsername } from '../people/username';
 import { PersonNotFoundError } from '../people/person-not-found.error';
 import { Person } from '../people/person.entity';
 import { SessionsService } from '../sessions/sessions.service';
@@ -13,7 +15,10 @@ import { PasswordPrompt } from './password-prompt';
 const USAGE = `Uso: pnpm accounts <operação> [argumentos]
 
 Operações:
-  create <e-mail> <nome>     Cria a conta de uma Pessoa, já nos Canais públicos; a senha é lida do terminal
+  create <e-mail> <nome> [--username <u>] [--title <cargo>] [--phone <tel>]
+                             Cria a conta de uma Pessoa, já nos Canais públicos; a senha é lida do terminal
+  update-profile <e-mail> [--title <cargo>] [--phone <tel>]
+                             Troca o cargo e o telefone; o valor vazio ("") apaga
   reset-password <e-mail>    Troca a senha (lida do terminal) e revoga todas as Sessões
   revoke-sessions <e-mail>   Apaga todas as Sessões da Pessoa
   purge-expired-sessions     Apaga as Sessões vencidas`;
@@ -35,6 +40,8 @@ export class AccountsCommand implements Command {
       switch (operation) {
         case 'create':
           return await this.create(rest);
+        case 'update-profile':
+          return await this.updateProfile(rest);
         case 'reset-password':
           return await this.resetPassword(rest);
         case 'revoke-sessions':
@@ -54,9 +61,18 @@ export class AccountsCommand implements Command {
     }
   }
 
-  private async create([email, name]: string[]): Promise<number> {
-    if (!email?.trim() || !name?.trim()) {
-      this.output.error('Uso: pnpm accounts create <e-mail> <nome>');
+  private async create(args: string[]): Promise<number> {
+    const parsed = parseOptions(args, ['username', 'title', 'phone']);
+    const [email, name] = parsed?.positional ?? [];
+    if (
+      !parsed ||
+      parsed.positional.length !== 2 ||
+      !email.trim() ||
+      !name.trim()
+    ) {
+      this.output.error(
+        'Uso: pnpm accounts create <e-mail> <nome> [--username <u>] [--title <cargo>] [--phone <tel>]',
+      );
       return 1;
     }
     // O mesmo formato que o login aceita; fora dele, a conta nunca conseguiria entrar.
@@ -64,6 +80,11 @@ export class AccountsCommand implements Command {
       this.output.error(`E-mail inválido: ${email.trim()}`);
       return 1;
     }
+    // Antes da senha: um valor fora da regra não faz quem opera digitá-la à toa.
+    const { username, title, phone } = parsed.options;
+    if (username !== undefined) parseUsername(username);
+    if (title !== undefined) parseTitle(title);
+    if (phone !== undefined) parsePhone(phone);
     const password = await this.askNewPassword('Senha: ');
     if (!password) return 1;
     // A Pessoa entra em todos os Canais públicos na mesma transação (spec da F02, história 11).
@@ -71,8 +92,32 @@ export class AccountsCommand implements Command {
       email,
       name,
       password,
+      ...parsed.options,
     });
-    this.output.info(`Pessoa criada: ${person.email} (${person.id}).`);
+    this.output.info(
+      `Pessoa criada: ${person.email} (@${person.username}, ${person.id}).`,
+    );
+    return 0;
+  }
+
+  private async updateProfile(args: string[]): Promise<number> {
+    const parsed = parseOptions(args, ['title', 'phone']);
+    if (
+      !parsed ||
+      parsed.positional.length !== 1 ||
+      !parsed.positional[0].trim() ||
+      Object.keys(parsed.options).length === 0
+    ) {
+      this.output.error(
+        'Uso: pnpm accounts update-profile <e-mail> [--title <cargo>] [--phone <tel>]',
+      );
+      return 1;
+    }
+    const person = await this.people.updateProfile(
+      parsed.positional[0],
+      parsed.options,
+    );
+    this.output.info(`Perfil de ${person.email} atualizado.`);
     return 0;
   }
 
@@ -143,4 +188,39 @@ export class AccountsCommand implements Command {
     }
     return password;
   }
+}
+
+type OptionName = 'username' | 'title' | 'phone';
+
+interface ParsedArgs {
+  positional: string[];
+  options: Partial<Record<OptionName, string>>;
+}
+
+// `--nome valor`, com o valor no argumento seguinte, que pode ser vazio. Uma opção fora de
+// `allowed`, repetida ou sem valor devolve null, e o comando mostra o uso.
+function parseOptions(
+  args: string[],
+  allowed: OptionName[],
+): ParsedArgs | null {
+  const parsed: ParsedArgs = { positional: [], options: {} };
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) {
+      parsed.positional.push(arg);
+      continue;
+    }
+    const name = arg.slice(2) as OptionName;
+    const value = args[i + 1];
+    if (
+      !allowed.includes(name) ||
+      name in parsed.options ||
+      value === undefined
+    ) {
+      return null;
+    }
+    parsed.options[name] = value;
+    i += 1;
+  }
+  return parsed;
 }

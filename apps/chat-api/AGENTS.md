@@ -37,7 +37,8 @@ docker compose -f compose.yaml exec chat-api <comando>
 | `pnpm migration:generate migrations/<Nome>` | Gera uma migração a partir da diferença entre as entidades e o Banco do chat |
 | `pnpm migration:run` | Roda as migrações pendentes no Banco do chat |
 | `pnpm migration:revert` | Reverte a última migração rodada |
-| `pnpm accounts create <e-mail> "<nome>"` | Comando de contas: cria a conta de uma Pessoa, já Membro de todos os Canais públicos. A senha é lida do terminal, sem eco, e nunca de argumento nem de variável |
+| `pnpm accounts create <e-mail> "<nome>" [--username <u>] [--title "<cargo>"] [--phone "<tel>"]` | Comando de contas: cria a conta de uma Pessoa, já Membro de todos os Canais públicos. A senha é lida do terminal, sem eco, e nunca de argumento nem de variável. Sem `--username`, o @usuário vem do e-mail (spec da F05, "Pessoas") |
+| `pnpm accounts update-profile <e-mail> [--title "<cargo>"] [--phone "<tel>"]` | Troca o cargo e o telefone; `""` apaga. O @usuário não muda |
 | `pnpm accounts reset-password <e-mail>` | Troca a senha (lida do terminal) e revoga todas as Sessões da Pessoa |
 | `pnpm accounts revoke-sessions <e-mail>` | Apaga todas as Sessões da Pessoa |
 | `pnpm accounts purge-expired-sessions` | Apaga as Sessões vencidas |
@@ -46,7 +47,7 @@ docker compose -f compose.yaml exec chat-api <comando>
 | `pnpm channels list` | Lista os Canais públicos, com o número de Membros e o Tópico |
 | `pnpm channels remove-member <nome> <e-mail>` | Tira a Pessoa de um Canal privado (spec da F04, "Comando de canais") |
 
-O comando de contas precisa do terminal para ler a senha: rode com `docker compose -f compose.yaml exec chat-api ...`, que abre um TTY. As operações estão na spec da F01, "Comando de contas". As do comando de canais estão nas specs da F02 e da F04, "Comando de canais".
+O comando de contas precisa do terminal para ler a senha: rode com `docker compose -f compose.yaml exec chat-api ...`, que abre um TTY. As operações estão nas specs da F01 e da F05, "Comando de contas". As do comando de canais estão nas specs da F02 e da F04, "Comando de canais".
 
 O `pnpm lint` roda com `--fix`: corrige o que dá e aponta o resto. O `pnpm format` reescreve os arquivos com o Prettier.
 

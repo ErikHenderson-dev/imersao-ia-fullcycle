@@ -341,4 +341,195 @@ describe('comando de contas', () => {
       expect(await sessionCount(person.id)).toBe(1);
     });
   });
+
+  describe('perfil na criação', () => {
+    function freeUsername(): string {
+      return `u${randomUUID().replaceAll('-', '').slice(0, 20)}`;
+    }
+
+    it('create grava o @usuário, o cargo e o telefone informados', async () => {
+      const email = uniqueEmail();
+      const username = freeUsername();
+
+      const exitCode = await command().run([
+        'create',
+        email,
+        'Ana Souza',
+        '--username',
+        username,
+        '--title',
+        ' Product Manager ',
+        '--phone',
+        '+55 (11) 98888-0001',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(await people.findByEmail(email)).toMatchObject({
+        username,
+        title: 'Product Manager',
+        phone: '+55 (11) 98888-0001',
+        timeZone: null,
+      });
+    });
+
+    it('create deriva o @usuário do e-mail, com sufixo quando repete', async () => {
+      const local = `ana.${randomUUID().slice(0, 8)}`;
+      await command().run(['create', `${local}@a.local`, 'Ana Souza']);
+
+      const exitCode = await command().run([
+        'create',
+        `${local.toUpperCase()}@b.local`,
+        'Ana Lima',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect((await people.findByEmail(`${local}@a.local`))?.username).toBe(
+        local,
+      );
+      expect((await people.findByEmail(`${local}@b.local`))?.username).toBe(
+        `${local}2`,
+      );
+    });
+
+    it('create grava cargo e telefone vazios como nulos', async () => {
+      const email = uniqueEmail();
+
+      const exitCode = await command().run([
+        'create',
+        email,
+        'Ana Souza',
+        '--title',
+        '  ',
+        '--phone',
+        '',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(await people.findByEmail(email)).toMatchObject({
+        title: null,
+        phone: null,
+      });
+    });
+
+    it.each([
+      ['o @usuário já usado', ['--username', 'TAKEN'], /já é de outra Pessoa/],
+      ['o @usuário fora do formato', ['--username', 'Ana Souza'], /@usuário/],
+      ['o cargo com 81 caracteres', ['--title', 'c'.repeat(81)], /cargo/],
+      ['o telefone com letra', ['--phone', '11 9999-ABCD'], /telefone/],
+      ['uma opção desconhecida', ['--cargo', 'PM'], /Uso:/],
+      ['uma opção sem valor', ['--title'], /Uso:/],
+    ])('create recusa %s', async (_case, options, message) => {
+      const taken = freeUsername();
+      await command().run([
+        'create',
+        uniqueEmail(),
+        'Bruno',
+        '--username',
+        taken,
+      ]);
+      const output = recordingOutput();
+      const email = uniqueEmail();
+      const args = options.map((option) =>
+        option === 'TAKEN' ? taken : option,
+      );
+
+      const exitCode = await command(undefined, output).run([
+        'create',
+        email,
+        'Ana Souza',
+        ...args,
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(message);
+      expect(await people.findByEmail(email)).toBeNull();
+    });
+  });
+
+  describe('update-profile', () => {
+    async function personWithProfile() {
+      const email = uniqueEmail();
+      await command().run([
+        'create',
+        email,
+        'Ana Souza',
+        '--title',
+        'Designer',
+        '--phone',
+        '+55 11 4000-0000',
+      ]);
+      return email;
+    }
+
+    it('update-profile troca o cargo e mantém o telefone', async () => {
+      const email = await personWithProfile();
+
+      const exitCode = await command().run([
+        'update-profile',
+        email,
+        '--title',
+        'Product Manager',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(await people.findByEmail(email)).toMatchObject({
+        title: 'Product Manager',
+        phone: '+55 11 4000-0000',
+      });
+    });
+
+    it('update-profile apaga com valor vazio', async () => {
+      const email = await personWithProfile();
+
+      const exitCode = await command().run([
+        'update-profile',
+        email,
+        '--phone',
+        '',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(await people.findByEmail(email)).toMatchObject({
+        title: 'Designer',
+        phone: null,
+      });
+    });
+
+    it.each([
+      ['sem nenhuma opção', [], /Uso:/],
+      ['o @usuário', ['--username', 'outro'], /Uso:/],
+      ['o telefone fora da regra', ['--phone', 'ramal 12'], /telefone/],
+      ['o cargo em duas linhas', ['--title', 'PM\nDados'], /cargo/],
+    ])('update-profile recusa %s', async (_case, options, message) => {
+      const email = await personWithProfile();
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'update-profile',
+        email,
+        ...options,
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(message);
+      expect(await people.findByEmail(email)).toMatchObject({
+        title: 'Designer',
+        phone: '+55 11 4000-0000',
+      });
+    });
+
+    it('update-profile recusa a conta inexistente', async () => {
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'update-profile',
+        uniqueEmail(),
+        '--title',
+        'PM',
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(/Nenhuma Pessoa/);
+    });
+  });
 });

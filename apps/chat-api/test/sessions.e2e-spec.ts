@@ -49,6 +49,7 @@ describe('sessões', () => {
         id: person.id,
         name: 'Ana Souza',
         email,
+        username: person.username,
       });
       const rows = await app
         .get(DataSource)
@@ -127,7 +128,12 @@ describe('sessões', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        person: { id: person.id, name: person.name, email },
+        person: {
+          id: person.id,
+          name: person.name,
+          email,
+          username: person.username,
+        },
       });
     });
 

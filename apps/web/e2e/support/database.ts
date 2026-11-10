@@ -1,4 +1,4 @@
-import { randomUUIDv7 } from "node:crypto";
+import { randomUUID, randomUUIDv7 } from "node:crypto";
 import { Pool } from "pg";
 import { TEST_PASSWORD, TEST_PASSWORD_HASH } from "./test-person";
 
@@ -10,17 +10,21 @@ export type TestPerson = {
   id: string;
   name: string;
   email: string;
+  username: string;
   password: string;
 };
 
 export async function insertPerson(name = "Ana Souza"): Promise<TestPerson> {
   const id = randomUUIDv7();
   const email = `e2e-${randomUUIDv7()}@teste.local`;
+  // Aleatório de ponta a ponta: o começo do UUID v7 do e-mail é a hora, e o @usuário tem só 30
+  // caracteres (spec da F05, "Pessoas").
+  const username = `e2e-${randomUUID().replaceAll("-", "").slice(0, 24)}`;
   await pool.query(
-    "INSERT INTO people (id, email, name, password_hash) VALUES ($1, $2, $3, $4)",
-    [id, email, name, TEST_PASSWORD_HASH],
+    "INSERT INTO people (id, email, name, password_hash, username) VALUES ($1, $2, $3, $4, $5)",
+    [id, email, name, TEST_PASSWORD_HASH, username],
   );
-  return { id, name, email, password: TEST_PASSWORD };
+  return { id, name, email, username, password: TEST_PASSWORD };
 }
 
 // Revoga todas as Sessões da Pessoa, como o comando de contas faria.
