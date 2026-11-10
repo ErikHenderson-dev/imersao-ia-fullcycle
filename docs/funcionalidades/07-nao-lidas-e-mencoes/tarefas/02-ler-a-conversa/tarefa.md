@@ -1,6 +1,6 @@
 # 02: Ler a Conversa
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** abrir uma Conversa com a aba do navegador em foco a marca como lida, e as
 Mensagens que chegam com ela aberta e em foco já entram lidas. Com a aba em segundo plano, ou com
