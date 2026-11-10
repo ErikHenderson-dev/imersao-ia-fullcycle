@@ -34,7 +34,7 @@ As descrições dos componentes no Figma citam arquivos de uma implementação d
 | Ícones | `lucide-react` | Instalado |
 | Primitivos acessíveis | `radix-ui` (Dialog, AlertDialog, DropdownMenu, Tooltip, Switch, Tabs) | Instalado |
 | Variantes | `class-variance-authority`, com `clsx` e `tailwind-merge` num helper `cn` em `src/app/utils/cn.ts` | Instalado |
-| Toasts | `sonner` | A instalar |
+| Toasts | `sonner` | Instalado |
 | Fonte | Lato pelo `next/font/google` | Instalada |
 
 Instale uma biblioteca quando o primeiro componente precisar dela, sempre dentro do contêiner (`docker compose -f compose.yaml exec web pnpm add <pacote>`). O arquivo do Figma tem kits da comunidade ligados (Material 3, Simple Design System, kits da Apple): **não use nenhum deles**. O produto usa só as variables e os componentes locais do arquivo.

@@ -6,6 +6,7 @@ import { cn } from "@/app/utils/cn";
 import type { Message } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
+import { MessageActions } from "./message-actions";
 import { MessageBody } from "./message-body";
 
 type MessageItemProps = {
@@ -22,8 +23,8 @@ type MessageItemProps = {
   onDiscard?: () => void;
 };
 
-// Mensagem (MessageItem), no layout completo ou compacto. Os estados "enviando" e "falhou" e a
-// barra de ações entram na F02-T05 e na F06.
+// Mensagem (MessageItem), no layout completo ou compacto. A barra de ações e o menu (spec da F06,
+// "Barra de ações e menu") só existem na Mensagem gravada: "enviando" e "falhou" não têm.
 export function MessageItem({
   message,
   timeZone,
@@ -45,11 +46,14 @@ export function MessageItem({
       className={cn("flex flex-col", status === "sending" && "opacity-60")}
     >
       {dayLabel && <DayDivider label={dayLabel} />}
-      {compact ? (
-        <CompactRow message={message} timeZone={timeZone} extra={failed} />
-      ) : (
-        <FullRow message={message} timeZone={timeZone} extra={failed} />
-      )}
+      <div className="group/message relative hover:bg-surface-subtle focus-within:bg-surface-subtle">
+        {compact ? (
+          <CompactRow message={message} timeZone={timeZone} extra={failed} />
+        ) : (
+          <FullRow message={message} timeZone={timeZone} extra={failed} />
+        )}
+        {status === "sent" && <MessageActions message={message} />}
+      </div>
     </li>
   );
 }

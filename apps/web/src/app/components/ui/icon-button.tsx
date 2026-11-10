@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/app/utils/cn";
+import { Tooltip } from "./tooltip";
 
 const iconButtonVariants = cva(
   "inline-flex shrink-0 items-center justify-center rounded-control transition-colors duration-100 disabled:pointer-events-none disabled:opacity-50",
@@ -25,6 +26,8 @@ type IconButtonProps = Omit<React.ComponentProps<"button">, "children"> &
     icon: LucideIcon;
     // Obrigatório: vira o nome acessível e a dica (design system, "IconButton").
     label: string;
+    // A dica do design system (Tooltip, ao passar o mouse e ao focar) no lugar do title nativo.
+    hasTooltip?: boolean;
   };
 
 export function IconButton({
@@ -34,17 +37,19 @@ export function IconButton({
   size,
   className,
   type = "button",
+  hasTooltip = false,
   ...props
 }: IconButtonProps) {
-  return (
+  const button = (
     <button
       type={type}
       aria-label={label}
-      title={label}
+      title={hasTooltip ? undefined : label}
       className={cn(iconButtonVariants({ tone, size }), className)}
       {...props}
     >
       <Icon size={18} aria-hidden />
     </button>
   );
+  return hasTooltip ? <Tooltip label={label}>{button}</Tooltip> : button;
 }

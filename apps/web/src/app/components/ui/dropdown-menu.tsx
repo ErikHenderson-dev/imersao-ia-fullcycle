@@ -7,23 +7,25 @@ export const DropdownMenu = Primitive.Root;
 export const DropdownMenuTrigger = Primitive.Trigger;
 
 // Menu do design system: rounded-card, shadow-2, superfície elevada, camada de diálogos.
+// Com `inline`, o menu fica no lugar dele na árvore, e não num portal no fim do body: assim ele
+// continua dentro da landmark de onde abriu (o menu da Mensagem, dentro da Conversa).
 export function DropdownMenuContent({
   className,
   sideOffset = 8,
+  inline = false,
   ...props
-}: React.ComponentProps<typeof Primitive.Content>) {
-  return (
-    <Primitive.Portal>
-      <Primitive.Content
-        sideOffset={sideOffset}
-        className={cn(
-          "z-50 min-w-48 animate-pop-in rounded-card bg-surface-raised py-2 text-fg shadow-2",
-          className,
-        )}
-        {...props}
-      />
-    </Primitive.Portal>
+}: React.ComponentProps<typeof Primitive.Content> & { inline?: boolean }) {
+  const content = (
+    <Primitive.Content
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 min-w-48 animate-pop-in rounded-card bg-surface-raised py-2 text-fg shadow-2",
+        className,
+      )}
+      {...props}
+    />
   );
+  return inline ? content : <Primitive.Portal>{content}</Primitive.Portal>;
 }
 
 // h-8, destacado com sidebar-active.

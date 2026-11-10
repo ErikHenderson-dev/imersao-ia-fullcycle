@@ -12,6 +12,7 @@ import { TimeZoneSync } from "@/app/components/session/time-zone-sync";
 import { NavigationDrawer } from "@/app/components/workspace-nav/navigation-drawer";
 import { Rail } from "@/app/components/workspace-nav/rail";
 import { Sidebar } from "@/app/components/workspace-nav/sidebar";
+import { Toaster } from "@/app/components/ui/toaster";
 import { env } from "@/app/config/env";
 import { getCurrentPerson } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
@@ -69,6 +70,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
             </NavigationDrawer>
           </div>
         </div>
+        <Toaster />
       </ProfilePanelProvider>
     </RealtimeProvider>
   );
