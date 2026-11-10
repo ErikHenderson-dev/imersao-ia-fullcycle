@@ -164,6 +164,8 @@ function History({
   // enquanto as páginas anteriores carregam, e a que fica destacada por 2 s ao chegar.
   const [jumpTarget, setJumpTarget] = useState<string | null>(null);
   const isJumping = useRef(false);
+  // Se a ida já pediu uma página: só a falha dessa carga encerra a ida, e não uma falha de antes.
+  const jumpRequestedLoad = useRef(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -266,6 +268,7 @@ function History({
   function goToMessage(messageId: string) {
     if (saved.some((message) => message.id === messageId)) return showMessage(messageId);
     isJumping.current = true;
+    jumpRequestedLoad.current = false;
     setJumpTarget(messageId);
   }
 
@@ -275,13 +278,15 @@ function History({
   const advanceJump = useEffectEvent(() => {
     if (!jumpTarget || !step) return;
     if (step === "continue") {
-      if (olderFailed) {
+      if (isLoadingOlder) return;
+      if (olderFailed && jumpRequestedLoad.current) {
         isJumping.current = false;
         setJumpTarget(null);
         toast.error("Não foi possível ir até a mensagem.");
-      } else if (!isLoadingOlder) {
-        loadOlder(JUMP_PAGE_SIZE);
+        return;
       }
+      jumpRequestedLoad.current = true;
+      loadOlder(JUMP_PAGE_SIZE);
       return;
     }
     isJumping.current = false;
@@ -428,7 +433,7 @@ function History({
         </div>
         {jumpTarget ? (
           <div className="absolute left-1/2 top-2 -translate-x-1/2" role="status">
-            <span className="flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-small text-fg shadow-1">
+            <span className="flex animate-pop-in items-center gap-2 rounded-pill border border-border bg-surface-raised px-3 py-1 text-small text-fg shadow-2">
               <Spinner size="sm" />
               Indo até a mensagem…
             </span>

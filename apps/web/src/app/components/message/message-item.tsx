@@ -98,7 +98,7 @@ export function MessageItem({
       {message.quote && (
         <ReplyQuote
           quote={message.quote}
-          onGoTo={message.quote.deleted ? undefined : () => onGoToQuote?.(message.quote!.id)}
+          onGoTo={() => onGoToQuote?.(message.quote!.id)}
         />
       )}
       <MessageBody

@@ -65,10 +65,13 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
       const oldest = previous?.messages[0];
       return previous?.hasMore && oldest ? ["messages", conversationId, oldest.id] : null;
     },
-    (key) =>
-      key[2] === null
-        ? Promise.resolve(latestPage.current)
-        : fetchPage(key[1], key[2], olderPageSize.current),
+    (key) => {
+      if (key[2] === null) return Promise.resolve(latestPage.current);
+      // O tamanho maior vale só para a carga que o pediu, e não para uma releitura depois.
+      const limit = olderPageSize.current;
+      olderPageSize.current = undefined;
+      return fetchPage(key[1], key[2], limit);
+    },
     {
       fallbackData: [initialPage],
       revalidateOnMount: false,
