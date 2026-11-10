@@ -17,6 +17,8 @@ const avatarVariants = cva(
       size: {
         sm: "size-6 rounded-control text-micro",
         md: "size-9 rounded-item text-small",
+        // O do painel de perfil (Figma, ProfilePanel).
+        xl: "size-24 rounded-panel text-display",
       },
     },
     defaultVariants: { size: "md" },
@@ -34,7 +36,7 @@ type AvatarProps = {
   // Já calculadas no servidor (Person.initials, de services/chat-api.ts).
   initials: string;
   seed: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "xl";
   className?: string;
 };
 

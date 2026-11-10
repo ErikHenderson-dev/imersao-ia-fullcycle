@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BfcacheReload } from "@/app/components/bfcache-reload";
+import { ProfilePanel } from "@/app/components/profile/profile-panel";
+import { ProfilePanelProvider } from "@/app/components/profile/profile-panel-provider";
 import { ConnectionBanner } from "@/app/components/realtime/connection-banner";
 import { RealtimeProvider } from "@/app/components/realtime/realtime-provider";
 import { AppLoading } from "@/app/components/session/app-loading";
@@ -48,9 +50,10 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RealtimeProvider url={env.CHAT_API_PUBLIC_URL}>
+      <ProfilePanelProvider>
       <div className="flex h-screen flex-col">
         <ConnectionBanner />
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           <BfcacheReload />
           <TimeZoneSync />
           <NavigationDrawer
@@ -62,9 +65,11 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
             }
           >
             <main className="flex min-w-0 flex-1 flex-col bg-surface">{children}</main>
+            <ProfilePanel />
           </NavigationDrawer>
         </div>
       </div>
+      </ProfilePanelProvider>
     </RealtimeProvider>
   );
 }

@@ -335,6 +335,38 @@ export async function searchPeople(
   return body ? { kind: "ok", people: body.people.map(withInitials) } : { kind: "failure" };
 }
 
+// O Perfil de uma Pessoa (spec da F05, "Busca e Perfil"), com as iniciais para o avatar.
+export type Profile = {
+  id: string;
+  name: string;
+  initials: string;
+  username: string;
+  title: string | null;
+  email: string;
+  phone: string | null;
+  timeZone: string | null;
+};
+
+type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
+
+export type GetProfileResult =
+  | { kind: "ok"; profile: Profile }
+  | { kind: "not_found" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function getProfile(token: string, personId: string): Promise<GetProfileResult> {
+  const response = await request(`/v1/people/${encodeURIComponent(personId)}`, {
+    method: "GET",
+    headers: authenticated(token),
+  });
+  if (response?.status !== 200) return commonFailure(response);
+  const body = await jsonBody<{ person: ApiProfile }>(response);
+  if (!body) return { kind: "failure" };
+  const { time_zone: timeZone, ...person } = body.person;
+  return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+}
+
 export type AddMembersResult =
   | { kind: "ok"; addedPersonIds: string[]; memberCount: number }
   | { kind: "invalid" }

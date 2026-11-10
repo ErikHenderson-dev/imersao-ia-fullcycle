@@ -1,4 +1,5 @@
 import { CircleAlert } from "lucide-react";
+import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { Avatar } from "@/app/components/ui/avatar";
 import { buttonVariants } from "@/app/components/ui/button";
 import { cn } from "@/app/utils/cn";
@@ -98,11 +99,19 @@ function FullRow({ message, timeZone, extra }: RowProps) {
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
       <div className="flex w-9 shrink-0 justify-end">
-        <Avatar initials={message.author.initials} seed={message.author.id} />
+        {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
+        <OpenProfileButton personId={message.author.id} tabIndex={-1} aria-hidden className="self-start">
+          <Avatar initials={message.author.initials} seed={message.author.id} />
+        </OpenProfileButton>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="flex items-baseline gap-2">
-          <span className="text-body font-black text-fg">{message.author.name}</span>
+          <OpenProfileButton
+            personId={message.author.id}
+            className="text-body font-black text-fg hover:underline"
+          >
+            {message.author.name}
+          </OpenProfileButton>
           <MessageTime message={message} timeZone={timeZone} />
         </p>
         <MessageBody text={message.body} />
