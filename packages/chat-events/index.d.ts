@@ -39,6 +39,14 @@ export interface MessageUpdatedEvent {
   message: MessagePayload;
 }
 
+/** Uma Mensagem apagada, que sai da Conversa (spec da F06, "Tempo real"). */
+export interface MessageDeletedEvent {
+  /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
+  event_id?: string;
+  conversation_id: string;
+  message_id: string;
+}
+
 /** A outra Pessoa de uma Conversa direta, para quem a recebe (spec da F05, "Conversa direta"). */
 export interface CounterpartPayload {
   id: string;
@@ -76,6 +84,7 @@ export interface ConversationMemberAddedEvent {
 export interface StoredEventPayloads {
   "message.created": Omit<MessageCreatedEvent, "event_id">;
   "message.updated": Omit<MessageUpdatedEvent, "event_id">;
+  "message.deleted": Omit<MessageDeletedEvent, "event_id">;
   "conversation.member_added": Omit<ConversationMemberAddedEvent, "event_id">;
 }
 

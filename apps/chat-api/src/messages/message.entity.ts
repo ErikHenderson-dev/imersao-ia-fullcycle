@@ -39,10 +39,15 @@ export class Message extends BaseEntity {
   @Column({ type: 'uuid' })
   clientId!: string;
 
-  @Column({ type: 'text' })
-  body!: string;
+  // Nulo só na Mensagem apagada, pelo CHECK do banco (spec da F06, "Apagar").
+  @Column({ type: 'text', nullable: true })
+  body!: string | null;
 
   // A hora da última edição que mudou o texto (spec da F06, "Mensagens").
   @Column({ type: 'timestamptz', nullable: true })
   editedAt!: Date | null;
+
+  // A hora da exclusão; a linha fica só para as Citações (spec da F06, "Apagar").
+  @Column({ type: 'timestamptz', nullable: true })
+  deletedAt!: Date | null;
 }

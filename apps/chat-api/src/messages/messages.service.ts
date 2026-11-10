@@ -3,7 +3,7 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
-import { LessThan, Repository } from 'typeorm';
+import { IsNull, LessThan, Repository } from 'typeorm';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -85,6 +85,8 @@ export class MessagesService {
     const newestFirst = await this.messages.find({
       where: {
         conversationId,
+        // A Mensagem apagada sai da Conversa (spec da F06, "Histórico").
+        deletedAt: IsNull(),
         ...(before ? { id: LessThan(before) } : {}),
       },
       order: { id: 'DESC' },
@@ -197,6 +199,44 @@ export class MessagesService {
     return message;
   }
 
+  // Apaga a própria Mensagem (spec da F06, "Apagar"): zera o texto e grava `deleted_at` numa
+  // transação, e publica o message.deleted para os Membros depois do commit.
+  async deleteMessage(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<void> {
+    await this.remove(personId, conversationId, messageId);
+    this.publishToMembers(
+      conversationId,
+      messageId,
+      (memberIds) =>
+        this.publisher.messageDeleted(memberIds, {
+          conversation_id: conversationId,
+          message_id: messageId,
+        }),
+      'Falha ao publicar a Mensagem apagada',
+    );
+  }
+
+  // Com a mesma trava de linha da edição. As Menções, quando existirem, ficam (spec da F06).
+  @Transactional()
+  private async remove(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<void> {
+    const message = await this.lockOwnMessage(
+      personId,
+      conversationId,
+      messageId,
+    );
+    await this.messages.update(
+      { id: message.id },
+      { body: null, deletedAt: new Date() },
+    );
+  }
+
   // Publica um evento de uma Mensagem para os Membros da Conversa depois do commit, na fila dela e
   // sem prender a resposta: a gravação já valeu, e a falha só vai para o log (LLD, "Transações").
   private publishToMembers(
@@ -274,7 +314,8 @@ export class MessagesService {
       .where('message.id = :messageId', { messageId })
       .andWhere('message.conversationId = :conversationId', { conversationId })
       .getOne();
-    if (!message) throw new MessageNotFoundError();
+    // A apagada responde como a que não existe: editar ou apagar de novo dá 404.
+    if (!message || message.deletedAt) throw new MessageNotFoundError();
     if (message.authorId !== personId) throw new MessageNotOwnedError();
     return message;
   }
@@ -380,7 +421,8 @@ function toView(message: Message, author: MessageAuthor): MessageView {
     conversationId: message.conversationId,
     clientId: message.clientId,
     author,
-    body: message.body,
+    // As rotas só devolvem Mensagens vivas, com texto (spec da F06, "Histórico").
+    body: message.body ?? '',
     createdAt: message.createdAt,
     editedAt: message.editedAt ?? null,
   };

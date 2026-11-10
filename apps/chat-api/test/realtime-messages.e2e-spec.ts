@@ -1,5 +1,11 @@
 import { INestApplication } from '@nestjs/common';
-import type { MessageCreatedEvent, MessageUpdatedEvent } from 'chat-events';
+import type {
+  MessageCreatedEvent,
+  MessageDeletedEvent,
+  MessageUpdatedEvent,
+} from 'chat-events';
+import request from 'supertest';
+import { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
@@ -195,6 +201,41 @@ describe('Mensagens em tempo real', () => {
 
     await settle();
     expect(received).toHaveLength(0);
+  });
+
+  it('a exclusão emite message.deleted para os Membros', async () => {
+    const author = await authRoutes.loggedIn(app, { name: 'Ana Souza' });
+    const reader = await authRoutes.loggedIn(app, { name: 'Bruno Lima' });
+    const outsider = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    await conversationRoutes.removeMembership(
+      app,
+      channel.id,
+      outsider.person.id,
+    );
+    const messageId = await sentId(author.cookie, channel.id);
+    const forReader = collectEvents(
+      await connected(reader.token),
+      'message.deleted',
+    );
+    const forOutsider = collectEvents(
+      await connected(outsider.token),
+      'message.deleted',
+    );
+
+    const response = await request(app.getHttpServer() as App)
+      .delete(`/v1/conversations/${channel.id}/messages/${messageId}`)
+      .set('Cookie', author.cookie);
+
+    const [event] = await waitForCount(forReader, 1);
+    await settle();
+    expect(response.status).toBe(204);
+    expect(event).toEqual<MessageDeletedEvent>({
+      event_id: expect.stringMatching(/^[^:]+:\d+-\d+$/) as string,
+      conversation_id: channel.id,
+      message_id: messageId,
+    });
+    expect(forOutsider).toHaveLength(0);
   });
 
   it('emite sync com reset na conexão', async () => {
