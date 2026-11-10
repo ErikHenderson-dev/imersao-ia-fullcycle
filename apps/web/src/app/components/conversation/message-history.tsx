@@ -16,6 +16,7 @@ import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
+import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
 import {
@@ -62,6 +63,9 @@ export function MessageHistory(props: MessageHistoryProps) {
     </SWRConfig>
   );
 }
+
+// Quanto tempo a Mensagem citada fica destacada ao chegar (spec da F06, "Ir até a Mensagem citada").
+const HIGHLIGHT_MS = 2_000;
 
 function History({
   conversation,
@@ -156,6 +160,11 @@ function History({
   // layout da renderização que a trouxe).
   const isAtEnd = useRef(true);
   const [hasNewBelow, setHasNewBelow] = useState(false);
+  // A ida até a Mensagem citada (spec da F06, "Ir até a Mensagem citada"): a original procurada,
+  // enquanto as páginas anteriores carregam, e a que fica destacada por 2 s ao chegar.
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  const isJumping = useRef(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   // Depois de apagar a própria Mensagem, o foco vai para a seguinte da lista, ou para a caixa de
@@ -223,7 +232,8 @@ function History({
     if (previous === undefined) return scrollToEnd();
     if (!newestSavedId || newestSavedId <= previous) return;
     if (newestSavedClientId && sentHere.current.has(newestSavedClientId)) return;
-    if (isAtEnd.current) scrollToEnd();
+    // Indo até a Mensagem citada, a Mensagem nova não puxa a lista para o fim.
+    if (isAtEnd.current && !isJumping.current) scrollToEnd();
     else setHasNewBelow(true);
   }, [newestSavedId, newestSavedClientId, scrollToEnd]);
 
@@ -238,6 +248,54 @@ function History({
     scrollToEnd();
     scrollRef.current?.focus();
   }
+
+  // Rola até a Mensagem, no centro, e a destaca por 2 s.
+  const showMessage = useCallback((messageId: string) => {
+    anchor.current = null;
+    listRef.current
+      ?.querySelector(`[data-message-id="${messageId}"]`)
+      ?.scrollIntoView({ block: "center" });
+    setHighlightedId(messageId);
+  }, []);
+  useEffect(() => {
+    if (!highlightedId) return;
+    const timer = setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlightedId]);
+
+  function goToMessage(messageId: string) {
+    if (saved.some((message) => message.id === messageId)) return showMessage(messageId);
+    isJumping.current = true;
+    setJumpTarget(messageId);
+  }
+
+  // Sem a original na lista, carrega as páginas anteriores, maiores, até achá-la ou até saber que
+  // ela não está mais lá.
+  const step = jumpTarget ? jumpStep(saved, jumpTarget, hasOlder) : null;
+  const advanceJump = useEffectEvent(() => {
+    if (!jumpTarget || !step) return;
+    if (step === "continue") {
+      if (olderFailed) {
+        isJumping.current = false;
+        setJumpTarget(null);
+        toast.error("Não foi possível ir até a mensagem.");
+      } else if (!isLoadingOlder) {
+        loadOlder(JUMP_PAGE_SIZE);
+      }
+      return;
+    }
+    isJumping.current = false;
+    setJumpTarget(null);
+    if (step === "found") showMessage(jumpTarget);
+    else toast("A mensagem não está mais disponível");
+  });
+  // A cada página que chega (ou falha), o próximo passo da ida, no quadro seguinte, depois de a lista
+  // nova estar na tela.
+  useEffect(() => {
+    if (!jumpTarget) return;
+    const frame = requestAnimationFrame(() => advanceJump());
+    return () => cancelAnimationFrame(frame);
+  }, [jumpTarget, step, isLoadingOlder, olderFailed]);
 
   // Quando a página anterior entra no começo, a Mensagem que a Pessoa lia fica no mesmo lugar: a
   // rolagem é devolvida pela posição da âncora, sem depender do overflow-anchor do navegador.
@@ -340,6 +398,8 @@ function History({
                 dayLabel={dayLabel}
                 status={message.status ?? "sent"}
                 currentPersonId={currentPerson.id}
+                onGoToQuote={goToMessage}
+                highlighted={highlightedId === message.id}
                 onReply={
                   message.status
                     ? undefined
@@ -366,6 +426,14 @@ function History({
             ))}
           </ol>
         </div>
+        {jumpTarget ? (
+          <div className="absolute left-1/2 top-2 -translate-x-1/2" role="status">
+            <span className="flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-small text-fg shadow-1">
+              <Spinner size="sm" />
+              Indo até a mensagem…
+            </span>
+          </div>
+        ) : null}
         {hasNewBelow ? (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
             <NewMessagesPill onClick={goToNewMessages} />

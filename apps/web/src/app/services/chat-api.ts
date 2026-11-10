@@ -312,9 +312,12 @@ export async function createChannel(
 export async function listMessages(
   token: string,
   conversationId: string,
-  { before }: { before?: string } = {},
+  { before, limit }: { before?: string; limit?: number } = {},
 ): Promise<MessagePageResult> {
-  const query = before ? `?before=${encodeURIComponent(before)}` : "";
+  const params = new URLSearchParams();
+  if (before) params.set("before", before);
+  if (limit !== undefined) params.set("limit", String(limit));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
   const result = await getJson<{ messages: ApiMessage[]; has_more: boolean }>(
     token,
     conversationPath(conversationId, `/messages${query}`),

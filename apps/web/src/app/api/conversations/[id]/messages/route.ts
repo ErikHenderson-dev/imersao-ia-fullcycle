@@ -11,8 +11,11 @@ export async function GET(
   const { id } = await params;
   const token = await readSessionToken();
   const before = request.nextUrl.searchParams.get("before") ?? undefined;
+  // A ida até a Mensagem citada pede páginas maiores (spec da F06); a API valida o limite.
+  const rawLimit = request.nextUrl.searchParams.get("limit");
+  const limit = rawLimit && /^\d+$/.test(rawLimit) ? Number(rawLimit) : undefined;
   const result = token
-    ? await listMessages(token, id, { before })
+    ? await listMessages(token, id, { before, limit })
     : ({ kind: "unauthenticated" } as const);
   if (result.kind === "ok") return Response.json(result.page);
   return Response.json({ kind: result.kind }, { status: ERROR_STATUS[result.kind] });

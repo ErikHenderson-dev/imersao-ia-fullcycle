@@ -138,3 +138,17 @@ Uma Mensagem de Bruno Lima e uma de Ana Souza (logada) num Canal em comum.
 7. **a caixa em Citando não tem violações de acessibilidade.**
 
 Os testes da barra e do menu (F06-T02 a T04) passam a contar com "Responder" como a primeira ação.
+
+### 6. Ir até a Mensagem citada (F06-T07)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa/ir-ate-a-citada.spec.ts`
+
+As Mensagens são criadas no banco, com a Citação gravada em `quoted_message_id`.
+
+1. **vai até a original carregada e a destaca:** Enter na Citação rola até a original, que fica com o
+   destaque por 2 s.
+2. **carrega as anteriores até a original, sem a Mensagem nova puxar para o fim:** com a leitura das
+   anteriores lenta, aparece "Indo até a mensagem…"; uma Mensagem da outra Pessoa chega no meio, e a
+   original fica à vista e destacada no fim.
+3. **avisa quando a original não está mais disponível:** a original é apagada direto no banco, sem
+   o evento; a ida termina com "A mensagem não está mais disponível".
