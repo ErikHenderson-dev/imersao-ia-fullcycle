@@ -6,7 +6,10 @@ import {
   type MessageResponse,
   toMessageResponse,
 } from '../messages/message.response';
-import type { ActivityCounts, NotificationKind } from './notification-finder';
+import type {
+  ActivityCounts,
+  NotificationKind,
+} from '../notifications/notification-finder';
 import type { ActivityItem } from './activity.service';
 
 // Um item de Atividade no REST (spec da F08, "Rotas"): a Mensagem como no histórico e a Conversa

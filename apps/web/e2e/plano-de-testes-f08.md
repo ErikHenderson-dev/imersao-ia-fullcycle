@@ -33,3 +33,14 @@ lido e um não lido, sem violações do axe.
 4. **Abrir na Mensagem lê a Conversa:** a Menção não lida some da barra lateral.
 5. **A Mensagem pedida vence a primeira Não lida, com o divisor no lugar.**
 6. **O item de Atividade leva à Mensagem:** Enter no item abre a Conversa na Mensagem, destacada.
+
+## F08-T03 · Atividade em tempo real (`atividade/tempo-real.spec.ts`)
+
+A outra Pessoa envia e apaga pela API do chat (`support/chat-api.ts`), com o cookie da página dela.
+
+1. **A Notificação entra na Atividade e no rail das duas abas:** uma Menção e uma Mensagem direta
+   entram no topo da Atividade, e o rail das duas abas passa a "Atividade, 2 não lidas".
+2. **A Mensagem apagada sai da Atividade:** e o rail volta a "Atividade".
+3. **Ler a Conversa deixa o item lido e baixa o número nas duas abas.**
+4. **A queda de conexão termina com os números certos:** a Menção que chegou sem rede conta no rail
+   ao reconectar.

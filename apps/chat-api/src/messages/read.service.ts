@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { ConversationsService } from '../conversations/conversations.service';
 import { Unread, UnreadCounter } from '../conversations/unread-counter';
 import { Message } from './message.entity';
+import { ActivityPublisher } from '../notifications/activity.publisher';
 import { MessageNotFoundError } from './message-not-found.error';
 import { UnreadPublisher } from './unread.publisher';
 
@@ -16,6 +17,7 @@ export class ReadService {
     private readonly conversations: ConversationsService,
     private readonly unreadCounter: UnreadCounter,
     private readonly unreadPublisher: UnreadPublisher,
+    private readonly activityPublisher: ActivityPublisher,
   ) {}
 
   // Avança a Última leitura só para frente e devolve a posição e os números atuais: uma posição
@@ -39,7 +41,11 @@ export class ReadService {
       messageId,
     );
     // As outras abas de quem leu recebem os números, sem segurar a resposta (spec da F07).
-    if (advanced) this.unreadPublisher.publish(conversation.id, [personId]);
+    if (advanced) {
+      this.unreadPublisher.publish(conversation.id, [personId]);
+      // A leitura também lê as Notificações da Conversa (spec da F08, "Tempo real").
+      this.activityPublisher.publish([personId]);
+    }
     return this.unreadCounter.countOne({
       conversationId: conversation.id,
       personId,

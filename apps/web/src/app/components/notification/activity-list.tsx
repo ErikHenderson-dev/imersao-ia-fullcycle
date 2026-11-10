@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Button } from "@/app/components/ui/button";
 import { useVisibleUnread } from "@/app/hooks/use-visible-unread";
 import { type ActivityPageKey, fetchActivityPage } from "@/app/services/activity-pages";
-import type { ActivityFilter, ActivityPage, Conversation } from "@/app/services/chat-api";
+import { useRealtime } from "@/app/components/realtime/realtime-provider";
+import type {
+  ActivityFilter,
+  ActivityItem,
+  ActivityPage,
+  Conversation,
+  Message,
+} from "@/app/services/chat-api";
+import { applyCreated, applyDeleted, applyUpdated, notificationKindFor } from "@/app/utils/activity-cache";
 import { isNotificationRead, relativeTime } from "@/app/utils/activity";
 import { ActivityEmpty } from "./activity-empty";
 import { ActivitySkeleton } from "./activity-skeleton";
@@ -51,6 +59,35 @@ export function ActivityList({
     },
   );
   const { conversations } = useVisibleUnread(personId, initialConversations);
+
+  // O tempo real muda as páginas carregadas desta aba, sem buscar nada (spec da F08, "Tela
+  // Atividade"). A Conversa do item vem da lista de Conversas no cache.
+  const { subscribe } = useRealtime();
+  const itemFor = useEffectEvent((message: Message): ActivityItem | null => {
+    const conversation = conversations.find((entry) => entry.id === message.conversationId);
+    const kind = notificationKindFor(message, conversation, personId);
+    return kind && conversation ? { kind, message, conversation } : null;
+  });
+  useEffect(
+    () =>
+      subscribe({
+        onMessage: (message) => {
+          const item = itemFor(message);
+          if (item) void mutate((current) => applyCreated(current ?? [], item, filter), { revalidate: false });
+        },
+        onMessageUpdated: (message) =>
+          void mutate((current) => applyUpdated(current ?? [], message, itemFor(message), filter), {
+            revalidate: false,
+          }),
+        onMessageDeleted: ({ messageId }) =>
+          void mutate((current) => applyDeleted(current ?? [], messageId), { revalidate: false }),
+        // Depois de uma queda longa, as páginas são buscadas de novo.
+        onSync: (event) => {
+          if (event.reset) void mutate();
+        },
+      }),
+    [subscribe, mutate, filter],
+  );
   const lastRead = new Map(conversations.map((conversation) => [conversation.id, conversation.lastReadMessageId]));
   // O fallbackData já devolve a primeira página enquanto o cache está vazio.
   const pages = data ?? [];

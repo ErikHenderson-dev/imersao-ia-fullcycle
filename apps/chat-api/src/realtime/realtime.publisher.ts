@@ -67,6 +67,14 @@ export class RealtimePublisher {
     return this.publish('conversation.unread', personIds, payloadFor);
   }
 
+  // Os números de Atividade de cada Pessoa (spec da F08, "Tempo real").
+  activityUnread(
+    personIds: string[],
+    payloadFor: (personId: string) => StoredEventPayloads['activity.unread'],
+  ): Promise<void> {
+    return this.publish('activity.unread', personIds, payloadFor);
+  }
+
   private async publish<N extends StoredEventName>(
     name: N,
     memberIds: string[],

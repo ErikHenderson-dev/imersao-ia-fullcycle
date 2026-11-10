@@ -8,6 +8,7 @@ import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
+import { ActivityPublisher } from '../notifications/activity.publisher';
 import { PeopleService } from '../people/people.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
@@ -88,6 +89,7 @@ export class MessagesService {
     private readonly publisher: RealtimePublisher,
     private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
+    private readonly activityPublisher: ActivityPublisher,
   ) {}
 
   private get messages(): Repository<Message> {
@@ -185,6 +187,13 @@ export class MessagesService {
         // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
         // própria, por Conversa: a fila da Mensagem não espera por eles.
         this.unreadPublisher.publish(conversationId, memberIds);
+        // Os números de Atividade (spec da F08, "Tempo real"): numa Conversa direta, as duas
+        // Pessoas; num Canal, o autor, que leu até aqui, e as Pessoas mencionadas.
+        this.activityPublisher.publish(async () =>
+          (await this.conversations.isDirect(conversationId))
+            ? memberIds
+            : [author.id, ...message.mentions.map((mention) => mention.id)],
+        );
       })
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a Mensagem gravada', error),
@@ -258,6 +267,8 @@ export class MessagesService {
                 // Só quem entrou ou saiu das Menções e ainda não tinha lido a Mensagem tem os
                 // números mudados (spec da F07).
                 if (mentionChangedIds.length > 0) {
+                  // As Notificações de quem entrou ou saiu das Menções (spec da F08).
+                  this.activityPublisher.publish(mentionChangedIds);
                   this.unreadPublisher.publish(conversationId, async () => {
                     const changed = new Set(mentionChangedIds);
                     return (
@@ -295,13 +306,25 @@ export class MessagesService {
               message_id: messageId,
             });
             // Só quem ainda não tinha lido a Mensagem tem os números mudados (spec da F07).
-            this.unreadPublisher.publish(conversationId, () =>
+            const readBefore = () =>
               this.conversations.listMemberIdsReadBefore(
                 conversationId,
                 messageId,
                 personId,
-              ),
-            );
+              );
+            this.unreadPublisher.publish(conversationId, readBefore);
+            // Dessas Pessoas, as que tinham a Mensagem como Notificação (spec da F08): a outra
+            // Pessoa da Conversa direta, ou as mencionadas num Canal. As Menções ficam na exclusão.
+            this.activityPublisher.publish(async () => {
+              const [unreadIds, isDirect, mentions] = await Promise.all([
+                readBefore(),
+                this.conversations.isDirect(conversationId),
+                this.mentionsOf(messageId),
+              ]);
+              if (isDirect) return unreadIds;
+              const mentioned = new Set(mentions.map((mention) => mention.id));
+              return unreadIds.filter((id) => mentioned.has(id));
+            });
           },
           'Falha ao publicar a Mensagem apagada',
         ),
