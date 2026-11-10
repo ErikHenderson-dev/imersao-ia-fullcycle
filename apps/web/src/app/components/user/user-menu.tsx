@@ -15,6 +15,7 @@ import {
 import { PersonAvatar } from "@/app/components/people/person-display";
 import { PresenceLine, presenceLabel } from "@/app/components/ui/presence-dot";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
+import { clearTheme } from "@/app/utils/theme";
 import { UserStatus } from "@/app/components/people/user-status";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
@@ -122,6 +123,8 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
             // clique enquanto a API responde.
             event.preventDefault();
             markLeaving();
+            // "Entrar" fica no claro já na primeira pintura: a navegação mantém o layout raiz.
+            clearTheme();
             startTransition(() => logout());
           }}
         >

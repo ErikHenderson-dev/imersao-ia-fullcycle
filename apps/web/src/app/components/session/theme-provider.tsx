@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { saveTheme } from "@/app/actions/save-theme";
 import { writeClientCookie } from "@/app/utils/client-cookies";
@@ -21,10 +30,22 @@ export function ThemeProvider({
   children: React.ReactNode;
 }) {
   const [theme, setTheme] = useState<Theme>(personTheme);
+  const [seenPersonTheme, setSeenPersonTheme] = useState(personTheme);
   const channel = useRef<BroadcastChannel | null>(null);
+  // Só a troca mais recente pode voltar atrás: com dois cliques e duas falhas, a primeira volta
+  // não desfaz a segunda.
+  const latestToggle = useRef(0);
 
-  // Na carga, a página e o cookie seguem a Pessoa, que pode ter trocado o tema em outro navegador.
-  useEffect(() => {
+  // O tema da Pessoa chegou de novo, diferente (a renderização das telas logadas depois de trocar
+  // em outro navegador): o estado o segue.
+  if (seenPersonTheme !== personTheme) {
+    setSeenPersonTheme(personTheme);
+    setTheme(personTheme);
+  }
+
+  // A página e o cookie seguem a Pessoa, antes da pintura: entrar navega sem recarregar o layout
+  // raiz, e o script do <head> não roda de novo.
+  useLayoutEffect(() => {
     writeClientCookie(THEME_COOKIE, personTheme);
     applyTheme(personTheme);
   }, [personTheme]);
@@ -55,13 +76,14 @@ export function ThemeProvider({
   const toggle = useCallback(() => {
     const previous = theme;
     const next: Theme = previous === "light" ? "dark" : "light";
+    const toggleId = ++latestToggle.current;
     show(next);
     void saveTheme(next)
       .catch(() => ({ kind: "failure" }) as const)
       .then((result) => {
         if (result.kind === "ok") return;
         if (result.kind === "unauthenticated") return redirectToExpiredSession();
-        show(previous);
+        if (toggleId === latestToggle.current) show(previous);
         toast.error("Não foi possível trocar o tema");
       });
   }, [theme, show]);

@@ -22,6 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // O script do <head> põe o tema antes da hidratação: o atributo não vem do servidor.
     <html lang="pt-BR" className={`${lato.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
+        {/* Um <script> nativo, e não o next/script: com beforeInteractive, o App Router o entrega pelo
+            próprio runtime, depois do JavaScript da aplicação, e o tema chegaria depois da
+            primeira pintura. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col">
