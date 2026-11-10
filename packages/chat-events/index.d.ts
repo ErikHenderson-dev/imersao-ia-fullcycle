@@ -112,6 +112,8 @@ export interface ConversationUnreadEvent {
 export interface ActivityUnreadEvent {
   /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
   event_id?: string;
+  /** A marca de "Marcar tudo como lido", ou nula (spec da F08, "Notificações e contagem"). */
+  activity_read_message_id: string | null;
   /** De 0 a 100, cada um: a contagem para no teto, e a web mostra 99+. */
   total_count: number;
   mention_count: number;

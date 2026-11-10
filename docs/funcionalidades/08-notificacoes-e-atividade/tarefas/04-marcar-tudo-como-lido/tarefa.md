@@ -1,6 +1,6 @@
 # 04: Marcar tudo como lido
 
-**Status:** a fazer
+**Status:** concluída
 
 **O que construir:** "Marcar tudo como lido", na tela Atividade, deixa todas as Notificações lidas,
 zera o número do rail e os contadores das abas em todas as abas e navegadores da Pessoa, e não muda
@@ -17,16 +17,16 @@ Referências:
 
 **Bloqueada por:** 03 (Atividade em tempo real)
 
-- [ ] **CA1** · A migração acrescenta a marca de Atividade à Pessoa, nula nas que já existem; o
+- [x] **CA1** · A migração acrescenta a marca de Atividade à Pessoa, nula nas que já existem; o
   teste da migração prova isso.
-- [ ] **CA2** · A contagem e o estado de lido passam a considerar o maior entre a Última leitura e
+- [x] **CA2** · A contagem e o estado de lido passam a considerar o maior entre a Última leitura e
   a marca.
-- [ ] **CA3** · `PUT /v1/activity/read` avança a marca só para frente e responde os números; uma
+- [x] **CA3** · `PUT /v1/activity/read` avança a marca só para frente e responde os números; uma
   posição igual ou anterior responde 200 sem gravar nem publicar; Mensagem inexistente ou de
   Conversa de que a Pessoa não é Membro, 404; sem Sessão, 401. A Última leitura das Conversas não
   muda.
-- [ ] **CA4** · A marca que avançou entrega `activity.unread` a todas as abas da Pessoa.
-- [ ] **CA5** · O botão segue os frames "habilitado", "desabilitado" (sem não lidas) e "Marcando
+- [x] **CA4** · A marca que avançou entrega `activity.unread` a todas as abas da Pessoa.
+- [x] **CA5** · O botão segue os frames "habilitado", "desabilitado" (sem não lidas) e "Marcando
   tudo", manda o id da Notificação mais nova carregada em Todas e, na falha, mostra o toast de erro.
-- [ ] **CA6** · O Playwright prova que marcar tudo zera o rail nas duas abas e mantém o negrito da
+- [x] **CA6** · O Playwright prova que marcar tudo zera o rail nas duas abas e mantém o negrito da
   barra lateral.

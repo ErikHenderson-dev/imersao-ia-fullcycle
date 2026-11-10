@@ -16,6 +16,7 @@ import {
 } from "@/app/utils/conversation-event";
 import { initials } from "@/app/utils/initials";
 import { messageFromEvent } from "@/app/utils/message-event";
+import { activityUnreadFromPayload, type ActivityUnreadPayload } from "@/app/utils/activity-unread";
 
 // Service HTTP da API do chat, usado só no servidor (Server Actions, Server Components e
 // Route Handlers). Devolve uniões de resultado em vez de lançar.
@@ -613,7 +614,13 @@ export type ActivityItem = { kind: NotificationKind; message: Message; conversat
 
 export type ActivityPage = { items: ActivityItem[]; hasMore: boolean };
 
-export type ActivityUnread = { totalCount: number; mentionCount: number; directCount: number };
+export type ActivityUnread = {
+  // A marca de "Marcar tudo como lido", ou nula.
+  activityReadMessageId: string | null;
+  totalCount: number;
+  mentionCount: number;
+  directCount: number;
+};
 
 export type ActivityPageResult =
   | { kind: "ok"; page: ActivityPage }
@@ -657,17 +664,29 @@ export async function listActivity(
 export const getActivityUnread = cache(fetchActivityUnread);
 
 async function fetchActivityUnread(token: string): Promise<ActivityUnreadResult> {
-  const result = await getJson<{ total_count: number; mention_count: number; direct_count: number }>(
-    token,
-    "/v1/activity/unread",
-  );
+  const result = await getJson<ActivityUnreadPayload>(token, "/v1/activity/unread");
   if (result.kind !== "ok") return result.kind === "unauthenticated" ? result : { kind: "failure" };
-  return {
-    kind: "ok",
-    unread: {
-      totalCount: result.body.total_count,
-      mentionCount: result.body.mention_count,
-      directCount: result.body.direct_count,
-    },
-  };
+  return { kind: "ok", unread: activityUnreadFromPayload(result.body) };
+}
+
+export type MarkActivityReadResult =
+  | { kind: "ok"; unread: ActivityUnread }
+  | { kind: "not_found" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Marca tudo como lido até a Mensagem (spec da F08, "Rotas"): só avança.
+export async function markActivityRead(token: string, messageId: string): Promise<MarkActivityReadResult> {
+  const response = await request("/v1/activity/read", {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  if (response?.status === 200) {
+    const body = await jsonBody<ActivityUnreadPayload>(response);
+    return body ? { kind: "ok", unread: activityUnreadFromPayload(body) } : { kind: "failure" };
+  }
+  if (response?.status === 400) return { kind: "invalid" };
+  return commonFailure(response);
 }

@@ -21,6 +21,7 @@ export interface ActivityItemResponse {
 }
 
 export interface ActivityUnreadResponse {
+  activity_read_message_id: string | null;
   total_count: number;
   mention_count: number;
   direct_count: number;
@@ -41,6 +42,7 @@ export function toActivityUnreadResponse(
   counts: ActivityCounts,
 ): ActivityUnreadResponse {
   return {
+    activity_read_message_id: counts.activityReadMessageId,
     total_count: counts.totalCount,
     mention_count: counts.mentionCount,
     direct_count: counts.directCount,

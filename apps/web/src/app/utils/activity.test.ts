@@ -51,6 +51,9 @@ describe("Atividade", () => {
     expect(isNotificationRead("0002", "0001")).toBe(false);
     expect(isNotificationRead("0002", "0002")).toBe(true);
     expect(isNotificationRead("0001", "0002")).toBe(true);
+    // A marca de "Marcar tudo como lido" também lê.
+    expect(isNotificationRead("0002", "0001", "0003")).toBe(true);
+    expect(isNotificationRead("0004", "0001", "0003")).toBe(false);
   });
 
   it("o nome acessível do item", () => {

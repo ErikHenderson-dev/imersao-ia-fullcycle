@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Button } from "@/app/components/ui/button";
+import { useActivityUnread } from "@/app/hooks/use-activity-unread";
 import { useVisibleUnread } from "@/app/hooks/use-visible-unread";
 import { type ActivityPageKey, fetchActivityPage } from "@/app/services/activity-pages";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
@@ -110,10 +111,13 @@ export function ActivityList({
   const pages = data ?? [];
   // Sem a Conversa na lista (a lista falhou), o item não acende como não lido; a Conversa direta que
   // acabou de chegar pelo evento de entrada ainda não foi lida.
+  const { activityReadMessageId } = useActivityUnread(personId);
   const isItemRead = (item: ActivityItem) => {
     const id = item.conversation.id;
-    if (lastRead.has(id)) return isNotificationRead(item.message.id, lastRead.get(id) ?? null);
-    return !joinedIds.has(id);
+    if (lastRead.has(id)) {
+      return isNotificationRead(item.message.id, lastRead.get(id) ?? null, activityReadMessageId);
+    }
+    return !joinedIds.has(id) || isNotificationRead(item.message.id, null, activityReadMessageId);
   };
   const items = pages.flatMap((page) => page.items.toReversed());
   const hasMore = pages.at(-1)?.hasMore ?? false;

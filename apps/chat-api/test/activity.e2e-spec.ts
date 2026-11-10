@@ -15,6 +15,7 @@ type ActivityItem = {
 type ActivityPage = { items: ActivityItem[]; has_more: boolean };
 
 type ActivityUnread = {
+  activity_read_message_id?: string | null;
   total_count: number;
   mention_count: number;
   direct_count: number;
@@ -55,7 +56,13 @@ describe('Atividade', () => {
       .get('/v1/activity/unread')
       .set('Cookie', cookie)
       .expect(200);
-    return response.body as ActivityUnread;
+    // Os números, sem a marca, que os testes da marca conferem à parte.
+    const body = response.body as ActivityUnread;
+    return {
+      total_count: body.total_count,
+      mention_count: body.mention_count,
+      direct_count: body.direct_count,
+    };
   }
 
   function send(cookie: string, conversationId: string, body: string) {
@@ -350,5 +357,105 @@ describe('Atividade', () => {
       mention_count: 100,
       direct_count: 100,
     });
+  });
+
+  function markRead(cookie: string, body: unknown) {
+    return request(server)
+      .put('/v1/activity/read')
+      .set('Cookie', cookie)
+      .send(body as object);
+  }
+
+  it('a marca tira dos números as Notificações até ela', async () => {
+    const { author, reader, channelId, directId } = await scene();
+    const first = await send(
+      author.cookie,
+      channelId,
+      `@${reader.person.username}`,
+    );
+    await send(author.cookie, directId, 'Depois da marca');
+    await app
+      .get(DataSource)
+      .query('UPDATE people SET activity_read_message_id = $2 WHERE id = $1', [
+        reader.person.id,
+        first,
+      ]);
+
+    const result = await unread(reader.cookie);
+
+    expect(result).toEqual({
+      total_count: 1,
+      mention_count: 0,
+      direct_count: 1,
+    });
+  });
+
+  it('marcar tudo zera os números sem mexer nas Conversas', async () => {
+    const { author, reader, channelId, directId } = await scene();
+    await send(author.cookie, channelId, `@${reader.person.username}`);
+    const newest = await send(author.cookie, directId, 'Tudo bem?');
+
+    const response = await markRead(reader.cookie, { message_id: newest });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      activity_read_message_id: newest,
+      total_count: 0,
+      mention_count: 0,
+      direct_count: 0,
+    });
+    const listed = await conversationRoutes.listed<{
+      id: string;
+      last_read_message_id: string | null;
+      unread_count: number;
+    }>(app, reader.cookie, directId);
+    expect(listed).toMatchObject({
+      last_read_message_id: null,
+      unread_count: 1,
+    });
+  });
+
+  it('uma marca igual ou anterior não muda nada', async () => {
+    const { author, reader, directId } = await scene();
+    const older = await send(author.cookie, directId, 'Uma');
+    const newer = await send(author.cookie, directId, 'Duas');
+    await markRead(reader.cookie, { message_id: newer }).expect(200);
+
+    const response = await markRead(reader.cookie, { message_id: older });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ activity_read_message_id: newer });
+  });
+
+  it('a Mensagem de fora responde 404', async () => {
+    const { reader } = await scene();
+    const outsider = await authRoutes.loggedIn(app, { name: 'Dora Reis' });
+    const foreignChannel = await conversationRoutes.privateChannelOf(
+      app,
+      outsider.cookie,
+    );
+    const foreign = await send(outsider.cookie, foreignChannel, 'Só minha');
+
+    const response = await markRead(reader.cookie, { message_id: foreign });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({ code: 'message_not_found' });
+  });
+
+  it('o corpo inválido responde 400', async () => {
+    const { reader } = await scene();
+
+    const response = await markRead(reader.cookie, { message_id: 'abc' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'validation_failed' });
+  });
+
+  it('marcar tudo responde 401 sem Sessão', async () => {
+    const response = await request(server)
+      .put('/v1/activity/read')
+      .send({ message_id: '01a1c666-cfbd-7307-939b-94c399a576bf' });
+
+    expect(response.status).toBe(401);
   });
 });

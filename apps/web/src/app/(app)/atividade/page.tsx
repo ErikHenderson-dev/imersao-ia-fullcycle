@@ -3,6 +3,7 @@ import { ActivityError } from "@/app/components/notification/activity-error";
 import { ActivityHeader } from "@/app/components/notification/activity-header";
 import { ActivityList } from "@/app/components/notification/activity-list";
 import { ActivityTabs } from "@/app/components/notification/activity-tabs";
+import { MarkAllReadButton } from "@/app/components/notification/mark-all-read-button";
 import {
   getActivityUnread,
   getCurrentPerson,
@@ -38,7 +39,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/ativida
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ActivityHeader />
+      <ActivityHeader action={personId && <MarkAllReadButton personId={personId} />} />
       {personId && (
         <ActivityTabs
           personId={personId}

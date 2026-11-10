@@ -17,6 +17,7 @@ import type {
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { ActivityUnread, Conversation, Message, Unread } from "@/app/services/chat-api";
+import { activityUnreadFromPayload } from "@/app/utils/activity-unread";
 import { conversationFromPayload, unreadFromPayload } from "@/app/utils/conversation-event";
 import { laterCursor, orderForSync } from "@/app/utils/event-cursor";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -216,11 +217,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       listeners.current.forEach((listener) => listener.onUnread?.(changed));
     };
     const applyActivityUnread = (event: ActivityUnreadEvent) => {
-      const unread = {
-        totalCount: event.total_count,
-        mentionCount: event.mention_count,
-        directCount: event.direct_count,
-      };
+      const unread = activityUnreadFromPayload(event);
       listeners.current.forEach((listener) => listener.onActivityUnread?.(unread));
     };
     // Uma entrada por evento guardado: um evento novo no contrato não compila até ter a sua.

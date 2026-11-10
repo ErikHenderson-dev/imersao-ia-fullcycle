@@ -7,6 +7,8 @@ import {
   MessagesService,
   type MessageView,
 } from '../messages/messages.service';
+import { ActivityPublisher } from '../notifications/activity.publisher';
+import { ActivityMessageNotFoundError } from './activity-message-not-found.error';
 import {
   type ActivityCounts,
   type ActivityFilter,
@@ -34,6 +36,7 @@ export class ActivityService {
     private readonly notifications: NotificationFinder,
     private readonly messages: MessagesService,
     private readonly conversations: ConversationsService,
+    private readonly publisher: ActivityPublisher,
   ) {}
 
   async listPage(
@@ -74,6 +77,19 @@ export class ActivityService {
   }
 
   countUnread(personId: string): Promise<ActivityCounts> {
+    return this.notifications.countOne(personId);
+  }
+
+  // Marca tudo como lido até a Mensagem (spec da F08, "Avançar a marca de Atividade"): só avança, e
+  // não mexe na Última leitura de nenhuma Conversa. Uma posição igual ou anterior responde os números
+  // atuais, sem publicar; a que avançou publica os números a todas as abas da Pessoa.
+  async markRead(personId: string, messageId: string): Promise<ActivityCounts> {
+    const { isKnown, advanced } = await this.notifications.advanceMark(
+      personId,
+      messageId,
+    );
+    if (!isKnown) throw new ActivityMessageNotFoundError();
+    if (advanced) this.publisher.publish([personId]);
     return this.notifications.countOne(personId);
   }
 }

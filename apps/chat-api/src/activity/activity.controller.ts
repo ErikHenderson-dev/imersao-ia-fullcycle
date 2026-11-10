@@ -1,4 +1,12 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Person } from '../people/person.entity';
 import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
@@ -10,6 +18,7 @@ import {
 } from './activity.response';
 import { ActivityService } from './activity.service';
 import { ListActivityQuery } from './list-activity.query';
+import { ReadActivityDto } from './read-activity.dto';
 
 // A Atividade da Pessoa da Sessão (spec da F08, "Rotas").
 @Controller('activity')
@@ -37,5 +46,16 @@ export class ActivityController {
     @CurrentPerson() person: Person,
   ): Promise<ActivityUnreadResponse> {
     return toActivityUnreadResponse(await this.activity.countUnread(person.id));
+  }
+
+  @Put('read')
+  @HttpCode(200)
+  async read(
+    @CurrentPerson() person: Person,
+    @Body() body: ReadActivityDto,
+  ): Promise<ActivityUnreadResponse> {
+    return toActivityUnreadResponse(
+      await this.activity.markRead(person.id, body.message_id),
+    );
   }
 }

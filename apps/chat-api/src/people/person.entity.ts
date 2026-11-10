@@ -1,4 +1,13 @@
-import { Check, Column, Entity, Index } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  type Relation,
+} from 'typeorm';
+import { Message } from '../messages/message.entity';
 import { BaseEntity } from '../database/base.entity';
 import { PHONE_PATTERN, TITLE_MAX_LENGTH } from './profile-values';
 import { USERNAME_PATTERN } from './username';
@@ -37,4 +46,15 @@ export class Person extends BaseEntity {
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })
   timeZone!: string | null;
+
+  // A marca de Atividade: até que Mensagem as Notificações estão lidas por "Marcar tudo como lido"
+  // (spec da F08, "Notificações e contagem"). Só avança. A exclusão de Mensagem é lógica, então a
+  // referência não tem ação de cascata.
+  @Column({ type: 'uuid', nullable: true })
+  activityReadMessageId!: string | null;
+
+  @ManyToOne(() => Message)
+  @JoinColumn({ name: 'activity_read_message_id' })
+  // Relation: Message também importa Person, e o tipo não pode depender da ordem de carga.
+  activityReadMessage?: Relation<Message>;
 }

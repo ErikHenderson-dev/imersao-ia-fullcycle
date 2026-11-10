@@ -96,7 +96,13 @@ export class PeopleService {
   private async insert(
     values: Omit<
       Person,
-      'id' | 'createdAt' | 'updatedAt' | 'timeZone' | 'generateId'
+      | 'id'
+      | 'createdAt'
+      | 'updatedAt'
+      | 'timeZone'
+      | 'generateId'
+      | 'activityReadMessageId'
+      | 'activityReadMessage'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });

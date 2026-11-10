@@ -88,6 +88,7 @@ describe('Atividade em tempo real', () => {
     const [event] = await waitForCount(toReader, 1);
     expect(event).toEqual<ActivityUnreadEvent>({
       event_id: expect.stringMatching(/^[^:]+:\d+-\d+$/) as string,
+      activity_read_message_id: null,
       total_count: 1,
       mention_count: 1,
       direct_count: 0,
@@ -229,5 +230,43 @@ describe('Atividade em tempo real', () => {
     expect(toReader.at(-1)).toMatchObject(
       response.body as Record<string, number>,
     );
+  });
+
+  function markRead(cookie: string, messageId: string) {
+    return request(app.getHttpServer() as App)
+      .put('/v1/activity/read')
+      .set('Cookie', cookie)
+      .send({ message_id: messageId })
+      .expect(200);
+  }
+
+  it('a marca que avança entrega a todas as abas', async () => {
+    const { author, reader, directId } = await scene();
+    const messageId = await send(author.cookie, directId, 'Oi');
+    await settle();
+    const toReader = activityOf(await connected(reader.token));
+    const toReaderOtherTab = activityOf(await connected(reader.token));
+
+    await markRead(reader.cookie, messageId);
+
+    const [event] = await waitForCount(toReader, 1);
+    await waitForCount(toReaderOtherTab, 1);
+    expect(event).toMatchObject({
+      activity_read_message_id: messageId,
+      total_count: 0,
+    });
+  });
+
+  it('a marca que não avança não entrega nada', async () => {
+    const { author, reader, directId } = await scene();
+    const messageId = await send(author.cookie, directId, 'Oi');
+    await markRead(reader.cookie, messageId);
+    await settle();
+    const toReader = activityOf(await connected(reader.token));
+
+    await markRead(reader.cookie, messageId);
+
+    await settle();
+    expect(toReader).toHaveLength(0);
   });
 });
