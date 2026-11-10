@@ -210,9 +210,9 @@ novas tentativas e idempotência").
   condicional: grava só se a gravada for nula ou anterior à nova; uma posição igual ou anterior,
   vinda de uma aba atrasada, não muda nada nem publica evento. Enviar uma Mensagem avança a do
   autor na mesma transação, e a posição inicial de quem vira Membro é a última Mensagem que já
-  existia, menos a da outra Pessoa da Conversa direta, que começa nula; isso e a leitura pedida
-  pelo cliente existem. Os números para as abas, calculados na hora de publicar numa fila por
-  Conversa na API, são `planejada` (spec da F07,
+  existia, menos a da outra Pessoa da Conversa direta, que começa nula. Os números saem para as
+  abas calculados na hora de publicar, numa fila por Conversa na API, separada da fila por
+  Mensagem, que não espera por ela; tudo isso existe (spec da F07,
   seções "Última leitura e contagem" e "Tempo real").
 
 ### Transações
@@ -346,7 +346,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/people` | existe | Busca de Pessoas pelo nome ou pelo @usuário, fora dos Membros de uma Conversa ou, sem ela, todas: spec da F04, seções "Busca de Pessoas" e "Rotas"; a mudança: spec da F05, seções "Busca e Perfil" e "Rotas"; só os Membros de uma Conversa (`member_of`): spec da F06, seção "Busca de Pessoas para a lista de menções" |
 | API do chat: `GET /v1/people/:id` | existe | Perfil de uma Pessoa: spec da F05, seções "Busca e Perfil" e "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
-| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created`, `message.updated`, `message.deleted` e `conversation.member_added` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`, `planejada`: spec da F07, seção "Tempo real" |
+| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added` e `conversation.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real" |
 | BFF: `GET /api/conversations/:id/messages` | existe | Páginas anteriores do histórico, lidas pelo cliente: "Cliente", "Leituras e tempo real" |
 | BFF: `GET /api/conversations`, `GET /api/conversations/:id/members` e `GET /api/people` | existe | Leituras do cliente: a lista de Conversas no `reset`, os Membros e a busca de Pessoas (spec da F04, seção "BFF") |
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
@@ -650,10 +650,10 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
   interno (`http://s3:8333`). São dois endereços configurados, com acesso por caminho
   (path-style).
 - **Banco dos testes da API do chat:** `chat_test`, do mesmo dono que o `chat`, para os testes
-  não misturarem dados com o desenvolvimento. Ele é criado pelo script de inicialização do
-  Postgres e, num volume que já existe, pelo `globalSetup` dos testes, que conecta como o
-  superusuário local para criar o banco, porque o papel `chat` não tem `CREATEDB`, e também roda
-  as migrações.
+  não misturarem dados com o desenvolvimento. O `globalSetup` dos testes o apaga e o cria de novo
+  a cada execução, conectado como o superusuário local, porque o papel `chat` não tem `CREATEDB`,
+  e roda as migrações: os testes não apagam o que criam, e um banco que acumula as Pessoas de todas
+  as execuções deixa lento cada Canal público, que inclui todas elas.
 - **Contêiner `e2e`:** fica de pé porque o fluxo da skill `playwright-cli` pausa o teste em
   segundo plano (`--debug=cli`) e conecta o `playwright-cli` a ele, e os dois precisam estar no
   mesmo contêiner. O `playwright-cli` é o do `@playwright/test` instalado no `web`, sem instalação

@@ -5,6 +5,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { Unread, UnreadCounter } from '../conversations/unread-counter';
 import { Message } from './message.entity';
 import { MessageNotFoundError } from './message-not-found.error';
+import { UnreadPublisher } from './unread.publisher';
 
 // Ler a Conversa (spec da F07, "Avançar a Última leitura"): a Mensagem é só uma posição, então
 // vale a apagada, desde que seja desta Conversa.
@@ -14,6 +15,7 @@ export class ReadService {
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private readonly conversations: ConversationsService,
     private readonly unreadCounter: UnreadCounter,
+    private readonly unreadPublisher: UnreadPublisher,
   ) {}
 
   // Avança a Última leitura só para frente e devolve a posição e os números atuais: uma posição
@@ -31,11 +33,13 @@ export class ReadService {
       .getRepository(Message)
       .existsBy({ id: messageId, conversationId: conversation.id });
     if (!isFromConversation) throw new MessageNotFoundError();
-    await this.conversations.advanceLastRead(
+    const advanced = await this.conversations.advanceLastRead(
       conversation.id,
       personId,
       messageId,
     );
+    // As outras abas de quem leu recebem os números, sem segurar a resposta (spec da F07).
+    if (advanced) this.unreadPublisher.publish(conversation.id, [personId]);
     return this.unreadCounter.countOne({
       conversationId: conversation.id,
       personId,

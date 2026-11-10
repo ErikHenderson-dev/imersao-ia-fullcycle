@@ -11,18 +11,16 @@ export default async function globalSetup(): Promise<void> {
   }
   const dbName = new URL(testUrl).pathname.slice(1);
 
+  // O banco começa vazio a cada execução: os testes criam os próprios dados e não os apagam, e um
+  // banco que acumula as Pessoas de todas as execuções deixa lento cada Canal público, que inclui
+  // todas elas.
   const admin = new Client({ connectionString: adminUrl });
   await admin.connect();
   try {
-    const { rowCount } = await admin.query(
-      'SELECT 1 FROM pg_database WHERE datname = $1',
-      [dbName],
-    );
-    if (!rowCount) {
-      await admin.query(`CREATE DATABASE "${dbName}" OWNER chat`);
-      await admin.query(`REVOKE CONNECT ON DATABASE "${dbName}" FROM PUBLIC`);
-      await admin.query(`GRANT CONNECT ON DATABASE "${dbName}" TO chat`);
-    }
+    await admin.query(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`);
+    await admin.query(`CREATE DATABASE "${dbName}" OWNER chat`);
+    await admin.query(`REVOKE CONNECT ON DATABASE "${dbName}" FROM PUBLIC`);
+    await admin.query(`GRANT CONNECT ON DATABASE "${dbName}" TO chat`);
   } finally {
     await admin.end();
   }

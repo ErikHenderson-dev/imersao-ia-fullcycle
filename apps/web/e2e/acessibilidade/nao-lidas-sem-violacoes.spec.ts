@@ -13,8 +13,8 @@ test.describe("Acessibilidade", () => {
     otherPerson,
   }) => {
     // A Home abre o primeiro da lista, que fica lido (F07-T02); o Canal com a Menção vem depois.
-    const primeiro = await insertChannel([person], { name: `e2e-0-${Date.now()}` });
-    const canal = await insertChannel([person, otherPerson], { name: `e2e-a-${Date.now()}` });
+    const primeiro = await insertChannel([person], { name: `e2e-0-${crypto.randomUUID()}` });
+    const canal = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
     const direta = await insertDirect(person, otherPerson);
     const at = new Date(Date.now() - 60_000);
     const [mencao] = await insertMessages(canal, [

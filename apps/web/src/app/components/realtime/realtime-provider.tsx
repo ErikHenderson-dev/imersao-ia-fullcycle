@@ -3,6 +3,7 @@
 import type {
   ClientToServerEvents,
   ConversationMemberAddedEvent,
+  ConversationUnreadEvent,
   HandshakeErrorCode,
   MessageCreatedEvent,
   MessageDeletedEvent,
@@ -14,8 +15,8 @@ import type {
 } from "chat-events";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { Conversation, Message } from "@/app/services/chat-api";
-import { conversationFromPayload } from "@/app/utils/conversation-event";
+import type { Conversation, Message, Unread } from "@/app/services/chat-api";
+import { conversationFromPayload, unreadFromPayload } from "@/app/utils/conversation-event";
 import { laterCursor, orderForSync } from "@/app/utils/event-cursor";
 import { messageFromEvent } from "@/app/utils/message-event";
 import { forgetMessage, rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
@@ -31,6 +32,9 @@ export type MessageDeleted = { conversationId: string; messageId: string };
 // Pessoas que entraram numa Conversa (spec da F04, "Tempo real").
 export type MemberAdded = { conversation: Conversation; personIds: readonly string[] };
 
+// A Última leitura e os números de uma Conversa, calculados pelo servidor (spec da F07).
+export type ConversationUnread = { conversationId: string; unread: Unread };
+
 export type RealtimeListener = {
   onMessage?: (message: Message) => void;
   // Uma Mensagem editada (spec da F06, "Eventos no cliente").
@@ -38,6 +42,7 @@ export type RealtimeListener = {
   // Uma Mensagem apagada, que sai da Conversa (spec da F06, "Eventos no cliente").
   onMessageDeleted?: (event: MessageDeleted) => void;
   onMemberAdded?: (event: MemberAdded) => void;
+  onUnread?: (event: ConversationUnread) => void;
   onSync?: (event: SyncEvent) => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
   // reset do último sync: é o caso de quem não guarda os eventos que perdeu, como a lista de
@@ -203,12 +208,17 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       };
       listeners.current.forEach((listener) => listener.onMemberAdded?.(added));
     };
+    const applyUnread = (event: ConversationUnreadEvent) => {
+      const changed = { conversationId: event.conversation_id, unread: unreadFromPayload(event) };
+      listeners.current.forEach((listener) => listener.onUnread?.(changed));
+    };
     // Uma entrada por evento guardado: um evento novo no contrato não compila até ter a sua.
     const handlers: StoredEventHandlers = {
       "message.created": applyMessage,
       "message.updated": applyMessageUpdated,
       "message.deleted": applyMessageDeleted,
       "conversation.member_added": applyMemberAdded,
+      "conversation.unread": applyUnread,
     };
     // Os eventos guardados por Pessoa, na ordem do cursor: aplica e avança o cursor.
     const apply = ({ name, event }: ReceivedEvent) => {

@@ -276,6 +276,22 @@ export class ConversationsService {
     );
   }
 
+  // Os Membros, menos `exceptId`, que ainda não tinham lido a Mensagem: a Última leitura nula ou
+  // anterior a ela (spec da F07, "Tempo real", a exclusão).
+  async listMemberIdsReadBefore(
+    conversationId: string,
+    messageId: string,
+    exceptId: string,
+  ): Promise<string[]> {
+    const rows = await this.txHost.tx.query<{ person_id: string }[]>(
+      `SELECT person_id FROM conversation_members
+        WHERE conversation_id = $1 AND person_id <> $3
+          AND (last_read_message_id IS NULL OR last_read_message_id < $2)`,
+      [conversationId, messageId, exceptId],
+    );
+    return rows.map((row) => row.person_id);
+  }
+
   async listMemberIds(conversationId: string): Promise<string[]> {
     const members = await this.txHost.tx
       .getRepository(ConversationMember)

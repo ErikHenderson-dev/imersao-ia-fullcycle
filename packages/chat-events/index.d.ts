@@ -93,6 +93,20 @@ export interface ConversationMemberAddedEvent {
 }
 
 /**
+ * A Última leitura e os números de Não lidas e de Menções de quem recebe numa Conversa, calculados
+ * pelo servidor (spec da F07, "Tempo real").
+ */
+export interface ConversationUnreadEvent {
+  /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
+  event_id?: string;
+  conversation_id: string;
+  last_read_message_id: string | null;
+  /** De 0 a 100: a contagem para no teto, e a web mostra 99+. */
+  unread_count: number;
+  mention_count: number;
+}
+
+/**
  * Os eventos guardados por Pessoa e reenviados na reconexão, com a carga de cada um sem o cursor,
  * que é de cada Pessoa (spec da F03, "Eventos por Pessoa e reconexão").
  */
@@ -101,6 +115,7 @@ export interface StoredEventPayloads {
   "message.updated": Omit<MessageUpdatedEvent, "event_id">;
   "message.deleted": Omit<MessageDeletedEvent, "event_id">;
   "conversation.member_added": Omit<ConversationMemberAddedEvent, "event_id">;
+  "conversation.unread": Omit<ConversationUnreadEvent, "event_id">;
 }
 
 export type StoredEventName = keyof StoredEventPayloads;

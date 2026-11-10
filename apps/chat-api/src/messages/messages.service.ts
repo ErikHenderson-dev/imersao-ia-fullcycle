@@ -17,6 +17,8 @@ import { extractMentionUsernames } from './mentions';
 import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
 import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
+import { UnreadPublisher } from './unread.publisher';
+import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
 import { toMessageResponse } from './message.response';
 
 export interface MessageAuthor {
@@ -84,6 +86,7 @@ export class MessagesService {
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
     private readonly publisher: RealtimePublisher,
+    private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
   ) {}
 
@@ -167,6 +170,9 @@ export class MessagesService {
           memberIds,
           toMessageResponse(message),
         );
+        // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
+        // própria, por Conversa: a fila da Mensagem não espera por eles.
+        this.unreadPublisher.publish(conversationId, memberIds);
       })
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a Mensagem gravada', error),
@@ -180,17 +186,10 @@ export class MessagesService {
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
   // ordem em que foram gravadas, mesmo publicando depois do commit. A API roda numa instância só.
-  private readonly messageQueues = new Map<string, Promise<void>>();
+  private readonly messageQueues = new KeyedSerialQueue();
 
   private queueForMessage(messageId: string, publish: () => Promise<void>) {
-    const previous = this.messageQueues.get(messageId) ?? Promise.resolve();
-    const next = previous.then(publish);
-    this.messageQueues.set(messageId, next);
-    void next.finally(() => {
-      if (this.messageQueues.get(messageId) === next) {
-        this.messageQueues.delete(messageId);
-      }
-    });
+    void this.messageQueues.run(messageId, publish);
   }
 
   // Reserva o lugar da publicação na fila da Mensagem ainda com a trava de linha, antes do commit:
@@ -235,15 +234,30 @@ export class MessagesService {
   ): Promise<MessageView> {
     const { message } = await this.withPublication(
       (reserve) => this.edit(author, conversationId, messageId, body, reserve),
-      ({ message: edited, changed }) =>
+      ({ message: edited, changed, mentionChangedIds }) =>
         changed
           ? this.toMembers(
               conversationId,
-              (memberIds) =>
-                this.publisher.messageUpdated(
+              async (memberIds) => {
+                await this.publisher.messageUpdated(
                   memberIds,
                   toMessageResponse(edited),
-                ),
+                );
+                // Só quem entrou ou saiu das Menções e ainda não tinha lido a Mensagem tem os
+                // números mudados (spec da F07).
+                if (mentionChangedIds.length > 0) {
+                  this.unreadPublisher.publish(conversationId, async () => {
+                    const changed = new Set(mentionChangedIds);
+                    return (
+                      await this.conversations.listMemberIdsReadBefore(
+                        conversationId,
+                        messageId,
+                        author.id,
+                      )
+                    ).filter((id) => changed.has(id));
+                  });
+                }
+              },
               'Falha ao publicar a Mensagem editada',
             )
           : null,
@@ -263,11 +277,20 @@ export class MessagesService {
       () =>
         this.toMembers(
           conversationId,
-          (memberIds) =>
-            this.publisher.messageDeleted(memberIds, {
+          async (memberIds) => {
+            await this.publisher.messageDeleted(memberIds, {
               conversation_id: conversationId,
               message_id: messageId,
-            }),
+            });
+            // Só quem ainda não tinha lido a Mensagem tem os números mudados (spec da F07).
+            this.unreadPublisher.publish(conversationId, () =>
+              this.conversations.listMemberIdsReadBefore(
+                conversationId,
+                messageId,
+                personId,
+              ),
+            );
+          },
           'Falha ao publicar a Mensagem apagada',
         ),
     );
@@ -317,7 +340,11 @@ export class MessagesService {
     messageId: string,
     body: string,
     reserve: (messageId: string) => void,
-  ): Promise<{ message: MessageView; changed: boolean }> {
+  ): Promise<{
+    message: MessageView;
+    changed: boolean;
+    mentionChangedIds: string[];
+  }> {
     const message = await this.lockOwnMessage(
       author.id,
       conversationId,
@@ -339,14 +366,21 @@ export class MessagesService {
       );
     }
     // Só regrava as Menções quando os @usuário escritos mudaram, e não a cada correção do texto.
-    const mentions =
-      changed && !sameUsernames(previousBody, body)
-        ? await this.saveMentions(message, body, true)
-        : await this.mentionsOf(message.id);
+    const previousMentions = await this.mentionsOf(message.id);
+    const rewritesMentions = changed && !sameUsernames(previousBody, body);
+    const mentions = rewritesMentions
+      ? await this.saveMentions(message, body, true)
+      : previousMentions;
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return {
       message: toView(message, author, mentions, await this.quoteOf(message)),
       changed,
+      mentionChangedIds: rewritesMentions
+        ? symmetricDifference(
+            previousMentions.map((mention) => mention.id),
+            mentions.map((mention) => mention.id),
+          )
+        : [],
     };
   }
 
@@ -667,4 +701,13 @@ function toView(
     mentions,
     quote,
   };
+}
+
+// Os ids que estão em só uma das listas: quem entrou ou saiu das Menções.
+function symmetricDifference(before: string[], after: string[]): string[] {
+  const [a, b] = [new Set(before), new Set(after)];
+  return [
+    ...[...a].filter((id) => !b.has(id)),
+    ...[...b].filter((id) => !a.has(id)),
+  ];
 }

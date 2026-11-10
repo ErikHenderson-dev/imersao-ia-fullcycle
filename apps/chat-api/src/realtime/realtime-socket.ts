@@ -42,6 +42,7 @@ const STORED_EVENTS: Record<StoredEventName, true> = {
   'message.updated': true,
   'message.deleted': true,
   'conversation.member_added': true,
+  'conversation.unread': true,
 };
 
 export function isStoredEventName(name: string): name is StoredEventName {
