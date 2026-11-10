@@ -15,6 +15,13 @@ export interface Unread {
   mentionCount: number;
 }
 
+// Sem nada de novo: o de quem não tem participação na Conversa.
+export const EMPTY_UNREAD: Unread = {
+  lastReadMessageId: null,
+  unreadCount: 0,
+  mentionCount: 0,
+};
+
 // Uma participação: a Conversa e a Pessoa.
 export type MemberKey = { conversationId: string; personId: string };
 
@@ -25,7 +32,9 @@ export function memberKey({ conversationId, personId }: MemberKey): string {
 
 // As Não lidas e as Menções calculadas a partir da Última leitura, e não gravadas (ADR 0026): as
 // Mensagens da Conversa posteriores a ela, de outro autor e não apagadas, e as Menções à Pessoa
-// entre elas, cada contagem parando no teto. Cruza as tabelas de Mensagens, como a busca de Membros
+// entre elas, cada contagem parando no teto. As Não lidas saem do índice de Mensagens por Conversa
+// e id; as Menções, do índice de Menções por Pessoa e Mensagem, para um Canal movimentado sem
+// Menções não custar uma leitura por Mensagem. Cruza as tabelas de Mensagens, como a busca de Membros
 // por @usuário cruza a de Pessoas: o módulo de Mensagens depende deste, e o contrário seria um
 // ciclo.
 @Injectable()
@@ -56,14 +65,13 @@ export class UnreadCounter {
                     AND message.id > COALESCE(member.last_read_message_id, $4::uuid)
                   LIMIT $3) AS unread) AS unread_count,
               (SELECT count(*)::int FROM (
-                 SELECT 1 FROM messages message
-                   JOIN message_mentions mention
-                     ON mention.message_id = message.id
-                    AND mention.person_id = member.person_id
-                  WHERE message.conversation_id = member.conversation_id
+                 SELECT 1 FROM message_mentions mention
+                   JOIN messages message ON message.id = mention.message_id
+                  WHERE mention.person_id = member.person_id
+                    AND mention.message_id > COALESCE(member.last_read_message_id, $4::uuid)
+                    AND message.conversation_id = member.conversation_id
                     AND message.author_id <> member.person_id
                     AND message.deleted_at IS NULL
-                    AND message.id > COALESCE(member.last_read_message_id, $4::uuid)
                   LIMIT $3) AS mentioned) AS mention_count
          FROM unnest($1::uuid[], $2::uuid[]) AS pair(conversation_id, person_id)
          JOIN conversation_members member

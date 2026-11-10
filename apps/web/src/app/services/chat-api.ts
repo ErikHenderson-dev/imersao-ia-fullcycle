@@ -170,7 +170,6 @@ export type Conversation = {
 // A Conversa da API é a mesma do evento do tempo real (pacote chat-events).
 type ApiConversation = ConversationPayload;
 
-
 // A Mensagem da API é a mesma do evento do tempo real (pacote chat-events).
 type ApiMessage = MessagePayload;
 

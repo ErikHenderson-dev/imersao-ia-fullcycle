@@ -7,6 +7,9 @@ import { Message } from './message.entity';
 // Membros da Conversa, e mantida quando a Mensagem é apagada, para a F07 e a F08.
 @Entity('message_mentions')
 @Unique('message_mentions_message_person_key', ['messageId', 'personId'])
+// As Menções de uma Pessoa na ordem das Mensagens: a contagem de Menções Não lidas lê só as
+// posteriores à Última leitura (spec da F07, "Última leitura e contagem").
+@Index('message_mentions_person_message_idx', ['personId', 'messageId'])
 export class MessageMention extends BaseEntity {
   @Column({ type: 'uuid' })
   messageId!: string;
@@ -15,7 +18,6 @@ export class MessageMention extends BaseEntity {
   @JoinColumn({ name: 'message_id' })
   message?: Message;
 
-  @Index('message_mentions_person_id_idx')
   @Column({ type: 'uuid' })
   personId!: string;
 

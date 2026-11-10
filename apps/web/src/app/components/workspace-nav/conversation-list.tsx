@@ -11,6 +11,10 @@ import { NewConversationAction } from "./new-conversation-action";
 import { SidebarRow } from "./sidebar-row";
 import { SidebarSection } from "./sidebar-section";
 
+function hrefOf(conversation: Conversation): string {
+  return `/conversas/${conversation.id}`;
+}
+
 // A rota do BFF que lê a lista de novo.
 const CONVERSATIONS_URL = "/api/conversations";
 
@@ -80,24 +84,32 @@ export function ConversationList({ initialConversations, personId }: Conversatio
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}
-      href={`/conversas/${conversation.id}`}
+      href={hrefOf(conversation)}
       conversation={conversation}
       selfId={personId}
     />
   );
-  const unreadRows = (list: Conversation[]) => {
-    const rows = list.filter((conversation) => unreadDisplay(conversation).isUnread).map(row);
-    return rows.length > 0 ? rows : undefined;
-  };
+  // Recolhida, a seção mostra só as Conversas Não lidas (spec da F07, "Lista de Conversas e barra
+  // lateral").
+  const rows = (list: Conversation[], isExpanded: boolean) =>
+    list.filter((conversation) => isExpanded || unreadDisplay(conversation).isUnread).map(row);
   return (
     <>
-      <SidebarSection title="Canais" collapsedChildren={unreadRows(channels)}>
-        {channels.map(row)}
-        <AddChannelAction />
+      <SidebarSection title="Canais">
+        {(isExpanded) => (
+          <>
+            {rows(channels, isExpanded)}
+            {isExpanded && <AddChannelAction />}
+          </>
+        )}
       </SidebarSection>
-      <SidebarSection title="Mensagens diretas" collapsedChildren={unreadRows(directs)}>
-        {directs.map(row)}
-        <NewConversationAction personId={personId} />
+      <SidebarSection title="Mensagens diretas">
+        {(isExpanded) => (
+          <>
+            {rows(directs, isExpanded)}
+            {isExpanded && <NewConversationAction personId={personId} />}
+          </>
+        )}
       </SidebarSection>
     </>
   );

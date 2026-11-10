@@ -6,15 +6,14 @@ import { cn } from "@/app/utils/cn";
 
 type SidebarSectionProps = {
   title: string;
-  children: React.ReactNode;
-  // O que continua visível com a seção recolhida: as Conversas Não lidas (spec da F07, "Lista de
-  // Conversas e barra lateral").
-  collapsedChildren?: React.ReactNode;
+  // As linhas da seção, pelo estado dela: recolhida, quem a usa mostra só o que continua visível,
+  // como as Conversas Não lidas (spec da F07, "Lista de Conversas e barra lateral").
+  children: (isExpanded: boolean) => React.ReactNode;
 };
 
 // Seção da barra lateral: o título é um botão que recolhe e expande a lista (25:20813). O estado
 // não é guardado: cada abertura do app começa com as seções expandidas.
-export function SidebarSection({ title, children, collapsedChildren }: SidebarSectionProps) {
+export function SidebarSection({ title, children }: SidebarSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const listId = useId();
   return (
@@ -35,12 +34,9 @@ export function SidebarSection({ title, children, collapsedChildren }: SidebarSe
           {title}
         </button>
       </h2>
-      <ul id={listId} hidden={!isExpanded} className="flex flex-col gap-px pt-1">
-        {children}
+      <ul id={listId} className="flex flex-col gap-px pt-1 empty:hidden">
+        {children(isExpanded)}
       </ul>
-      {!isExpanded && collapsedChildren && (
-        <ul className="flex flex-col gap-px pt-1">{collapsedChildren}</ul>
-      )}
     </section>
   );
 }

@@ -28,7 +28,12 @@ import { PersonNotFoundError } from '../people/person-not-found.error';
 import { lockPublicMembership } from './public-membership-lock';
 import { InvalidPeopleError } from '../people/invalid-people.error';
 import { PersonSummary, sortedSummaries } from '../people/person-summary';
-import { memberKey, Unread, UnreadCounter } from './unread-counter';
+import {
+  EMPTY_UNREAD,
+  memberKey,
+  Unread,
+  UnreadCounter,
+} from './unread-counter';
 
 // Tipos de Canal que a Pessoa cria pelo produto.
 export type ChannelKind = Extract<
@@ -116,9 +121,10 @@ export class ConversationsService {
     ]);
     const summaries = counted.map((summary) => ({
       ...summary,
-      unread: unread.get(
-        memberKey({ conversationId: summary.conversation.id, personId }),
-      ) ?? { lastReadMessageId: null, unreadCount: 0, mentionCount: 0 },
+      unread:
+        unread.get(
+          memberKey({ conversationId: summary.conversation.id, personId }),
+        ) ?? EMPTY_UNREAD,
     }));
     const sortName = (summary: ConversationSummary) =>
       summary.conversation.kind === 'direct'
