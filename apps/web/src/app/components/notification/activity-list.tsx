@@ -58,6 +58,14 @@ export function ActivityList({
   const hasMore = pages.at(-1)?.hasMore ?? false;
   const isLoadingMore = isValidating && size > pages.length;
   const sentinel = useRef<HTMLDivElement>(null);
+
+  // A primeira página que o servidor acabou de ler vale mais que as páginas do cache, de uma visita
+  // anterior à aba: o cache volta a ela, e só ela. Assim a próxima página parte dela, sem buscar a
+  // primeira de novo.
+  useEffect(() => {
+    void setSize(1);
+    void mutate([initialPage], { revalidate: false });
+  }, [initialPage, mutate, setSize]);
   // A hora da montagem: o tempo relativo não anda sozinho com a tela aberta (plano da F08-T01).
   const [now] = useState(() => Date.now());
 
@@ -80,7 +88,11 @@ export function ActivityList({
           <NotificationItem
             key={item.message.id}
             item={item}
-            isRead={isNotificationRead(item.message.id, lastRead.get(item.conversation.id) ?? null)}
+            isRead={
+              // Sem a Conversa na lista (a lista falhou), o item não acende como não lido.
+              !lastRead.has(item.conversation.id) ||
+              isNotificationRead(item.message.id, lastRead.get(item.conversation.id) ?? null)
+            }
             time={relativeTime(item.message.createdAt, now, timeZone)}
           />
         ))}

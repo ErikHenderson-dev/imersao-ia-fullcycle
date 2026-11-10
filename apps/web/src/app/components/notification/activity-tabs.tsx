@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useSWRConfig } from "swr";
 import { CountBadge } from "@/app/components/ui/count-badge";
 import { useActivityUnread } from "@/app/hooks/use-activity-unread";
 import type { ActivityFilter, ActivityUnread } from "@/app/services/chat-api";
 import { ACTIVITY_TABS, activityTabHref, unreadSuffix } from "@/app/utils/activity";
+import { activityUnreadKey } from "@/app/utils/activity-cache";
 import { cn } from "@/app/utils/cn";
 
 // As abas Todas, Menções e Mensagens diretas (TabsTrigger, design system), cada uma uma URL, com o
@@ -19,6 +22,12 @@ export function ActivityTabs({
   initialUnread: ActivityUnread | undefined;
 }) {
   const unread = useActivityUnread(personId, initialUnread);
+  const { mutate } = useSWRConfig();
+
+  // Os números que a página acabou de ler valem mais que os do cache, que o rail gravou na carga.
+  useEffect(() => {
+    if (initialUnread) void mutate(activityUnreadKey(personId), initialUnread, { revalidate: false });
+  }, [initialUnread, mutate, personId]);
   return (
     <nav aria-label="Tipos de atividade" className="flex shrink-0 gap-4 border-b border-border-subtle px-5">
       {ACTIVITY_TABS.map((tab) => {

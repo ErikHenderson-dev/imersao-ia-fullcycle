@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
   const kind = activityFilterFromParam(params.get("kind"));
   if (!kind) return Response.json({ kind: "invalid" }, { status: 400 });
   const before = params.get("before") ?? undefined;
+  if (before !== undefined && !UUID.test(before)) {
+    return Response.json({ kind: "invalid" }, { status: 400 });
+  }
   const result = token
     ? await listActivity(token, { kind, before })
     : ({ kind: "unauthenticated" } as const);
@@ -19,3 +22,5 @@ export async function GET(request: NextRequest) {
 }
 
 const ERROR_STATUS = { unauthenticated: 401, failure: 502 } as const;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
