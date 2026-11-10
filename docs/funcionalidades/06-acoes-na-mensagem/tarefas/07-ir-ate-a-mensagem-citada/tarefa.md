@@ -1,6 +1,6 @@
 # 07: Ir até a Mensagem citada
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** clicar na Citação de uma Mensagem, ou ativá-la pelo teclado, rola a Conversa
 até a original e a destaca. Se a original não estiver carregada, a Conversa mostra "Indo até a
