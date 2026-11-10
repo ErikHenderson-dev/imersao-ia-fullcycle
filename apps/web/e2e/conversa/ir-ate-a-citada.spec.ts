@@ -66,8 +66,11 @@ test.describe("Ir até a Mensagem citada", () => {
     await readyHistory(otherPage, sharedChannel.name);
     await expect(page.locator(`[data-message-id="${original.id}"]`)).toHaveCount(0);
 
-    // A leitura das anteriores fica lenta, e uma Mensagem nova chega no meio da ida
+    // A leitura das anteriores fica lenta, e uma Mensagem nova chega no meio da ida. As páginas da
+    // ida são as maiores do histórico.
+    const limits: (string | null)[] = [];
     await page.route("**/api/conversations/*/messages?*", async (route) => {
+      limits.push(new URL(route.request().url()).searchParams.get("limit"));
       await new Promise((resolve) => setTimeout(resolve, 600));
       await route.continue();
     });
@@ -83,6 +86,8 @@ test.describe("Ir até a Mensagem citada", () => {
     await expect(alvo).toBeInViewport({ timeout: 15_000 });
     await expect(alvo.locator("[data-highlighted]")).toBeVisible();
     await expect(page.getByRole("status").filter({ hasText: "Indo até a mensagem…" })).toHaveCount(0);
+    expect(limits.length).toBeGreaterThan(0);
+    expect(limits.every((limit) => limit === "100")).toBe(true);
   });
 
   test("avisa quando a original não está mais disponível", async ({

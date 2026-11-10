@@ -265,8 +265,13 @@ function History({
     return () => clearTimeout(timer);
   }, [highlightedId]);
 
+  // Uma Citação nova toma o lugar de uma ida em andamento.
   function goToMessage(messageId: string) {
-    if (saved.some((message) => message.id === messageId)) return showMessage(messageId);
+    if (saved.some((message) => message.id === messageId)) {
+      isJumping.current = false;
+      setJumpTarget(null);
+      return showMessage(messageId);
+    }
     isJumping.current = true;
     jumpRequestedLoad.current = false;
     setJumpTarget(messageId);
