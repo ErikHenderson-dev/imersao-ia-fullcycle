@@ -11,8 +11,9 @@ import {
   isVerificationFailed,
   safeReturnPath,
 } from "@/app/utils/return-path";
+import { APP_TITLE } from "@/app/utils/unread";
 
-export const metadata: Metadata = { title: "Entrar · Full Cycle Chat" };
+export const metadata: Metadata = { title: `Entrar · ${APP_TITLE}` };
 
 export default function LoginPage({ searchParams }: PageProps<"/entrar">) {
   return (

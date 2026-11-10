@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useTabFocus } from "@/app/hooks/use-tab-focus";
+import { useIsOpenAndFocused } from "@/app/hooks/use-is-open-and-focused";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
@@ -49,8 +48,8 @@ export function ConversationList({ initialConversations, personId }: Conversatio
     revalidateOnReconnect: false,
   });
   const { subscribe } = useRealtime();
-  const pathname = usePathname();
-  const isTabFocused = useTabFocus();
+  // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
+  const isOpenAndFocused = useIsOpenAndFocused();
 
   // Uma lista nova do servidor (a revalidação do layout depois de criar um Canal) vale mais que a
   // do cache, que o fallbackData não substitui depois do primeiro mutate.
@@ -89,9 +88,6 @@ export function ConversationList({ initialConversations, personId }: Conversatio
 
   const channels = conversations.filter((conversation) => conversation.kind !== "direct");
   const directs = conversations.filter((conversation) => conversation.kind === "direct");
-  // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
-  const isOpenAndFocused = (conversation: Conversation) =>
-    isTabFocused && conversationHref(conversation) === pathname;
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}

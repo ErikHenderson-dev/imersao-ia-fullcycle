@@ -37,7 +37,7 @@ function spoken(count: number): string {
   return count > COUNT_DISPLAY_LIMIT ? `mais de ${COUNT_DISPLAY_LIMIT}` : String(count);
 }
 
-// O nome do produto no título da aba (o mesmo do metadata do layout raiz).
+// O nome do produto no título da aba e no metadata das páginas.
 export const APP_TITLE = "Full Cycle Chat";
 
 // O título da aba (spec da F07, "Título da aba e rail"): a soma dos contadores visíveis da barra
