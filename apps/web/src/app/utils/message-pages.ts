@@ -49,6 +49,17 @@ export function replaceEdited(pages: MessagePage[], edited: Message): MessagePag
   return pages.with(index, { ...pages[index], messages });
 }
 
+// Tira a Mensagem apagada do cache, pelo id (spec da F06, "Eventos no cliente").
+export function removeDeleted(pages: MessagePage[], messageId: string): MessagePage[] {
+  const index = pages.findIndex((page) => page.messages.some((message) => message.id === messageId));
+  if (index < 0) return pages;
+  const page = pages[index];
+  return pages.with(index, {
+    ...page,
+    messages: page.messages.filter((message) => message.id !== messageId),
+  });
+}
+
 // Encaixa a Mensagem na ordem do id (UUID v7, a ordem da Conversa). Quem chama já descartou o id
 // repetido.
 export function insertById(messages: readonly Message[], message: Message): Message[] {

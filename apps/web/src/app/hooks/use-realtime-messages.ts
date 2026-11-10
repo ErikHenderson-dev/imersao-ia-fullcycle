@@ -9,6 +9,7 @@ type Handlers = {
   currentPersonId: string;
   appendSaved: (message: Message) => void;
   applyEdited: (message: Message) => void;
+  applyDeleted: (messageId: string) => void;
   dropDelivered: (message: Message) => void;
   reloadLatest: () => Promise<void>;
 };
@@ -20,7 +21,7 @@ type Handlers = {
 export function useRealtimeMessages(
   conversationId: string,
   initialPage: MessagePage,
-  { currentPersonId, appendSaved, applyEdited, dropDelivered, reloadLatest }: Handlers,
+  { currentPersonId, appendSaved, applyEdited, applyDeleted, dropDelivered, reloadLatest }: Handlers,
 ) {
   const { subscribe, recentMessages } = useRealtime();
   // Verdadeiro depois do primeiro sync tratado (com a recarga do reset terminada): o histórico
@@ -35,6 +36,9 @@ export function useRealtimeMessages(
   });
   const receiveEdit = useEffectEvent((message: Message) => {
     if (message.conversationId === conversationId) applyEdited(message);
+  });
+  const receiveDelete = useEffectEvent((deleted: { conversationId: string; messageId: string }) => {
+    if (deleted.conversationId === conversationId) applyDeleted(deleted.messageId);
   });
   const onSync = useEffectEvent((reset: boolean) => {
     if (!reset) return setSynced(true);
@@ -54,6 +58,7 @@ export function useRealtimeMessages(
     return subscribe({
       onMessage: (message) => receive(message),
       onMessageUpdated: (message) => receiveEdit(message),
+      onMessageDeleted: (deleted) => receiveDelete(deleted),
       onSync: (event) => onSync(event.reset),
     });
   }, [conversationId, subscribe]);

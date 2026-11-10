@@ -365,6 +365,29 @@ export async function editMessage(
   return commonFailure(response);
 }
 
+// Apagar a própria Mensagem (spec da F06, "Rotas").
+
+export type DeleteMessageResult =
+  | { kind: "ok" }
+  | { kind: "not_found" }
+  | { kind: "forbidden" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function deleteMessage(
+  token: string,
+  conversationId: string,
+  messageId: string,
+): Promise<DeleteMessageResult> {
+  const response = await request(
+    conversationPath(conversationId, `/messages/${encodeURIComponent(messageId)}`),
+    { method: "DELETE", headers: authenticated(token) },
+  );
+  if (response?.status === 204) return { kind: "ok" };
+  if (response?.status === 403) return { kind: "forbidden" };
+  return commonFailure(response);
+}
+
 // Busca de Pessoas e adição ao Canal privado (spec da F04, "Rotas").
 
 export type SearchPeopleResult =

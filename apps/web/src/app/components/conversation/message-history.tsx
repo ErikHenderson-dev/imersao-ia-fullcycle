@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
+import { toast } from "sonner";
 import { SWRConfig } from "swr";
 import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
@@ -77,13 +78,29 @@ function History({
     loadOlder,
     appendSaved,
     applyEdited,
+    applyDeleted,
     reloadLatest,
   } = useMessageHistory(conversation.id, initialPage);
   // A Mensagem em edição, uma por vez na Conversa (spec da F06, "Edição").
   const [editingId, setEditingId] = useState<string | null>(null);
+  const editingIdRef = useRef(editingId);
+  useLayoutEffect(() => {
+    editingIdRef.current = editingId;
+  }, [editingId]);
   const closeEdit = useCallback((messageId: string) => {
     setEditingId((current) => (current === messageId ? null : current));
   }, []);
+  // Uma Mensagem que sai da Conversa (spec da F06, "Apagar"): a edição aberta dela fecha, com aviso.
+  const removeMessage = useCallback(
+    (messageId: string) => {
+      if (editingIdRef.current === messageId) {
+        setEditingId(null);
+        toast.info("Essa mensagem foi apagada.");
+      }
+      applyDeleted(messageId);
+    },
+    [applyDeleted],
+  );
   const { pending, send, retry, discard, dropDelivered } = usePendingMessages(
     conversation.id,
     currentPerson,
@@ -93,6 +110,7 @@ function History({
     currentPersonId: currentPerson.id,
     appendSaved,
     applyEdited,
+    applyDeleted: removeMessage,
     dropDelivered,
     reloadLatest,
   });
@@ -137,6 +155,22 @@ function History({
   const isAtEnd = useRef(true);
   const [hasNewBelow, setHasNewBelow] = useState(false);
   const listRef = useRef<HTMLOListElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  // Depois de apagar a própria Mensagem, o foco vai para a seguinte da lista, ou para a caixa de
+  // mensagem quando ela era a última (spec da F06, "Apagar").
+  const deleteAndMoveFocus = (messageId: string) => {
+    const index = rows.findIndex((row) => row.message.id === messageId);
+    const nextId = index >= 0 ? rows[index + 1]?.message.id : undefined;
+    removeMessage(messageId);
+    requestAnimationFrame(() => {
+      const next = nextId
+        ? listRef.current?.querySelector<HTMLElement>(
+            `[data-message-id="${nextId}"] :is(button, a, textarea):not([tabindex="-1"])`,
+          )
+        : null;
+      (next ?? composerRef.current?.querySelector<HTMLElement>("textarea"))?.focus();
+    });
+  };
 
   const measureEnd = useCallback(() => {
     const element = scrollRef.current;
@@ -312,6 +346,7 @@ function History({
                         start: () => setEditingId(message.id),
                         onSaved: applyEdited,
                         onClose: () => closeEdit(message.id),
+                        onDeleted: () => deleteAndMoveFocus(message.id),
                       }
                     : undefined
                 }
@@ -326,11 +361,13 @@ function History({
         ) : null}
       </div>
       <TypingIndicator conversationId={conversation.id} />
-      <MessageComposer
-        label={composerLabel(conversation, currentPerson.id)}
-        onTextChange={typing.onTextChange}
-        onSend={send}
-      />
+      <div ref={composerRef} className="contents">
+        <MessageComposer
+          label={composerLabel(conversation, currentPerson.id)}
+          onTextChange={typing.onTextChange}
+          onSend={send}
+        />
+      </div>
     </div>
   );
 }

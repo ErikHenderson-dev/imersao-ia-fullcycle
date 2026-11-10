@@ -5,6 +5,7 @@ import type {
   ConversationMemberAddedEvent,
   HandshakeErrorCode,
   MessageCreatedEvent,
+  MessageDeletedEvent,
   MessageUpdatedEvent,
   ServerToClientEvents,
   StoredEvent,
@@ -17,13 +18,15 @@ import type { Conversation, Message } from "@/app/services/chat-api";
 import { conversationFromPayload } from "@/app/utils/conversation-event";
 import { laterCursor, orderForSync } from "@/app/utils/event-cursor";
 import { messageFromEvent } from "@/app/utils/message-event";
-import { rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
+import { forgetMessage, rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
 import { clearLeaving, hasAskedToLeave } from "@/app/utils/leaving";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 
 export type RealtimeSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 export type RealtimeStatus = "connecting" | "connected" | "disconnected";
+
+export type MessageDeleted = { conversationId: string; messageId: string };
 
 // Pessoas que entraram numa Conversa (spec da F04, "Tempo real").
 export type MemberAdded = { conversation: Conversation; personIds: readonly string[] };
@@ -32,6 +35,8 @@ export type RealtimeListener = {
   onMessage?: (message: Message) => void;
   // Uma Mensagem editada (spec da F06, "Eventos no cliente").
   onMessageUpdated?: (message: Message) => void;
+  // Uma Mensagem apagada, que sai da Conversa (spec da F06, "Eventos no cliente").
+  onMessageDeleted?: (event: MessageDeleted) => void;
   onMemberAdded?: (event: MemberAdded) => void;
   onSync?: (event: SyncEvent) => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
@@ -183,6 +188,14 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       }
       listeners.current.forEach((listener) => listener.onMessageUpdated?.(message));
     };
+    const applyMessageDeleted = (event: MessageDeletedEvent) => {
+      const deleted = { conversationId: event.conversation_id, messageId: event.message_id };
+      const recentOfConversation = received.get(deleted.conversationId);
+      if (recentOfConversation) {
+        received.set(deleted.conversationId, forgetMessage(recentOfConversation, deleted.messageId));
+      }
+      listeners.current.forEach((listener) => listener.onMessageDeleted?.(deleted));
+    };
     const applyMemberAdded = (event: ConversationMemberAddedEvent) => {
       const added = {
         conversation: conversationFromPayload(event.conversation),
@@ -194,6 +207,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     const handlers: StoredEventHandlers = {
       "message.created": applyMessage,
       "message.updated": applyMessageUpdated,
+      "message.deleted": applyMessageDeleted,
       "conversation.member_added": applyMemberAdded,
     };
     // Os eventos guardados por Pessoa, na ordem do cursor: aplica e avança o cursor.

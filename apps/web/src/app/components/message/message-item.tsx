@@ -35,6 +35,8 @@ export type MessageEdit = {
   start: () => void;
   onSaved: (message: Message) => void;
   onClose: () => void;
+  // A Mensagem saiu: apagada aqui, em outra aba, ou o 404 da edição (spec da F06, "Apagar").
+  onDeleted: () => void;
 };
 
 // Mensagem (MessageItem), no layout completo ou compacto. A barra de ações e o menu (spec da F06,
@@ -63,7 +65,12 @@ export function MessageItem({
     <SendFailure onRetry={onRetry} onDiscard={onDiscard} />
   );
   const content = edit?.isEditing ? (
-    <MessageEditor message={message} onSaved={edit.onSaved} onClose={edit.onClose} />
+    <MessageEditor
+      message={message}
+      onSaved={edit.onSaved}
+      onClose={edit.onClose}
+      onGone={edit.onDeleted}
+    />
   ) : (
     <>
       <MessageBody text={message.body} edited={message.editedAt} timeZone={timeZone} />
@@ -87,7 +94,7 @@ export function MessageItem({
           <FullRow message={message} timeZone={timeZone} content={content} />
         )}
         {status === "sent" && !isEditing && (
-          <MessageActions message={message} onEdit={edit?.start} />
+          <MessageActions message={message} onEdit={edit?.start} onDeleted={edit?.onDeleted} />
         )}
       </div>
     </li>

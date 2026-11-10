@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Message } from "@/app/services/chat-api";
-import { appendToLatestPage, flattenPages, replaceEdited } from "./message-pages";
+import { appendToLatestPage, flattenPages, removeDeleted, replaceEdited } from "./message-pages";
 
 function message(id: string): Message {
   return {
@@ -127,5 +127,26 @@ describe("replaceEdited", () => {
     const next = replaceEdited(pages, edited("z", "2026-11-09T12:05:00.000Z"));
 
     expect(next).toBe(pages);
+  });
+});
+
+describe("removeDeleted", () => {
+  it("tira a Mensagem pelo id, em qualquer página", () => {
+    const pages = [
+      { messages: [message("c")], hasMore: true },
+      { messages: [message("a"), message("b")], hasMore: false },
+    ];
+
+    const next = removeDeleted(pages, "a");
+
+    expect(flattenPages(next).map((item) => item.id)).toEqual(["b", "c"]);
+  });
+
+  it("a edição depois da exclusão não traz a Mensagem de volta", () => {
+    const pages = removeDeleted([{ messages: [message("a")], hasMore: false }], "a");
+
+    const next = replaceEdited(pages, { ...message("a"), editedAt: "2026-11-09T12:05:00.000Z" });
+
+    expect(flattenPages(next)).toEqual([]);
   });
 });

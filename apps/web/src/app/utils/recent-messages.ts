@@ -22,6 +22,13 @@ export function rememberEdit(recent: readonly Message[], edited: Message): reado
   return withEdit(recent, edited);
 }
 
+// Esquece a Mensagem apagada: a Conversa que monta depois não a traz de volta.
+export function forgetMessage(recent: readonly Message[], messageId: string): readonly Message[] {
+  return recent.some((message) => message.id === messageId)
+    ? recent.filter((message) => message.id !== messageId)
+    : recent;
+}
+
 // As Mensagens mais novas que `newestId`, ou todas sem ele.
 export function newerThan(recent: readonly Message[], newestId: string | undefined): Message[] {
   return newestId ? recent.filter((message) => message.id > newestId) : [...recent];
