@@ -189,6 +189,7 @@ describe('busca de Pessoas', () => {
           username,
           title: 'Engenheira de Software',
           status: null,
+          presence: 'away',
         },
       ]);
     });

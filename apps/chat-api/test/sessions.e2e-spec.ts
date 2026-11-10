@@ -52,6 +52,7 @@ describe('sessões', () => {
         username: person.username,
         time_zone: null,
         status: null,
+        presence_choice: 'available',
       });
       const rows = await app
         .get(DataSource)
@@ -137,6 +138,7 @@ describe('sessões', () => {
           username: person.username,
           time_zone: null,
           status: null,
+          presence_choice: 'available',
         },
       });
     });

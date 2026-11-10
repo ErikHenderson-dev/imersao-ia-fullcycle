@@ -4,6 +4,7 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
@@ -30,6 +31,7 @@ import {
   sessionRoom,
   WORKSPACE_ROOM,
 } from './realtime-socket';
+import { PresenceTracker } from '../presence/presence-tracker';
 import { EventsStore } from './events.store';
 import { SESSION_RECHECK_INTERVAL_MS } from './realtime-values';
 import type { RealtimeServer, RealtimeSocket } from './realtime-socket';
@@ -41,7 +43,11 @@ const UNAUTHENTICATED: HandshakeErrorCode = 'unauthenticated';
 
 @WebSocketGateway()
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnModuleDestroy
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleDestroy
 {
   private readonly logger = new Logger(RealtimeGateway.name);
 
@@ -53,10 +59,12 @@ export class RealtimeGateway
     private readonly config: ConfigService<Env, true>,
     private readonly conversations: ConversationsService,
     private readonly events: EventsStore,
+    private readonly presence: PresenceTracker,
   ) {}
 
   private recheckTimer?: ReturnType<typeof setInterval>;
   private stopListening?: () => void;
+  private stopPresence?: () => void;
 
   afterInit(server: RealtimeServer): void {
     // Sair desconecta na hora as abas daquela Sessão (LLD, "Sessão e login", "WebSocket").
@@ -77,6 +85,13 @@ export class RealtimeGateway
         });
     }, SESSION_RECHECK_INTERVAL_MS);
     this.recheckTimer.unref();
+    // A Presença que mudou vai para todo o workspace, sem guardar (spec da F09, "Tempo real").
+    this.stopPresence = this.presence.onChange((personId, presence) => {
+      server.to(WORKSPACE_ROOM).emit('presence.changed', {
+        person_id: personId,
+        presence,
+      });
+    });
     const cookieName = this.config.get('SESSION_COOKIE_NAME', { infer: true });
     server.use((socket, next) => {
       void this.authenticateSocket(socket, cookieName, next);
@@ -90,6 +105,7 @@ export class RealtimeGateway
   // mais recente.
   async handleConnection(socket: RealtimeSocket): Promise<void> {
     const personId = socket.data.person.id;
+    this.presence.connected(personId, socket.data.person.presenceChoice);
     const auth = socket.handshake.auth as HandshakeAuth | undefined;
     const cursor = typeof auth?.cursor === 'string' ? auth.cursor : undefined;
     try {
@@ -233,9 +249,17 @@ export class RealtimeGateway
     }
   }
 
+  // A aba que caiu conta para a Presença (spec da F09, "Presença"). Só as que passaram do handshake
+  // têm a Pessoa.
+  handleDisconnect(socket: RealtimeSocket): void {
+    const personId = socket.data.person?.id;
+    if (personId) this.presence.disconnected(personId);
+  }
+
   onModuleDestroy(): void {
     clearInterval(this.recheckTimer);
     this.stopListening?.();
+    this.stopPresence?.();
   }
 
   // Reconfere as Sessões das abas conectadas, uma vez por Sessão e uma de cada vez, para não

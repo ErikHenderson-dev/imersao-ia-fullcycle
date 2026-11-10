@@ -1,3 +1,4 @@
+import { PresenceModule } from '../presence/presence.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from '../messages/message.entity';
@@ -16,6 +17,7 @@ import { UnreadCounter } from './unread-counter';
     // módulo que importa só este não monta os metadados da relação.
     TypeOrmModule.forFeature([Conversation, ConversationMember, Message]),
     PeopleModule,
+    PresenceModule,
     SessionsModule,
   ],
   controllers: [ConversationsController],

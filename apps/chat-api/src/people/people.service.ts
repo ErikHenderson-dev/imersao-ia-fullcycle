@@ -124,6 +124,7 @@ export class PeopleService {
       | 'activityReadMessage'
       | 'statusEmoji'
       | 'statusText'
+      | 'presenceChoice'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -341,6 +342,23 @@ export class PeopleService {
       },
       where: { id: In(ids) },
     });
+  }
+
+  // Grava a escolha de presença; devolve se ela mudou (spec da F09, "Rotas").
+  async savePresenceChoice(
+    personId: string,
+    choice: 'available' | 'away',
+  ): Promise<boolean> {
+    const result = await this.people
+      .createQueryBuilder()
+      .update()
+      .set({ presenceChoice: choice })
+      .where('id = :personId AND presence_choice <> :choice', {
+        personId,
+        choice,
+      })
+      .execute();
+    return (result.affected ?? 0) > 0;
   }
 
   // Quem tem Status, para o retrato (spec da F09, "Rotas"): cresce com quem tem Status, e não com o

@@ -9,6 +9,7 @@ export interface PersonResponse {
   username: string;
   time_zone: string | null;
   status: StatusPayload | null;
+  presence_choice: 'available' | 'away';
 }
 
 export function toPersonResponse(person: Person): PersonResponse {
@@ -19,5 +20,6 @@ export function toPersonResponse(person: Person): PersonResponse {
     username: person.username,
     time_zone: person.timeZone,
     status: toStatusResponse(person),
+    presence_choice: person.presenceChoice,
   };
 }

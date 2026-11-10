@@ -51,6 +51,7 @@ describe('Membros de uma Conversa', () => {
         username: ana.person.username,
         title: null,
         status: null,
+        presence: 'away',
       },
       {
         id: bruno.person.id,
@@ -58,6 +59,7 @@ describe('Membros de uma Conversa', () => {
         username: bruno.person.username,
         title: null,
         status: null,
+        presence: 'away',
       },
       {
         id: owner.person.id,
@@ -65,6 +67,7 @@ describe('Membros de uma Conversa', () => {
         username: owner.person.username,
         title: null,
         status: null,
+        presence: 'away',
       },
     ]);
   });

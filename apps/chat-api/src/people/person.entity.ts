@@ -40,6 +40,10 @@ import { USERNAME_PATTERN } from './username';
   `char_length("status_text") BETWEEN 1 AND ${STATUS_TEXT_MAX_LENGTH} AND "status_text" !~ '[\\r\\n]'`,
 )
 @Check(
+  'people_presence_choice_check',
+  `"presence_choice" IN ('available', 'away')`,
+)
+@Check(
   'people_status_check',
   `"status_text" IS NULL OR "status_emoji" IS NOT NULL`,
 )
@@ -71,6 +75,10 @@ export class Person extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   statusText!: string | null;
+
+  // A escolha de presença (spec da F09, "Pessoas"); a Presença calculada fica em memória.
+  @Column({ type: 'text', default: 'available' })
+  presenceChoice!: 'available' | 'away';
 
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })
