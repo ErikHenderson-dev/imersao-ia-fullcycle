@@ -17,6 +17,11 @@ export const PRESENCE_CHOICES = [
   'away',
 ] as const satisfies readonly Presence[];
 
+// Os temas que a Pessoa escolhe (spec da F09, "Pessoas").
+export const THEMES = ['light', 'dark'] as const;
+
+export type Theme = (typeof THEMES)[number];
+
 // As chaves dos sete emojis do Status, na ordem do diálogo (LLD, "Valores de regra", "Emojis do
 // Status"). A web troca a chave pelo emoji e pelo nome acessível.
 export const STATUS_EMOJIS = [

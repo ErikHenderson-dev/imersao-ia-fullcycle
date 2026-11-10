@@ -17,6 +17,7 @@ import { PersonNotFoundError } from './person-not-found.error';
 import { canonicalTimeZone } from './time-zone';
 import { Person } from './person.entity';
 import {
+  type Theme,
   parseName,
   parsePhone,
   parseStatus,
@@ -126,6 +127,7 @@ export class PeopleService {
       | 'statusEmoji'
       | 'statusText'
       | 'presenceChoice'
+      | 'theme'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -134,13 +136,20 @@ export class PeopleService {
       .insert()
       .values(person)
       .orIgnore()
-      .returning(['created_at', 'updated_at', 'time_zone', 'presence_choice'])
+      .returning([
+        'created_at',
+        'updated_at',
+        'time_zone',
+        'presence_choice',
+        'theme',
+      ])
       .execute();
     const [row] = inserted.raw as {
       created_at: Date;
       updated_at: Date;
       time_zone: string | null;
       presence_choice: Presence;
+      theme: Theme;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
@@ -148,6 +157,7 @@ export class PeopleService {
       updatedAt: row.updated_at,
       timeZone: row.time_zone,
       presenceChoice: row.presence_choice,
+      theme: row.theme,
     });
   }
 
@@ -364,6 +374,11 @@ export class PeopleService {
     );
     const [row] = rows;
     return { choice: row.presence_choice, savedAt: row.updated_at.getTime() };
+  }
+
+  // Grava o tema (spec da F09, "Rotas"); não publica: os outros navegadores o leem na próxima carga.
+  async saveTheme(personId: string, theme: Theme): Promise<void> {
+    await this.people.update({ id: personId }, { theme });
   }
 
   // Quem tem Status, para o retrato (spec da F09, "Rotas"): cresce com quem tem Status, e não com o

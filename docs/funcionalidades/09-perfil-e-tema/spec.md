@@ -201,13 +201,20 @@ direta. Não aparecem no Alerta nem nos itens de Atividade.
 
 **Tema**
 
-- O layout raiz lê a Pessoa por `getCurrentPerson`, que já tem cache por requisição, quando há
-  cookie de Sessão, e põe `data-theme` e `color-scheme` no `<html>`. Sem Sessão, fica no claro. Isso
+- A escolha fica na Pessoa, e o cookie `theme` a espelha no navegador para a primeira pintura: o
+  projeto usa Cache Components, e o layout raiz não pode ler a Sessão fora de um `<Suspense>`, que
+  não pode envolver o `<html>`. Um script curto e bloqueante no `<head>` lê o cookie e põe
+  `data-theme` e `color-scheme` no `<html>` antes da pintura, fora de "Entrar", que fica no claro.
+- Entrar grava o cookie com o tema da Pessoa (o navegador novo já abre no tema dela); o
+  ThemeProvider das telas logadas o corrige quando a Pessoa trocou o tema em outro navegador; sair
+  e a Sessão vencida o apagam. O tema das telas logadas fica nesse provider, e os botões de tema (o
+  do Rail e a cópia dele na gaveta) só o leem. Isso
   fecha o "onde a escolha é gravada" do design system ("Tema claro e escuro").
-- O ThemeToggle, no Rail, acima do avatar, troca o `data-theme` na hora, chama `saveTheme` e avisa as
-  outras abas do navegador por um `BroadcastChannel`, que trocam o `data-theme` delas. Na falha, o
-  tema volta ao anterior nas abas e um toast mostra "Não foi possível trocar o tema". O nome
-  acessível é "Mudar para o tema escuro" ou "Mudar para o tema claro".
+- O ThemeToggle, no Rail, acima do avatar, troca o `data-theme` e o cookie na hora, chama
+  `saveTheme` (que só grava na Pessoa) e avisa as outras abas do navegador por um `BroadcastChannel`, que trocam o
+  `data-theme` delas. Na falha, o tema volta ao anterior nas abas e um toast mostra "Não foi
+  possível trocar o tema". O nome acessível é "Mudar para o tema escuro" ou "Mudar para o tema
+  claro".
 
 **Telas**, que reproduzem os frames do Figma (arquivo `slack`, página Telas):
 

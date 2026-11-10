@@ -18,6 +18,7 @@ import {
   type UnreadPayload,
 } from "@/app/utils/conversation-event";
 import { initials } from "@/app/utils/initials";
+import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
 import { activityUnreadFromPayload, type ActivityUnreadPayload } from "@/app/utils/activity-unread";
 
@@ -37,6 +38,8 @@ type ApiPerson = {
   time_zone: string | null;
   status: Status | null;
   presence_choice: Presence;
+  // O tema escolhido (spec da F09, "Pessoas").
+  theme: Theme;
 };
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
@@ -600,6 +603,25 @@ export async function savePresenceChoice(
     method: "PUT",
     headers: { ...authenticated(token), "content-type": "application/json" },
     body: JSON.stringify({ presence_choice: choice }),
+  });
+  if (response?.status === 204) return { kind: "ok" };
+  if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 401) return { kind: "unauthenticated" };
+  return { kind: "failure" };
+}
+
+export type SaveThemeResult =
+  | { kind: "ok" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Grava o tema (spec da F09, "Rotas").
+export async function saveTheme(token: string, theme: Theme): Promise<SaveThemeResult> {
+  const response = await request("/v1/people/me/theme", {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ theme }),
   });
   if (response?.status === 204) return { kind: "ok" };
   if (response?.status === 400) return { kind: "invalid" };

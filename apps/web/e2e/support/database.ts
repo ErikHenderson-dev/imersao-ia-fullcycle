@@ -214,3 +214,15 @@ export async function setLastRead(
     [conversation.id, person.id, messageId],
   );
 }
+
+// O tema gravado na Pessoa, direto no banco (F09-T05).
+export async function setThemeOf(personId: string, theme: "light" | "dark"): Promise<void> {
+  await pool.query("UPDATE people SET theme = $2 WHERE id = $1", [personId, theme]);
+}
+
+export async function themeOf(personId: string): Promise<string> {
+  const result = await pool.query<{ theme: string }>("SELECT theme FROM people WHERE id = $1", [
+    personId,
+  ]);
+  return result.rows[0].theme;
+}

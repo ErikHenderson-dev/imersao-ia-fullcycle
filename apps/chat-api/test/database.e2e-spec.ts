@@ -167,6 +167,16 @@ describe('banco de testes', () => {
       await expect(update).rejects.toThrow(/people_presence_choice_check/);
     });
 
+    it('people recusa o tema fora da lista', async () => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const update = app
+        .get(DataSource)
+        .query(`UPDATE people SET theme = 'sepia' WHERE id = $1`, [person.id]);
+
+      await expect(update).rejects.toThrow(/people_theme_check/);
+    });
+
     it('people recusa um @usuário repetido', async () => {
       const username = freeUsername();
       await insertPerson({ username });
