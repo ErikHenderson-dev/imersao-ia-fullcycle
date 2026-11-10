@@ -36,6 +36,10 @@ type MessageItemProps = {
   onReply?: () => void;
   // Por que o envio falhou, quando há um motivo para mostrar.
   failure?: "quote_deleted";
+  // Ir até a Mensagem citada, e o destaque de quem chegou por ela (spec da F06, "Ir até a Mensagem
+  // citada").
+  onGoToQuote?: (messageId: string) => void;
+  highlighted?: boolean;
 };
 
 export type MessageEdit = {
@@ -61,6 +65,8 @@ export function MessageItem({
   currentPersonId,
   onReply,
   failure,
+  onGoToQuote,
+  highlighted = false,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -89,7 +95,12 @@ export function MessageItem({
     />
   ) : (
     <>
-      {message.quote && <ReplyQuote quote={message.quote} />}
+      {message.quote && (
+        <ReplyQuote
+          quote={message.quote}
+          onGoTo={() => onGoToQuote?.(message.quote!.id)}
+        />
+      )}
       <MessageBody
         text={message.body}
         mentions={message.mentions}
@@ -112,9 +123,10 @@ export function MessageItem({
       {dayLabel && <DayDivider label={dayLabel} />}
       <div
         data-mentions-me={mentionsMe || undefined}
+        data-highlighted={highlighted || undefined}
         className={cn(
-          "group/message relative",
-          mentionsMe
+          "group/message relative transition-colors duration-300",
+          mentionsMe || highlighted
             ? "border-l-2 border-highlight-border bg-highlight-bg"
             : "hover:bg-surface-subtle focus-within:bg-surface-subtle",
         )}

@@ -23,8 +23,15 @@ type PageKey = readonly ["messages", string, string | null];
 // Sessão recusada leva a "Entrar"; numa página anterior, a Conversa que deixou de existir para a
 // Pessoa recarrega a página, que mostra "Conversa não encontrada"; outra falha vira erro (do SWR,
 // e o link "Carregar mensagens anteriores" tenta de novo).
-async function fetchPage(conversationId: string, before?: string): Promise<MessagePage> {
-  const query = before ? `?before=${encodeURIComponent(before)}` : "";
+async function fetchPage(
+  conversationId: string,
+  before?: string,
+  limit?: number,
+): Promise<MessagePage> {
+  const params = new URLSearchParams();
+  if (before) params.set("before", before);
+  if (limit !== undefined) params.set("limit", String(limit));
+  const query = params.size > 0 ? `?${params.toString()}` : "";
   const response = await fetch(
     `/api/conversations/${encodeURIComponent(conversationId)}/messages${query}`,
   );
@@ -46,6 +53,8 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
   // página 0 de novo; ela volta como está, com as Mensagens enviadas nesta abertura, e não como a
   // página inicial do servidor.
   const latestPage = useRef(initialPage);
+  // O tamanho da próxima página anterior: o padrão, ou o maior da ida até a Mensagem citada.
+  const olderPageSize = useRef<number | undefined>(undefined);
   const { data, mutate, size, setSize, error, isValidating } = useSWRInfinite<
     MessagePage,
     Error,
@@ -56,7 +65,13 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
       const oldest = previous?.messages[0];
       return previous?.hasMore && oldest ? ["messages", conversationId, oldest.id] : null;
     },
-    (key) => (key[2] === null ? Promise.resolve(latestPage.current) : fetchPage(key[1], key[2])),
+    (key) => {
+      if (key[2] === null) return Promise.resolve(latestPage.current);
+      // O tamanho maior vale só para a carga que o pediu, e não para uma releitura depois.
+      const limit = olderPageSize.current;
+      olderPageSize.current = undefined;
+      return fetchPage(key[1], key[2], limit);
+    },
     {
       fallbackData: [initialPage],
       revalidateOnMount: false,
@@ -74,10 +89,15 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
   const hasOlder = pages.at(-1)?.hasMore ?? false;
   const isLoadingOlder = isValidating && size > pages.length;
 
-  const loadOlder = useCallback(() => {
-    if (!hasOlder || isLoadingOlder) return;
-    void setSize(pages.length + 1);
-  }, [hasOlder, isLoadingOlder, pages.length, setSize]);
+  // `pageSize`, só na ida até a Mensagem citada, pede uma página maior.
+  const loadOlder = useCallback(
+    (pageSize?: number) => {
+      if (!hasOlder || isLoadingOlder) return;
+      olderPageSize.current = pageSize;
+      void setSize(pages.length + 1);
+    },
+    [hasOlder, isLoadingOlder, pages.length, setSize],
+  );
 
   // As últimas Mensagens gravadas nesta abertura, pelo envio ou pelo tempo real. Uma carga de
   // anteriores que começou antes de uma delas entrar no cache pode terminar depois e gravar as

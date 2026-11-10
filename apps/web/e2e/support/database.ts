@@ -87,7 +87,7 @@ export type TestMessage = { id: string; body: string; createdAt: Date };
 // Mensagens direto no banco, em datas conhecidas e na ordem em que vêm.
 export async function insertMessages(
   channel: TestChannel,
-  messages: { author: TestPerson; body: string; at: Date }[],
+  messages: { author: TestPerson; body: string; at: Date; quotedMessageId?: string }[],
 ): Promise<TestMessage[]> {
   const inserted = messages.map((message) => ({
     id: uuidV7At(message.at.getTime()),
@@ -95,10 +95,10 @@ export async function insertMessages(
     createdAt: message.at,
   }));
   await pool.query(
-    `INSERT INTO messages (id, conversation_id, author_id, client_id, body, created_at, updated_at)
-     SELECT id, $1, author_id, client_id, body, at, at
-     FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::text[], $6::timestamptz[])
-       AS rows(id, author_id, client_id, body, at)`,
+    `INSERT INTO messages (id, conversation_id, author_id, client_id, body, created_at, updated_at, quoted_message_id)
+     SELECT id, $1, author_id, client_id, body, at, at, quoted
+     FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::text[], $6::timestamptz[], $7::uuid[])
+       AS rows(id, author_id, client_id, body, at, quoted)`,
     [
       channel.id,
       inserted.map((message) => message.id),
@@ -106,6 +106,7 @@ export async function insertMessages(
       messages.map(() => randomUUIDv7()),
       messages.map((message) => message.body),
       messages.map((message) => message.at),
+      messages.map((message) => message.quotedMessageId ?? null),
     ],
   );
   return inserted;
