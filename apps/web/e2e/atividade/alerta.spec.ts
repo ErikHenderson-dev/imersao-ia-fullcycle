@@ -47,12 +47,14 @@ test.describe("Alerta na tela", () => {
   test("o Alerta fica acima do campo de envio e fecha", async ({ page, person, otherPerson, otherPage }) => {
     const canal = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
     const primeiro = await inFirstChannel(page, person);
+    // O campo cresce com várias linhas, e o Alerta acompanha.
+    const caixa = composer(page, primeiro.name);
+    await caixa.fill("Linha 1\nLinha 2\nLinha 3\nLinha 4\nLinha 5\nLinha 6");
 
     await sendByApi(otherPage, canal.id, `Oi @${person.username}`);
 
     const alerta = alerts(page).first();
     await expect(alerta).toBeVisible();
-    const caixa = composer(page, primeiro.name);
     // O toast entra subindo: a posição vale depois da animação.
     const composerTop = (await caixa.boundingBox())!.y;
     await expect

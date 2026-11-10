@@ -3,14 +3,16 @@
 import { Toaster as Sonner } from "sonner";
 
 // Toasts do design system (design system, "Toast"): Sonner no canto inferior direito, com botão de
-// fechar e as cores do tema pelos tokens. O afastamento do fundo deixa os toasts acima do campo de
-// envio, sem cobri-lo (PRD da F08, história 1; "Portas / Toast de atividade").
+// fechar e as cores do tema pelos tokens. O afastamento do fundo soma a altura do campo de envio,
+// medida por ele (`--composer-offset`), e deixa os toasts 12 px acima dele, sem cobri-lo, mesmo com
+// várias linhas (PRD da F08, história 1; "Portas / Toast de atividade").
+const BOTTOM = "calc(var(--composer-offset, 0px) + 0.75rem)";
 export function Toaster() {
   return (
     <Sonner
       position="bottom-right"
-      offset={{ bottom: "7rem", right: "2rem" }}
-      mobileOffset={{ bottom: "7rem" }}
+      offset={{ bottom: BOTTOM, right: "2rem" }}
+      mobileOffset={{ bottom: BOTTOM }}
       closeButton
       toastOptions={{
         classNames: {

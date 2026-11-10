@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import { useNotificationItems } from "@/app/hooks/use-notification-items";
 import type { Message } from "@/app/services/chat-api";
 import { notificationTitle } from "@/app/utils/activity";
-import { messageHref } from "@/app/utils/conversation-list";
+import { fetchConversationList } from "@/app/services/conversation-list";
+import { conversationsKey, messageHref } from "@/app/utils/conversation-list";
 import { ALERT_DURATION_MS, notificationDestination } from "@/app/utils/notification-destination";
 
 // O Alerta (spec da F08, "Alerta e notificação do navegador"): uma Menção ou uma Mensagem direta que
@@ -17,11 +19,19 @@ import { ALERT_DURATION_MS, notificationDestination } from "@/app/utils/notifica
 export function AlertCenter({ personId }: { personId: string }) {
   const router = useRouter();
   const isTabFocused = useTabFocus();
-  const { itemFor, isOpenAndFocused } = useNotificationItems(personId);
+  const { itemFor, isOpenAndFocused, conversations } = useNotificationItems(personId);
+  const { mutate } = useSWRConfig();
+  const hasConversation = (id: string) => conversations.some((entry) => entry.id === id);
   const { subscribe } = useRealtime();
 
-  const alertFor = useEffectEvent((message: Message) => {
-    const item = itemFor(message);
+  const alertFor = useEffectEvent(async (message: Message) => {
+    let item = itemFor(message);
+    // Na carga da página, a lista de Conversas ainda pode não estar no cache (a barra lateral
+    // carrega à parte): sem a Conversa, ela é buscada e a decisão é refeita.
+    if (!item && !hasConversation(message.conversationId)) {
+      await mutate(conversationsKey(personId), fetchConversationList()).catch(() => {});
+      item = itemFor(message);
+    }
     const destination = notificationDestination({
       kind: item?.kind ?? null,
       isTabFocused,
@@ -43,7 +53,7 @@ export function AlertCenter({ personId }: { personId: string }) {
     () =>
       subscribe({
         onMessage: (message, { isReplay }) => {
-          if (!isReplay) alertFor(message);
+          if (!isReplay) void alertFor(message);
         },
       }),
     [subscribe],
