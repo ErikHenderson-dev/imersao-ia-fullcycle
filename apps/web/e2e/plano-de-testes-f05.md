@@ -66,3 +66,13 @@ completo aberto.
 
 **File:** `e2e/acessibilidade/conversa-direta-sem-violacoes.spec.ts`: o axe na Conversa direta.
 
+
+### 6. A outra Pessoa recebe a Conversa direta na primeira Mensagem (F05-T05)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa-direta/primeira-mensagem.spec.ts`, com duas
+Pessoas em dois contextos do navegador.
+
+1. **a Conversa só aparece para a outra Pessoa na primeira Mensagem:** aberta sem Mensagem, a
+   Conversa não aparece na barra lateral da outra e o endereço mostra "Conversa não encontrada";
+   depois da primeira Mensagem, a Conversa aparece na barra lateral dela sem recarregar e sem abrir
+   sozinha; ela abre, vê a Mensagem e responde, e a resposta chega em tempo real.
