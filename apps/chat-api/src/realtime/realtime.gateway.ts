@@ -14,7 +14,7 @@ import type {
   ConversationRef,
   HandshakeAuth,
   HandshakeErrorCode,
-  StoredEventPayloads,
+  StoredEvent,
 } from 'chat-events';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -109,7 +109,7 @@ export class RealtimeGateway
       for (const event of result.events) {
         if (!isStoredEventName(event.name)) continue;
         emitStoredEvent(socket, event.name, {
-          ...(event.payload as StoredEventPayloads[typeof event.name]),
+          ...(event.payload as StoredEvent),
           event_id: event.cursor,
         });
       }

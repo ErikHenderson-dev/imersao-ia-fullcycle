@@ -6,7 +6,8 @@ import type {
   HandshakeErrorCode,
   MessageCreatedEvent,
   ServerToClientEvents,
-  StoredEventPayloads,
+  StoredEvent,
+  StoredEventName,
   SyncEvent,
 } from "chat-events";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -59,21 +60,15 @@ const RealtimeContext = createContext<RealtimeContextValue>({
 
 const UNAUTHENTICATED: HandshakeErrorCode = "unauthenticated";
 
-type StoredEventName = keyof StoredEventPayloads;
-
-// Um evento guardado por Pessoa (StoredEventPayloads, em chat-events), com o cursor dele à vista
-// para a ordem até o sync.
-type StoredEvent = {
-  [N in StoredEventName]: {
-    name: N;
-    event: StoredEventPayloads[N] & { event_id?: string };
-    event_id?: string;
-  };
+// Um evento guardado por Pessoa (StoredEventPayloads, em chat-events), com o nome dele, até o
+// sync.
+type ReceivedEvent = {
+  [N in StoredEventName]: { name: N; event: StoredEvent<N> };
 }[StoredEventName];
 
 // O tratamento de cada evento guardado, com a carga do evento daquele nome.
 type StoredEventHandlers = {
-  [N in StoredEventName]: (event: StoredEventPayloads[N] & { event_id?: string }) => void;
+  [N in StoredEventName]: (event: StoredEvent<N>) => void;
 };
 
 // Intervalo de uma nova tentativa depois de um handshake recusado por outro motivo, igual ao da
@@ -120,7 +115,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     // Até o sync de cada conexão, os eventos ficam guardados: a sala da Pessoa já recebe os novos
     // enquanto a API reenvia os perdidos, e a ordem é a do cursor.
     let isSyncing = true;
-    let pendingEvents: StoredEvent[] = [];
+    let pendingEvents: ReceivedEvent[] = [];
     let retryDelay = RETRY_MIN_MS;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const setStatus = (status: RealtimeStatus) =>
@@ -190,23 +185,23 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       "conversation.member_added": applyMemberAdded,
     };
     // Os eventos guardados por Pessoa, na ordem do cursor: aplica e avança o cursor.
-    const apply = (stored: StoredEvent) => {
-      cursor = laterCursor(cursor, stored.event_id);
-      (handlers[stored.name] as (event: StoredEvent["event"]) => void)(stored.event);
+    const apply = ({ name, event }: ReceivedEvent) => {
+      cursor = laterCursor(cursor, event.event_id);
+      (handlers[name] as (event: StoredEvent) => void)(event);
     };
-    const receive = (stored: StoredEvent) => {
-      if (isSyncing) pendingEvents.push(stored);
-      else apply(stored);
+    const receive = (received: ReceivedEvent) => {
+      if (isSyncing) pendingEvents.push(received);
+      else apply(received);
+    };
+    // O on tipado do Socket.IO não aceita um nome genérico; o par nome e carga vem do contrato.
+    const untypedSocket = socket as unknown as {
+      on(name: StoredEventName, listener: (event: StoredEvent) => void): void;
     };
     for (const name of Object.keys(handlers) as StoredEventName[]) {
-      // O on tipado do Socket.IO não aceita um nome genérico; o par nome e carga vem do contrato.
-      const untypedSocket = socket as unknown as {
-        on(name: string, listener: (event: StoredEvent["event"]) => void): void;
-      };
-      untypedSocket.on(name, (event) => receive({ name, event, event_id: event.event_id } as StoredEvent));
+      untypedSocket.on(name, (event) => receive({ name, event } as ReceivedEvent));
     }
     socket.on("sync", (event) => {
-      orderForSync(pendingEvents).forEach(apply);
+      orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
       pendingEvents = [];
       isSyncing = false;
       cursor = laterCursor(cursor, event.cursor);

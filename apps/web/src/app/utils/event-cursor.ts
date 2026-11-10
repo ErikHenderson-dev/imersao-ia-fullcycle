@@ -27,19 +27,24 @@ export function laterCursor(current: string | null, next: string | null | undefi
 }
 
 // Os eventos guardados até o sync, prontos para aplicar: em ordem de cursor, sem repetir um
-// cursor, e os sem cursor (Redis fora) no fim, na ordem de chegada.
-export function orderForSync<T extends { event_id?: string }>(events: readonly T[]): T[] {
+// cursor, e os sem cursor (Redis fora) no fim, na ordem de chegada. `cursorOf` lê o cursor de cada
+// um.
+export function orderForSync<T>(
+  events: readonly T[],
+  cursorOf: (event: T) => string | undefined,
+): T[] {
   const seen = new Set<string>();
   const withCursor: T[] = [];
   const withoutCursor: T[] = [];
   for (const event of events) {
-    if (!event.event_id) {
+    const cursor = cursorOf(event);
+    if (!cursor) {
       withoutCursor.push(event);
-    } else if (!seen.has(event.event_id)) {
-      seen.add(event.event_id);
+    } else if (!seen.has(cursor)) {
+      seen.add(cursor);
       withCursor.push(event);
     }
   }
-  withCursor.sort((a, b) => compareCursors(a.event_id!, b.event_id!));
+  withCursor.sort((a, b) => compareCursors(cursorOf(a)!, cursorOf(b)!));
   return [...withCursor, ...withoutCursor];
 }

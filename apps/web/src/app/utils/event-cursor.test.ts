@@ -37,6 +37,6 @@ describe("orderForSync", () => {
       { event_id: "e:2-0", name: "b" },
     ];
 
-    expect(orderForSync(events).map((event) => event.name)).toEqual(["a", "b", "c", "sem cursor"]);
+    expect(orderForSync(events, (event) => event.event_id).map((event) => event.name)).toEqual(["a", "b", "c", "sem cursor"]);
   });
 });

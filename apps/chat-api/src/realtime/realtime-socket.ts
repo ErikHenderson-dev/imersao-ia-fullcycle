@@ -1,7 +1,8 @@
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-  StoredEventPayloads,
+  StoredEvent,
+  StoredEventName,
 } from 'chat-events';
 import type { BroadcastOperator, Server, Socket } from 'socket.io';
 import type { Person } from '../people/person.entity';
@@ -33,8 +34,6 @@ export type RealtimeSocket = Socket<
   RealtimeSocketData
 >;
 
-export type StoredEventName = keyof StoredEventPayloads;
-
 // Os nomes dos eventos guardados por Pessoa (StoredEventPayloads, em chat-events). O registro
 // obriga uma entrada por evento: um evento novo no contrato não compila até entrar aqui, em vez de
 // ficar de fora da reconexão sem aviso.
@@ -46,11 +45,6 @@ const STORED_EVENTS: Record<StoredEventName, true> = {
 export function isStoredEventName(name: string): name is StoredEventName {
   return Object.hasOwn(STORED_EVENTS, name);
 }
-
-// Um evento guardado, com o cursor da Pessoa quando ele existe.
-type StoredEvent<N extends StoredEventName> = StoredEventPayloads[N] & {
-  event_id?: string;
-};
 
 // Quem recebe um evento: um socket, ou as salas escolhidas no servidor.
 type StoredEventTarget =
