@@ -33,9 +33,13 @@ export class ProfilesController {
     @CurrentPerson() person: Person,
     @Body() body: UpdateProfileDto,
   ): Promise<{ person: ProfileResponse }> {
-    const updated = await this.people.updateProfileById(person.id, body);
-    // O que o workspace vê mudou: vai para todos, depois da gravação (spec da F09, "Tempo real").
-    if (updated.name !== person.name || updated.title !== person.title) {
+    const { previous, person: updated } = await this.people.updateProfileById(
+      person.id,
+      body,
+    );
+    // O que o workspace vê mudou nesta gravação: vai para todos, depois do commit (spec da F09,
+    // "Tempo real").
+    if (updated.name !== previous.name || updated.title !== previous.title) {
       this.realtime.personUpdated({
         id: updated.id,
         name: updated.name,

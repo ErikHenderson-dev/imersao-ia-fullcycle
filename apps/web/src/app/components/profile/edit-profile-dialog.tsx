@@ -181,7 +181,12 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
         // O painel aberto e a camada de Pessoas (Rail, menu, Mensagens) mostram o novo na hora, sem
         // esperar o person.updated.
         void mutate(profileKey(result.profile.id), result.profile, { revalidate: false });
-        people.apply({ id: result.profile.id, name: result.profile.name });
+        people.apply({
+          id: result.profile.id,
+          name: result.profile.name,
+          username: result.profile.username,
+          title: result.profile.title,
+        });
         onSaved();
         return;
       case "invalid":

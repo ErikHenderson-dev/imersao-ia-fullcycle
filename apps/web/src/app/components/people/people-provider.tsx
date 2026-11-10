@@ -22,7 +22,7 @@ export function PeopleProvider({
   children: React.ReactNode;
 }) {
   const [store] = useState(() => createPeopleStore([sessionPerson]));
-  const { socket, status } = useRealtime();
+  const { subscribe, status } = useRealtime();
   const { mutate } = useSWRConfig();
   const openProfileId = useProfilePanelPerson();
   // Lido nos efeitos sem refazê-los a cada troca de painel.
@@ -31,19 +31,18 @@ export function PeopleProvider({
     openProfile.current = openProfileId;
   }, [openProfileId]);
 
-  useEffect(() => {
-    if (!socket) return;
-    const onPersonUpdated = (change: { id: string; name: string }) => {
-      // Sem mudança é, quase sempre, a própria aba que salvou e já aplicou o Perfil.
-      if (store.apply(change) && change.id === openProfile.current) {
-        void mutate(profileKey(change.id));
-      }
-    };
-    socket.on("person.updated", onPersonUpdated);
-    return () => {
-      socket.off("person.updated", onPersonUpdated);
-    };
-  }, [socket, store, mutate]);
+  useEffect(
+    () =>
+      subscribe({
+        onPersonUpdated: (change) => {
+          // Sem mudança é, quase sempre, a própria aba que salvou e já aplicou o Perfil.
+          if (store.apply(change) && change.id === openProfile.current) {
+            void mutate(profileKey(change.id));
+          }
+        },
+      }),
+    [subscribe, store, mutate],
+  );
 
   // Volta a conectar depois de uma queda: o primeiro "connected" é a conexão que acabou de abrir,
   // com tudo recém-lido.

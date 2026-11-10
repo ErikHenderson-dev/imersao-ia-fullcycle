@@ -39,6 +39,15 @@ describe("camada de Pessoas", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 
+  it("troca o cargo sem mudar o nome, e o cargo ausente fica como estava", () => {
+    const store = createPeopleStore([ANA]);
+
+    expect(store.apply({ ...ANA, username: "ana", title: "Produto" })).toBe(true);
+    expect(store.get("1")?.title).toBe("Produto");
+    expect(store.apply({ ...ANA })).toBe(false);
+    expect(store.get("1")?.title).toBe("Produto");
+  });
+
   it("na reconexão esquece as outras Pessoas e guarda a da Sessão", () => {
     const store = createPeopleStore([ANA]);
     store.apply(BRUNO);
