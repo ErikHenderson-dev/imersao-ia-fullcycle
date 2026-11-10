@@ -1,6 +1,6 @@
 # 05: A outra Pessoa recebe a Conversa direta na primeira Mensagem
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem abriu uma Conversa direta envia a primeira Mensagem, e a Conversa aparece
 na barra lateral da outra Pessoa, sem recarregar e em todas as abas dela, com a Mensagem chegando
