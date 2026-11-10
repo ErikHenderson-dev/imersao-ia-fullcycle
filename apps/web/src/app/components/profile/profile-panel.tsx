@@ -1,13 +1,14 @@
 "use client";
 
-import { Mail, MessageSquare, Phone, X } from "lucide-react";
-import { useEffect } from "react";
+import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
 import type { Profile } from "@/app/services/chat-api";
+import { localTimeLabel, msUntilNextMinute } from "@/app/utils/local-time";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
 
@@ -113,6 +114,7 @@ function ProfileContent({ personId }: { personId: string }) {
         {profile.title && <p className="text-body break-words text-fg">{profile.title}</p>}
         <p className="text-small text-fg-muted">@{profile.username}</p>
       </div>
+      {profile.timeZone && <LocalTime timeZone={profile.timeZone} />}
       <div className="flex flex-wrap gap-2">
         {/* A Conversa direta só existe a partir da F05-T04. */}
         <Button type="button" variant="secondary" icon={MessageSquare} disabled>
@@ -146,6 +148,21 @@ function ProfileContent({ personId }: { personId: string }) {
         )}
       </section>
     </div>
+  );
+}
+
+// A hora atual no fuso da Pessoa, que muda na virada de cada minuto (Figma, "Local time").
+function LocalTime({ timeZone }: { timeZone: string }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setTimeout(() => setNow(new Date()), msUntilNextMinute(now));
+    return () => clearTimeout(timer);
+  }, [now]);
+  return (
+    <p className="flex items-center gap-2 text-body text-fg">
+      <Clock size={16} aria-hidden />
+      {localTimeLabel(timeZone, now)}
+    </p>
   );
 }
 

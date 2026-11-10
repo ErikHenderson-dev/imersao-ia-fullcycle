@@ -38,3 +38,15 @@ criados direto no banco, com cargo e telefone quando o cenário pede.
 
 **File:** `e2e/acessibilidade/perfil-sem-violacoes.spec.ts`: o axe sem violações com o Perfil
 completo aberto.
+
+### 4. Hora local no Perfil (F05-T03)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/perfil/hora-local.spec.ts`, com o navegador em
+`Asia/Tokyo`, longe do fuso padrão do servidor.
+
+1. **grava o fuso do navegador ao abrir o chat e mostra a hora no fuso da Pessoa:** depois de
+   entrar, o banco tem `Asia/Tokyo`; o próprio Perfil mostra a hora de Tóquio com "no horário
+   local".
+2. **sem fuso, a linha não aparece:** o Perfil de quem nunca abriu o chat.
+3. **a recusa ao gravar o fuso não aparece nem repete:** fora de "Entrar", as Server Actions
+   respondem 500; uma chamada por carga da página, nenhum aviso na tela e nada gravado.
