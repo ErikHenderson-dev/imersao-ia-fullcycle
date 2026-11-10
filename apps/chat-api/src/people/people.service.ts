@@ -202,6 +202,11 @@ export class PeopleService {
     });
   }
 
+  // Gravar o mesmo fuso de novo não muda nada visível.
+  async saveTimeZone(personId: string, timeZone: string): Promise<void> {
+    await this.people.update({ id: personId }, { timeZone });
+  }
+
   findByEmail(email: string): Promise<Person | null> {
     return this.people.findOneBy({ email: normalizeEmail(email) });
   }
