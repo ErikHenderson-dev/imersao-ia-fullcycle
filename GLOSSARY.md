@@ -15,8 +15,19 @@ O nome único de uma Pessoa no workspace, que não muda, usado para encontrá-la
 _Avoid_: handle, apelido, login
 
 **Perfil**:
-O que o workspace vê de uma Pessoa: nome, cargo, @usuário, contato e hora local.
+O que o workspace vê de uma Pessoa: nome, cargo, @usuário, contato, hora local, Status e
+Presença.
 _Avoid_: conta
+
+**Status**:
+O emoji e a mensagem curta que uma Pessoa mostra no Perfil para dizer o que está fazendo; fica
+até ela trocar ou limpar. O andamento do envio de uma Mensagem é o "estado de envio".
+_Avoid_: humor, recado
+
+**Presença**:
+Se a Pessoa aparece disponível ou ausente para o workspace: disponível só quando ela escolheu
+disponível e está com o chat aberto; ausente em qualquer outro caso.
+_Avoid_: online, offline, status
 
 **Membro**:
 Uma Pessoa enquanto participante de uma Conversa, seja Canal ou Conversa direta. Fora de uma
