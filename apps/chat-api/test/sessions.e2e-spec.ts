@@ -53,6 +53,7 @@ describe('sessões', () => {
         time_zone: null,
         status: null,
         presence_choice: 'available',
+        theme: 'light',
       });
       const rows = await app
         .get(DataSource)
@@ -139,6 +140,7 @@ describe('sessões', () => {
           time_zone: null,
           status: null,
           presence_choice: 'available',
+          theme: 'light',
         },
       });
     });

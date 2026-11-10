@@ -13,6 +13,7 @@ import { ProfileResponse, toProfileResponse } from '../people/profile.response';
 import type { Presence, StatusPayload } from 'chat-events';
 import { PresenceTracker } from '../presence/presence-tracker';
 import { SavePresenceChoiceDto } from './save-presence-choice.dto';
+import { SaveThemeDto } from './save-theme.dto';
 import { Person } from '../people/person.entity';
 import { toStatusResponse } from '../people/status.response';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
@@ -104,6 +105,16 @@ export class ProfilesController {
     // Sempre: o rastreador só publica se a Presença mudar, ignora uma gravação mais velha que chegue
     // depois e corrige uma aba que conectou com a escolha velha enquanto esta gravação corria.
     this.presence.choiceChanged(person.id, saved.choice, saved.savedAt);
+  }
+
+  // O tema da Pessoa (spec da F09, "Rotas"): sem evento.
+  @Put('me/theme')
+  @HttpCode(204)
+  async saveTheme(
+    @CurrentPerson() person: Person,
+    @Body() body: SaveThemeDto,
+  ): Promise<void> {
+    await this.people.saveTheme(person.id, body.theme);
   }
 
   @Get(':id')
