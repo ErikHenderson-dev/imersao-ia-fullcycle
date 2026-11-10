@@ -293,7 +293,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
-| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas"); planejada: Status, escolha de presença, tema e a regra do nome ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas"); papel e permissão a detalhar |
+| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") e a regra do nome ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas"); planejada: Status, escolha de presença e tema (spec da F09, seção "Pessoas"); papel e permissão a detalhar |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
@@ -353,7 +353,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/conversations/:id/members` | existe | Adicionar ao Canal privado: spec da F04, seção "Rotas" |
 | API do chat: `GET /v1/people` | existe | Busca de Pessoas pelo nome ou pelo @usuário, fora dos Membros de uma Conversa ou, sem ela, todas: spec da F04, seções "Busca de Pessoas" e "Rotas"; a mudança: spec da F05, seções "Busca e Perfil" e "Rotas"; só os Membros de uma Conversa (`member_of`): spec da F06, seção "Busca de Pessoas para a lista de menções" |
 | API do chat: `GET /v1/people/:id` | existe | Perfil de uma Pessoa: spec da F05, seções "Busca e Perfil" e "Rotas". Alteração `planejada`: o Perfil, a busca e os Membros ganham a Presença e o Status (spec da F09, seção "Rotas") |
-| API do chat: `PATCH /v1/people/me` | planejada | Editar o próprio Perfil e o Status: spec da F09, seções "Pessoas" e "Rotas" |
+| API do chat: `PATCH /v1/people/me` | existe: nome, cargo e telefone; o Status planejado | Editar o próprio Perfil e o Status: spec da F09, seções "Pessoas" e "Rotas" |
 | API do chat: `PUT /v1/people/me/presence` e `PUT /v1/people/me/theme` | planejada | Gravar a escolha de presença e o tema: spec da F09, seção "Rotas"; a Presença: "Estados e regras", seção "Presença" |
 | API do chat: `GET /v1/people/presence` | planejada | Retrato de quem está disponível ou tem Status: spec da F09, seção "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
@@ -363,7 +363,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
 | BFF: `GET /api/people/:id` | existe | Perfil: spec da F05, seção "BFF" |
 | BFF: Server Action `saveTimeZone` | existe | Gravar o fuso: spec da F05, seção "BFF" |
-| BFF: Server Actions `updateProfile`, `savePresenceChoice` e `saveTheme` | planejada | Editar o Perfil, a escolha de presença e o tema: spec da F09, seção "BFF" |
+| BFF: Server Actions `updateProfile`, `savePresenceChoice` e `saveTheme` | existe: `updateProfile`, com nome, cargo e telefone; as outras planejadas | Editar o Perfil, a escolha de presença e o tema: spec da F09, seção "BFF" |
 | BFF: `GET /api/people/presence` | planejada | O retrato, pedido pelo cliente na conexão e no `sync`: spec da F09, seção "BFF" |
 | BFF: Server Action `openDirectConversation` | existe | Abrir Conversa direta: spec da F05, seção "BFF" |
 | BFF: Server Action `editMessage` | existe | Editar a própria Mensagem: spec da F06, seção "BFF" |
@@ -526,7 +526,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); o resto a detalhar |
 | Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta (spec da F08, seção "Cliente") |
 | `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
-| Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"); planejado: a Presença e o Status, o diálogo "Editar perfil" e a escolha de presença no menu do avatar (spec da F09, seção "Cliente") |
+| Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), e o diálogo "Editar perfil" com nome, cargo e telefone (spec da F09, seção "Cliente"); planejado: a Presença e o Status, o diálogo "Editar perfil" e a escolha de presença no menu do avatar (spec da F09, seção "Cliente") |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
 | A definir | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão | Conectar e desconectar agente | a detalhar |
 
