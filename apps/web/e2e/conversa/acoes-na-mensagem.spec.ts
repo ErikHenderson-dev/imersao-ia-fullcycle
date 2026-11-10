@@ -63,19 +63,21 @@ test.describe("Barra de ações e copiar o texto", () => {
     // 1. Pela barra: o texto gravado, sem autor nem hora, e o aviso
     await item.hover();
     await item.getByRole("button", { name: "Copiar texto" }).click();
-    await expect(page.getByText("Texto copiado")).toBeVisible();
+    const aviso = page.getByText("Texto copiado");
+    await expect(aviso).toBeVisible();
     expect(await lerAreaDeTransferencia()).toBe(TEXTO);
 
-    // 2. Pelo menu, depois de limpar a área de transferência
+    // 2. O aviso tem o botão de fechar
+    await page.getByRole("button", { name: /fechar|close/i }).click();
+    await expect(aviso).toHaveCount(0);
+
+    // 3. Pelo menu, depois de limpar a área de transferência
     await page.evaluate(() => navigator.clipboard.writeText(""));
     await item.hover();
     await item.getByRole("button", { name: "Mais ações" }).click();
     await page.getByRole("menuitem", { name: "Copiar texto" }).click();
+    await expect(aviso).toBeVisible();
     await expect.poll(lerAreaDeTransferencia).toBe(TEXTO);
-
-    // 3. O aviso tem o botão de fechar
-    await page.getByRole("button", { name: /fechar|close/i }).first().click();
-    await expect(page.getByText("Texto copiado")).toHaveCount(0);
   });
 
   test("mostra o erro quando o navegador recusa a cópia", async ({ page, memberChannel }) => {
