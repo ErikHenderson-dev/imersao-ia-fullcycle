@@ -1,6 +1,6 @@
 # 06: "Nova conversa": buscar por nome ou @usuário
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa clica em "Nova conversa", busca qualquer Pessoa do workspace por nome
 ou `@usuário`, vê o `@usuário` e o cargo de cada uma, escolhe uma pelo mouse ou pelas setas e
