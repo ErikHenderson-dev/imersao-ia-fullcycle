@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import type { MarkReadResult, Unread } from "@/app/services/chat-api";
 import { hasUnreadToReport, readReportDelay } from "@/app/utils/read-report";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -15,6 +15,9 @@ type ReadReport = {
   initialLastReadId: string | null;
   // O histórico em dia com o tempo real: antes disso, a lista pode não ter a Mensagem mais nova.
   isReady: boolean;
+  // Quando o foco da aba volta, com a Última leitura conhecida antes do aviso que a volta dispara:
+  // a referência do divisor de novas Mensagens (spec da F07).
+  onFocusReturn?: (lastReadId: string | null) => void;
 };
 
 // O aviso pela rota do BFF; a rede caída vira falha. Com `keepalive`, o pedido sobrevive à troca
@@ -51,7 +54,8 @@ export function useReadReport({
   newestSaved,
   initialLastReadId,
   isReady,
-}: ReadReport): () => string | null {
+  onFocusReturn,
+}: ReadReport): void {
   const isFocused = useTabFocus();
   const newestSavedId = newestSaved?.id;
   // A própria Mensagem já avançou a Última leitura no envio (spec da F07): não há o que informar.
@@ -79,6 +83,15 @@ export function useReadReport({
     applyResult(result);
   });
 
+  // A volta do foco, antes do efeito que agenda o aviso, que é declarado depois.
+  const wasFocused = useRef(isFocused);
+  const focusReturned = useEffectEvent(() => onFocusReturn?.(knownLastRead.current));
+  useEffect(() => {
+    const was = wasFocused.current;
+    wasFocused.current = isFocused;
+    if (!was && isFocused) focusReturned();
+  }, [isFocused]);
+
   useEffect(() => {
     latestId.current = newestSavedId;
     if (isOwnNewest && hasUnreadToReport(newestSavedId, knownLastRead.current)) {
@@ -103,7 +116,4 @@ export function useReadReport({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-
-  // A Última leitura que o aviso conhece agora: a referência do divisor quando o foco volta.
-  return useCallback(() => knownLastRead.current, []);
 }

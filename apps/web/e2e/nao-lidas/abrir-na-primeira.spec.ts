@@ -21,8 +21,15 @@ test.describe("Abrir na primeira Não lida", () => {
     const historico = await insertHistory(canal, otherPerson, 160);
     await setLastRead(canal, person, historico[19].id);
 
+    // As páginas anteriores ficam lentas, para "Indo até a mensagem" ficar à vista.
+    await page.route("**/api/conversations/*/messages?*", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await route.continue();
+    });
+
     // 1. Abre o Canal: as anteriores carregam até a primeira Não lida
     await page.goto(`/conversas/${canal.id}`);
+    await expect(page.getByRole("status").filter({ hasText: "Indo até a mensagem…" })).toBeVisible();
     const divisor = page.locator("[data-unread-divider]");
 
     // 2. O divisor fica à vista, logo acima da Mensagem 21
@@ -59,13 +66,16 @@ test.describe("Abrir na primeira Não lida", () => {
     await controlTabFocus(context);
     const page = await context.newPage();
     await logIn(page, person);
+    const leitura = page.waitForResponse(
+      (response) => response.url().endsWith(`/api/conversations/${canal.id}/read`) && response.ok(),
+    );
     await page.goto(`/conversas/${canal.id}`);
     await readyHistory(page, canal.name);
     await otherPage.goto(`/conversas/${canal.id}`);
     await readyHistory(otherPage, canal.name);
     // Abriu com todas Não lidas: o divisor está no começo; depois de ler, a aba perde o foco.
     await expect(messageItem(page, canal.name, "Mensagem 1").locator("[data-unread-divider]")).toBeVisible();
-    await page.waitForTimeout(1_500);
+    await leitura;
     await setTabFocus(page, false);
 
     // 1. Chega uma Mensagem com a aba sem foco

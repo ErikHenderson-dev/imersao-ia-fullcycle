@@ -4,6 +4,7 @@ import { expect, logIn, test } from "../fixtures";
 import { readyHistory } from "../support/conversation-page";
 import { insertChannel, insertMention, insertMessages } from "../support/database";
 import { sidebarLink, unreadRowName } from "../support/sidebar";
+import { controlTabFocus, setTabFocus } from "../support/tab-focus";
 
 test.describe("Ler a Conversa", () => {
   test("abrir o Canal o deixa lido", async ({ page, person, otherPerson }) => {
@@ -38,13 +39,10 @@ test.describe("Ler a Conversa", () => {
     const naoLido = await insertChannel([person, otherPerson], { name: `e2e-b-${crypto.randomUUID()}` });
     await insertMessages(naoLido, [{ author: otherPerson, body: "Novidade", at: new Date(Date.now() - 60_000) }]);
     const context = await browser.newContext({ baseURL });
-    // No Chromium sem interface toda página diz que está visível e em foco: aqui, ela não está.
-    await context.addInitScript(() => {
-      Object.defineProperty(document, "visibilityState", { get: () => "hidden" });
-      Object.defineProperty(document, "hasFocus", { value: () => false });
-    });
+    await controlTabFocus(context);
     const escondida = await context.newPage();
     await logIn(escondida, person);
+    await setTabFocus(escondida, false);
 
     // 1. A aba escondida abre o Canal Não lido
     await escondida.goto(`/conversas/${naoLido.id}`);

@@ -1,15 +1,16 @@
 import type { Message } from "@/app/services/chat-api";
+import { hasUnreadToReport } from "./read-report";
 
 // A primeira Não lida da lista carregada (spec da F07, "Abrir na primeira Não lida e o divisor"): a
 // primeira Mensagem de outro autor depois da Última leitura guardada ao abrir, ou a primeira de
-// outro autor, com ela nula. Os ids são UUID v7 em minúsculas: a ordem do texto é a de criação.
+// outro autor, com ela nula, pela ordem dos ids do aviso de leitura.
 export function firstUnreadId(
   messages: readonly Message[],
   lastReadId: string | null,
   selfId: string,
 ): string | null {
   const first = messages.find(
-    (message) => message.author.id !== selfId && (lastReadId === null || message.id > lastReadId),
+    (message) => message.author.id !== selfId && hasUnreadToReport(message.id, lastReadId),
   );
   return first?.id ?? null;
 }

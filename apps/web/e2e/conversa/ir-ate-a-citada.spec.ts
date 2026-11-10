@@ -2,7 +2,7 @@
 // seed: e2e/seed.spec.ts
 import { expect, test } from "../fixtures";
 import { composer, messageItem, readyHistory } from "../support/conversation-page";
-import { insertMessages, softDeleteMessage } from "../support/database";
+import { insertMessages, setLastRead, softDeleteMessage } from "../support/database";
 
 test.describe("Ir até a Mensagem citada", () => {
   test("vai até a original carregada e a destaca", async ({
@@ -52,7 +52,7 @@ test.describe("Ir até a Mensagem citada", () => {
     const [original] = await insertMessages(sharedChannel, [
       { author: otherPerson, body: "A original antiga", at: new Date(at) },
     ]);
-    await insertMessages(sharedChannel, [
+    const inserted = await insertMessages(sharedChannel, [
       ...Array.from({ length: 120 }, (_, index) => ({
         author: person,
         body: `Recheio ${index + 1}`,
@@ -60,6 +60,8 @@ test.describe("Ir até a Mensagem citada", () => {
       })),
       { author: person, body: "A resposta", at: new Date(at + 121 * 30_000), quotedMessageId: original.id },
     ]);
+    // Tudo lido: abrir com Não lidas iria até a primeira delas (F07).
+    await setLastRead(sharedChannel, person, inserted.at(-1)!.id);
     await page.goto(`/conversas/${sharedChannel.id}`);
     await otherPage.goto(`/conversas/${sharedChannel.id}`);
     await readyHistory(page, sharedChannel.name);
