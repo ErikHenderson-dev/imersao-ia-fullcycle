@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { ActivityItem, Conversation, Message } from "@/app/services/chat-api";
 import { notificationKindFor } from "@/app/utils/activity-cache";
@@ -16,10 +16,12 @@ export function useNotificationItems(
   initialConversations?: readonly Conversation[],
 ): {
   conversations: readonly Conversation[];
+  // A regra da Conversa aberta com a aba em foco, a mesma da barra lateral (F07).
+  isOpenAndFocused: (conversation: Pick<Conversation, "id">) => boolean;
   itemFor: (message: Message) => ActivityItem | null;
   joinedIds: ReadonlySet<string>;
 } {
-  const { conversations } = useVisibleUnread(personId, initialConversations);
+  const { conversations, isOpenAndFocused } = useVisibleUnread(personId, initialConversations);
   const { subscribe } = useRealtime();
   // A ref serve o evento que chega logo depois, antes da próxima renderização; o conjunto em estado,
   // a renderização.
@@ -40,9 +42,10 @@ export function useNotificationItems(
     [subscribe, personId],
   );
 
-  // Estável, para quem o chama de dentro de uma assinatura do tempo real: lê a lista mais recente.
+  // Estável, para quem o chama de dentro de uma assinatura do tempo real: lê a lista mais recente,
+  // atualizada logo depois de cada renderização, antes de qualquer evento do socket.
   const latest = useRef(conversations);
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = conversations;
   }, [conversations]);
   const itemFor = useCallback(
@@ -56,5 +59,5 @@ export function useNotificationItems(
     [personId],
   );
 
-  return { conversations, itemFor, joinedIds };
+  return { conversations, isOpenAndFocused, itemFor, joinedIds };
 }

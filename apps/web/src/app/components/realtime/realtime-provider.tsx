@@ -128,16 +128,21 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     // O cursor do último evento recebido, mandado a cada handshake (spec da F03, "Conexão por aba"):
     // a API reenvia o que veio depois dele.
     let cursor: string | null = null;
+    let sentCursor = false;
     const socket: RealtimeSocket = io(url, {
       transports: ["websocket"],
       withCredentials: true,
-      auth: (send) => send(cursor ? { cursor } : {}),
+      auth: (send) => {
+        // Só uma conexão que manda cursor recebe o reenvio do que perdeu.
+        sentCursor = cursor !== null;
+        send(cursor ? { cursor } : {});
+      },
     });
     // Até o sync de cada conexão, os eventos ficam guardados: a sala da Pessoa já recebe os novos
     // enquanto a API reenvia os perdidos, e a ordem é a do cursor.
     let isSyncing = true;
     let pendingEvents: ReceivedEvent[] = [];
-    // Verdadeiro enquanto o sync aplica os eventos guardados da reconexão.
+    // Verdadeiro enquanto o sync de uma reconexão aplica os eventos guardados.
     let isReplaying = false;
     let retryDelay = RETRY_MIN_MS;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -253,9 +258,14 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       untypedSocket.on(name, (event) => receive({ name, event } as ReceivedEvent));
     }
     socket.on("sync", (event) => {
-      isReplaying = true;
-      orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
-      isReplaying = false;
+      // O que ficou guardado até o sync de uma reconexão com cursor é, quase todo, o reenvio do que a
+      // aba perdeu; na primeira conexão não há reenvio, e o que chegou é novo.
+      isReplaying = sentCursor;
+      try {
+        orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
+      } finally {
+        isReplaying = false;
+      }
       pendingEvents = [];
       isSyncing = false;
       cursor = laterCursor(cursor, event.cursor);

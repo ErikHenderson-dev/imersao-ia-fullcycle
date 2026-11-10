@@ -19,7 +19,7 @@ export function useVisibleUnread(
   fallback?: readonly Conversation[],
 ): {
   conversations: readonly Conversation[];
-  isOpenAndFocused: (conversation: Conversation) => boolean;
+  isOpenAndFocused: (conversation: Pick<Conversation, "id">) => boolean;
 } {
   // Com a mesma busca da barra lateral, sem buscar sozinho: o reset do tempo real revalida a chave
   // pela busca do primeiro hook registrado nela, que pode ser este.

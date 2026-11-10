@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent } from "react";
 import { toast } from "sonner";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
@@ -8,7 +8,7 @@ import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import { useNotificationItems } from "@/app/hooks/use-notification-items";
 import type { Message } from "@/app/services/chat-api";
 import { notificationTitle } from "@/app/utils/activity";
-import { conversationHref, messageHref } from "@/app/utils/conversation-list";
+import { messageHref } from "@/app/utils/conversation-list";
 import { ALERT_DURATION_MS, notificationDestination } from "@/app/utils/notification-destination";
 
 // O Alerta (spec da F08, "Alerta e notificação do navegador"): uma Menção ou uma Mensagem direta que
@@ -16,9 +16,8 @@ import { ALERT_DURATION_MS, notificationDestination } from "@/app/utils/notifica
 // reconexão não alerta.
 export function AlertCenter({ personId }: { personId: string }) {
   const router = useRouter();
-  const pathname = usePathname();
   const isTabFocused = useTabFocus();
-  const { itemFor } = useNotificationItems(personId);
+  const { itemFor, isOpenAndFocused } = useNotificationItems(personId);
   const { subscribe } = useRealtime();
 
   const alertFor = useEffectEvent((message: Message) => {
@@ -26,7 +25,7 @@ export function AlertCenter({ personId }: { personId: string }) {
     const destination = notificationDestination({
       kind: item?.kind ?? null,
       isTabFocused,
-      isConversationOpen: pathname === conversationHref({ id: message.conversationId }),
+      isConversationOpen: isOpenAndFocused({ id: message.conversationId }),
     });
     if (destination !== "alert" || !item) return;
     toast(notificationTitle(item), {
