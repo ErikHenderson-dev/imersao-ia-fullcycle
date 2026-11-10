@@ -1,6 +1,6 @@
 # 03: Editar a própria Mensagem
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o autor escolhe "Editar" na barra ou no menu de uma Mensagem dele, edita o
 texto no lugar da Mensagem e salva com Enter, ou cancela com Esc. O texto novo e "(editada)"
