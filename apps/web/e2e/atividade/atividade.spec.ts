@@ -125,11 +125,11 @@ test.describe("Atividade ao carregar a página", () => {
 
     await openActivity(page, person, primeiro);
 
-    await expect(page.getByText("Menções e mensagens diretas aparecem aqui assim que chegam.")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Menções e mensagens diretas aparecem aqui assim que chegam.")).toBeVisible();
     await page.goto("/atividade?aba=mencoes");
-    await expect(page.getByText("Quando alguém mencionar você com @, a mensagem aparece aqui.")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Quando alguém mencionar você com @, a mensagem aparece aqui.")).toBeVisible();
     await page.goto("/atividade?aba=diretas");
-    await expect(page.getByText("Novas mensagens diretas aparecem aqui.")).toBeVisible();
+    await expect(page.getByRole("main").getByText("Novas mensagens diretas aparecem aqui.")).toBeVisible();
   });
 
   test("a falha ao carregar mais mostra o erro com Tentar de novo", async ({ page, person, otherPerson }) => {

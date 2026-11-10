@@ -6,8 +6,10 @@ import { SESSION_COOKIE_NAME } from "../support/session-cookie";
 
 test.describe("Sair", () => {
   test("sair-pelo-teclado", async ({ loggedInPage: page, person, context }) => {
-    // 1. Do "Início", Tab leva ao avatar
+    // 1. Do "Início", Tab passa por "Atividade" (F08) e leva ao avatar
     await page.getByRole("link", { name: "Início" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: /^Atividade/ })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: `Menu de ${person.name}` })).toBeFocused();
 
