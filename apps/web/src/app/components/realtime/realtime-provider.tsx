@@ -37,8 +37,12 @@ export type MemberAdded = { conversation: Conversation; personIds: readonly stri
 // A Última leitura e os números de uma Conversa, calculados pelo servidor (spec da F07).
 export type ConversationUnread = { conversationId: string; unread: Unread };
 
+// Como a Mensagem chegou: no reenvio da reconexão (os eventos guardados enquanto a conexão
+// sincronizava) ou ao vivo. Só a ao vivo alerta (spec da F08, "Alerta e notificação do navegador").
+export type MessageArrival = { isReplay: boolean };
+
 export type RealtimeListener = {
-  onMessage?: (message: Message) => void;
+  onMessage?: (message: Message, arrival: MessageArrival) => void;
   // Uma Mensagem editada (spec da F06, "Eventos no cliente").
   onMessageUpdated?: (message: Message) => void;
   // Uma Mensagem apagada, que sai da Conversa (spec da F06, "Eventos no cliente").
@@ -133,6 +137,8 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     // enquanto a API reenvia os perdidos, e a ordem é a do cursor.
     let isSyncing = true;
     let pendingEvents: ReceivedEvent[] = [];
+    // Verdadeiro enquanto o sync aplica os eventos guardados da reconexão.
+    let isReplaying = false;
     let retryDelay = RETRY_MIN_MS;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const setStatus = (status: RealtimeStatus) =>
@@ -187,7 +193,8 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
         message.conversationId,
         rememberMessage(received.get(message.conversationId) ?? [], message),
       );
-      listeners.current.forEach((listener) => listener.onMessage?.(message));
+      const arrival = { isReplay: isReplaying };
+      listeners.current.forEach((listener) => listener.onMessage?.(message, arrival));
     };
     const applyMessageUpdated = (event: MessageUpdatedEvent) => {
       const message = messageFromEvent(event.message);
@@ -246,7 +253,9 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       untypedSocket.on(name, (event) => receive({ name, event } as ReceivedEvent));
     }
     socket.on("sync", (event) => {
+      isReplaying = true;
       orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
+      isReplaying = false;
       pendingEvents = [];
       isSyncing = false;
       cursor = laterCursor(cursor, event.cursor);
