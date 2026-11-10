@@ -392,14 +392,14 @@ function History({
   // Um `?mensagem=` novo com a Conversa já aberta (um Alerta da mesma Conversa) começa outra ida,
   // como uma Citação nova; o da abertura já é o alvo inicial. Cada navegação renderiza a página de
   // novo, com outro `renderedAt`: pedir de novo a mesma Mensagem também é um pedido novo.
-  const request = messageParam ? `${messageParam}@${renderedAt}` : null;
+  const request = messageParam === null ? null : `${messageParam}@${renderedAt}`;
   // O da abertura já é o alvo inicial; um valor que não é um id fica para o efeito tirar da URL.
   const handledRequest = useRef(messageParam && isUuid(messageParam) ? request : null);
   const goToRequested = useEffectEvent((messageId: string) => goToMessage(messageId));
   useEffect(() => {
-    if (!messageParam || request === handledRequest.current) return;
+    if (messageParam === null || request === handledRequest.current) return;
     handledRequest.current = request;
-    // Um valor que não é um id não leva a lugar nenhum e sai da URL.
+    // Um valor que não é um id, inclusive o vazio, não leva a lugar nenhum e sai da URL.
     if (!isUuid(messageParam)) return dropMessageParam();
     // No quadro seguinte, como os passos da ida.
     const frame = requestAnimationFrame(() => goToRequested(messageParam.toLowerCase()));

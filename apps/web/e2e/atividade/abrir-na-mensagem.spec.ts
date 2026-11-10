@@ -64,6 +64,18 @@ test.describe("Abrir a Conversa na Mensagem", () => {
     await expect(page).toHaveURL(new RegExp(`/conversas/${canal.id}$`));
   });
 
+  test("um parâmetro vazio ou que não é id sai da URL", async ({ loggedInPage: page, person, otherPerson }) => {
+    const canal = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
+    await insertHistory(canal, otherPerson, 3);
+
+    await page.goto(`/conversas/${canal.id}?mensagem=`);
+
+    await readyHistory(page, canal.name);
+    await expect(page).toHaveURL(new RegExp(`/conversas/${canal.id}$`));
+    await page.goto(`/conversas/${canal.id}?mensagem=abc`);
+    await expect(page).toHaveURL(new RegExp(`/conversas/${canal.id}$`));
+  });
+
   test("abrir na Mensagem lê a Conversa", async ({ page, person, otherPerson }) => {
     const primeiro = await insertChannel([person], { name: `e2e-0-${crypto.randomUUID()}` });
     const canal = await insertChannel([person, otherPerson], { name: `e2e-a-${crypto.randomUUID()}` });
