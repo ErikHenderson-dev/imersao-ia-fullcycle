@@ -1,6 +1,6 @@
 # 04: Abrir na primeira Não lida, com o divisor
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** ao abrir uma Conversa com Não lidas, ela começa na primeira delas, com o
 divisor "Novas mensagens" logo acima; se a primeira Não lida não está carregada, a Conversa vai
