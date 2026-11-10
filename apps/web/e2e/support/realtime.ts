@@ -54,5 +54,8 @@ export async function openSharedChannel(
   await otherPage.goto(`/conversas/${channel.id}`);
   await waitForRealtime(page);
   await waitForRealtime(otherPage);
+  // As duas abas com a Conversa aberta no WebSocket (o histórico em dia com o tempo real): sem
+  // isso, o primeiro "digitando" de uma aba que ainda não entrou na sala se perde.
+  await readyHistory(otherPage, channel.name);
   return readyHistory(page, channel.name);
 }
