@@ -248,7 +248,7 @@ describe('banco de testes', () => {
         `INSERT INTO conversations (id, kind, name) VALUES ($1, 'public_channel', $2)`,
         [conversationId, `c-${conversationId.slice(0, 8)}`],
       );
-      return dataSource.query(
+      return dataSource.query<unknown[]>(
         `INSERT INTO messages (id, conversation_id, author_id, client_id, body, deleted_at)
            VALUES ($1, $2, $3, $4, $5, $6)`,
         [
