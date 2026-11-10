@@ -1,6 +1,6 @@
 # 05: Mencionar um Membro
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** na caixa de mensagem e na edição, digitar `@`, ou clicar no botão `@`, abre a
 lista dos Membros da Conversa, filtrada pelo que se digita depois do `@`; escolher põe o
