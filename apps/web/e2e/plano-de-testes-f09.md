@@ -53,3 +53,16 @@ a mensagem, e o próprio perfil com o Status, nos dois temas, sem violações do
 
 Acessibilidade (`acessibilidade/presenca-sem-violacoes.spec.ts`): o menu do avatar aberto, nos dois
 temas, sem violações do axe.
+
+## F09-T05 · Tema claro e escuro (`tema/tema.spec.ts`)
+
+1. **O tema vem aplicado num navegador novo, antes da hidratação:** com o escuro gravado na Pessoa,
+   entrar num contexto novo já mostra `data-theme="dark"`; com o JavaScript da aplicação bloqueado,
+   o script do `<head>` aplica o tema e o `color-scheme`.
+2. **Entrar fica no claro:** com o cookie do tema escuro, "Entrar" não tem `data-theme`.
+3. **Troca o tema nas duas abas, pelo teclado, e a escolha fica na Pessoa.**
+4. **A falha volta ao tema anterior:** a Server Action responde 500; o toast aparece e o claro
+   volta.
+
+Acessibilidade (`acessibilidade/tema-sem-violacoes.spec.ts`): a Conversa e a Atividade nos dois
+temas, trocados pelo botão, sem violações do axe.

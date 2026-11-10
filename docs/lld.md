@@ -293,7 +293,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
-| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") e a escolha de presença; planejado: tema (spec da F09, seção "Pessoas"); papel e permissão a detalhar |
+| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); papel e permissão a detalhar |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
@@ -337,7 +337,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | Método e caminho | Situação | Comportamento |
 | --- | --- | --- |
 | API do chat: `POST /v1/sessions` | existe | Entrar: "Estados e regras", seção "Sessão e login" |
-| API do chat: `GET /v1/sessions/current` | existe | Verificar e renovar a Sessão: mesma seção. A Pessoa traz o Status e a escolha de presença; alteração `planejada`: o tema ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Rotas") |
+| API do chat: `GET /v1/sessions/current` | existe | Verificar e renovar a Sessão: mesma seção. A Pessoa traz o Status, a escolha de presença e o tema ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Rotas") |
 | API do chat: `DELETE /v1/sessions/current` | existe | Sair: mesma seção |
 | BFF: Server Actions entrar e sair | existe | Gravam e apagam o cookie: "Conceitos transversais de implementação", seção "Segurança" |
 | BFF: `GET /api/session/expired` | existe | Apaga o cookie de uma Sessão que a API recusa e leva a "Entrar": "Cliente", seção "Sessão no cliente" |
@@ -354,7 +354,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/people` | existe | Busca de Pessoas pelo nome ou pelo @usuário, fora dos Membros de uma Conversa ou, sem ela, todas: spec da F04, seções "Busca de Pessoas" e "Rotas"; a mudança: spec da F05, seções "Busca e Perfil" e "Rotas"; só os Membros de uma Conversa (`member_of`): spec da F06, seção "Busca de Pessoas para a lista de menções" |
 | API do chat: `GET /v1/people/:id` | existe | Perfil de uma Pessoa: spec da F05, seções "Busca e Perfil" e "Rotas". O Perfil, a busca e os Membros trazem o Status e a Presença (spec da F09, seção "Rotas") |
 | API do chat: `PATCH /v1/people/me` | existe | Editar o próprio Perfil e o Status: spec da F09, seções "Pessoas" e "Rotas" |
-| API do chat: `PUT /v1/people/me/presence` e `PUT /v1/people/me/theme` | existe a de presença; a do tema planejada | Gravar a escolha de presença e o tema: spec da F09, seção "Rotas"; a Presença: "Estados e regras", seção "Presença" |
+| API do chat: `PUT /v1/people/me/presence` e `PUT /v1/people/me/theme` | existe | Gravar a escolha de presença e o tema: spec da F09, seção "Rotas"; a Presença: "Estados e regras", seção "Presença" |
 | API do chat: `GET /v1/people/presence` | existe | Retrato de quem está disponível ou tem Status: spec da F09, seção "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
 | API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas (inclusive `workspace`), Presença pela conexão e desconexão, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added`, `conversation.unread` e `activity.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`: spec da F08, seção "Tempo real". A sala `workspace`, o `person.updated` e o `presence.changed`, sem cursor nem reenvio: spec da F09, seção "Tempo real" |
@@ -363,7 +363,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
 | BFF: `GET /api/people/:id` | existe | Perfil: spec da F05, seção "BFF" |
 | BFF: Server Action `saveTimeZone` | existe | Gravar o fuso: spec da F05, seção "BFF" |
-| BFF: Server Actions `updateProfile`, `savePresenceChoice` e `saveTheme` | existe: `updateProfile` e `savePresenceChoice`; `saveTheme` planejada | Editar o Perfil, a escolha de presença e o tema: spec da F09, seção "BFF" |
+| BFF: Server Actions `updateProfile`, `savePresenceChoice` e `saveTheme` | existe | Editar o Perfil, a escolha de presença e o tema: spec da F09, seção "BFF" |
 | BFF: `GET /api/people/presence` | existe | O retrato, pedido pelo cliente a cada conexão: spec da F09, seção "BFF" |
 | BFF: Server Action `openDirectConversation` | existe | Abrir Conversa direta: spec da F05, seção "BFF" |
 | BFF: Server Action `editMessage` | existe | Editar a própria Mensagem: spec da F06, seção "BFF" |
@@ -541,7 +541,7 @@ do cliente, alimentado pelo retrato e pelos eventos `person.updated` e `presence
 componentes de Pessoa leem dele e, sem entrada, usam o que veio no payload. Assim, um nome trocado aparece nas Mensagens já carregadas sem buscar o
 histórico de novo (spec da F09, seção "Cliente").
 
-**Tema.** Situação: `planejada`. O tema é gravado na Pessoa, para valer em qualquer navegador, e o
+**Tema.** Situação: `existe`. O tema é gravado na Pessoa, para valer em qualquer navegador, e o
 cookie **Tema** ("Cookies do cliente") o espelha para a primeira pintura: com Cache Components, o
 layout raiz não lê a Sessão fora de um `<Suspense>`. Um script bloqueante no `<head>` aplica o
 `data-theme` antes da pintura, fora de "Entrar", que fica no claro. A troca vale na hora em todas as

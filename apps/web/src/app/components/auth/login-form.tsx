@@ -83,6 +83,13 @@ export function LoginForm({ returnPath, initialState }: LoginFormProps) {
 
   // Marca o formulário como hidratado: antes disso, o envio é o do navegador, sem a validação
   // no cliente. Os testes de ponta a ponta esperam a marca antes de interagir.
+  // "Entrar" fica no claro, também quando a página chega por uma navegação do cliente, depois de
+  // sair (spec da F09, "Cliente", "Tema").
+  useEffect(() => {
+    document.documentElement.removeAttribute("data-theme");
+    document.documentElement.style.colorScheme = "";
+  }, []);
+
   useEffect(() => {
     formRef.current?.setAttribute("data-ready", "");
     // A marca de verificação que falhou e o resultado do envio nativo servem só para esta

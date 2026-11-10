@@ -1,4 +1,5 @@
 import { UserMenu } from "@/app/components/user/user-menu";
+import { ThemeToggle } from "./theme-toggle";
 import type { Person } from "@/app/services/chat-api";
 import { Suspense } from "react";
 import { ActivityLink } from "./activity-link";
@@ -27,6 +28,7 @@ export function Rail({ person }: RailProps) {
         <ActivityNav personId={person.id} />
       </Suspense>
       <div className="flex-1" />
+      <ThemeToggle personTheme={person.theme} />
       <UserMenu person={person} />
     </nav>
   );

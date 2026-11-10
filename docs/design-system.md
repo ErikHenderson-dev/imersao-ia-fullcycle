@@ -236,7 +236,7 @@ Resultado: `bg-surface`, `text-fg-muted`, `border-border-subtle`, `bg-primary ho
 
 ### Tema claro e escuro
 
-A pessoa escolhe o tema (brief, "Escopo do MVP", item 7). O tema fica no atributo `data-theme` do `<html>`, aplicado no servidor para não piscar na carga. Sem o atributo, vale o claro. Onde a escolha é gravada é decisão do LLD (seção "8. Cliente", ainda a definir).
+A pessoa escolhe o tema (brief, "Escopo do MVP", item 7). O tema fica no atributo `data-theme` do `<html>`, aplicado no servidor para não piscar na carga. Sem o atributo, vale o claro. A escolha fica na Pessoa, com um cookie que a espelha para a primeira pintura: LLD, seção "8. Cliente", "Tema".
 
 O `ThemeToggle` mostra a lua no tema claro e o sol no escuro.
 

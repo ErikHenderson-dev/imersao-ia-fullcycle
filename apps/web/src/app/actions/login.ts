@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { login as loginToChat } from "@/app/services/chat-api";
 import { writeSessionCookie } from "@/app/services/session-cookie";
+import { writeThemeCookie } from "@/app/services/theme-cookie";
 import {
   hasErrors,
   validateLogin,
@@ -41,6 +42,8 @@ export async function login(
   }
 
   await writeSessionCookie(result.token);
+  // O navegador novo já abre no tema da Pessoa (spec da F09, "Cliente", "Tema").
+  await writeThemeCookie(result.person.theme);
   redirect(safeReturnPath(formData.get("para")));
 }
 
