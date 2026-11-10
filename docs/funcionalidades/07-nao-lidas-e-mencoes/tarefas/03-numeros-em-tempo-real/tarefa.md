@@ -1,6 +1,6 @@
 # 03: Números em tempo real
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o negrito e os contadores da barra lateral mudam na hora, em todas as abas e
 navegadores de cada Membro afetado, sem recarregar: uma Mensagem nova, uma edição que muda Menção,
