@@ -176,6 +176,31 @@ describe('Não lidas em tempo real', () => {
     expect(toThird).toHaveLength(0);
   });
 
+  it('a edição que tira uma Menção entrega só a quem saiu', async () => {
+    const { author, reader, channelId } = await channelWithReader();
+    const third = await authRoutes.loggedIn(app, { name: 'Dora Reis' });
+    await conversationRoutes
+      .addMembers(app, author.cookie, channelId, [third.person.id])
+      .expect(200);
+    const messageId = await send(
+      author.cookie,
+      channelId,
+      `Oi @${reader.person.username}`,
+    );
+    await settle();
+    const toReader = unreadOf(await connected(reader.token));
+    const toThird = unreadOf(await connected(third.token));
+
+    await conversationRoutes
+      .editMessage(app, author.cookie, channelId, messageId, 'Sem Menção')
+      .expect(200);
+
+    const [event] = await waitForCount(toReader, 1);
+    expect(event).toMatchObject({ unread_count: 1, mention_count: 0 });
+    await settle();
+    expect(toThird).toHaveLength(0);
+  });
+
   it('apagar entrega só a quem ainda não tinha lido', async () => {
     const { author, reader, channelId } = await channelWithReader();
     const third = await authRoutes.loggedIn(app, { name: 'Dora Reis' });
