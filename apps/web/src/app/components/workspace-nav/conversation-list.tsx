@@ -5,11 +5,11 @@ import { useIsOpenAndFocused } from "@/app/hooks/use-is-open-and-focused";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
+import { fetchConversationList } from "@/app/services/conversation-list";
 import {
   applyMemberAdded,
   applyUnread,
   conversationHref,
-  CONVERSATIONS_URL,
   conversationsKey,
 } from "@/app/utils/conversation-list";
 import { unreadDisplay } from "@/app/utils/unread";
@@ -21,14 +21,6 @@ import { SidebarSection } from "./sidebar-section";
 export { conversationsKey };
 
 
-// Um 401 aqui é só uma falha: a lista que está na tela fica, e quem leva a "Entrar" é o fim da
-// Sessão no tempo real (session.ended) ou a próxima ação da Pessoa. Sem isso, a busca do reset da
-// primeira conexão disputaria a navegação com quem acabou de sair.
-async function fetchConversations(): Promise<readonly Conversation[]> {
-  const response = await fetch(CONVERSATIONS_URL);
-  if (!response.ok) throw new Error("Não foi possível carregar as conversas.");
-  return (await response.json()) as Conversation[];
-}
 
 type ConversationListProps = {
   // A lista lida pelo Server Component, ponto de partida do cache.
@@ -41,7 +33,7 @@ type ConversationListProps = {
 // cliente"; spec da F05): o conversation.member_added muda o cache sem nova requisição, e o reset
 // do tempo real busca a lista de novo. Uma falha nessa busca mantém a lista que já está na tela.
 export function ConversationList({ initialConversations, personId }: ConversationListProps) {
-  const { data: conversations, mutate } = useSWR(conversationsKey(personId), fetchConversations, {
+  const { data: conversations, mutate } = useSWR(conversationsKey(personId), fetchConversationList, {
     fallbackData: initialConversations,
     revalidateOnMount: false,
     revalidateOnFocus: false,
