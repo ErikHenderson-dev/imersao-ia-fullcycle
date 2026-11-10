@@ -11,13 +11,18 @@ import {
 } from "react";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
 import { SWRConfig } from "swr";
 import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
-import { JUMP_PAGE_SIZE, type JumpTarget, jumpStep, openingTarget } from "@/app/utils/jump-to-message";
+import {
+  JUMP_PAGE_SIZE,
+  type JumpTarget,
+  jumpStep,
+  MESSAGE_PARAM,
+  openingTarget,
+} from "@/app/utils/jump-to-message";
 import { firstUnreadId, needsOlderForUnread } from "@/app/utils/unread-opening";
 import { isUuid } from "@/app/utils/uuid";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
@@ -50,6 +55,10 @@ type MessageHistoryProps = {
   renderedAt: string;
   // A Pessoa da Sessão, autora das Mensagens que ainda estão sendo enviadas.
   currentPerson: MessageAuthor;
+  // O `?mensagem=` da URL, lido pela página no servidor (spec da F08, "Abrir a Conversa na
+  // Mensagem"). Não sai de useSearchParams: assinar a URL aqui fazia a página guardada para o voltar
+  // do navegador renderizar com o cache do histórico já desmontado.
+  messageParam: string | null;
 };
 
 // Distância do topo em que o sentinela pede a página anterior (spec da F02, "Lista de Mensagens").
@@ -68,8 +77,6 @@ export function MessageHistory(props: MessageHistoryProps) {
   );
 }
 
-// O parâmetro da Mensagem pedida na URL da Conversa (spec da F08, "Abrir a Conversa na Mensagem").
-const MESSAGE_PARAM = "mensagem";
 
 // Tira o `?mensagem=` da URL sem navegar: o roteador do Next acompanha o replaceState.
 function dropMessageParam() {
@@ -88,6 +95,7 @@ function History({
   timeZone,
   renderedAt,
   currentPerson,
+  messageParam,
 }: MessageHistoryProps) {
   const {
     messages: saved,
@@ -206,7 +214,6 @@ function History({
   // topo da área visível (spec da F07). As páginas anteriores carregam até o alvo estar na lista.
   // Aberta por `?mensagem=` (Atividade, Alerta, notificação do navegador), a ida vai até a Mensagem
   // pedida, antes da primeira Não lida (spec da F08, "Abrir a Conversa na Mensagem").
-  const messageParam = useSearchParams().get(MESSAGE_PARAM);
   const [jumpTarget, setJumpTarget] = useState<JumpTarget | null>(() =>
     openingTarget(messageParam, dividerAfter),
   );
@@ -383,24 +390,21 @@ function History({
     else toast("A mensagem não está mais disponível");
   });
   // Um `?mensagem=` novo com a Conversa já aberta (um Alerta da mesma Conversa) começa outra ida,
-  // como uma Citação nova; o da abertura já é o alvo inicial.
-  const openedWith = useRef(messageParam);
+  // como uma Citação nova; o da abertura já é o alvo inicial. Cada navegação renderiza a página de
+  // novo, com outro `renderedAt`: pedir de novo a mesma Mensagem também é um pedido novo.
+  const request = messageParam ? `${messageParam}@${renderedAt}` : null;
+  // O da abertura já é o alvo inicial; um valor que não é um id fica para o efeito tirar da URL.
+  const handledRequest = useRef(messageParam && isUuid(messageParam) ? request : null);
   const goToRequested = useEffectEvent((messageId: string) => goToMessage(messageId));
   useEffect(() => {
-    // Sem o parâmetro (a ida o tirou), pedir de novo a mesma Mensagem volta a ir até ela.
-    if (!messageParam) {
-      openedWith.current = null;
-      return;
-    }
+    if (!messageParam || request === handledRequest.current) return;
+    handledRequest.current = request;
     // Um valor que não é um id não leva a lugar nenhum e sai da URL.
     if (!isUuid(messageParam)) return dropMessageParam();
-    if (messageParam === openedWith.current) return;
-    openedWith.current = messageParam;
     // No quadro seguinte, como os passos da ida.
     const frame = requestAnimationFrame(() => goToRequested(messageParam.toLowerCase()));
     return () => cancelAnimationFrame(frame);
-  }, [messageParam]);
-
+  }, [messageParam, request]);
   // A cada página que chega (ou falha), o próximo passo da ida, no quadro seguinte, depois de a lista
   // nova estar na tela.
   useEffect(() => {

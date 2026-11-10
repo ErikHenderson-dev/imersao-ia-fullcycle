@@ -1,4 +1,5 @@
 import type { Conversation, Unread } from "@/app/services/chat-api";
+import { MESSAGE_PARAM } from "./jump-to-message";
 import { compareNames } from "./name-order";
 
 // A rota do BFF que lê a lista de Conversas.
@@ -12,7 +13,7 @@ export function conversationHref(conversation: Pick<Conversation, "id">): string
 // O endereço de uma Mensagem na Conversa dela (spec da F08, "Abrir a Conversa na Mensagem"): o
 // destino do item de Atividade, do Alerta e da notificação do navegador.
 export function messageHref(conversationId: string, messageId: string): string {
-  return `/conversas/${conversationId}?mensagem=${messageId}`;
+  return `/conversas/${conversationId}?${MESSAGE_PARAM}=${messageId}`;
 }
 
 // A chave do cache da lista de Conversas, por Pessoa: quem entra depois de outra na mesma aba, sem

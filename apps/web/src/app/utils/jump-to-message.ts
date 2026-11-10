@@ -17,6 +17,9 @@ export function jumpStep(messages: readonly Message[], targetId: string, hasOlde
   return "continue";
 }
 
+// O parâmetro da Mensagem pedida na URL da Conversa (spec da F08, "Abrir a Conversa na Mensagem").
+export const MESSAGE_PARAM = "mensagem";
+
 // O alvo da ida ao abrir a Conversa: a original de uma Citação ou a Mensagem pedida, ou a primeira
 // Não lida depois da Última leitura.
 export type JumpTarget = { kind: "message"; id: string } | { kind: "unread"; lastReadId: string | null };
