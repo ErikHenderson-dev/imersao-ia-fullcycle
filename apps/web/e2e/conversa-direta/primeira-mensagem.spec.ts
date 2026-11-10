@@ -45,11 +45,16 @@ test.describe("A outra Pessoa recebe a Conversa direta", () => {
     // 5. A outra Pessoa abre e responde; a resposta chega em tempo real
     await otherDirects.getByRole("link", { name: person.name }).click();
     await readyConversation(otherPage, person.name);
-    await expect(otherPage.getByText("Oi, tudo bem?")).toBeVisible();
+    // Na lista de Mensagens: o Alerta da F08 também mostra o texto.
+    await expect(
+      otherPage.getByRole("list", { name: `Mensagens em ${person.name}` }).getByText("Oi, tudo bem?"),
+    ).toBeVisible();
     const reply = otherPage.getByRole("textbox", { name: `Mensagem para ${person.name.split(" ")[0]}` });
     await reply.fill("Tudo ótimo!");
     await reply.press("Enter");
 
-    await expect(page.getByText("Tudo ótimo!")).toBeVisible();
+    await expect(
+      page.getByRole("list", { name: `Mensagens em ${otherPerson.name}` }).getByText("Tudo ótimo!"),
+    ).toBeVisible();
   });
 });
