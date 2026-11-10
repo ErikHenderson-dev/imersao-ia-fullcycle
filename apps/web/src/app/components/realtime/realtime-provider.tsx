@@ -10,6 +10,7 @@ import type {
   MessageDeletedEvent,
   MessageUpdatedEvent,
   PersonUpdatedEvent,
+  PresenceChangedEvent,
   ServerToClientEvents,
   StoredEvent,
   StoredEventName,
@@ -56,6 +57,8 @@ export type RealtimeListener = {
   // O Perfil que mudou, para todo o workspace, sem guardar nem reenviar (spec da F09, "Tempo real").
   // Assinado aqui, e não direto no socket, para não perder o que chega logo depois da conexão.
   onPersonUpdated?: (event: PersonUpdatedEvent) => void;
+  // A Presença que mudou, para todo o workspace, sem guardar (spec da F09, "Tempo real").
+  onPresenceChanged?: (event: PresenceChangedEvent) => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
   // reset do último sync: é o caso de quem não guarda os eventos que perdeu, como a lista de
   // Conversas da barra lateral.
@@ -185,6 +188,9 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     socket.on("session.ended", endSession);
     socket.on("person.updated", (event) => {
       listeners.current.forEach((listener) => listener.onPersonUpdated?.(event));
+    });
+    socket.on("presence.changed", (event) => {
+      listeners.current.forEach((listener) => listener.onPresenceChanged?.(event));
     });
     socket.on("connect_error", (error) => {
       if (error.message === UNAUTHENTICATED) {

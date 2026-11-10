@@ -6,7 +6,8 @@ import { profileKey } from "@/app/components/profile/profile-panel";
 import { useProfilePanelPerson } from "@/app/components/profile/profile-panel-provider";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import { conversationsKey } from "@/app/utils/conversation-list";
-import type { Status } from "@/app/services/chat-api";
+import type { Presence } from "chat-events";
+import type { PresenceEntry, Status } from "@/app/services/chat-api";
 import { createPeopleStore, type KnownPerson, type PeopleStore } from "@/app/utils/people-store";
 
 const PeopleContext = createContext<PeopleStore | null>(null);
@@ -40,6 +41,9 @@ export function PeopleProvider({
           if (store.apply(change) && change.id === openProfile.current) {
             void mutate(profileKey(change.id));
           }
+        },
+        onPresenceChanged: (event) => {
+          store.applyPresence(event.person_id, event.presence);
         },
       }),
     [subscribe, store, mutate],
@@ -76,7 +80,7 @@ async function loadSnapshot(store: PeopleStore): Promise<void> {
   try {
     const response = await fetch("/api/people/presence");
     if (!response.ok) return;
-    const body = (await response.json()) as { people: { id: string; status: Status | null }[] };
+    const body = (await response.json()) as { people: PresenceEntry[] };
     if (request !== latestSnapshotRequest) return;
     store.applySnapshot(body.people, mark);
   } catch {
@@ -113,6 +117,18 @@ export function useKnownStatus(personId: string, fallback?: Status | null): Stat
     () => undefined,
   );
   return status === undefined ? (fallback ?? null) : status;
+}
+
+// A Presença de uma Pessoa pela camada: a do retrato e dos eventos, ou a do payload antes do
+// primeiro retrato.
+export function useKnownPresence(personId: string, fallback?: Presence): Presence | undefined {
+  const store = useContext(PeopleContext);
+  const presence = useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    () => store?.getPresence(personId),
+    () => undefined,
+  );
+  return presence ?? fallback;
 }
 
 // Os nomes atuais de várias Pessoas de uma vez, como as do "digitando".

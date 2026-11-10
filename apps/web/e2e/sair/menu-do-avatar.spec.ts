@@ -13,9 +13,9 @@ test.describe("Sair", () => {
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
     await expect(menu.getByText(person.name)).toBeVisible();
-    // "Perfil" (F05), "Editar perfil" (F09), a opção da notificação do navegador (F08) e "Sair do
-    // Full Cycle".
-    await expect(menu.getByRole("menuitem")).toHaveCount(4);
+    // "Definir como ausente" e "Editar perfil" (F09), "Perfil" (F05), a opção da notificação do
+    // navegador (F08) e "Sair do Full Cycle".
+    await expect(menu.getByRole("menuitem")).toHaveCount(5);
     await expect(menu.getByRole("menuitem", { name: /notificações do navegador/ })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: "Sair do Full Cycle" })).toBeVisible();
 

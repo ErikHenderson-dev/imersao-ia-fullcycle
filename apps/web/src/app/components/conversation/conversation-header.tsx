@@ -1,5 +1,9 @@
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
-import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
+import {
+  PersonAvatar,
+  PersonName,
+  PersonPresenceDot,
+} from "@/app/components/people/person-display";
 import { UserStatus } from "@/app/components/people/user-status";
 import { OpenNavigationButton } from "@/app/components/workspace-nav/navigation-drawer";
 import type { Conversation } from "@/app/services/chat-api";
@@ -31,6 +35,7 @@ export function ConversationHeader({ conversation, members }: ConversationHeader
               <PersonName id={counterpart.id} name={counterpart.name} />
             </span>
           </OpenProfileButton>
+          <PersonPresenceDot personId={counterpart.id} className="ml-2" />
           <UserStatus personId={counterpart.id} className="ml-2 text-body" />
         </h1>
       </header>

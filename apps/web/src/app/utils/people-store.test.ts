@@ -118,3 +118,27 @@ describe("Status na camada de Pessoas", () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
+
+describe("Presença na camada de Pessoas", () => {
+  it("o retrato deixa disponível quem veio nele assim, e ausente quem não veio", () => {
+    const store = createPeopleStore();
+    expect(store.getPresence("1")).toBeUndefined();
+
+    store.applySnapshot([{ id: "1", presence: "available", status: null }], store.snapshotMark());
+
+    expect(store.getPresence("1")).toBe("available");
+    expect(store.getPresence("2")).toBe("away");
+  });
+
+  it("o presence.changed troca a Presença, e um retrato lido antes não a desfaz", () => {
+    const store = createPeopleStore();
+    store.applySnapshot([], store.snapshotMark());
+    const mark = store.snapshotMark();
+
+    expect(store.applyPresence("1", "available")).toBe(true);
+    store.applySnapshot([], mark);
+
+    expect(store.getPresence("1")).toBe("available");
+    expect(store.applyPresence("1", "available")).toBe(false);
+  });
+});

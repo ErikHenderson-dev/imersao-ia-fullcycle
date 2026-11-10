@@ -4,7 +4,16 @@ import { Bell, BellOff, CircleUser, LogOut, Pencil } from "lucide-react";
 import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
 import { useEditProfile } from "@/app/components/profile/edit-profile-dialog";
-import { useKnownPerson } from "@/app/components/people/people-provider";
+import type { Presence } from "chat-events";
+import { toast } from "sonner";
+import { savePresenceChoice } from "@/app/actions/save-presence-choice";
+import {
+  useKnownPerson,
+  useKnownPresence,
+  usePeopleStore,
+} from "@/app/components/people/people-provider";
+import { PresenceDot, presenceLabel } from "@/app/components/ui/presence-dot";
+import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { UserStatus } from "@/app/components/people/user-status";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
@@ -22,9 +31,9 @@ import { markLeaving } from "@/app/utils/leaving";
 
 type UserMenuProps = { person: Person };
 
-// Menu do avatar do Rail: o cabeçalho, sem a linha de presença, "Perfil" (F05), "Editar perfil"
-// (F09), a opção da notificação do navegador (F08) e "Sair do Full Cycle". A presença entra na
-// F09-T04.
+// Menu do avatar do Rail ("Casca / Menu do usuário"): o cabeçalho com a Presença, "Definir como
+// ausente" ou "disponível" (F09), "Perfil" (F05), "Editar perfil" (F09), a opção da notificação do
+// navegador (F08) e "Sair do Full Cycle".
 export function UserMenu({ person: sessionPerson }: UserMenuProps) {
   // O nome atual, também depois de editado em outra aba (spec da F09, "Camada de Pessoas").
   const known = useKnownPerson(sessionPerson.id);
@@ -37,11 +46,31 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
   // O diálogo abre depois de o menu fechar e devolver o foco ao avatar: abrir os dois ao mesmo tempo
   // deixaria o foco preso entre eles.
   const editingProfile = useRef(false);
+  const people = usePeopleStore();
+  // A própria Presença: com a aba aberta, é a escolha (spec da F09, "Escolha de presença").
+  const presence = useKnownPresence(person.id, sessionPerson.presenceChoice) ?? "available";
+
+  // Aplica a escolha na hora e volta à anterior se a gravação falhar.
+  async function choosePresence(next: Presence) {
+    const previous = presence;
+    people.applyPresence(person.id, next);
+    const result = await savePresenceChoice(next).catch(() => ({ kind: "failure" }) as const);
+    if (result.kind === "ok") return;
+    if (result.kind === "unauthenticated") return redirectToExpiredSession();
+    people.applyPresence(person.id, previous);
+    toast.error("Não foi possível mudar a presença");
+  }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger ref={trigger} className="rounded-item" title={person.name}>
+      <DropdownMenuTrigger ref={trigger} className="relative rounded-item" title={person.name}>
         <Avatar initials={person.initials} seed={person.id} />
+        <PresenceDot
+          presence={presence}
+          backdrop="chrome"
+          decorative
+          className="absolute -right-0.5 -bottom-0.5"
+        />
         <span className="sr-only">Menu de {person.name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -57,12 +86,40 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
         }}
       >
         <div className="flex items-center gap-3 px-4 pt-1 pb-2">
-          <Avatar initials={person.initials} seed={person.id} />
-          <p className="flex min-w-0 flex-1 items-center gap-1 text-body font-black text-fg">
-            <span className="truncate">{person.name}</span>
-            <UserStatus personId={person.id} status={sessionPerson.status} />
-          </p>
+          <span className="relative inline-flex shrink-0">
+            <Avatar initials={person.initials} seed={person.id} />
+            <PresenceDot
+              presence={presence}
+              backdrop="raised"
+              decorative
+              className="absolute -right-0.5 -bottom-0.5"
+            />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="flex min-w-0 items-center gap-1 text-body font-black text-fg">
+              <span className="truncate">{person.name}</span>
+              <UserStatus personId={person.id} status={sessionPerson.status} />
+            </p>
+            <p className="flex items-center gap-1 text-small text-fg-muted">
+              <PresenceDot presence={presence} decorative />
+              {presenceLabel(presence)}
+            </p>
+          </div>
         </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onSelect={() => void choosePresence(presence === "available" ? "away" : "available")}
+        >
+          {presence === "available" ? (
+            <>
+              Definir como <span className="font-bold">ausente</span>
+            </>
+          ) : (
+            <>
+              Definir como <span className="font-bold">disponível</span>
+            </>
+          )}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => profile.open(person.id, trigger.current)}
