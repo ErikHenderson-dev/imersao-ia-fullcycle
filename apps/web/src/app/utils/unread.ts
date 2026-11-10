@@ -14,10 +14,12 @@ export function formatCount(count: number): string {
 // tela diz depois do nome visível (`suffix`), como ", não lidas, 2 menções".
 export type UnreadDisplay = { isUnread: boolean; count: number; suffix: string };
 
-export function unreadDisplay(conversation: Conversation): UnreadDisplay {
+// A Conversa aberta com a aba em foco é exibida sem nada de novo, qualquer que seja o número no
+// cache: entre a Mensagem chegar e a leitura voltar, a linha não pisca.
+export function unreadDisplay(conversation: Conversation, isOpenAndFocused = false): UnreadDisplay {
   const isDirect = conversation.kind === "direct";
-  const isUnread = conversation.unreadCount > 0;
-  const count = isDirect ? conversation.unreadCount : conversation.mentionCount;
+  const isUnread = !isOpenAndFocused && conversation.unreadCount > 0;
+  const count = !isUnread ? 0 : isDirect ? conversation.unreadCount : conversation.mentionCount;
   return { isUnread, count, suffix: rowSuffix(isDirect, isUnread, count) };
 }
 

@@ -14,6 +14,16 @@ function sortName(conversation: Conversation): string {
   return conversation.kind === "direct" ? (conversation.counterpart?.name ?? "") : conversation.name;
 }
 
+// A lista de Conversas com a Última leitura e os números novos de uma Conversa (spec da F07,
+// "Informar a leitura").
+export function applyUnread(
+  list: readonly Conversation[],
+  conversationId: string,
+  unread: Pick<Conversation, "lastReadMessageId" | "unreadCount" | "mentionCount">,
+): readonly Conversation[] {
+  return list.map((item) => (item.id === conversationId ? { ...item, ...unread } : item));
+}
+
 // A lista de Conversas da barra lateral depois de um conversation.member_added (spec da F04,
 // "Lista de Conversas no cliente"): quem acabou de entrar ganha a Conversa, na ordem e sem repetir;
 // quem já era Membro só vê a quantidade de Membros mudar.

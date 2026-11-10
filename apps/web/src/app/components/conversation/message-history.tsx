@@ -18,6 +18,7 @@ import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
 import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
+import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
 import {
   type PendingMessage,
@@ -46,6 +47,8 @@ type MessageHistoryProps = {
   renderedAt: string;
   // A Pessoa da Sessão, autora das Mensagens que ainda estão sendo enviadas.
   currentPerson: MessageAuthor;
+  // A Última leitura da Conversa na lista de Conversas, ao abrir (spec da F07).
+  initialLastReadId: string | null;
 };
 
 // Distância do topo em que o sentinela pede a página anterior (spec da F02, "Lista de Mensagens").
@@ -73,6 +76,7 @@ function History({
   timeZone,
   renderedAt,
   currentPerson,
+  initialLastReadId,
 }: MessageHistoryProps) {
   const {
     messages: saved,
@@ -121,6 +125,13 @@ function History({
     reloadLatest,
   });
   const typing = useTypingAnnouncer(conversation.id);
+  useReadReport({
+    conversationId: conversation.id,
+    personId: currentPerson.id,
+    newestSavedId: saved.at(-1)?.id,
+    initialLastReadId,
+    isReady: isSynced,
+  });
   // As pendentes vêm sempre depois das gravadas, e passam pelo mesmo agrupamento.
   const messages = useMemo<(Message & { status?: PendingStatus })[]>(
     () => [...saved, ...pending],

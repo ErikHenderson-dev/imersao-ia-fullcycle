@@ -24,3 +24,16 @@ Duas Pessoas, dois Canais e uma Conversa direta, com Mensagens da outra Pessoa a
 
 3. **a barra lateral com Não lidas não tem violações de acessibilidade:** o axe, com um Canal e
    uma Conversa direta Não lidos, sem violações.
+
+Desde a F07-T02, abrir uma Conversa com a aba em foco a lê: os cenários acima começam num Canal
+vazio, o primeiro da lista, que a Home abre.
+
+### 2. Ler a Conversa (F07-T02)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/nao-lidas/ler-a-conversa.spec.ts`
+
+1. **abrir o Canal o deixa lido:** com um Canal com uma Menção Não lida, abri-lo tira o negrito da
+   linha aberta; voltar a outro Canal e recarregar mostra o Canal sem negrito e sem contador.
+2. **a aba em segundo plano não marca como lida:** numa aba com `document.visibilityState`
+   "hidden" e `document.hasFocus()` falso (script de inicialização), abrir um Canal Não lido não o
+   lê; entrar de novo numa aba em foco mostra o Canal ainda Não lido.

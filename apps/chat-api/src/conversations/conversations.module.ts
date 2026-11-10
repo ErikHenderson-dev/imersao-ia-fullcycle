@@ -20,6 +20,6 @@ import { UnreadCounter } from './unread-counter';
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, UnreadCounter],
-  exports: [ConversationsService],
+  exports: [ConversationsService, UnreadCounter],
 })
 export class ConversationsModule {}

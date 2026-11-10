@@ -9,9 +9,11 @@ import { MessageHistory } from "@/app/components/conversation/message-history";
 import { RememberConversation } from "@/app/components/conversation/remember-conversation";
 import {
   type Conversation,
+  type ConversationsResult,
   type CurrentPersonResult,
   getConversation,
   getCurrentPerson,
+  listConversations,
   listMessages,
   type MessagePageResult,
 } from "@/app/services/chat-api";
@@ -32,6 +34,10 @@ export default async function ConversationPage({ params }: PageProps<"/conversas
   // As três leituras começam juntas; só a da Conversa segura o cabeçalho.
   const person = getCurrentPerson(token);
   const history = Promise.all([person, listMessages(token, id)]);
+  // A lista de Conversas, que o layout já lê (o cache do React divide a leitura), traz a Última
+  // leitura da Conversa (spec da F07, "Informar a leitura").
+  const conversations = listConversations(token);
+  conversations.catch(() => {});
   // Se a página sair antes de esperar o histórico, a falha dele não fica sem tratamento; quem o
   // espera recebe a mesma rejeição.
   history.catch(() => {});
@@ -70,7 +76,12 @@ export default async function ConversationPage({ params }: PageProps<"/conversas
         key={conversation.id}
         fallback={<HistoryLoading composerLabel={composerLabel(conversation, selfId)} />}
       >
-        <ConversationHistory conversation={conversation} history={history} path={path} />
+        <ConversationHistory
+          conversation={conversation}
+          history={history}
+          conversations={conversations}
+          path={path}
+        />
       </Suspense>
     </div>
   );
@@ -92,11 +103,27 @@ async function HeaderMembers({
 type ConversationHistoryProps = {
   conversation: Conversation;
   history: Promise<[CurrentPersonResult, MessagePageResult]>;
+  conversations: Promise<ConversationsResult>;
   path: string;
 };
 
-async function ConversationHistory({ conversation, history, path }: ConversationHistoryProps) {
-  const [[personResult, pageResult], timeZone] = await Promise.all([history, readTimeZone()]);
+async function ConversationHistory({
+  conversation,
+  history,
+  conversations,
+  path,
+}: ConversationHistoryProps) {
+  const [[personResult, pageResult], timeZone, listResult] = await Promise.all([
+    history,
+    readTimeZone(),
+    conversations,
+  ]);
+  // Sem a lista, a Conversa vale como nunca lida: o primeiro aviso de leitura a acerta.
+  const initialLastReadId =
+    listResult.kind === "ok"
+      ? (listResult.conversations.find((item) => item.id === conversation.id)?.lastReadMessageId ??
+        null)
+      : null;
   if (personResult.kind === "unauthenticated" || pageResult.kind === "unauthenticated") {
     redirect(expiredSessionPath(path));
   }
@@ -114,6 +141,7 @@ async function ConversationHistory({ conversation, history, path }: Conversation
       timeZone={timeZone}
       renderedAt={new Date().toISOString()}
       currentPerson={{ id: authorId, name, initials }}
+      initialLastReadId={initialLastReadId}
     />
   );
 }

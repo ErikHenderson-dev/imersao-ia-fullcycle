@@ -398,6 +398,47 @@ export async function editMessage(
   return commonFailure(response);
 }
 
+// Ler a Conversa até uma Mensagem (spec da F07, "Rotas").
+
+export type Unread = Pick<Conversation, "lastReadMessageId" | "unreadCount" | "mentionCount">;
+
+export type MarkReadResult =
+  | { kind: "ok"; unread: Unread }
+  | { kind: "not_found" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function markConversationRead(
+  token: string,
+  conversationId: string,
+  messageId: string,
+): Promise<MarkReadResult> {
+  const response = await request(conversationPath(conversationId, "/read"), {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  if (response?.status === 200) {
+    const parsed = await jsonBody<{
+      last_read_message_id: string | null;
+      unread_count: number;
+      mention_count: number;
+    }>(response);
+    if (!parsed) return { kind: "failure" };
+    return {
+      kind: "ok",
+      unread: {
+        lastReadMessageId: parsed.last_read_message_id,
+        unreadCount: parsed.unread_count,
+        mentionCount: parsed.mention_count,
+      },
+    };
+  }
+  if (response?.status === 400) return { kind: "invalid" };
+  return commonFailure(response);
+}
+
 // Apagar a própria Mensagem (spec da F06, "Rotas").
 
 export type DeleteMessageResult =

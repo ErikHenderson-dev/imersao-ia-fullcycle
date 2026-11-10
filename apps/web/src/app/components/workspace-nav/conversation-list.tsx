@@ -1,6 +1,8 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
@@ -51,6 +53,8 @@ export function ConversationList({ initialConversations, personId }: Conversatio
     revalidateOnReconnect: false,
   });
   const { subscribe } = useRealtime();
+  const pathname = usePathname();
+  const isTabFocused = useTabFocus();
 
   // Uma lista nova do servidor (a revalidação do layout depois de criar um Canal) vale mais que a
   // do cache, que o fallbackData não substitui depois do primeiro mutate.
@@ -87,12 +91,19 @@ export function ConversationList({ initialConversations, personId }: Conversatio
       href={hrefOf(conversation)}
       conversation={conversation}
       selfId={personId}
+      isTabFocused={isTabFocused}
     />
   );
   // Recolhida, a seção mostra só as Conversas Não lidas (spec da F07, "Lista de Conversas e barra
   // lateral").
   const rows = (list: Conversation[], isExpanded: boolean) =>
-    list.filter((conversation) => isExpanded || unreadDisplay(conversation).isUnread).map(row);
+    list
+      .filter(
+        (conversation) =>
+          isExpanded ||
+          unreadDisplay(conversation, isTabFocused && hrefOf(conversation) === pathname).isUnread,
+      )
+      .map(row);
   return (
     <>
       <SidebarSection title="Canais">
