@@ -72,6 +72,7 @@ export function AddPeopleStep({
           query={query}
           onQueryChange={setQuery}
           people={search.kind === "ok" ? results : null}
+          isStale={search.kind === "ok" && search.query !== query}
           selectedIds={chosenIds}
           disabled={isSending}
           onPick={(person) =>

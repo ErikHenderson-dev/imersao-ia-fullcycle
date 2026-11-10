@@ -51,6 +51,7 @@ function NewConversationDialog({ personId, onOpened }: { personId: string; onOpe
           query={query}
           onQueryChange={setQuery}
           people={search.kind === "ok" ? search.people : null}
+          isStale={search.kind === "ok" && search.query !== query}
           selfId={personId}
           disabled={isOpening}
           onPick={async (person) => {
@@ -68,7 +69,7 @@ function NewConversationDialog({ personId, onOpened }: { personId: string; onOpe
               <EmptyState
                 icon={Search}
                 title="Ninguém encontrado"
-                description={`Nenhuma pessoa corresponde a "${query}". Confira a grafia ou busque pelo @usuário.`}
+                description={`Nenhuma pessoa corresponde a "${search.query}". Confira a grafia ou busque pelo @usuário.`}
               />
             )
           }

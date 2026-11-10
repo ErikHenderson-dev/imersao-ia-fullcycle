@@ -12,6 +12,8 @@ type PeoplePickerProps = {
   onQueryChange: (query: string) => void;
   // As Pessoas da busca, ou null enquanto a primeira não respondeu.
   people: readonly PersonEntry[] | null;
+  // Verdadeiro enquanto a lista é a de um texto anterior ao do campo: o Enter espera a nova.
+  isStale?: boolean;
   onPick: (person: PersonEntry) => void;
   // A Pessoa da Sessão, com "(você)" ao lado.
   selfId?: string;
@@ -29,6 +31,7 @@ export function PeoplePicker({
   query,
   onQueryChange,
   people,
+  isStale = false,
   onPick,
   selfId,
   selectedIds,
@@ -39,7 +42,12 @@ export function PeoplePicker({
   const listId = useId();
   const [active, setActive] = useState(0);
   const options = people ?? [];
-  // A destacada volta para a primeira quando a lista muda de tamanho.
+  // Uma lista nova destaca a primeira de novo.
+  const [shownPeople, setShownPeople] = useState(people);
+  if (shownPeople !== people) {
+    setShownPeople(people);
+    setActive(0);
+  }
   const activeIndex = Math.min(active, Math.max(options.length - 1, 0));
   const optionId = (index: number) => `${listId}-${index}`;
 
@@ -53,7 +61,7 @@ export function PeoplePicker({
       setActive((activeIndex - 1 + options.length) % options.length);
     } else if (event.key === "Enter") {
       event.preventDefault();
-      if (!disabled) onPick(options[activeIndex]);
+      if (!disabled && !isStale) onPick(options[activeIndex]);
     }
   }
 
@@ -87,8 +95,9 @@ export function PeoplePicker({
           className="pl-9"
         />
       </div>
-      <div aria-live="polite" className="flex max-h-72 flex-col overflow-y-auto">
-        {options.length === 0 && emptyState}
+      <div className="flex max-h-72 flex-col overflow-y-auto">
+        {/* Só os avisos são anunciados; a lista é lida pelo destaque do combobox. */}
+        <div aria-live="polite">{options.length === 0 && emptyState}</div>
         <ul
           id={listId}
           role="listbox"

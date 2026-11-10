@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSWRConfig } from "swr";
 import { openDirectConversation } from "@/app/actions/open-direct-conversation";
 import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
@@ -19,6 +19,8 @@ export function useOpenDirectConversation(sessionPersonId: string) {
   const { mutate } = useSWRConfig();
   const [state, setState] = useState<OpenDirectConversationState>("idle");
   const pathname = usePathname();
+  // Um segundo clique, antes da re-renderização com "opening", não abre outra vez.
+  const isOpening = useRef(false);
 
   const [openedAt, setOpenedAt] = useState(pathname);
   if (openedAt !== pathname) {
@@ -28,8 +30,14 @@ export function useOpenDirectConversation(sessionPersonId: string) {
 
   // Devolve se a Conversa abriu (a página vai trocar, ou já é a dela).
   async function open(personId: string): Promise<boolean> {
+    if (isOpening.current) return false;
+    isOpening.current = true;
     setState("opening");
-    const result = await openDirectConversation(personId).catch(() => null);
+    const result = await openDirectConversation(personId)
+      .catch(() => null)
+      .finally(() => {
+        isOpening.current = false;
+      });
     if (result?.kind === "unauthenticated") {
       await redirectToExpiredSession();
       return false;

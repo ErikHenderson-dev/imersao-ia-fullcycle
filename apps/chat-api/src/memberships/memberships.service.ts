@@ -38,7 +38,7 @@ export class MembershipsService {
     q: string,
   ): Promise<PersonSummary[]> {
     let memberIds: string[] = [];
-    if (conversationId) {
+    if (conversationId !== undefined) {
       await this.conversations.getForMember(personId, conversationId);
       memberIds = await this.conversations.listMemberIds(conversationId);
     }

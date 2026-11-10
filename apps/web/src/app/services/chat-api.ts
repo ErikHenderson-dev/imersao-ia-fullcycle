@@ -343,7 +343,9 @@ export async function searchPeople(
   { q, notMemberOf }: { q: string; notMemberOf?: string },
 ): Promise<SearchPeopleResult> {
   // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca").
-  const query = new URLSearchParams(notMemberOf ? { q, not_member_of: notMemberOf } : { q });
+  const query = new URLSearchParams(
+    notMemberOf === undefined ? { q } : { q, not_member_of: notMemberOf },
+  );
   const response = await request(`/v1/people?${query.toString()}`, {
     method: "GET",
     headers: authenticated(token),
