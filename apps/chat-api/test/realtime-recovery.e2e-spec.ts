@@ -7,6 +7,7 @@ import {
   collectEvents,
   listenTestApp,
   realtimeRoutes,
+  settle,
   testRedis,
   TestSocket,
   waitForCount,
@@ -111,6 +112,50 @@ describe('Recuperação depois da queda', () => {
       cursor: messages.at(-1)!.event_id!,
       reset: false,
     });
+  });
+
+  it('a edição e a exclusão feitas durante a queda voltam na reconexão, nessa ordem', async () => {
+    const author = await authRoutes.loggedIn(app);
+    const reader = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const first = await connectAndSync(reader.token);
+    const sent = await conversationRoutes
+      .sendMessage(app, author.cookie, channel.id, { body: 'Antes' })
+      .expect(201);
+    const messageId = (sent.body as { message: { id: string } }).message.id;
+    const [seen] = await waitForCount(first.messages, 1);
+    first.socket.disconnect();
+    await conversationRoutes
+      .editMessage(app, author.cookie, channel.id, messageId, 'Editada')
+      .expect(200);
+    await conversationRoutes
+      .deleteMessage(app, author.cookie, channel.id, messageId)
+      .expect(204);
+    await settle(200);
+    const socket = realtimeRoutes.socket(url, {
+      token: reader.token,
+      cursor: seen.event_id,
+    });
+    sockets.push(socket);
+    // A publicação pode cruzar com a reconexão e chegar pelo reenvio e ao vivo, com o mesmo cursor:
+    // conta cada cursor uma vez, como a aba (orderForSync).
+    const received: { name: string; eventId?: string }[] = [];
+    socket.on('message.updated', (event) =>
+      received.push({ name: 'message.updated', eventId: event.event_id }),
+    );
+    socket.on('message.deleted', (event) =>
+      received.push({ name: 'message.deleted', eventId: event.event_id }),
+    );
+    const syncs = collectEvents(socket, 'sync');
+
+    socket.connect();
+
+    const [sync] = await waitForCount(syncs, 1);
+    expect(sync.reset).toBe(false);
+    const names = [
+      ...new Map(received.map((event) => [event.eventId, event.name])).values(),
+    ];
+    expect(names).toEqual(['message.updated', 'message.deleted']);
   });
 
   it('a edição feita durante a queda volta na reconexão', async () => {

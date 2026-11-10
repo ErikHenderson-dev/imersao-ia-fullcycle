@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -64,5 +66,16 @@ export class MessagesController {
       body.body,
     );
     return { message: toMessageResponse(message) };
+  }
+
+  // Apaga a própria Mensagem (spec da F06, "Rotas").
+  @Delete(':id')
+  @HttpCode(204)
+  async remove(
+    @CurrentPerson() person: Person,
+    @Param('conversationId') conversationId: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.messages.deleteMessage(person.id, conversationId, id);
   }
 }

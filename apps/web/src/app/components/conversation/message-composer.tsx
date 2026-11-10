@@ -12,6 +12,8 @@ type MessageComposerProps = {
   label?: string;
   // A cada mudança do texto, inclusive o esvaziamento depois do envio: o aviso de "digitando".
   onTextChange?: (text: string) => void;
+  // A caixa de texto, para quem precisa pôr o foco nela (depois de apagar a última Mensagem).
+  inputRef?: React.Ref<HTMLTextAreaElement>;
 } & (
   | {
       // Recebe o texto já sem as pontas; a lista mostra a Mensagem como "enviando" e a fila a
@@ -28,6 +30,7 @@ type MessageComposerProps = {
 export function MessageComposer({
   label = "Mensagem",
   onTextChange,
+  inputRef,
   onSend,
   disabled,
 }: MessageComposerProps) {
@@ -60,6 +63,7 @@ export function MessageComposer({
       >
         <div className="flex px-3 pt-3 pb-1">
           <textarea
+            ref={inputRef}
             aria-label={label}
             aria-invalid={overLimit > 0 || undefined}
             aria-describedby={overLimit > 0 ? counterId : undefined}

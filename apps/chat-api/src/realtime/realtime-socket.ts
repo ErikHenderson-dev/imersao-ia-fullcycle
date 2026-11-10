@@ -40,6 +40,7 @@ export type RealtimeSocket = Socket<
 const STORED_EVENTS: Record<StoredEventName, true> = {
   'message.created': true,
   'message.updated': true,
+  'message.deleted': true,
   'conversation.member_added': true,
 };
 

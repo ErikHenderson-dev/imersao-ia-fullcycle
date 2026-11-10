@@ -16,9 +16,10 @@ import { MESSAGE_MAX_LENGTH } from './message-values';
 @Entity('messages')
 @Index('messages_conversation_id_id_idx', ['conversationId', 'id'])
 @Unique('messages_author_client_key', ['authorId', 'clientId'])
+// Só a Mensagem apagada fica sem texto (spec da F06, "Apagar"); a migração escreve o mesmo CHECK.
 @Check(
-  'messages_body_length_check',
-  `char_length("body") BETWEEN 1 AND ${MESSAGE_MAX_LENGTH}`,
+  'messages_body_check',
+  `("deleted_at" IS NULL AND "body" IS NOT NULL AND char_length("body") BETWEEN 1 AND ${MESSAGE_MAX_LENGTH}) OR ("deleted_at" IS NOT NULL AND "body" IS NULL)`,
 )
 export class Message extends BaseEntity {
   @Column({ type: 'uuid' })
@@ -39,10 +40,15 @@ export class Message extends BaseEntity {
   @Column({ type: 'uuid' })
   clientId!: string;
 
-  @Column({ type: 'text' })
-  body!: string;
+  // Nulo só na Mensagem apagada, pelo CHECK do banco (spec da F06, "Apagar").
+  @Column({ type: 'text', nullable: true })
+  body!: string | null;
 
   // A hora da última edição que mudou o texto (spec da F06, "Mensagens").
   @Column({ type: 'timestamptz', nullable: true })
   editedAt!: Date | null;
+
+  // A hora da exclusão; a linha fica só para as Citações (spec da F06, "Apagar").
+  @Column({ type: 'timestamptz', nullable: true })
+  deletedAt!: Date | null;
 }

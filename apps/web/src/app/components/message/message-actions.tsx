@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Ellipsis, Pencil, type LucideIcon } from "lucide-react";
+import { Copy, Ellipsis, Pencil, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import { IconButton } from "@/app/components/ui/icon-button";
 import type { Message } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
 import { copyMessageText } from "@/app/utils/copy-message-text";
+import { DeleteMessageDialog } from "./delete-message-dialog";
 
 // Uma ação sobre a Mensagem, que aparece na barra e no menu "Mais ações" (spec da F06, "Barra de
 // ações e menu"). As tarefas seguintes acrescentam "Responder", "Editar" e "Apagar" como itens.
@@ -27,14 +28,17 @@ export type MessageAction = {
 
 type MessageActionsProps = {
   message: Message;
-  // Presente só nas Mensagens da Pessoa logada: "Editar" (spec da F06, "Barra de ações e menu").
+  // Presentes só nas Mensagens da Pessoa logada: "Editar" e "Apagar" (spec da F06, "Barra de ações e
+  // menu"). `onDeleted` é chamado quando a Mensagem saiu, para quem lista mover o foco.
   onEdit?: () => void;
+  onDeleted?: () => void;
 };
 
 // Barra de ações (MessageActions) e menu da Mensagem (MessageMenu), no canto superior direito da
 // linha. Aparece ao passar o mouse, com o foco dentro da Mensagem e enquanto o menu está aberto.
-export function MessageActions({ message, onEdit }: MessageActionsProps) {
+export function MessageActions({ message, onEdit, onDeleted }: MessageActionsProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isDeleteOpen, setDeleteOpen] = useState(false);
   const actions: MessageAction[] = [
     {
       id: "copy",
@@ -43,6 +47,17 @@ export function MessageActions({ message, onEdit }: MessageActionsProps) {
       onSelect: () => void copyMessageText(message.body),
     },
     ...(onEdit ? [{ id: "edit", label: "Editar", icon: Pencil, onSelect: onEdit }] : []),
+    ...(onDeleted
+      ? [
+          {
+            id: "delete",
+            label: "Apagar",
+            icon: Trash2,
+            tone: "danger" as const,
+            onSelect: () => setDeleteOpen(true),
+          },
+        ]
+      : []),
   ];
   const regularActions = actions.filter((action) => action.tone !== "danger");
   const dangerActions = actions.filter((action) => action.tone === "danger");
@@ -85,6 +100,14 @@ export function MessageActions({ message, onEdit }: MessageActionsProps) {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      {onDeleted && (
+        <DeleteMessageDialog
+          message={message}
+          open={isDeleteOpen}
+          onOpenChange={setDeleteOpen}
+          onDeleted={onDeleted}
+        />
+      )}
     </div>
   );
 }

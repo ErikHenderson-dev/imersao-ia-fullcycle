@@ -112,6 +112,18 @@ export const conversationRoutes = {
       .send({ body });
   },
 
+  // Pelo REST, como a web: apaga a Mensagem (spec da F06, "Rotas").
+  deleteMessage(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+    messageId: string,
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .delete(`/v1/conversations/${conversationId}/messages/${messageId}`)
+      .set('Cookie', cookie);
+  },
+
   async removeMembership(
     app: INestApplication,
     conversationId: string,

@@ -230,4 +230,51 @@ describe('banco de testes', () => {
       await expect(insert).resolves.toBeDefined();
     });
   });
+  describe('messages', () => {
+    // Uma Pessoa e um Canal direto no banco, para a Mensagem ter as referências.
+    async function insertMessage(values: {
+      body: string | null;
+      deletedAt: Date | null;
+    }) {
+      const dataSource = app.get(DataSource);
+      const personId = randomUUID();
+      const conversationId = randomUUID();
+      await dataSource.query(
+        `INSERT INTO people (id, email, name, password_hash, username)
+           VALUES ($1, $2, 'Ana', 'hash', $3)`,
+        [personId, uniqueEmail(), `ana${personId.slice(0, 8)}`],
+      );
+      await dataSource.query(
+        `INSERT INTO conversations (id, kind, name) VALUES ($1, 'public_channel', $2)`,
+        [conversationId, `c-${conversationId.slice(0, 8)}`],
+      );
+      return dataSource.query<unknown[]>(
+        `INSERT INTO messages (id, conversation_id, author_id, client_id, body, deleted_at)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          randomUUID(),
+          conversationId,
+          personId,
+          randomUUID(),
+          values.body,
+          values.deletedAt,
+        ],
+      );
+    }
+
+    it('o CHECK de messages aceita a Mensagem viva e a apagada e recusa as misturas', async () => {
+      await expect(
+        insertMessage({ body: 'Viva', deletedAt: null }),
+      ).resolves.toBeDefined();
+      await expect(
+        insertMessage({ body: null, deletedAt: new Date() }),
+      ).resolves.toBeDefined();
+      await expect(
+        insertMessage({ body: 'Apagada com texto', deletedAt: new Date() }),
+      ).rejects.toThrow(/messages_body_check/);
+      await expect(
+        insertMessage({ body: null, deletedAt: null }),
+      ).rejects.toThrow(/messages_body_check/);
+    });
+  });
 });

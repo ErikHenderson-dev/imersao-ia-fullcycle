@@ -26,6 +26,14 @@ export class RealtimePublisher {
     return this.publish('message.created', memberIds, { message });
   }
 
+  // A Mensagem apagada, pelo id, para os Membros (spec da F06, "Tempo real").
+  messageDeleted(
+    memberIds: string[],
+    event: StoredEventPayloads['message.deleted'],
+  ): Promise<void> {
+    return this.publish('message.deleted', memberIds, event);
+  }
+
   // A Mensagem editada, inteira, para os Membros (spec da F06, "Tempo real").
   messageUpdated(memberIds: string[], message: MessagePayload): Promise<void> {
     return this.publish('message.updated', memberIds, { message });

@@ -13,11 +13,13 @@ type MessageEditorProps = {
   message: Message;
   onSaved: (message: Message) => void;
   onClose: () => void;
+  // A Mensagem foi apagada antes de salvar (o 404 da API).
+  onGone: () => void;
 };
 
 // Edição no lugar da Mensagem (MessageEditor; spec da F06, "Edição"): Enter salva, Shift+Enter
 // quebra a linha e Esc cancela. O limite é o do envio, com o mesmo contador.
-export function MessageEditor({ message, onSaved, onClose }: MessageEditorProps) {
+export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEditorProps) {
   const [text, setText] = useState(message.body);
   const [status, setStatus] = useState<"editing" | "saving" | "error">("editing");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,6 +51,7 @@ export function MessageEditor({ message, onSaved, onClose }: MessageEditorProps)
       onSaved(result.message);
       return onClose();
     }
+    if (result.kind === "not_found") return onGone();
     setStatus("error");
   }
 

@@ -60,3 +60,31 @@ localizada pelo id, porque em edição o texto vai para a caixa.
 **File:** `e2e/acessibilidade/edicao-sem-violacoes.spec.ts`
 
 7. **a edição não tem violações de acessibilidade:** o axe com a caixa de edição aberta.
+
+### 3. Apagar a própria Mensagem (F06-T04)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa/apagar-mensagem.spec.ts`
+
+Duas Mensagens da Pessoa logada, com uma de outra Pessoa entre elas, num Canal em comum. Com o
+diálogo aberto, o resto da página fica escondido dos papéis, e a Mensagem é localizada pelo id.
+
+1. **abre a confirmação com o foco em Cancelar e cancela:** "Mais ações" → "Apagar" abre "Apagar
+   mensagem?" com a descrição e o texto; o clique fora não fecha; Esc fecha e a Mensagem continua.
+2. **apaga e o foco vai para a seguinte:** a Mensagem sai, e o foco vai para o nome da autora da
+   seguinte.
+3. **apagar a última leva o foco à caixa de mensagem.**
+4. **mostra a falha e tenta de novo:** com a Server Action presa, "Apagando"; abortada, o erro e a
+   Mensagem continua; com a rede de volta, "Tentar de novo" apaga.
+5. **apaga só pelo teclado:** Enter em "Mais ações", End até "Apagar", Enter; Tab de Cancelar a
+   Apagar e Enter.
+6. **a Mensagem de outra Pessoa não tem Apagar.**
+7. **a edição aberta fecha quando a Mensagem é apagada em outra aba:** com o aviso "Essa mensagem
+   foi apagada.".
+
+**File:** `e2e/tempo-real/exclusao-sem-recarregar.spec.ts`
+
+8. **a Mensagem apagada some para a outra Pessoa sem recarregar.**
+
+**File:** `e2e/acessibilidade/apagar-sem-violacoes.spec.ts`
+
+9. **a confirmação de apagar não tem violações de acessibilidade.**

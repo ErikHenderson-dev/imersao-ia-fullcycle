@@ -3,7 +3,7 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
-import { LessThan, Repository } from 'typeorm';
+import { IsNull, LessThan, Repository } from 'typeorm';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -53,6 +53,10 @@ export interface SentMessage {
   joinedId: string | null;
 }
 
+interface PublicationSlot {
+  fill: (publish: (() => Promise<void>) | null) => void;
+}
+
 interface Barrier {
   done: Promise<void>;
   release: () => void;
@@ -85,6 +89,8 @@ export class MessagesService {
     const newestFirst = await this.messages.find({
       where: {
         conversationId,
+        // A Mensagem apagada sai da Conversa (spec da F06, "Histórico").
+        deletedAt: IsNull(),
         ...(before ? { id: LessThan(before) } : {}),
       },
       order: { id: 'DESC' },
@@ -170,6 +176,37 @@ export class MessagesService {
     });
   }
 
+  // Reserva o lugar da publicação na fila da Mensagem ainda com a trava de linha, antes do commit:
+  // a ordem da fila é a dos commits, mesmo que a continuação de uma transação demore mais que a
+  // seguinte. Depois do commit, o lugar recebe a publicação, ou nada (falha ou sem mudança).
+  private reservePublication(messageId: string): PublicationSlot {
+    let fill!: (publish: (() => Promise<void>) | null) => void;
+    const ready = new Promise<(() => Promise<void>) | null>((resolve) => {
+      fill = resolve;
+    });
+    this.queueForMessage(messageId, () => ready.then((publish) => publish?.()));
+    return { fill };
+  }
+
+  // Grava numa transação que reserva o lugar da publicação e, depois do commit, enche esse lugar.
+  private async withPublication<T>(
+    run: (reserve: (messageId: string) => void) => Promise<T>,
+    publishFor: (result: T) => (() => Promise<void>) | null,
+  ): Promise<T> {
+    let slot: PublicationSlot | null = null;
+    let result: T;
+    try {
+      result = await run((messageId) => {
+        slot = this.reservePublication(messageId);
+      });
+    } catch (error) {
+      (slot as PublicationSlot | null)?.fill(null);
+      throw error;
+    }
+    (slot as PublicationSlot | null)?.fill(publishFor(result));
+    return result;
+  }
+
   // Edita a própria Mensagem (spec da F06, "Editar"): grava numa transação e, só quando o texto
   // mudou, publica o message.updated para os Membros depois do commit. Como no envio, a falha da
   // publicação só vai para o log.
@@ -179,38 +216,79 @@ export class MessagesService {
     messageId: string,
     body: string,
   ): Promise<MessageView> {
-    const { message, changed } = await this.edit(
-      author,
-      conversationId,
-      messageId,
-      body,
+    const { message } = await this.withPublication(
+      (reserve) => this.edit(author, conversationId, messageId, body, reserve),
+      ({ message: edited, changed }) =>
+        changed
+          ? this.toMembers(
+              conversationId,
+              (memberIds) =>
+                this.publisher.messageUpdated(
+                  memberIds,
+                  toMessageResponse(edited),
+                ),
+              'Falha ao publicar a Mensagem editada',
+            )
+          : null,
     );
-    if (changed) {
-      this.publishToMembers(
-        conversationId,
-        message.id,
-        (memberIds) =>
-          this.publisher.messageUpdated(memberIds, toMessageResponse(message)),
-        'Falha ao publicar a Mensagem editada',
-      );
-    }
     return message;
   }
 
-  // Publica um evento de uma Mensagem para os Membros da Conversa depois do commit, na fila dela e
-  // sem prender a resposta: a gravação já valeu, e a falha só vai para o log (LLD, "Transações").
-  private publishToMembers(
+  // Apaga a própria Mensagem (spec da F06, "Apagar"): zera o texto e grava `deleted_at` numa
+  // transação, e publica o message.deleted para os Membros depois do commit.
+  async deleteMessage(
+    personId: string,
     conversationId: string,
     messageId: string,
+  ): Promise<void> {
+    await this.withPublication(
+      (reserve) => this.remove(personId, conversationId, messageId, reserve),
+      () =>
+        this.toMembers(
+          conversationId,
+          (memberIds) =>
+            this.publisher.messageDeleted(memberIds, {
+              conversation_id: conversationId,
+              message_id: messageId,
+            }),
+          'Falha ao publicar a Mensagem apagada',
+        ),
+    );
+  }
+
+  // Com a mesma trava de linha da edição. As Menções, quando existirem, ficam (spec da F06).
+  @Transactional()
+  private async remove(
+    personId: string,
+    conversationId: string,
+    messageId: string,
+    reserve: (messageId: string) => void,
+  ): Promise<void> {
+    const message = await this.lockOwnMessage(
+      personId,
+      conversationId,
+      messageId,
+    );
+    reserve(message.id);
+    await this.messages.update(
+      { id: message.id },
+      { body: null, deletedAt: new Date() },
+    );
+  }
+
+  // A publicação de um evento para os Membros da Conversa, que a fila da Mensagem roda depois do
+  // commit, sem prender a resposta: a gravação já valeu, e a falha só vai para o log (LLD,
+  // "Transações").
+  private toMembers(
+    conversationId: string,
     publish: (memberIds: string[]) => Promise<void>,
     failureLog: string,
-  ): void {
-    this.queueForMessage(messageId, () =>
+  ): () => Promise<void> {
+    return () =>
       this.conversations
         .listMemberIds(conversationId)
         .then(publish)
-        .catch((error: unknown) => this.logger.error(failureLog, error)),
-    );
+        .catch((error: unknown) => this.logger.error(failureLog, error));
   }
 
   // A trava de linha põe a edição e a exclusão da mesma Mensagem em fila (LLD, "Concorrência e
@@ -221,12 +299,14 @@ export class MessagesService {
     conversationId: string,
     messageId: string,
     body: string,
+    reserve: (messageId: string) => void,
   ): Promise<{ message: MessageView; changed: boolean }> {
     const message = await this.lockOwnMessage(
       author.id,
       conversationId,
       messageId,
     );
+    reserve(message.id);
     const changed = message.body !== body;
     if (changed) {
       message.body = body;
@@ -274,7 +354,8 @@ export class MessagesService {
       .where('message.id = :messageId', { messageId })
       .andWhere('message.conversationId = :conversationId', { conversationId })
       .getOne();
-    if (!message) throw new MessageNotFoundError();
+    // A apagada responde como a que não existe: editar ou apagar de novo dá 404.
+    if (!message || message.deletedAt) throw new MessageNotFoundError();
     if (message.authorId !== personId) throw new MessageNotOwnedError();
     return message;
   }
@@ -380,7 +461,8 @@ function toView(message: Message, author: MessageAuthor): MessageView {
     conversationId: message.conversationId,
     clientId: message.clientId,
     author,
-    body: message.body,
+    // As rotas só devolvem Mensagens vivas, com texto (spec da F06, "Histórico").
+    body: message.body ?? '',
     createdAt: message.createdAt,
     editedAt: message.editedAt ?? null,
   };

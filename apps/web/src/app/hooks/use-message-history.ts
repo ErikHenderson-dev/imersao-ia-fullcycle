@@ -3,8 +3,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import useSWRInfinite from "swr/infinite";
 import type { Message, MessagePage } from "@/app/services/chat-api";
-import { appendToLatestPage, flattenPages, replaceEdited } from "@/app/utils/message-pages";
-import { rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
+import {
+  appendToLatestPage,
+  flattenPages,
+  removeDeleted,
+  replaceEdited,
+} from "@/app/utils/message-pages";
+import { forgetMessage, rememberEdit, rememberMessage } from "@/app/utils/recent-messages";
 
 // Quantas Mensagens gravadas nesta abertura o histórico guarda para devolver ao cache.
 const SAVED_LIMIT = 100;
@@ -99,6 +104,21 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     [mutate, initialPage],
   );
 
+  // Uma Mensagem apagada, pela própria exclusão ou pelo tempo real, sai do cache e das gravadas nesta
+  // abertura, e fica no conjunto das apagadas, que a recarga do reset não traz de volta (spec da F06,
+  // "Eventos no cliente").
+  const deleted = useRef(new Set<string>());
+  const applyDeleted = useCallback(
+    (messageId: string) => {
+      deleted.current.add(messageId);
+      saved.current = forgetMessage(saved.current, messageId);
+      void mutate((current) => removeDeleted(current ?? [initialPage], messageId), {
+        revalidate: false,
+      });
+    },
+    [mutate, initialPage],
+  );
+
   useEffect(() => {
     const present = new Set(messages.map((message) => message.id));
     const missing = saved.current.filter((message) => !present.has(message.id));
@@ -125,10 +145,12 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     }
     if (request !== reloadRequest.current) return;
     // Uma edição que chegou durante a leitura é mais nova que a página lida: volta por cima dela.
-    const merged = saved.current.reduce<MessagePage[]>(
+    // Uma exclusão que chegou durante a leitura também vale.
+    const edited = saved.current.reduce<MessagePage[]>(
       (pages, message) => (message.editedAt ? replaceEdited(pages, message) : pages),
       [page],
-    )[0];
+    );
+    const merged = [...deleted.current].reduce(removeDeleted, edited)[0];
     latestPage.current = merged;
     await setSize(1);
     await mutate([merged], { revalidate: false });
@@ -142,6 +164,7 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     loadOlder,
     appendSaved,
     applyEdited,
+    applyDeleted,
     reloadLatest,
   };
 }
