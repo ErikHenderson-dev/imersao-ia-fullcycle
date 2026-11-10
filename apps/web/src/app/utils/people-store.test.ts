@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPeopleStore, displayedPerson } from "./people-store";
+import { createPeopleStore } from "./people-store";
 
-const ANA = { id: "1", name: "Ana Souza", username: "ana", title: null };
+const ANA = { id: "1", name: "Ana Souza" };
+const BRUNO = { id: "2", name: "Bruno Lima" };
 
 describe("camada de Pessoas", () => {
   it("começa pela Pessoa da Sessão, com as iniciais", () => {
@@ -10,52 +11,41 @@ describe("camada de Pessoas", () => {
     expect(store.get("1")).toEqual({ ...ANA, initials: "AS" });
   });
 
-  it("troca o nome, as iniciais e o cargo da Pessoa que mudou e avisa quem assina", () => {
-    const store = createPeopleStore([ANA, { id: "2", name: "Bruno", username: "bruno", title: null }]);
-    const other = store.get("2");
+  it("troca o nome e as iniciais da Pessoa que mudou e avisa quem assina", () => {
+    const store = createPeopleStore([ANA, BRUNO]);
+    const bruno = store.get("2");
     const listener = vi.fn();
     store.subscribe(listener);
 
-    store.apply({ ...ANA, name: "Ana Lima", title: "Produto" });
+    const changed = store.apply({ id: "1", name: "Ana Lima" });
 
-    expect(store.get("1")).toEqual({ ...ANA, name: "Ana Lima", title: "Produto", initials: "AL" });
-    expect(store.get("2")).toBe(other);
+    expect(changed).toBe(true);
+    expect(store.get("1")).toEqual({ id: "1", name: "Ana Lima", initials: "AL" });
+    expect(store.get("2")).toBe(bruno);
     expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.version()).toBe(1);
   });
 
-  it("não avisa quando nada mudou, e a entrada continua o mesmo objeto", () => {
+  it("não avisa quando o nome é o mesmo, e a entrada continua o mesmo objeto", () => {
     const store = createPeopleStore([ANA]);
     const before = store.get("1");
     const listener = vi.fn();
     store.subscribe(listener);
 
-    store.apply({ ...ANA });
+    const changed = store.apply({ ...ANA });
 
+    expect(changed).toBe(false);
     expect(store.get("1")).toBe(before);
     expect(listener).not.toHaveBeenCalled();
   });
 
-  it("guarda quem ainda não conhecia", () => {
-    const store = createPeopleStore();
+  it("na reconexão esquece as outras Pessoas e guarda a da Sessão", () => {
+    const store = createPeopleStore([ANA]);
+    store.apply(BRUNO);
 
-    store.apply(ANA);
+    store.forgetAllBut("1");
 
+    expect(store.get("2")).toBeUndefined();
     expect(store.get("1")?.name).toBe("Ana Souza");
-  });
-});
-
-describe("displayedPerson", () => {
-  const fromPayload = { id: "1", name: "Ana Souza", initials: "AS", extra: true };
-
-  it("usa o payload quando a camada não conhece a Pessoa", () => {
-    expect(displayedPerson(undefined, fromPayload)).toBe(fromPayload);
-  });
-
-  it("usa o nome e as iniciais da camada, mantendo o resto do payload", () => {
-    expect(displayedPerson({ ...ANA, name: "Ana Lima", initials: "AL" }, fromPayload)).toEqual({
-      ...fromPayload,
-      name: "Ana Lima",
-      initials: "AL",
-    });
   });
 });

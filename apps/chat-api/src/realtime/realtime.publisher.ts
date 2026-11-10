@@ -79,8 +79,9 @@ export class RealtimePublisher {
   // O Perfil que mudou, para todo o workspace, sem guardar: quem perde o evento numa queda vê o nome
   // novo ao recarregar (spec da F09, "Tempo real"). O nome também muda no "digitando".
   personUpdated(person: PersonUpdatedEvent): void {
-    this.gateway.renamePerson(person.id, person.name);
+    // Como as outras publicações, depois da gravação e sem derrubar a requisição.
     try {
+      this.gateway.renamePerson(person.id, person.name);
       this.gateway.server.to(WORKSPACE_ROOM).emit('person.updated', person);
     } catch (error) {
       this.logger.error('Falha ao publicar o Perfil', error);

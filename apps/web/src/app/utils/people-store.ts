@@ -1,60 +1,57 @@
 import { initials } from "./initials";
 
-// O que a camada guarda de cada Pessoa (spec da F09, "Cliente", "Camada de Pessoas").
-export type PersonEntry = {
-  id: string;
-  name: string;
-  initials: string;
-  username: string;
-  title: string | null;
-};
-
-// O que um evento ou o Perfil salvo trazem; as iniciais saem do nome.
-export type PersonChange = Omit<PersonEntry, "initials">;
+// O que a camada guarda de cada Pessoa (spec da F09, "Cliente", "Camada de Pessoas"): o nome atual
+// e as iniciais dele.
+export type KnownPerson = { id: string; name: string; initials: string };
 
 export type PeopleStore = {
-  get: (personId: string) => PersonEntry | undefined;
-  apply: (change: PersonChange) => void;
+  get: (personId: string) => KnownPerson | undefined;
+  // Grava o nome da Pessoa; devolve se algo mudou.
+  apply: (change: { id: string; name: string }) => boolean;
+  // Esquece todas as Pessoas, menos `keepId`: os payloads lidos de novo voltam a valer.
+  forgetAllBut: (keepId: string) => void;
+  // Cresce a cada mudança: quem lê várias Pessoas de uma vez assina por ela.
+  version: () => number;
   subscribe: (listener: () => void) => () => void;
 };
 
 // Um mapa de id para Pessoa, lido por useSyncExternalStore: cada entrada só troca de objeto quando
-// a Pessoa muda, e só os componentes dela renderizam de novo.
-export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
-  const entries = new Map<string, PersonEntry>();
+// o nome muda, e só os componentes dela renderizam de novo.
+export function createPeopleStore(seed: { id: string; name: string }[] = []): PeopleStore {
+  const entries = new Map<string, KnownPerson>();
   const listeners = new Set<() => void>();
+  let currentVersion = 0;
 
-  function put(change: PersonChange): boolean {
-    const current = entries.get(change.id);
-    if (
-      current &&
-      current.name === change.name &&
-      current.username === change.username &&
-      current.title === change.title
-    ) {
-      return false;
-    }
-    entries.set(change.id, { ...change, initials: initials(change.name) });
+  function put(change: { id: string; name: string }): boolean {
+    if (entries.get(change.id)?.name === change.name) return false;
+    entries.set(change.id, { id: change.id, name: change.name, initials: initials(change.name) });
     return true;
+  }
+
+  function notify() {
+    currentVersion += 1;
+    listeners.forEach((listener) => listener());
   }
 
   seed.forEach(put);
   return {
     get: (personId) => entries.get(personId),
     apply(change) {
-      if (put(change)) listeners.forEach((listener) => listener());
+      const changed = put(change);
+      if (changed) notify();
+      return changed;
     },
+    forgetAllBut(keepId) {
+      const kept = entries.get(keepId);
+      if (entries.size === (kept ? 1 : 0)) return;
+      entries.clear();
+      if (kept) entries.set(keepId, kept);
+      notify();
+    },
+    version: () => currentVersion,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
   };
-}
-
-// O nome e as iniciais a mostrar: os da camada, quando ela conhece a Pessoa, ou os do payload.
-export function displayedPerson<T extends { name: string; initials: string }>(
-  entry: PersonEntry | undefined,
-  fallback: T,
-): T {
-  return entry ? { ...fallback, name: entry.name, initials: entry.initials } : fallback;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { CornerUpLeft } from "lucide-react";
-import { usePerson } from "@/app/components/people/people-provider";
+import { useKnownPerson } from "@/app/components/people/people-provider";
 import type { Quote } from "@/app/services/chat-api";
 
 // A Citação acima do texto da Mensagem (ReplyQuote; spec da F06, "Citação"): o nome do autor e o
@@ -28,7 +28,7 @@ function QuoteButton({
   body: string;
   onGoTo?: () => void;
 }) {
-  const { name } = usePerson({ ...author, initials: "" });
+  const name = useKnownPerson(author.id)?.name ?? author.name;
   return (
     <button
       type="button"

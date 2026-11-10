@@ -224,8 +224,12 @@ export class RealtimeGateway
   // O nome novo nos sockets da Pessoa, para o "digitando" sair com ele sem reconectar (spec da F09,
   // "Tempo real"). Só os sockets desta instância, a única (HLD, seção 6.2).
   renamePerson(personId: string, name: string): void {
-    for (const socket of this.server.sockets.sockets.values()) {
-      if (socket.data.person?.id === personId) socket.data.person.name = name;
+    const socketIds = this.server.sockets.adapter.rooms.get(
+      personRoom(personId),
+    );
+    for (const socketId of socketIds ?? []) {
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (socket) socket.data.person.name = name;
     }
   }
 

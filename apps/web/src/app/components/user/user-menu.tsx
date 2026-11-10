@@ -4,7 +4,7 @@ import { Bell, BellOff, CircleUser, LogOut, Pencil } from "lucide-react";
 import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
 import { useEditProfile } from "@/app/components/profile/edit-profile-dialog";
-import { usePerson } from "@/app/components/people/people-provider";
+import { useKnownPerson } from "@/app/components/people/people-provider";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
 import { Avatar } from "@/app/components/ui/avatar";
@@ -26,7 +26,8 @@ type UserMenuProps = { person: Person };
 // F09-T04.
 export function UserMenu({ person: sessionPerson }: UserMenuProps) {
   // O nome atual, também depois de editado em outra aba (spec da F09, "Camada de Pessoas").
-  const person = usePerson(sessionPerson);
+  const known = useKnownPerson(sessionPerson.id);
+  const person = known ? { ...sessionPerson, name: known.name, initials: known.initials } : sessionPerson;
   const [isPending, startTransition] = useTransition();
   const profile = useOpenProfileFromOverlay();
   const trigger = useRef<HTMLButtonElement>(null);

@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import type { PersonUpdatedEvent } from 'chat-events';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { authRoutes } from './support/auth-routes';
@@ -44,28 +45,14 @@ describe('Perfil em tempo real', () => {
       .expect(200);
   }
 
-  // A sala `workspace` leva os eventos de todos os testes que rodam juntos: cada um olha só os da
+  // A sala `workspace` leva os eventos de todos os testes que rodam juntos: cada um junta só os da
   // própria Pessoa.
   function updatesOf(socket: TestSocket, personId: string) {
-    const all = collectEvents(socket, 'person.updated');
-    return {
-      get list() {
-        return all.filter((event) => event.id === personId);
-      },
-    };
-  }
-
-  async function waitForUpdates(
-    updates: { list: unknown[] },
-    count: number,
-  ): Promise<void> {
-    const deadline = Date.now() + 2000;
-    while (updates.list.length < count) {
-      if (Date.now() > deadline) {
-        throw new Error(`Esperava ${count} person.updated`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
+    const received: PersonUpdatedEvent[] = [];
+    socket.on('person.updated', (event) => {
+      if (event.id === personId) received.push(event);
+    });
+    return received;
   }
 
   it('o person.updated chega a quem não divide Conversa', async () => {
@@ -76,8 +63,8 @@ describe('Perfil em tempo real', () => {
 
     await editProfile(editor.cookie, { name: 'Ana Lima' });
 
-    await waitForUpdates(updates, 1);
-    expect(updates.list).toEqual([
+    await waitForCount(updates, 1);
+    expect(updates).toEqual([
       {
         id: editor.person.id,
         name: 'Ana Lima',
@@ -97,9 +84,9 @@ describe('Perfil em tempo real', () => {
 
     await editProfile(editor.cookie, { title: 'Produto' });
 
-    await waitForUpdates(inEditorTab, 1);
-    await waitForUpdates(inOtherTab, 1);
-    expect(inOtherTab.list[0]).toMatchObject({ title: 'Produto' });
+    await waitForCount(inEditorTab, 1);
+    await waitForCount(inOtherTab, 1);
+    expect(inOtherTab[0]).toMatchObject({ title: 'Produto' });
   });
 
   it('não publica sem mudança no que o workspace vê', async () => {
@@ -111,7 +98,7 @@ describe('Perfil em tempo real', () => {
     await editProfile(editor.cookie, { phone: '1234' });
 
     await settle();
-    expect(updates.list).toEqual([]);
+    expect(updates).toEqual([]);
   });
 
   it('não volta na reconexão com cursor', async () => {
@@ -133,7 +120,7 @@ describe('Perfil em tempo real', () => {
     await waitForCount(replaySync, 1);
 
     await settle();
-    expect(updates.list).toEqual([]);
+    expect(updates).toEqual([]);
   });
 
   it('o digitando sai com o nome novo', async () => {

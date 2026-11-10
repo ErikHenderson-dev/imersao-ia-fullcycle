@@ -55,15 +55,8 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RealtimeProvider url={env.CHAT_API_PUBLIC_URL}>
-      <PeopleProvider
-        sessionPerson={{
-          id: result.person.id,
-          name: result.person.name,
-          username: result.person.username,
-          title: null,
-        }}
-      >
       <ProfilePanelProvider>
+      <PeopleProvider sessionPerson={{ id: result.person.id, name: result.person.name }}>
         <EditProfileProvider sessionPersonId={result.person.id}>
         <div className="flex h-screen flex-col">
           <ConnectionBanner />
@@ -87,8 +80,8 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         <Toaster />
         <AlertCenter personId={result.person.id} />
         </EditProfileProvider>
-      </ProfilePanelProvider>
       </PeopleProvider>
+      </ProfilePanelProvider>
     </RealtimeProvider>
   );
 }
