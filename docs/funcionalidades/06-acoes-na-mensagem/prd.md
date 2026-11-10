@@ -209,5 +209,5 @@ funcionalidades dos agentes (F11 a F14).
 | A pessoa apaga uma Mensagem por engano e não consegue recuperá-la | O diálogo de confirmação diz que não dá para desfazer, mostra o texto e começa com o foco em "Cancelar" |
 | Uma menção dá a entender que a Pessoa foi avisada, mas a notificação só vem com a F08 | Risco aceito até a F08: a menção aparece destacada em amarelo para quem foi mencionado, e a contagem de menções vem com a F07 |
 | Mencionar quem não é Membro de um Canal privado revelaria a Conversa ou criaria a expectativa de que a Pessoa vai ler | A lista de menções só mostra Membros, e um `@usuário` de quem não é Membro fica como texto comum |
-| O texto de uma Mensagem apagada continua acessível e o time deixa de confiar que apagar apaga | O texto não pode ser recuperado, e a Mensagem some de todas as abas e das citações |
+| O texto de uma Mensagem apagada continua acessível e o time deixa de confiar que apagar apaga | O texto não pode ser recuperado, e a Mensagem some de todas as abas; as Citações a ela ficam, só com "Em resposta a uma mensagem apagada" no lugar do texto |
 | Uma Mensagem editada ou apagada continua aparecendo com o texto antigo em outra aba ou depois de uma queda | A mudança chega em até 1 s pelo tempo real e é recuperada ao reconectar, como as Mensagens novas |

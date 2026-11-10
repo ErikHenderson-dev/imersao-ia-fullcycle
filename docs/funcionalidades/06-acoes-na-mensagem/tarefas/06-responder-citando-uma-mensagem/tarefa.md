@@ -34,7 +34,8 @@ Citação sai da caixa com um aviso. Referências:
   apagada.
 - [ ] **CA5** · A ReplyQuote mostra o nome do autor e o começo do texto, numa linha, ou "Em resposta
   a uma mensagem apagada", sem ação. O `message.updated` atualiza a `quote` das Mensagens carregadas
-  que citam a editada, e o `message.deleted` a marca como apagada; o `message.deleted` da Mensagem
+  que citam a editada, com o descarte da 03 e sem mexer numa `quote` já apagada, e o
+  `message.deleted` a marca como apagada; o `message.deleted` da Mensagem
   citada na caixa tira a Citação, com o aviso.
 - [ ] **CA6** · Os testes de ponta a ponta da API provam o envio com Citação, os 404 da Citação de
   outra Conversa, inexistente e apagada, o reenvio sem mudar a Citação, a `quote` com o texto editado

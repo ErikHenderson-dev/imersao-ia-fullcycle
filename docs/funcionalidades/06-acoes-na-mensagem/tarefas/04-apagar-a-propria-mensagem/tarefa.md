@@ -23,7 +23,9 @@ copiar o texto)
   já existem continuam válidas, provado no teste da migração.
 - [ ] **CA2** · `DELETE /v1/conversations/:conversationId/messages/:id`: só o autor; outra Pessoa,
   `message_not_owned` (403); inexistente, já apagada, de outra Conversa ou de quem não é Membro,
-  `message_not_found` (404); sucesso, 204, zerando o `body` e gravando `deleted_at` numa transação.
+  `message_not_found` (404); sucesso, 204, zerando o `body` e gravando `deleted_at` numa transação
+  que lê a Mensagem com a mesma trava de linha da edição. Uma edição e uma exclusão ao mesmo tempo
+  terminam sem erro do banco.
   O histórico ignora as apagadas.
 - [ ] **CA3** · A exclusão publica `message.deleted` (`conversation_id` e `message_id`) depois do
   commit, a todos os Membros, guardado nos eventos por Pessoa e reenviado na reconexão; o tipo entra
@@ -41,8 +43,9 @@ copiar o texto)
   mesmo.
 - [ ] **CA7** · Os testes de ponta a ponta da API provam a exclusão (texto zerado, `deleted_at`), o
   histórico sem ela, o 404 ao apagar de novo, o 403 e o 404 de quem não é Membro; os de tempo real,
-  o `message.deleted` para os Membros e o reenvio na reconexão, na ordem das gravações depois de um
-  `message.updated`. O Vitest prova a retirada no cache e o reagrupamento.
+  o `message.deleted` para os Membros e o reenvio na reconexão; a edição e a exclusão concorrentes.
+  O Vitest prova a retirada no cache, o reagrupamento e que um `message.updated` depois do
+  `message.deleted` não traz a Mensagem de volta.
 - [ ] **CA8** · O Playwright prova, com duas Pessoas, apagar com a confirmação e ver a Mensagem
   sumir na outra sem recarregar, cancelar, a falha ao apagar pelo `page.route`, o caminho só pelo
   teclado e o axe com o diálogo aberto, sem violações.

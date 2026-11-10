@@ -184,9 +184,12 @@ novas tentativas e idempotência").
   publicação; o reenvio idempotente não grava nem publica nada (ADR 0025), existe (spec da F05,
   seção "Conversa direta").
 - **Editar e apagar mensagem:** só o autor. Na edição vale a última gravação; o mesmo texto não
-  muda nada nem publica evento. Apagar o que já foi apagado responde como Mensagem inexistente, e o
+  muda nada nem publica evento. A edição e a exclusão leem a mensagem com trava de linha, para uma
+  não gravar sobre a outra; a que chega depois da exclusão responde como Mensagem inexistente, e o
   cliente trata isso como já apagada. A edição recalcula as menções e grava só a diferença; apagar
-  apaga as menções, `planejada` (spec da F06, seção "Mensagens").
+  mantém as menções, para a F07 e a F08. Os eventos saem depois do commit, então a ordem do stream
+  é a das publicações, e o cliente descarta a edição obsoleta ou que chega depois da exclusão,
+  `planejada` (spec da F06, seções "Mensagens", "Tempo real" e "Cliente").
 - **Ação de bot:** unicidade em (identificador de pedido, tipo de ação). Tipos: resposta, pergunta
   ao usuário, aviso de início, entrega do PDF, criação de tarefa. A repetição devolve o que já foi
   gravado, sem nova mensagem, tarefa ou notificação.

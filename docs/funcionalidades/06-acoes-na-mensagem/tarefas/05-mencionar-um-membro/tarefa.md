@@ -7,7 +7,7 @@ lista dos Membros da Conversa, filtrada pelo que se digita depois do `@`; escolh
 `@usuário` no texto. Na Conversa, a Menção aparece como `@usuário`, em azul, e em amarelo para a
 Pessoa mencionada, que vê a Mensagem inteira com o fundo de "Menciona você". Clicar na Menção abre
 o Perfil. Um `@usuário` de quem não é Membro fica como texto comum. A edição recalcula as Menções, e
-apagar a Mensagem apaga as Menções dela. Referências:
+as Menções de uma Mensagem apagada ficam guardadas, para a F07 e a F08. Referências:
 - spec da F06, "Mensagens" ("Menções, ao gravar", "Editar", "Apagar" e "A Mensagem no REST e nos
   eventos"), "Busca de Pessoas para a lista de menções", "Rotas", "Tempo real", "BFF" e "Cliente"
   ("Texto da Mensagem", "Lista de menções" e "Telas");
@@ -24,7 +24,7 @@ apagar a Mensagem apaga as Menções dela. Referências:
   trocar "@Admin" por "@admin" em "Menciona você".
 - [ ] **CA2** · A tabela `message_mentions` (Mensagem e Pessoa, únicas por par, índice na Pessoa)
   é gravada na transação do envio, com os `@usuário` de Membros extraídos do texto por uma função
-  pura, comparados em minúsculas; a edição grava só a diferença, e apagar remove as Menções da
+  pura, comparados em minúsculas; a edição grava só a diferença, e apagar mantém as Menções da
   Mensagem. O reenvio idempotente não grava Menções.
 - [ ] **CA3** · A Mensagem no REST e nos eventos ganha `mentions` (`id` e `username`), carregadas
   por página numa consulta só no histórico.
@@ -42,7 +42,7 @@ apagar a Mensagem apaga as Menções dela. Referências:
   `highlighted`. Uma Menção acrescentada numa edição destaca a Pessoa na hora, pelo `message.updated`.
 - [ ] **CA7** · Os testes de ponta a ponta da API provam as Menções de Membros, o `@usuário` de quem
   não é Membro de um Canal privado e o inexistente sem Menção, as maiúsculas, a Menção a si mesma, o
-  recálculo na edição, a remoção ao apagar e a busca com `member_of` (Membros, 404 e 400). O teste de
+  recálculo na edição, as Menções mantidas ao apagar e a busca com `member_of` (Membros, 404 e 400). O teste de
   unidade prova a extração (começo, depois de pontuação, dentro de e-mail, repetidos). O Vitest
   prova a divisão do corpo, a detecção do `@` e a troca pelo escolhido.
 - [ ] **CA8** · O Playwright prova, com duas Pessoas, mencionar só pelo teclado e a outra ver o fundo

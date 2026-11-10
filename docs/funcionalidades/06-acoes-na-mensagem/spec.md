@@ -84,14 +84,22 @@ A tabela `message_mentions` é nova, `planejada`:
 - Texto diferente, numa transação: grava o texto e `edited_at`, recalcula as Menções e grava a
   diferença (insere as novas, apaga as que saíram). Depois do commit, publica `message.updated`.
 - A Citação não muda na edição.
-- Duas edições ao mesmo tempo: vale a última gravação.
+- **Atomicidade com a exclusão:** a transação da edição começa lendo a Mensagem com trava de linha
+  (`FOR UPDATE`), e a da exclusão também. Assim, uma exclusão e uma edição da mesma Mensagem
+  acontecem uma depois da outra: a que chega depois de uma exclusão encontra `deleted_at`
+  preenchido e responde `message_not_found`, sem violar o `CHECK` do `body`.
+- Duas edições ao mesmo tempo: a trava as põe em fila, e vale a última gravação.
 
 **Apagar:**
 
 - As mesmas regras de acesso e os mesmos erros da edição. Apagar o que já foi apagado responde
   `message_not_found` (404); a web trata esse 404 do "Apagar" como Mensagem já apagada.
-- Numa transação: zera o `body`, grava `deleted_at` e apaga as linhas de `message_mentions` dela.
-  Depois do commit, publica `message.deleted`.
+- Numa transação, com a mesma trava de linha da edição: zera o `body` e grava `deleted_at`. Depois
+  do commit, publica `message.deleted`.
+- As linhas de `message_mentions` da Mensagem apagada ficam: são o que diz quem foi mencionado,
+  e a F07 e a F08 precisam disso para corrigir contadores e notificações. Quem lê Menções ignora as
+  das Mensagens apagadas (`deleted_at` preenchido); nesta funcionalidade, nenhuma leitura as mostra,
+  porque o histórico já não traz a Mensagem.
 - A linha fica só para as Citações mostrarem "Em resposta a uma mensagem apagada" (PRD, "Regras
   desta funcionalidade"). O HLD e o LLD dizem hoje que "fica a marca 'mensagem apagada'" e são
   atualizados para isso ("Observações").
@@ -157,8 +165,11 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
   de supor que todo evento guardado de Mensagem é `message.created`.
 - **Falha na publicação:** como a do `message.created`, só registrada em log. Quem estava conectado
   vê a mudança ao abrir a Conversa de novo (LLD, "Transações").
-- **Ordem:** a dos identificadores do stream de cada Pessoa, que é a ordem das gravações. Uma
-  edição seguida de exclusão chega nessa ordem, e a reconexão a mantém.
+- **Ordem:** a dos identificadores do stream de cada Pessoa, que é a ordem das publicações, e não
+  necessariamente a das gravações: a publicação acontece depois do commit, e uma edição pode
+  publicar depois de uma exclusão que gravou depois dela. Quem garante o estado final é o
+  cliente, que descarta o evento obsoleto ("Cliente", "Eventos no cliente"). A reconexão reenvia
+  na ordem do stream, e a mesma regra vale.
 - O `message.updated` de uma edição que acrescentou uma Menção já leva a Pessoa em `mentions`: o
   destaque aparece para ela sem evento próprio.
 
@@ -266,9 +277,13 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - O provedor de tempo real passa a tratar `message.updated` e `message.deleted`, com o mesmo
   buffer e a mesma ordem da sincronização, e o hook de Mensagens da Conversa os aplica no cache do
   SWR, em funções puras:
-  - `message.updated` troca a Mensagem pelo id, se ela estiver carregada, e atualiza a `quote` das
-    Mensagens carregadas que a citam;
+  - `message.updated` troca a Mensagem pelo id, se ela estiver carregada e o `edited_at` do evento
+    for posterior ao da Mensagem no cache, e atualiza do mesmo jeito a `quote` das Mensagens
+    carregadas que a citam, exceto a `quote` já marcada `deleted`;
   - `message.deleted` tira a Mensagem pelo id e marca `deleted` na `quote` das que a citam.
+- Por isso, um `message.updated` que chega depois do `message.deleted` da mesma Mensagem não a traz
+  de volta: ela não está mais no cache, e a `quote` apagada não volta a mostrar texto. Um
+  `message.updated` atrasado, de uma edição anterior à que a tela já mostra, também é descartado.
 - O agrupamento por autor e por dia (F02) é recalculado a partir da lista, então a Mensagem
   seguinte à apagada ganha nome e avatar sem regra nova.
 - A edição aberta de uma Mensagem que chega como `message.deleted` fecha, com o aviso do PRD.
@@ -311,7 +326,7 @@ forma de cada teste da API está em `.claude/rules/nest-api-testing.md`.
 - editar troca o texto, grava `edited_at` e recalcula as Menções (entra uma, sai outra); editar com
   o mesmo texto não muda `edited_at`; texto vazio ou acima de 4000: 400; Mensagem de outra Pessoa:
   403; inexistente, apagada, de outra Conversa ou de quem não é Membro: 404;
-- apagar zera o texto, grava `deleted_at` e apaga as Menções; apagar de novo: 404; Mensagem de outra
+- apagar zera o texto e grava `deleted_at`, e as Menções dela ficam; apagar de novo: 404; Mensagem de outra
   Pessoa: 403;
 - o histórico não traz a apagada e mostra a `quote` com `deleted` nas Mensagens que a citavam; a
   `quote` mostra o texto editado da original;
@@ -325,7 +340,9 @@ F05:
 - editar entrega `message.updated` a todos os Membros, em todas as abas, e não a quem não é Membro;
   editar com o mesmo texto não entrega nada;
 - apagar entrega `message.deleted` do mesmo jeito;
-- os dois voltam na reconexão com cursor, na ordem das gravações (edição antes da exclusão).
+- os dois voltam na reconexão com cursor, na ordem do stream;
+- uma edição e uma exclusão da mesma Mensagem ao mesmo tempo terminam com a Mensagem apagada e a
+  edição respondendo 404 ou gravando antes, sem erro do banco.
 
 **Banco, teste de ponta a ponta da migração**, no arquivo dos testes de banco: as Mensagens que já
 existem continuam válidas no `CHECK` novo.
@@ -335,7 +352,8 @@ de um e-mail, que não conta, maiúsculas e repetidos).
 
 **Web, Vitest para as funções puras:** a divisão do corpo em texto, link e Menção; a detecção do `@`
 e a troca pelo `@usuario` escolhido; a aplicação de `message.updated` e `message.deleted` no cache,
-inclusive nas `quote`; e a decisão de parar de carregar páginas ao ir até a Mensagem citada.
+inclusive nas `quote`, com o descarte do `message.updated` obsoleto e do que chega depois do
+`message.deleted`; e a decisão de parar de carregar páginas ao ir até a Mensagem citada.
 
 **Web, testes de ponta a ponta com o Playwright**, escritos pelo fluxo da skill `playwright-cli`,
 com o plano de testes da F06 junto dos testes. Duas Pessoas em dois contextos do navegador:

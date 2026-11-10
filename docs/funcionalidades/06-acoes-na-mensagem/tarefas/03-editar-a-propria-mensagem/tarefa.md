@@ -24,7 +24,7 @@ copiar o texto)
 - [ ] **CA3** · `PATCH /v1/conversations/:conversationId/messages/:id` com `body`: só o autor; outra
   Pessoa, `message_not_owned` (403); inexistente, de outra Conversa ou de quem não é Membro,
   `message_not_found` (404); texto fora da validação do envio, 400. O mesmo texto responde 200 sem
-  mudar `edited_at` nem publicar. Os códigos novos entram no catálogo e no filter global.
+  mudar `edited_at` nem publicar. A edição lê a Mensagem com trava de linha. Os códigos novos entram no catálogo e no filter global.
 - [ ] **CA4** · A edição publica `message.updated` (a Mensagem inteira) depois do commit, a todos os
   Membros, guardado nos eventos por Pessoa e reenviado na reconexão; o tipo entra no `chat-events`.
 - [ ] **CA5** · O Server Action `editMessage` devolve a união discriminada da spec. "Editar", só nas
@@ -32,7 +32,8 @@ copiar o texto)
   Enter salva em "Salvando", Shift+Enter quebra a linha, Esc cancela; vazio ou acima do limite não
   salva; a falha fica em "Edição com erro" com o texto e "Tentar de novo"; uma edição por vez; ao
   fechar, o foco volta à Mensagem.
-- [ ] **CA6** · O `message.updated` troca a Mensagem no cache pelo id, sem mudar a rolagem; uma
+- [ ] **CA6** · O `message.updated` troca a Mensagem no cache pelo id, sem mudar a rolagem, só se o
+  `edited_at` dele for posterior ao do cache (o atrasado é descartado); uma
   edição aberta na mesma Mensagem continua com o que a pessoa digita. "(editada)" aparece depois do
   texto, com a hora da edição no `title`.
 - [ ] **CA7** · Os testes de ponta a ponta da API provam a edição com `edited_at`, o mesmo texto sem
