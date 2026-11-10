@@ -7,7 +7,7 @@ import {
   openDeleteDialog,
   readyHistory,
 } from "../support/conversation-page";
-import { insertMessages } from "../support/database";
+import { insertMessages, setLastRead } from "../support/database";
 
 test.describe("Citação em tempo real", () => {
   test("a Citação acompanha a edição e a exclusão da original", async ({
@@ -17,9 +17,12 @@ test.describe("Citação em tempo real", () => {
     otherPerson,
     sharedChannel,
   }) => {
-    await insertMessages(sharedChannel, [
+    const iniciais = await insertMessages(sharedChannel, [
       { author: person, body: "A original", at: new Date(Date.now() - 60_000) },
     ]);
+    // Tudo lido: abrir com Não lidas mostraria o divisor de novas Mensagens (F07).
+    await setLastRead(sharedChannel, person, iniciais.at(-1)!.id);
+    await setLastRead(sharedChannel, otherPerson, iniciais.at(-1)!.id);
     await page.goto(`/conversas/${sharedChannel.id}`);
     await otherPage.goto(`/conversas/${sharedChannel.id}`);
     await readyHistory(page, sharedChannel.name);
