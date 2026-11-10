@@ -194,11 +194,14 @@ export class ConversationsService {
       throw new MembersNotEditableError();
     }
     // Duas adições ao mesmo Canal acontecem uma depois da outra: a segunda lê os Membros já com os
-    // da primeira, e o evento dela chega a todos.
+    // da primeira, e o evento dela chega a todos. A remoção pelo comando toma a mesma trava, e a
+    // participação de quem pede é conferida de novo depois dela: quem foi removido enquanto
+    // esperava não adiciona ninguém.
     await this.txHost.tx.query(
       'SELECT 1 FROM conversations WHERE id = $1 FOR UPDATE',
       [conversation.id],
     );
+    await this.getForMember(personId, conversation.id);
     const people = await this.people.findByIds(personIds);
     if (people.length !== new Set(personIds).size) {
       throw new InvalidPeopleError();
