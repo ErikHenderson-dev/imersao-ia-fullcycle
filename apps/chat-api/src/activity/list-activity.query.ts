@@ -1,6 +1,6 @@
 import { IsIn, IsOptional } from 'class-validator';
 import { ListMessagesQuery } from '../messages/list-messages.query';
-import type { ActivityFilter } from './notification-finder';
+import type { ActivityFilter } from '../notifications/notification-finder';
 
 const FILTERS: ActivityFilter[] = ['all', 'mentions', 'direct'];
 

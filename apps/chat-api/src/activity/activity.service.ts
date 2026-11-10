@@ -12,7 +12,7 @@ import {
   type ActivityFilter,
   type NotificationKind,
   NotificationFinder,
-} from './notification-finder';
+} from '../notifications/notification-finder';
 
 // Um item de Atividade: a Notificação, com a Mensagem e a Conversa dela.
 export interface ActivityItem {

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { MembershipsModule } from '../memberships/memberships.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PeopleModule } from '../people/people.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SessionsModule } from '../sessions/sessions.module';
@@ -22,6 +23,7 @@ import { UnreadPublisher } from './unread.publisher';
     SessionsModule,
     RealtimeModule,
     MembershipsModule,
+    NotificationsModule,
   ],
   controllers: [MessagesController, ReadController],
   providers: [MessagesService, ReadService, UnreadPublisher],

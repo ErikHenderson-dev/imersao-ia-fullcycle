@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Button } from "@/app/components/ui/button";
 import { useVisibleUnread } from "@/app/hooks/use-visible-unread";
 import { type ActivityPageKey, fetchActivityPage } from "@/app/services/activity-pages";
-import type { ActivityFilter, ActivityPage, Conversation } from "@/app/services/chat-api";
+import { useRealtime } from "@/app/components/realtime/realtime-provider";
+import type {
+  ActivityFilter,
+  ActivityItem,
+  ActivityPage,
+  Conversation,
+  Message,
+} from "@/app/services/chat-api";
+import { applyCreated, applyDeleted, applyUpdated, notificationKindFor } from "@/app/utils/activity-cache";
 import { isNotificationRead, relativeTime } from "@/app/utils/activity";
 import { ActivityEmpty } from "./activity-empty";
 import { ActivitySkeleton } from "./activity-skeleton";
@@ -51,9 +59,62 @@ export function ActivityList({
     },
   );
   const { conversations } = useVisibleUnread(personId, initialConversations);
+
+  // O tempo real muda as páginas carregadas desta aba, sem buscar nada (spec da F08, "Tela
+  // Atividade"). A Conversa do item vem da lista de Conversas no cache.
+  const { subscribe } = useRealtime();
+  // As Conversas que chegaram pelo evento de entrada: a primeira Mensagem de uma Conversa direta nova
+  // chega logo depois dele, antes de a lista de Conversas trazer essa Conversa (ADR 0025).
+  // A ref serve o evento que chega logo depois, antes da próxima renderização; o conjunto em estado,
+  // o estado de lido do item na renderização.
+  const joined = useRef(new Map<string, Conversation>());
+  const [joinedIds, setJoinedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const itemFor = useEffectEvent((message: Message): ActivityItem | null => {
+    const conversation =
+      conversations.find((entry) => entry.id === message.conversationId) ??
+      joined.current.get(message.conversationId);
+    const kind = notificationKindFor(message, conversation, personId);
+    return kind && conversation ? { kind, message, conversation } : null;
+  });
+  useEffect(
+    () =>
+      subscribe({
+        onMemberAdded: ({ conversation, personIds }) => {
+          joined.current.set(conversation.id, conversation);
+          // Só quem acabou de entrar não leu nada dela; um Membro antigo recebe o evento quando
+          // outra Pessoa entra.
+          if (personIds.includes(personId)) {
+            setJoinedIds((current) => new Set(current).add(conversation.id));
+          }
+        },
+        onMessage: (message) => {
+          const item = itemFor(message);
+          if (item) void mutate((current) => applyCreated(current ?? [], item, filter), { revalidate: false });
+        },
+        onMessageUpdated: (message) =>
+          void mutate((current) => applyUpdated(current ?? [], message, itemFor(message), filter), {
+            revalidate: false,
+          }),
+        onMessageDeleted: ({ messageId }) =>
+          void mutate((current) => applyDeleted(current ?? [], messageId), { revalidate: false }),
+        // Depois de uma queda longa, as páginas são buscadas de novo.
+        onSync: (event) => {
+          if (event.reset) void mutate();
+        },
+        replayLastReset: true,
+      }),
+    [subscribe, mutate, filter, personId],
+  );
   const lastRead = new Map(conversations.map((conversation) => [conversation.id, conversation.lastReadMessageId]));
   // O fallbackData já devolve a primeira página enquanto o cache está vazio.
   const pages = data ?? [];
+  // Sem a Conversa na lista (a lista falhou), o item não acende como não lido; a Conversa direta que
+  // acabou de chegar pelo evento de entrada ainda não foi lida.
+  const isItemRead = (item: ActivityItem) => {
+    const id = item.conversation.id;
+    if (lastRead.has(id)) return isNotificationRead(item.message.id, lastRead.get(id) ?? null);
+    return !joinedIds.has(id);
+  };
   const items = pages.flatMap((page) => page.items.toReversed());
   const hasMore = pages.at(-1)?.hasMore ?? false;
   const isLoadingMore = isValidating && size > pages.length;
@@ -88,11 +149,7 @@ export function ActivityList({
           <NotificationItem
             key={item.message.id}
             item={item}
-            isRead={
-              // Sem a Conversa na lista (a lista falhou), o item não acende como não lido.
-              !lastRead.has(item.conversation.id) ||
-              isNotificationRead(item.message.id, lastRead.get(item.conversation.id) ?? null)
-            }
+            isRead={isItemRead(item)}
             time={relativeTime(item.message.createdAt, now, timeZone)}
           />
         ))}

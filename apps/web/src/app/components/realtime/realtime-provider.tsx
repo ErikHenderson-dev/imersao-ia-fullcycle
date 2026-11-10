@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  ActivityUnreadEvent,
   ClientToServerEvents,
   ConversationMemberAddedEvent,
   ConversationUnreadEvent,
@@ -15,7 +16,7 @@ import type {
 } from "chat-events";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { Conversation, Message, Unread } from "@/app/services/chat-api";
+import type { ActivityUnread, Conversation, Message, Unread } from "@/app/services/chat-api";
 import { conversationFromPayload, unreadFromPayload } from "@/app/utils/conversation-event";
 import { laterCursor, orderForSync } from "@/app/utils/event-cursor";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -43,6 +44,8 @@ export type RealtimeListener = {
   onMessageDeleted?: (event: MessageDeleted) => void;
   onMemberAdded?: (event: MemberAdded) => void;
   onUnread?: (event: ConversationUnread) => void;
+  // Os números de Atividade, calculados pelo servidor (spec da F08, "Tempo real").
+  onActivityUnread?: (unread: ActivityUnread) => void;
   onSync?: (event: SyncEvent) => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
   // reset do último sync: é o caso de quem não guarda os eventos que perdeu, como a lista de
@@ -212,6 +215,14 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       const changed = { conversationId: event.conversation_id, unread: unreadFromPayload(event) };
       listeners.current.forEach((listener) => listener.onUnread?.(changed));
     };
+    const applyActivityUnread = (event: ActivityUnreadEvent) => {
+      const unread = {
+        totalCount: event.total_count,
+        mentionCount: event.mention_count,
+        directCount: event.direct_count,
+      };
+      listeners.current.forEach((listener) => listener.onActivityUnread?.(unread));
+    };
     // Uma entrada por evento guardado: um evento novo no contrato não compila até ter a sua.
     const handlers: StoredEventHandlers = {
       "message.created": applyMessage,
@@ -219,6 +230,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       "message.deleted": applyMessageDeleted,
       "conversation.member_added": applyMemberAdded,
       "conversation.unread": applyUnread,
+      "activity.unread": applyActivityUnread,
     };
     // Os eventos guardados por Pessoa, na ordem do cursor: aplica e avança o cursor.
     const apply = ({ name, event }: ReceivedEvent) => {
@@ -275,7 +287,9 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
   const subscribe = useCallback((listener: RealtimeListener) => {
     listeners.current.add(listener);
     const pending = pendingReset.current;
-    if (pending && listener.onSync) {
+    // Quem assina com replayLastReset (a barra lateral, a Atividade) recebe o reset do último sync de
+    // todo jeito e não consome o guardado para o histórico.
+    if (pending && listener.onSync && !listener.replayLastReset) {
       pendingReset.current = null;
       listener.onSync(pending);
     } else if (lastSync.current && listener.onSync) {

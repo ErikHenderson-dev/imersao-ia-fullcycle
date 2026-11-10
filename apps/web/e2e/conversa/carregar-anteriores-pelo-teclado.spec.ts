@@ -12,6 +12,9 @@ test.describe("Histórico até a primeira Mensagem", () => {
     loggedInPage,
   }) => {
     void loggedInPage;
+    // Centenas de Shift+Tab pela lista: sozinho leva uns 15 s, e com a suíte em paralelo passa dos
+    // 30 s do padrão.
+    test.slow();
     // Sem o IntersectionObserver, só o teclado pede as anteriores: focar o link o rolaria para a
     // tela, e o sentinela carregaria sozinho.
     await page.addInitScript(() => {

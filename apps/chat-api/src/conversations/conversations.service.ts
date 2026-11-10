@@ -138,6 +138,12 @@ export class ConversationsService {
     );
   }
 
+  // Se a Conversa é uma Conversa direta: quem recebe os números de Atividade depende disso (spec da
+  // F08, "Tempo real"). Uma Conversa que não existe não é.
+  async isDirect(conversationId: string): Promise<boolean> {
+    return this.conversations.existsBy({ id: conversationId, kind: 'direct' });
+  }
+
   // As Conversas desses ids, com a quantidade de Membros, sem ordem garantida: a Conversa dos itens
   // de Atividade (spec da F08, "Rotas").
   async summariesByIds(ids: string[]): Promise<ConversationSummary[]> {

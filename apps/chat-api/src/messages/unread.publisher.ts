@@ -18,23 +18,27 @@ export type UnreadRecipients = string[] | (() => Promise<string[]>);
 export class UnreadPublisher {
   private readonly logger = new Logger(UnreadPublisher.name);
   private readonly queue = new KeyedSerialQueue();
-  // As publicações que ainda esperam a vez, por Conversa.
-  private readonly waiting = new Map<string, UnreadRecipients[]>();
+  // As publicações que ainda esperam a vez, por Conversa, e o fim da publicação que as junta.
+  private readonly waiting = new Map<
+    string,
+    { batch: UnreadRecipients[]; done: Promise<void> }
+  >();
 
   constructor(
     private readonly unreadCounter: UnreadCounter,
     private readonly publisher: RealtimePublisher,
   ) {}
 
-  publish(conversationId: string, recipients: UnreadRecipients): void {
+  // Devolve quando a publicação que leva estes números termina, com sucesso ou não: a dos números de
+  // Atividade da mesma mudança espera por ela (spec da F08, "Tempo real").
+  publish(conversationId: string, recipients: UnreadRecipients): Promise<void> {
     const waiting = this.waiting.get(conversationId);
     if (waiting) {
-      waiting.push(recipients);
-      return;
+      waiting.batch.push(recipients);
+      return waiting.done;
     }
     const batch = [recipients];
-    this.waiting.set(conversationId, batch);
-    void this.queue.run(conversationId, async () => {
+    const done = this.queue.run(conversationId, async () => {
       this.waiting.delete(conversationId);
       try {
         await this.countAndPublish(conversationId, batch);
@@ -42,6 +46,8 @@ export class UnreadPublisher {
         this.logger.error('Falha ao publicar as Não lidas', error);
       }
     });
+    this.waiting.set(conversationId, { batch, done });
+    return done;
   }
 
   private async countAndPublish(
