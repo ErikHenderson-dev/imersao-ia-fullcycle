@@ -193,6 +193,7 @@ function OpenDirectConversationButton({
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const [state, setState] = useState<"idle" | "opening" | "failed">("idle");
+  const pathname = usePathname();
 
   async function open() {
     setState("opening");
@@ -207,11 +208,13 @@ function OpenDirectConversationButton({
         current && applyMemberAdded(current, conversation, [sessionPersonId], sessionPersonId),
       { revalidate: false },
     );
-    // O botão fica em "Abrindo" até a página trocar (o efeito abaixo), sem um segundo clique.
-    router.push(`/conversas/${conversation.id}`);
+    const target = `/conversas/${conversation.id}`;
+    // Já na própria Conversa, a página não troca: o botão volta na hora.
+    if (target === pathname) return setState("idle");
+    // O botão fica em "Abrindo" até a página trocar (logo abaixo), sem um segundo clique.
+    router.push(target);
   }
 
-  const pathname = usePathname();
   const [openedAt, setOpenedAt] = useState(pathname);
   if (openedAt !== pathname) {
     setOpenedAt(pathname);
@@ -227,7 +230,7 @@ function OpenDirectConversationButton({
         loading={state === "opening"}
         onClick={() => void open()}
       >
-        Mensagem
+        {state === "opening" ? "Abrindo…" : "Mensagem"}
       </Button>
       {state === "failed" && (
         <p role="alert" className="text-small text-danger-fg">

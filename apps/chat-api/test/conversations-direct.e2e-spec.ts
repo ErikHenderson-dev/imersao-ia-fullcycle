@@ -208,7 +208,7 @@ describe('Conversa direta', () => {
         kind: 'private_channel',
         name: `c-${randomUUID().slice(0, 8)}`,
         client_id: randomUUID(),
-        person_id: opener.person.id,
+        person_id: '',
       });
 
     expect(response.status).toBe(201);

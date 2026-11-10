@@ -54,6 +54,7 @@ export class CreateConversationDto {
   @ValidateIf(isChannel)
   @IsEmpty()
   get directFields(): unknown {
-    return this.person_id;
+    // Embrulhado: o @IsEmpty aceita o texto vazio, que também é um person_id que o Canal não aceita.
+    return this.person_id === undefined ? undefined : [this.person_id];
   }
 }

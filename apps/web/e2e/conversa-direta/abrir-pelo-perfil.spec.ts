@@ -74,6 +74,10 @@ test.describe("Abrir a Conversa direta pelo Perfil", () => {
     await page.getByRole("heading", { level: 1 }).getByRole("button", { name: otherPerson.name }).click();
 
     await expect(profilePanel(page).getByText(`@${otherPerson.username}`)).toBeVisible();
+
+    // 3. "Mensagem" na própria Conversa direta não prende o botão em "Abrindo"
+    await profilePanel(page).getByRole("button", { name: "Mensagem" }).click();
+    await expect(profilePanel(page).getByRole("button", { name: "Mensagem" })).toBeEnabled();
   });
 
   test("a Conversa aparece em outra aba sem recarregar", async ({ page, person, otherPerson, sharedChannel }) => {
