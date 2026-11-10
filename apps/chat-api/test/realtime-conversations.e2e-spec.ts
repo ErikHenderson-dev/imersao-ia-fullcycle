@@ -327,6 +327,25 @@ describe('Conversa direta na primeira Mensagem', () => {
     expect(received[0].person_ids).toEqual([other.person.id]);
   });
 
+  it('duas Mensagens ao mesmo tempo chegam depois do member_added', async () => {
+    const { opener, other, id } = await openedBy();
+    const socket = await realtimeRoutes.connected(url, { token: other.token });
+    sockets.push(socket);
+    const received = inOrder(socket, id);
+
+    await Promise.all([
+      conversationRoutes.sendMessage(app, opener.cookie, id).expect(201),
+      conversationRoutes.sendMessage(app, opener.cookie, id).expect(201),
+    ]);
+
+    await waitForCount(received, 3);
+    expect(received.map((event) => event.name)).toEqual([
+      'member_added',
+      'message.created',
+      'message.created',
+    ]);
+  });
+
   it('a segunda Mensagem só entrega a Mensagem', async () => {
     const { opener, other, id } = await openedBy();
     await conversationRoutes.sendMessage(app, opener.cookie, id).expect(201);

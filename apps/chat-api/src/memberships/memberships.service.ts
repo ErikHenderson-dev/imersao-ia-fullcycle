@@ -55,7 +55,7 @@ export class MembershipsService {
     const { summary, addedIds, memberIds } =
       await this.conversations.addMembers(personId, conversationId, personIds);
     if (addedIds.length > 0) {
-      this.publishMemberAdded(summary, memberIds, addedIds);
+      void this.announceMemberAdded(summary, memberIds, addedIds);
     }
     return { addedIds, memberCount: summary.memberCount };
   }
@@ -68,7 +68,7 @@ export class MembershipsService {
   ): Promise<ConversationSummary> {
     const { created, memberIds, ...summary } =
       await this.conversations.createChannel(creatorId, newChannel);
-    if (created) this.publishMemberAdded(summary, memberIds, memberIds);
+    if (created) void this.announceMemberAdded(summary, memberIds, memberIds);
     return summary;
   }
 
@@ -83,31 +83,14 @@ export class MembershipsService {
       personId,
     );
     if (opened.joined)
-      this.publishMemberAdded(opened, opened.memberIds, [openerId]);
+      void this.announceMemberAdded(opened, opened.memberIds, [openerId]);
     return opened;
   }
 
-  // A mesma publicação, para o envio de Mensagem esperar por ela antes de publicar a Mensagem
-  // (spec da F05, "Tempo real", "Ordem"). A falha vai para o log e não rejeita a promessa.
-  announceMemberAdded(
-    summary: ConversationSummary,
-    memberIds: string[],
-    addedIds: string[],
-  ): Promise<void> {
-    return this.memberAddedPublication(summary, memberIds, addedIds);
-  }
-
   // Publica sem prender a resposta: a gravação já aconteceu, e a falha vai para o log, como no envio
-  // de Mensagem.
-  private publishMemberAdded(
-    summary: ConversationSummary,
-    memberIds: string[],
-    addedIds: string[],
-  ): void {
-    void this.memberAddedPublication(summary, memberIds, addedIds);
-  }
-
-  private memberAddedPublication(
+  // de Mensagem. Devolve a promessa, que nunca rejeita, para o envio de Mensagem esperar por ela
+  // antes de publicar a Mensagem (spec da F05, "Tempo real", "Ordem").
+  announceMemberAdded(
     summary: ConversationSummary,
     memberIds: string[],
     addedIds: string[],

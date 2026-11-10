@@ -3,9 +3,9 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { LessThan, Repository } from 'typeorm';
+import { Conversation } from '../conversations/conversation.entity';
 import { ConversationsService } from '../conversations/conversations.service';
 import { PeopleService } from '../people/people.service';
-import { Conversation } from '../conversations/conversation.entity';
 import { MembershipsService } from '../memberships/memberships.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
@@ -102,33 +102,64 @@ export class MessagesService {
       newMessage,
     );
     if (created) {
-      try {
+      // A gravação no Redis e a emissão não prendem a resposta do envio.
+      this.publishInOrder(conversationId, Boolean(joinedId), async () => {
         const memberIds =
           await this.conversations.listMemberIds(conversationId);
-        const [summary] = joinedId
-          ? await this.conversations.withMemberCounts([conversation])
-          : [];
-        // A gravação no Redis e a emissão não prendem a resposta do envio. Na primeira Mensagem da
-        // Conversa direta, a entrada da outra Pessoa vai antes da Mensagem, para a aba dela ter a
-        // Conversa na lista quando a Mensagem chegar (spec da F05, "Tempo real", "Ordem").
-        void (async () => {
-          if (joinedId && summary) {
-            await this.memberships.announceMemberAdded(summary, memberIds, [
-              joinedId,
-            ]);
-          }
-          await this.publisher.messageCreated(
-            memberIds,
-            toMessageResponse(message),
-          );
-        })().catch((error: unknown) =>
-          this.logger.error('Falha ao publicar a Mensagem gravada', error),
+        if (joinedId) {
+          // Uma falha aqui fica no log e não segura a Mensagem.
+          await this.announceJoin(conversation, memberIds, joinedId);
+        }
+        await this.publisher.messageCreated(
+          memberIds,
+          toMessageResponse(message),
         );
-      } catch (error) {
-        this.logger.error('Falha ao publicar a Mensagem gravada', error);
-      }
+      });
     }
     return message;
+  }
+
+  // As publicações de uma Conversa que estão esperando a entrada da outra Pessoa da Conversa direta
+  // ser publicada (spec da F05, "Tempo real", "Ordem"): uma Mensagem enviada logo depois da primeira
+  // espera, para o member_added chegar antes de qualquer Mensagem. Sem entrada pendente, a
+  // publicação sai na hora. A API roda numa instância só.
+  private readonly pendingJoins = new Map<string, Promise<void>>();
+
+  private publishInOrder(
+    conversationId: string,
+    announcesJoin: boolean,
+    publish: () => Promise<void>,
+  ): void {
+    const pending = this.pendingJoins.get(conversationId);
+    const run = (pending ?? Promise.resolve())
+      .then(publish)
+      .catch((error: unknown) =>
+        this.logger.error('Falha ao publicar a Mensagem gravada', error),
+      );
+    if (!announcesJoin && !pending) return;
+    this.pendingJoins.set(conversationId, run);
+    void run.then(() => {
+      if (this.pendingJoins.get(conversationId) === run) {
+        this.pendingJoins.delete(conversationId);
+      }
+    });
+  }
+
+  private async announceJoin(
+    conversation: Conversation,
+    memberIds: string[],
+    joinedId: string,
+  ): Promise<void> {
+    try {
+      const [summary] = await this.conversations.withMemberCounts([
+        conversation,
+      ]);
+      await this.memberships.announceMemberAdded(summary, memberIds, [
+        joinedId,
+      ]);
+    } catch (error) {
+      this.logger.error('Falha ao publicar a participação gravada', error);
+    }
   }
 
   // Envio sem duplicar (LLD, "Concorrência e idempotência"): o mesmo `client_id` do mesmo autor
