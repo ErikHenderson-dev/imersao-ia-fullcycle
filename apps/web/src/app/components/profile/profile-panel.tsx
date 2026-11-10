@@ -13,6 +13,7 @@ import { localTimeLabel, msUntilNextMinute } from "@/app/utils/local-time";
 import { isValidTimeZone } from "@/app/utils/time-zone";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
+import { isTooltipEscape } from "@/app/components/ui/tooltip";
 
 class ProfileNotFoundError extends Error {}
 
@@ -47,7 +48,8 @@ export function ProfilePanel({ sessionPersonId }: { sessionPersonId: string }) {
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (event.key !== "Escape") return;
+      if (event.defaultPrevented && !isTooltipEscape(event)) return;
       if ((event.target as Element | null)?.closest?.("[role=dialog], [role=menu]")) return;
       closeProfile();
     };

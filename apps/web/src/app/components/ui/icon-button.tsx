@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/app/utils/cn";
+import { Tooltip } from "./tooltip";
 
 const iconButtonVariants = cva(
   "inline-flex shrink-0 items-center justify-center rounded-control transition-colors duration-100 disabled:pointer-events-none disabled:opacity-50",
@@ -36,15 +37,18 @@ export function IconButton({
   type = "button",
   ...props
 }: IconButtonProps) {
+  // A dica do design system, ao passar o mouse e ao focar. As props de um Trigger com asChild que
+  // envolva o IconButton chegam aqui e vão para o botão.
   return (
-    <button
-      type={type}
-      aria-label={label}
-      title={label}
-      className={cn(iconButtonVariants({ tone, size }), className)}
-      {...props}
-    >
-      <Icon size={18} aria-hidden />
-    </button>
+    <Tooltip label={label}>
+      <button
+        type={type}
+        aria-label={label}
+        className={cn(iconButtonVariants({ tone, size }), className)}
+        {...props}
+      >
+        <Icon size={18} aria-hidden />
+      </button>
+    </Tooltip>
   );
 }
