@@ -29,15 +29,19 @@ export class MembershipsService {
     private readonly publisher: RealtimePublisher,
   ) {}
 
-  // Pessoas para adicionar a uma Conversa de que quem busca é Membro, sem os Membros dela, em ordem
+  // Pessoas para adicionar a uma Conversa de que quem busca é Membro, sem os Membros dela, ou, sem a
+  // Conversa, todas (o "Nova conversa", spec da F05), em ordem
   // alfabética (spec da F04, "Busca de Pessoas").
   async searchPeople(
     personId: string,
-    conversationId: string,
+    conversationId: string | undefined,
     q: string,
   ): Promise<PersonSummary[]> {
-    await this.conversations.getForMember(personId, conversationId);
-    const memberIds = await this.conversations.listMemberIds(conversationId);
+    let memberIds: string[] = [];
+    if (conversationId) {
+      await this.conversations.getForMember(personId, conversationId);
+      memberIds = await this.conversations.listMemberIds(conversationId);
+    }
     const people = await this.people.search(
       q.trim(),
       memberIds,

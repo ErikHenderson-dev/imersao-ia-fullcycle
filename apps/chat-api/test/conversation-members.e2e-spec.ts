@@ -45,9 +45,24 @@ describe('Membros de uma Conversa', () => {
 
     expect(response.status).toBe(200);
     expect((response.body as MembersBody).members).toEqual([
-      { id: ana.person.id, name: 'Ábaco Lima' },
-      { id: bruno.person.id, name: 'abelha Costa' },
-      { id: owner.person.id, name: 'Zélia Souza' },
+      {
+        id: ana.person.id,
+        name: 'Ábaco Lima',
+        username: ana.person.username,
+        title: null,
+      },
+      {
+        id: bruno.person.id,
+        name: 'abelha Costa',
+        username: bruno.person.username,
+        title: null,
+      },
+      {
+        id: owner.person.id,
+        name: 'Zélia Souza',
+        username: owner.person.username,
+        title: null,
+      },
     ]);
   });
 

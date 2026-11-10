@@ -244,11 +244,13 @@ export class PeopleService {
   // ordem do nome sem acento; quem chama reordena pela regra da aplicação.
   search(q: string, excludeIds: string[], limit: number): Promise<Person[]> {
     // %, _ e \ do texto valem como literais no LIKE.
-    const pattern = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+    // O `@` do começo é do @usuário, e não do texto buscado (spec da F05, "Busca").
+    const text = q.replace(/^@/, '');
+    const pattern = `%${text.replace(/[\\%_]/g, '\\$&')}%`;
     return this.people
       .createQueryBuilder('person')
       .where(
-        "unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\'",
+        "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
         { pattern },
       )
       .andWhere('NOT (person.id = ANY(:excludeIds))', { excludeIds })
@@ -261,7 +263,7 @@ export class PeopleService {
   findSummariesByIds(ids: string[]): Promise<PersonSummary[]> {
     if (ids.length === 0) return Promise.resolve([]);
     return this.people.find({
-      select: { id: true, name: true },
+      select: { id: true, name: true, username: true, title: true },
       where: { id: In(ids) },
     });
   }
