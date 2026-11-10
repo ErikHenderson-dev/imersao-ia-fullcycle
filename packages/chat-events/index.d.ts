@@ -145,6 +145,17 @@ export type StoredServerToClientEvents = {
   [N in StoredEventName]: (event: StoredEvent<N>) => void;
 };
 
+/**
+ * O Perfil de uma Pessoa que mudou, para todo o workspace; não é guardado nem reenviado (spec da
+ * F09, "Tempo real").
+ */
+export interface PersonUpdatedEvent {
+  id: string;
+  name: string;
+  username: string;
+  title: string | null;
+}
+
 export interface SyncEvent {
   /** Cursor atual da Pessoa, que a aba manda no próximo handshake. */
   cursor: string | null;
@@ -176,6 +187,7 @@ export interface ServerToClientEvents extends StoredServerToClientEvents {
   "session.ended": () => void;
   "typing.start": (event: TypingEvent) => void;
   "typing.stop": (event: TypingEvent) => void;
+  "person.updated": (event: PersonUpdatedEvent) => void;
 }
 
 /** Eventos que a aba emite para a API. */

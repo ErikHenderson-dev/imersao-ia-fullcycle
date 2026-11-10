@@ -28,6 +28,7 @@ import {
   isStoredEventName,
   personRoom,
   sessionRoom,
+  WORKSPACE_ROOM,
 } from './realtime-socket';
 import { EventsStore } from './events.store';
 import { SESSION_RECHECK_INTERVAL_MS } from './realtime-values';
@@ -220,6 +221,18 @@ export class RealtimeGateway
       });
   }
 
+  // O nome novo nos sockets da Pessoa, para o "digitando" sair com ele sem reconectar (spec da F09,
+  // "Tempo real"). Só os sockets desta instância, a única (HLD, seção 6.2).
+  renamePerson(personId: string, name: string): void {
+    const socketIds = this.server.sockets.adapter.rooms.get(
+      personRoom(personId),
+    );
+    for (const socketId of socketIds ?? []) {
+      const socket = this.server.sockets.sockets.get(socketId);
+      if (socket) socket.data.person.name = name;
+    }
+  }
+
   onModuleDestroy(): void {
     clearInterval(this.recheckTimer);
     this.stopListening?.();
@@ -271,7 +284,11 @@ export class RealtimeGateway
       socket.data.sessionId = sessionId;
       socket.data.sessionToken = token ?? '';
       // As salas entram antes do CONNECT: nenhum evento emitido logo depois se perde.
-      await socket.join([personRoom(person.id), sessionRoom(sessionId)]);
+      await socket.join([
+        personRoom(person.id),
+        sessionRoom(sessionId),
+        WORKSPACE_ROOM,
+      ]);
       next();
     } catch (error) {
       if (error instanceof UnauthenticatedError) {

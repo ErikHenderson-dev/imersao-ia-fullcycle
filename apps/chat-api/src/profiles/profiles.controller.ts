@@ -11,6 +11,7 @@ import {
 import { PeopleService } from '../people/people.service';
 import { ProfileResponse, toProfileResponse } from '../people/profile.response';
 import { Person } from '../people/person.entity';
+import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
 import { SaveTimeZoneDto } from './save-time-zone.dto';
@@ -21,7 +22,10 @@ import { UpdateProfileDto } from './update-profile.dto';
 @Controller('people')
 @UseGuards(AuthGuard)
 export class ProfilesController {
-  constructor(private readonly people: PeopleService) {}
+  constructor(
+    private readonly people: PeopleService,
+    private readonly realtime: RealtimePublisher,
+  ) {}
 
   // O próprio Perfil (spec da F09, "Rotas"): devolve o Perfil como `GET /v1/people/:id`.
   @Patch('me')
@@ -29,7 +33,20 @@ export class ProfilesController {
     @CurrentPerson() person: Person,
     @Body() body: UpdateProfileDto,
   ): Promise<{ person: ProfileResponse }> {
-    const updated = await this.people.updateProfileById(person.id, body);
+    const { previous, person: updated } = await this.people.updateProfileById(
+      person.id,
+      body,
+    );
+    // O que o workspace vê mudou nesta gravação: vai para todos, depois do commit (spec da F09,
+    // "Tempo real").
+    if (updated.name !== previous.name || updated.title !== previous.title) {
+      this.realtime.personUpdated({
+        id: updated.id,
+        name: updated.name,
+        username: updated.username,
+        title: updated.title,
+      });
+    }
     return { person: toProfileResponse(updated) };
   }
 

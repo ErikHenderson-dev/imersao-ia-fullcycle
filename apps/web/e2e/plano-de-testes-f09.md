@@ -19,3 +19,11 @@ Pessoas, os Canais e as Mensagens são criados direto no banco (`support/databas
 
 Acessibilidade (`acessibilidade/editar-perfil-sem-violacoes.spec.ts`): o diálogo com o erro de
 campo, nos dois temas, sem violações do axe.
+
+## F09-T02 · Perfil em tempo real (`perfil/perfil-em-tempo-real.spec.ts`)
+
+1. **O nome novo aparece sem recarregar:** o Bruno, com uma Mensagem antiga da Ana, a Conversa
+   direta com ela na barra lateral e o perfil dela aberto, vê o nome que a Ana salvou na Mensagem, na
+   barra lateral, no painel, nos Membros do Canal e no cabeçalho da Conversa direta.
+2. **As outras abas de quem editou mudam o Rail e o menu do avatar:** uma segunda aba da mesma
+   Sessão passa a "Menu de Ana Lima".

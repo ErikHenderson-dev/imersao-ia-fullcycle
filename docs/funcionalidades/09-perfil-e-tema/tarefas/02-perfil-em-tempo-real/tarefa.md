@@ -1,6 +1,6 @@
 # 02: Perfil em tempo real
 
-**Status:** a fazer
+**Status:** concluída
 
 **O que construir:** quando uma Pessoa salva o Perfil, as outras veem o nome novo na hora, sem
 recarregar e em todas as abas: nas Mensagens já carregadas, nas Citações, na barra lateral, em
@@ -14,19 +14,19 @@ Pessoa que leem dela, que a 03 e a 04 reaproveitam para o Status e a Presença. 
 
 **Bloqueada por:** 01 (Editar o próprio Perfil)
 
-- [ ] **CA1** · Todo socket entra na sala `workspace` no handshake.
-- [ ] **CA2** · A edição do Perfil que muda algo publica `person.updated` (`id`, `name`,
+- [x] **CA1** · Todo socket entra na sala `workspace` no handshake.
+- [x] **CA2** · A edição do Perfil que muda algo publica `person.updated` (`id`, `name`,
   `username`, `title`) depois do commit para a sala `workspace`, inclusive para as outras abas de
   quem editou; a edição sem mudança não publica; o evento não é guardado nem reenviado na
   reconexão, e entra no contrato do pacote de eventos.
-- [ ] **CA3** · Depois de editar o nome, o `typing.start` da Pessoa sai com o nome novo, sem
+- [x] **CA3** · Depois de editar o nome, o `typing.start` da Pessoa sai com o nome novo, sem
   reconectar.
-- [ ] **CA4** · A camada de Pessoas guarda, por id, o nome, as iniciais, o `@usuário` e o cargo,
+- [x] **CA4** · A camada de Pessoas guarda, por id, o nome, as iniciais, o `@usuário` e o cargo,
   começa com a Pessoa da Sessão e aplica o `person.updated` em função pura testada; só os
   componentes da Pessoa que mudou rendem de novo.
-- [ ] **CA5** · Os componentes de Pessoa (nome e avatar) usam a entrada da camada e, sem ela, o
+- [x] **CA5** · Os componentes de Pessoa (nome e avatar) usam a entrada da camada e, sem ela, o
   payload, em todos os lugares listados acima; na reconexão, a lista de Conversas e o perfil aberto
   são revalidados.
-- [ ] **CA6** · O Playwright, com duas Pessoas em dois contextos, prova o nome novo numa Mensagem
+- [x] **CA6** · O Playwright, com duas Pessoas em dois contextos, prova o nome novo numa Mensagem
   antiga, na barra lateral, nos Membros e no perfil sem recarregar, e nas outras abas de quem
   editou.

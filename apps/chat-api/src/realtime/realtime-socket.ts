@@ -67,6 +67,10 @@ export function emitStoredEvent<N extends StoredEventName>(
   );
 }
 
+// Todo socket conectado: o que é do workspace inteiro, como o Perfil que mudou (spec da F09, "Tempo
+// real").
+export const WORKSPACE_ROOM = 'workspace';
+
 export function personRoom(personId: string): string {
   return `person:${personId}`;
 }

@@ -1,4 +1,4 @@
-import { Avatar } from "@/app/components/ui/avatar";
+import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import type { Conversation } from "@/app/services/chat-api";
 import { isSelfConversation } from "@/app/utils/conversation-title";
 import { ChannelIcon } from "./channel-icon";
@@ -17,11 +17,16 @@ export function ConversationIntro({ conversation, selfId }: ConversationIntroPro
   if (kind === "direct" && counterpart) {
     return (
       <div className="flex flex-col items-start gap-1 px-5 pt-8 pb-4">
-        <Avatar initials={counterpart.initials} seed={counterpart.id} className="mb-2 size-12" />
+        <PersonAvatar person={counterpart} className="mb-2 size-12" />
         <h2 className="text-title font-black text-fg">
           {isSelfConversation(conversation, selfId)
             ? "Este é o seu espaço. Guarde lembretes e rascunhos aqui; só você vê."
-            : `Este é o começo da sua conversa direta com ${counterpart.name}.`}
+            : (
+              <>
+                Este é o começo da sua conversa direta com{" "}
+                <PersonName id={counterpart.id} name={counterpart.name} />.
+              </>
+            )}
         </h2>
       </div>
     );

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BfcacheReload } from "@/app/components/bfcache-reload";
 import { AlertCenter } from "@/app/components/notification/alert-center";
+import { PeopleProvider } from "@/app/components/people/people-provider";
 import { EditProfileProvider } from "@/app/components/profile/edit-profile-dialog";
 import { ProfilePanel } from "@/app/components/profile/profile-panel";
 import { ProfilePanelProvider } from "@/app/components/profile/profile-panel-provider";
@@ -55,6 +56,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   return (
     <RealtimeProvider url={env.CHAT_API_PUBLIC_URL}>
       <ProfilePanelProvider>
+      <PeopleProvider sessionPerson={{ id: result.person.id, name: result.person.name }}>
         <EditProfileProvider sessionPersonId={result.person.id}>
         <div className="flex h-screen flex-col">
           <ConnectionBanner />
@@ -78,6 +80,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         <Toaster />
         <AlertCenter personId={result.person.id} />
         </EditProfileProvider>
+      </PeopleProvider>
       </ProfilePanelProvider>
     </RealtimeProvider>
   );

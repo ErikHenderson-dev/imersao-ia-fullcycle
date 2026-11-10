@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useKnownPerson } from "@/app/components/people/people-provider";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { toast } from "sonner";
 import { SWRConfig } from "swr";
@@ -116,6 +117,14 @@ function History({
   // A Mensagem que a próxima vai citar (spec da F06, "Citação"). O histórico monta de novo a cada
   // Conversa, então trocar de Conversa desiste dela.
   const [quoting, setQuoting] = useState<Message | null>(null);
+  // Os nomes atuais da outra Pessoa da Conversa direta e do autor citado (spec da F09, "Camada de
+  // Pessoas"), para os rótulos.
+  const knownCounterpart = useKnownPerson(conversation.counterpart?.id);
+  const knownQuotingAuthor = useKnownPerson(quoting?.author.id);
+  const titled =
+    knownCounterpart && conversation.counterpart
+      ? { ...conversation, counterpart: { ...conversation.counterpart, name: knownCounterpart.name } }
+      : conversation;
   // Uma Mensagem que sai da Conversa (spec da F06, "Apagar"): a edição aberta dela fecha, e a Citação
   // dela sai da caixa, com aviso. O tempo real a chama por um useEffectEvent, que sempre vê o estado
   // atual.
@@ -472,7 +481,7 @@ function History({
           ref={scrollRef}
           onScroll={measureEnd}
           role="region"
-          aria-label={`Histórico de ${conversationTitle(conversation)}`}
+          aria-label={`Histórico de ${conversationTitle(titled)}`}
           // Marca o histórico em dia com o tempo real, que os testes esperam antes de agir.
           data-synced={isSynced ? "" : undefined}
           tabIndex={0}
@@ -503,7 +512,7 @@ function History({
           ) : (
             <ConversationIntro conversation={conversation} selfId={currentPerson.id} />
           )}
-          <ol ref={listRef} aria-label={`Mensagens em ${conversationTitle(conversation)}`} className="flex flex-col">
+          <ol ref={listRef} aria-label={`Mensagens em ${conversationTitle(titled)}`} className="flex flex-col">
             {rows.map(({ message, compact, dayLabel }) => (
               <MessageItem
                 // Pela autora e pelo client_id, a Mensagem "enviando" vira a gravada no mesmo item.
@@ -562,9 +571,14 @@ function History({
       <MessageComposer
         inputRef={composerRef}
         conversationId={conversation.id}
-        quoting={quoting && { authorName: quoting.author.name, body: quoting.body }}
+        quoting={
+          quoting && {
+            authorName: knownQuotingAuthor?.name ?? quoting.author.name,
+            body: quoting.body,
+          }
+        }
         onCancelQuote={() => setQuoting(null)}
-        label={composerLabel(conversation, currentPerson.id)}
+        label={composerLabel(titled, currentPerson.id)}
         onTextChange={typing.onTextChange}
         onSend={(body) => {
           send(body, quoting ?? undefined);

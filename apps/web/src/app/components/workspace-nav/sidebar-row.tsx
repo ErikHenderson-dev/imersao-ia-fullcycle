@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChannelIcon } from "@/app/components/conversation/channel-icon";
-import { Avatar } from "@/app/components/ui/avatar";
+import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { CountBadge } from "@/app/components/ui/count-badge";
 import type { Conversation } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
@@ -46,9 +46,9 @@ export function SidebarRow({ href, conversation, selfId, isOpenAndFocused }: Sid
       >
         {kind === "direct" && counterpart ? (
           <>
-            <Avatar initials={counterpart.initials} seed={counterpart.id} size="xs" />
+            <PersonAvatar person={counterpart} size="xs" />
             <span className="truncate">
-              {counterpart.name}
+              <PersonName id={counterpart.id} name={counterpart.name} />
               {suffix}
             </span>
             {isSelfConversation(conversation, selfId) && <span className="shrink-0 opacity-70">você</span>}

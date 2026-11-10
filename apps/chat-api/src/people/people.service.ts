@@ -166,16 +166,21 @@ export class PeopleService {
   async updateProfile(email: string, changes: ProfileChanges): Promise<Person> {
     const person = await this.findByEmail(email);
     if (!person) throw new PersonNotFoundError(normalizeEmail(email));
-    return this.updateProfileById(person.id, changes);
+    return (await this.updateProfileById(person.id, changes)).person;
   }
 
-  // Grava o Perfil numa escrita só, depois de validar cada campo presente. A releitura fica na
-  // mesma transação: a resposta é o que esta gravação deixou, mesmo com outra ao mesmo tempo.
+  // Grava o Perfil numa escrita só, depois de validar cada campo presente, e devolve a Pessoa de
+  // antes e a de depois. A linha fica travada na transação: com outra gravação ao mesmo tempo, as
+  // duas versões são as desta gravação.
   @Transactional()
   async updateProfileById(
     personId: string,
     changes: PersonProfileChanges,
-  ): Promise<Person> {
+  ): Promise<{ previous: Person; person: Person }> {
+    const previous = await this.people.findOneOrFail({
+      where: { id: personId },
+      lock: { mode: 'pessimistic_write' },
+    });
     const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
     if (changes.name !== undefined) update.name = parseName(changes.name);
     if (changes.title !== undefined)
@@ -185,7 +190,10 @@ export class PeopleService {
     if (Object.keys(update).length > 0) {
       await this.people.update({ id: personId }, update);
     }
-    return this.people.findOneByOrFail({ id: personId });
+    return {
+      previous,
+      person: await this.people.findOneByOrFail({ id: personId }),
+    };
   }
 
   // Devolve a Pessoa só quando a senha confere. O e-mail sem conta passa pelo hash

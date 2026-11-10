@@ -3,7 +3,7 @@
 import { CircleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
-import { Avatar } from "@/app/components/ui/avatar";
+import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { buttonVariants } from "@/app/components/ui/button";
 import { cn } from "@/app/utils/cn";
 import type { Message } from "@/app/services/chat-api";
@@ -190,7 +190,9 @@ function CompactRow({ message, timeZone, content }: RowProps) {
   return (
     <div className="group flex gap-2 px-5 py-1">
       {/* Sem o nome à vista, como no Figma; o leitor de tela ainda ouve de quem é. */}
-      <span className="sr-only">{message.author.name}</span>
+      <span className="sr-only">
+        <PersonName id={message.author.id} name={message.author.name} />
+      </span>
       <div className="flex w-9 shrink-0 justify-end pt-1">
         <MessageTime
           message={message}
@@ -209,7 +211,7 @@ function FullRow({ message, timeZone, content }: RowProps) {
       <div className="flex w-9 shrink-0 justify-end">
         {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
         <OpenProfileButton personId={message.author.id} decorative className="self-start">
-          <Avatar initials={message.author.initials} seed={message.author.id} />
+          <PersonAvatar person={message.author} />
         </OpenProfileButton>
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -218,7 +220,7 @@ function FullRow({ message, timeZone, content }: RowProps) {
             personId={message.author.id}
             className="text-body font-black text-fg hover:underline"
           >
-            {message.author.name}
+            <PersonName id={message.author.id} name={message.author.name} />
           </OpenProfileButton>
           <MessageTime message={message} timeZone={timeZone} />
         </p>
