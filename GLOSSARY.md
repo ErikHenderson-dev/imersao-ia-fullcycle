@@ -48,6 +48,14 @@ _Avoid_: descrição
 **Mensagem**:
 Texto que uma Pessoa ou um agente envia numa Conversa.
 
+**Menção**:
+O `@usuário` de um Membro escrito numa Mensagem, que chama a atenção dele para ela.
+_Avoid_: marcação, tag
+
+**Citação**:
+A referência, numa Mensagem, a outra Mensagem da mesma Conversa a que ela responde.
+_Avoid_: resposta, reply (ficam para a thread)
+
 **Sessão**:
 O acesso de uma Pessoa ao chat num navegador, do momento em que ela entra até sair, a Sessão
 vencer por falta de uso ou ser revogada. Vale para todas as abas daquele navegador.

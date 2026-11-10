@@ -1,6 +1,6 @@
 # HLD — Full Cycle Chat
 
-2026-11-09 · Luiz Carlos · Status: rascunho · LLD: A definir
+2026-11-10 · Luiz Carlos · Status: rascunho · LLD: A definir
 
 ## 1. Contexto e objetivos
 
@@ -283,7 +283,8 @@ Regras que pesam no desenho:
 - Gravar uma mensagem e gerar as menções, as notificações e a contagem de não lidas que ela causa
   é uma transação só no Banco do chat; o mesmo vale para criar, concluir e reabrir uma tarefa com a
   notificação dela. Só depois de confirmada a transação o evento sai pelo WebSocket.
-- Apagar uma mensagem apaga o conteúdo de vez; fica só a marca "mensagem apagada".
+- Apagar uma mensagem apaga o conteúdo de vez e a tira da conversa; a marca "mensagem apagada" fica
+  só para as citações a ela.
 - Os agentes não acessam o Banco do chat: as mensagens de que precisam chegam pela API do chat.
 - A retenção dos PDFs no armazenamento e a da auditoria das consultas estão a definir.
 - Os eventos de reconexão no Redis são temporários; perdê-los só obriga o cliente a recarregar pelo
