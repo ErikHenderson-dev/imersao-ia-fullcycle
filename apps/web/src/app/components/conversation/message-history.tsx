@@ -16,8 +16,15 @@ import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
-import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
+import {
+  JUMP_PAGE_SIZE,
+  type JumpTarget,
+  jumpStep,
+  MESSAGE_PARAM,
+  openingTarget,
+} from "@/app/utils/jump-to-message";
 import { firstUnreadId, needsOlderForUnread } from "@/app/utils/unread-opening";
+import { isUuid } from "@/app/utils/uuid";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
 import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
@@ -48,6 +55,10 @@ type MessageHistoryProps = {
   renderedAt: string;
   // A Pessoa da Sessão, autora das Mensagens que ainda estão sendo enviadas.
   currentPerson: MessageAuthor;
+  // O `?mensagem=` da URL, lido pela página no servidor (spec da F08, "Abrir a Conversa na
+  // Mensagem"). Não sai de useSearchParams: assinar a URL aqui fazia a página guardada para o voltar
+  // do navegador renderizar com o cache do histórico já desmontado.
+  messageParam: string | null;
 };
 
 // Distância do topo em que o sentinela pede a página anterior (spec da F02, "Lista de Mensagens").
@@ -66,11 +77,17 @@ export function MessageHistory(props: MessageHistoryProps) {
   );
 }
 
+
+// Tira o `?mensagem=` da URL sem navegar: o roteador do Next acompanha o replaceState.
+function dropMessageParam() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(MESSAGE_PARAM)) return;
+  url.searchParams.delete(MESSAGE_PARAM);
+  window.history.replaceState(window.history.state, "", url);
+}
+
 // Quanto tempo a Mensagem citada fica destacada ao chegar (spec da F06, "Ir até a Mensagem citada").
 const HIGHLIGHT_MS = 2_000;
-
-// O alvo da ida: a original de uma Citação, ou a primeira Não lida depois da Última leitura.
-type JumpTarget = { kind: "message"; id: string } | { kind: "unread"; lastReadId: string | null };
 
 function History({
   conversation,
@@ -78,6 +95,7 @@ function History({
   timeZone,
   renderedAt,
   currentPerson,
+  messageParam,
 }: MessageHistoryProps) {
   const {
     messages: saved,
@@ -194,8 +212,10 @@ function History({
   // A ida (spec da F06, "Ir até a Mensagem citada"): até a original de uma Citação, que fica
   // destacada por 2 s ao chegar, ou, ao abrir com Não lidas, até a primeira delas, com o divisor no
   // topo da área visível (spec da F07). As páginas anteriores carregam até o alvo estar na lista.
+  // Aberta por `?mensagem=` (Atividade, Alerta, notificação do navegador), a ida vai até a Mensagem
+  // pedida, antes da primeira Não lida (spec da F08, "Abrir a Conversa na Mensagem").
   const [jumpTarget, setJumpTarget] = useState<JumpTarget | null>(() =>
-    dividerAfter ? { kind: "unread", lastReadId: dividerAfter.lastReadId } : null,
+    openingTarget(messageParam, dividerAfter),
   );
   const isJumping = useRef(jumpTarget !== null);
   // Se a ida já pediu uma página: só a falha dessa carga encerra a ida, e não uma falha de antes.
@@ -303,6 +323,8 @@ function History({
     if (saved.some((message) => message.id === messageId)) {
       isJumping.current = false;
       setJumpTarget(null);
+      // Uma ida pedida pela URL acaba aqui também: a URL perde o parâmetro.
+      dropMessageParam();
       return showMessage(messageId);
     }
     isJumping.current = true;
@@ -335,15 +357,23 @@ function History({
   const step = stepFor(jumpTarget);
   // Enquanto as anteriores carregam até a primeira Não lida, o divisor não aparece: ficaria acima da
   // Mensagem mais antiga carregada, que ainda não é a primeira Não lida.
-  const shownUnread = jumpTarget?.kind === "unread" && step === "continue" ? null : firstUnread;
+  // Vale também quando a ida vai até a Mensagem pedida pela URL e não passa pela Última leitura.
+  const shownUnread =
+    dividerAfter && needsOlderForUnread(saved, dividerAfter.lastReadId, hasOlder) ? null : firstUnread;
   const advanceJump = useEffectEvent(() => {
     if (!jumpTarget || !step) return;
     const isUnread = jumpTarget.kind === "unread";
+    // A ida termina, achando ou não; a pedida pela URL tira o parâmetro dela, sem renderizar a
+    // página de novo no servidor, e recarregar não vai de novo.
+    const finish = () => {
+      isJumping.current = false;
+      setJumpTarget(null);
+      if (!isUnread) dropMessageParam();
+    };
     if (step === "continue") {
       if (isLoadingOlder) return;
       if (olderFailed && jumpRequestedLoad.current) {
-        isJumping.current = false;
-        setJumpTarget(null);
+        finish();
         // Sem chegar à primeira Não lida, a Conversa fica onde está, sem divisor: ele ficaria
         // acima de uma Mensagem com Não lidas antes dela.
         if (isUnread) setDividerAfter(null);
@@ -354,12 +384,27 @@ function History({
       loadOlder(JUMP_PAGE_SIZE);
       return;
     }
-    isJumping.current = false;
-    setJumpTarget(null);
+    finish();
     if (isUnread) showDivider();
     else if (step === "found") showMessage(jumpTarget.id);
     else toast("A mensagem não está mais disponível");
   });
+  // Um `?mensagem=` novo com a Conversa já aberta (um Alerta da mesma Conversa) começa outra ida,
+  // como uma Citação nova; o da abertura já é o alvo inicial. Cada navegação renderiza a página de
+  // novo, com outro `renderedAt`: pedir de novo a mesma Mensagem também é um pedido novo.
+  const request = messageParam === null ? null : `${messageParam}@${renderedAt}`;
+  // O da abertura já é o alvo inicial; um valor que não é um id fica para o efeito tirar da URL.
+  const handledRequest = useRef(messageParam && isUuid(messageParam) ? request : null);
+  const goToRequested = useEffectEvent((messageId: string) => goToMessage(messageId));
+  useEffect(() => {
+    if (messageParam === null || request === handledRequest.current) return;
+    handledRequest.current = request;
+    // Um valor que não é um id, inclusive o vazio, não leva a lugar nenhum e sai da URL.
+    if (!isUuid(messageParam)) return dropMessageParam();
+    // No quadro seguinte, como os passos da ida.
+    const frame = requestAnimationFrame(() => goToRequested(messageParam.toLowerCase()));
+    return () => cancelAnimationFrame(frame);
+  }, [messageParam, request]);
   // A cada página que chega (ou falha), o próximo passo da ida, no quadro seguinte, depois de a lista
   // nova estar na tela.
   useEffect(() => {

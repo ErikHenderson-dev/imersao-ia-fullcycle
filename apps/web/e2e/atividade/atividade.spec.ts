@@ -174,6 +174,7 @@ test.describe("Atividade ao carregar a página", () => {
     const primeiroItem = activityList(page).getByRole("link").first();
     await expect(primeiroItem).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(new RegExp(`/conversas/${direta.id}\\?mensagem=`));
+    // Na Conversa: a ida até a Mensagem (F08-T02) tira o `?mensagem=` ao terminar.
+    await expect(page).toHaveURL(new RegExp(`/conversas/${direta.id}`));
   });
 });

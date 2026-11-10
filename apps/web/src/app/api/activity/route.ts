@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { listActivity } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { activityFilterFromParam } from "@/app/utils/activity";
+import { isUuid } from "@/app/utils/uuid";
 
 // Páginas anteriores de Atividade, lidas pelo cliente (spec da F08, "BFF"). A resposta já vem no
 // formato da web.
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const kind = activityFilterFromParam(params.get("kind"));
   if (!kind) return Response.json({ kind: "invalid" }, { status: 400 });
   const before = params.get("before") ?? undefined;
-  if (before !== undefined && !UUID.test(before)) {
+  if (before !== undefined && !isUuid(before)) {
     return Response.json({ kind: "invalid" }, { status: 400 });
   }
   const result = token
@@ -22,5 +23,3 @@ export async function GET(request: NextRequest) {
 }
 
 const ERROR_STATUS = { unauthenticated: 401, failure: 502 } as const;
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
