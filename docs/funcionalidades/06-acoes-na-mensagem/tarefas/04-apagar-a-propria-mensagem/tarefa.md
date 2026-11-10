@@ -1,6 +1,6 @@
 # 04: Apagar a própria Mensagem
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o autor escolhe "Apagar" no menu de uma Mensagem dele, confirma no diálogo
 "Apagar mensagem?" e a Mensagem sai da Conversa para todos os Membros, em todas as abas, sem
