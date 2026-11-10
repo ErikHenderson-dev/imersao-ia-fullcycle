@@ -13,3 +13,11 @@ export function activityUnreadFromPayload(payload: ActivityUnreadPayload): Activ
     directCount: payload.direct_count,
   };
 }
+
+// Se os números trazem uma marca de "Marcar tudo como lido" mais nova que a do cache: a marca só
+// avança, então a mais nova é a mais recente.
+export function isNewerMark(next: ActivityUnread, current: ActivityUnread | undefined): boolean {
+  if (!next.activityReadMessageId) return false;
+  const known = current?.activityReadMessageId ?? null;
+  return known === null || next.activityReadMessageId > known;
+}

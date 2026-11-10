@@ -622,7 +622,6 @@ export type ActivityUnread = {
   directCount: number;
 };
 
-
 export type ActivityPageResult =
   | { kind: "ok"; page: ActivityPage }
   | { kind: "unauthenticated" }

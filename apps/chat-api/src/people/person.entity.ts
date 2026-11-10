@@ -1,4 +1,12 @@
-import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Check,
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  type Relation,
+} from 'typeorm';
 import { Message } from '../messages/message.entity';
 import { BaseEntity } from '../database/base.entity';
 import { PHONE_PATTERN, TITLE_MAX_LENGTH } from './profile-values';
@@ -47,5 +55,6 @@ export class Person extends BaseEntity {
 
   @ManyToOne(() => Message)
   @JoinColumn({ name: 'activity_read_message_id' })
-  activityReadMessage?: Message;
+  // Relation: Message também importa Person, e o tipo não pode depender da ordem de carga.
+  activityReadMessage?: Relation<Message>;
 }

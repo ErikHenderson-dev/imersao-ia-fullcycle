@@ -57,10 +57,12 @@ describe('Atividade', () => {
       .set('Cookie', cookie)
       .expect(200);
     // Os números, sem a marca, que os testes da marca conferem à parte.
-    const { activity_read_message_id: _mark, ...counts } =
-      response.body as ActivityUnread;
-    void _mark;
-    return counts;
+    const body = response.body as ActivityUnread;
+    return {
+      total_count: body.total_count,
+      mention_count: body.mention_count,
+      direct_count: body.direct_count,
+    };
   }
 
   function send(cookie: string, conversationId: string, body: string) {
@@ -426,14 +428,13 @@ describe('Atividade', () => {
   });
 
   it('a Mensagem de fora responde 404', async () => {
-    const { author, reader } = await scene();
+    const { reader } = await scene();
     const outsider = await authRoutes.loggedIn(app, { name: 'Dora Reis' });
     const foreignChannel = await conversationRoutes.privateChannelOf(
       app,
       outsider.cookie,
     );
     const foreign = await send(outsider.cookie, foreignChannel, 'Só minha');
-    void author;
 
     const response = await markRead(reader.cookie, { message_id: foreign });
 
