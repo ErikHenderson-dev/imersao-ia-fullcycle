@@ -347,21 +347,23 @@ export class PeopleService {
     });
   }
 
-  // Grava a escolha de presença; devolve se ela mudou (spec da F09, "Rotas").
+  // Grava a escolha de presença e devolve a gravada, com a hora da gravação (spec da F09, "Rotas"):
+  // com duas gravações ao mesmo tempo, a hora ordena as continuações.
   async savePresenceChoice(
     personId: string,
     choice: Presence,
-  ): Promise<boolean> {
-    const result = await this.people
-      .createQueryBuilder()
-      .update()
-      .set({ presenceChoice: choice })
-      .where('id = :personId AND presence_choice <> :choice', {
-        personId,
-        choice,
-      })
-      .execute();
-    return (result.affected ?? 0) > 0;
+  ): Promise<{ choice: Presence; savedAt: number }> {
+    // A hora da escrita, depois de esperar a trava da linha, e não a do começo da transação: ela
+    // segue a ordem das gravações. No UPDATE, o driver devolve [linhas, contagem].
+    const [rows] = await this.txHost.tx.query<
+      [{ presence_choice: Presence; updated_at: Date }[], number]
+    >(
+      `UPDATE people SET presence_choice = $2, updated_at = clock_timestamp()
+        WHERE id = $1 RETURNING presence_choice, updated_at`,
+      [personId, choice],
+    );
+    const [row] = rows;
+    return { choice: row.presence_choice, savedAt: row.updated_at.getTime() };
   }
 
   // Quem tem Status, para o retrato (spec da F09, "Rotas"): cresce com quem tem Status, e não com o

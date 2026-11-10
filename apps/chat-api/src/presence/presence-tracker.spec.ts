@@ -80,8 +80,8 @@ describe('rastreador de presença', () => {
     const { presence, changes } = tracker();
     presence.connected('ana', 'available');
 
-    presence.choiceChanged('ana', 'away');
-    presence.choiceChanged('bruno', 'away');
+    presence.choiceChanged('ana', 'away', 1);
+    presence.choiceChanged('bruno', 'away', 1);
 
     expect(presence.presenceOf('ana')).toBe('away');
     expect(changes).toEqual([
@@ -112,9 +112,28 @@ describe('rastreador de presença', () => {
   it('uma aba nova não troca a escolha de quem já está conectado', () => {
     const { presence } = tracker();
     presence.connected('ana', 'available');
-    presence.choiceChanged('ana', 'away');
+    presence.choiceChanged('ana', 'away', 1);
 
     presence.connected('ana', 'available');
+
+    expect(presence.presenceOf('ana')).toBe('away');
+  });
+
+  it('a escolha gravada sem aba conectada vale para a aba que conecta com a escolha velha', () => {
+    const { presence } = tracker();
+    presence.choiceChanged('ana', 'away', 1);
+
+    presence.connected('ana', 'available');
+
+    expect(presence.presenceOf('ana')).toBe('away');
+  });
+
+  it('uma gravação mais velha que chega depois não desfaz a mais nova', () => {
+    const { presence } = tracker();
+    presence.connected('ana', 'available');
+
+    presence.choiceChanged('ana', 'away', 2);
+    presence.choiceChanged('ana', 'available', 1);
 
     expect(presence.presenceOf('ana')).toBe('away');
   });

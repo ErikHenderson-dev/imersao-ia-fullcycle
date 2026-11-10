@@ -12,6 +12,9 @@ em "Nova conversa" (145:42540 e 145:42892) e no cabeçalho da Conversa direta (1
 | Menu do avatar, Disponível | ![](capturas/menu-disponivel-claro.png) | ![](capturas/menu-disponivel-escuro.png) | ![](capturas/figma-menu-disponivel-escuro.png) |
 | Menu do avatar, Ausente | ![](capturas/menu-ausente-claro.png) | ![](capturas/menu-ausente-escuro.png) | frame 25:26689 |
 | Autor da Mensagem, barra lateral e painel de perfil | ![](capturas/conversa-e-perfil-claro.png) | ![](capturas/conversa-e-perfil-escuro.png) | frames 145:41208 e 26:43588 |
+| "Membros de #nome" (disponível e ausente) | ![](capturas/membros-claro.png) | ![](capturas/membros-escuro.png) | frame 145:41784 |
+| Resultados de "Nova conversa" | ![](capturas/nova-conversa-claro.png) | ![](capturas/nova-conversa-escuro.png) | frame 145:42540 |
+| Cabeçalho da Conversa direta | ![](capturas/cabecalho-conversa-direta-claro.png) | ![](capturas/cabecalho-conversa-direta-escuro.png) | frame 145:43244 |
 
 ## O que bate
 

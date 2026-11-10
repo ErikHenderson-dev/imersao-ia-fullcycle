@@ -19,6 +19,12 @@ interface Tracked {
 @Injectable()
 export class PresenceTracker implements OnModuleDestroy {
   private readonly tracked = new Map<string, Tracked>();
+  // A escolha gravada mais nova de cada Pessoa que a trocou, com a hora da gravação: vale também
+  // para quem não está conectado, e uma aba que conecta usa ela em vez da lida no handshake.
+  private readonly savedChoices = new Map<
+    string,
+    { choice: PresenceChoice; at: number }
+  >();
   private readonly listeners = new Set<
     (personId: string, presence: Presence) => void
   >();
@@ -50,12 +56,14 @@ export class PresenceTracker implements OnModuleDestroy {
       .map(([personId]) => personId);
   }
 
-  // Uma aba conectou. A escolha lida no handshake só vale para quem não estava sendo seguido: a de
-  // quem já está conectado é a mais nova, trocada pela rota enquanto o handshake corria.
-  connected(personId: string, choice: PresenceChoice): void {
+  // Uma aba conectou. A escolha lida no handshake só vale para quem não estava sendo seguido e não
+  // gravou outra depois: a escolha gravada pela rota enquanto o handshake corria é mais nova.
+  connected(personId: string, handshakeChoice: PresenceChoice): void {
     this.track(personId, () => {
       const entry = this.tracked.get(personId);
       if (!entry) {
+        const choice =
+          this.savedChoices.get(personId)?.choice ?? handshakeChoice;
         this.tracked.set(personId, { sockets: 1, choice });
         return;
       }
@@ -78,8 +86,16 @@ export class PresenceTracker implements OnModuleDestroy {
     entry.graceTimer.unref?.();
   }
 
-  // A Pessoa trocou a escolha: muda a Presença só de quem está sendo seguido.
-  choiceChanged(personId: string, choice: PresenceChoice): void {
+  // A Pessoa gravou uma escolha em `savedAt`. Uma gravação mais velha que a última conhecida, cuja
+  // continuação chegou depois, não muda nada. A Presença só muda para quem está sendo seguido.
+  choiceChanged(
+    personId: string,
+    choice: PresenceChoice,
+    savedAt: number,
+  ): void {
+    const saved = this.savedChoices.get(personId);
+    if (saved && saved.at > savedAt) return;
+    this.savedChoices.set(personId, { choice, at: savedAt });
     const entry = this.tracked.get(personId);
     if (!entry) return;
     this.track(personId, () => {
