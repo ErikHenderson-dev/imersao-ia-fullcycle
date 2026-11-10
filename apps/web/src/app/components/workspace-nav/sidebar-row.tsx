@@ -6,6 +6,7 @@ import { ChannelIcon } from "@/app/components/conversation/channel-icon";
 import { Avatar } from "@/app/components/ui/avatar";
 import type { Conversation } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
+import { isSelfConversation } from "@/app/utils/conversation-title";
 
 type SidebarRowProps = {
   href: string;
@@ -36,7 +37,7 @@ export function SidebarRow({ href, conversation, selfId }: SidebarRowProps) {
           <>
             <Avatar initials={counterpart.initials} seed={counterpart.id} size="xs" />
             <span className="truncate">{counterpart.name}</span>
-            {counterpart.id === selfId && <span className="shrink-0 opacity-70">você</span>}
+            {isSelfConversation(conversation, selfId) && <span className="shrink-0 opacity-70">você</span>}
           </>
         ) : (
           <>

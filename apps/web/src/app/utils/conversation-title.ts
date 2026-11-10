@@ -19,6 +19,14 @@ export function composerLabel(
   if (conversation.kind !== "direct") return `Mensagem para #${conversation.name}`;
   const counterpart = conversation.counterpart;
   if (!counterpart) return "Mensagem";
-  if (counterpart.id === selfId) return "Mensagem para você";
-  return `Mensagem para ${counterpart.name.split(/\s+/)[0]}`;
+  if (isSelfConversation(conversation, selfId)) return "Mensagem para você";
+  return `Mensagem para ${counterpart.name.trim().split(/\s+/)[0]}`;
+}
+
+// A Conversa direta da Pessoa consigo mesma.
+export function isSelfConversation(
+  conversation: Pick<Conversation, "kind" | "counterpart">,
+  selfId: string | null,
+): boolean {
+  return conversation.kind === "direct" && conversation.counterpart?.id === selfId;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { openDirectConversation } from "@/app/actions/open-direct-conversation";
@@ -202,12 +202,20 @@ function OpenDirectConversationButton({
     const { conversation } = result;
     await mutate(
       conversationsKey(sessionPersonId),
+      // Sem a lista no cache, nada a inserir: a barra lateral a lê com a Conversa nova.
       (current: readonly Conversation[] | undefined) =>
-        applyMemberAdded(current ?? [], conversation, [sessionPersonId], sessionPersonId),
+        current && applyMemberAdded(current, conversation, [sessionPersonId], sessionPersonId),
       { revalidate: false },
     );
+    // O botão fica em "Abrindo" até a página trocar (o efeito abaixo), sem um segundo clique.
     router.push(`/conversas/${conversation.id}`);
-    setState("idle");
+  }
+
+  const pathname = usePathname();
+  const [openedAt, setOpenedAt] = useState(pathname);
+  if (openedAt !== pathname) {
+    setOpenedAt(pathname);
+    if (state === "opening") setState("idle");
   }
 
   return (

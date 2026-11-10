@@ -115,30 +115,43 @@ export class ConversationsService {
   async withMemberCounts(
     conversations: Conversation[],
   ): Promise<ConversationSummary[]> {
-    const counts = await this.countMembers(
-      conversations.map((conversation) => conversation.id),
+    const [counts, directPeople] = await Promise.all([
+      this.countMembers(conversations.map((conversation) => conversation.id)),
+      this.directPeopleOf(conversations),
+    ]);
+    return conversations.map((conversation) => ({
+      conversation,
+      memberCount: counts.get(conversation.id) ?? 0,
+      directPeople: directPeople.get(conversation.id),
+    }));
+  }
+
+  // As duas Pessoas de cada Conversa direta, numa consulta só. Uma Pessoa que sumiu no meio fica de
+  // fora, e a Conversa fica sem a outra Pessoa, em vez de quebrar a lista.
+  private async directPeopleOf(
+    conversations: Conversation[],
+  ): Promise<Map<string, DirectPerson[]>> {
+    const directs = conversations.filter(
+      (conversation) => conversation.kind === 'direct',
     );
-    const directIds = conversations.flatMap((conversation) =>
-      conversation.kind === 'direct'
-        ? [conversation.directPersonLowId!, conversation.directPersonHighId!]
-        : [],
-    );
+    const ids = directs.flatMap((conversation) => [
+      conversation.directPersonLowId!,
+      conversation.directPersonHighId!,
+    ]);
     const people = new Map(
-      (await this.people.findByIds([...new Set(directIds)])).map((person) => [
+      (await this.people.findByIds([...new Set(ids)])).map((person) => [
         person.id,
         { id: person.id, name: person.name, username: person.username },
       ]),
     );
-    return conversations.map((conversation) => ({
-      conversation,
-      memberCount: counts.get(conversation.id) ?? 0,
-      ...(conversation.kind === 'direct' && {
-        directPeople: [
-          people.get(conversation.directPersonLowId!)!,
-          people.get(conversation.directPersonHighId!)!,
-        ],
-      }),
-    }));
+    return new Map(
+      directs.map((conversation) => [
+        conversation.id,
+        [conversation.directPersonLowId!, conversation.directPersonHighId!]
+          .map((id) => people.get(id))
+          .filter((person): person is DirectPerson => person !== undefined),
+      ]),
+    );
   }
 
   // Abre a Conversa direta com a Pessoa (spec da F05, "Conversa direta", "Abrir"): grava a Conversa
@@ -153,7 +166,8 @@ export class ConversationsService {
       ? await this.people.findById(personId)
       : null;
     if (!person) throw new PersonNotFoundError(null);
-    const [low, high] = [openerId, personId].sort();
+    // Os ids como o banco os guarda: um id em maiúsculas inverteria a ordem do par.
+    const [low, high] = [openerId, person.id].sort();
     // Abrir pelas duas pontas ao mesmo tempo: a única parcial do par decide, e quem perdeu lê a do
     // outro.
     const inserted = await this.txHost.tx.query<{ id: string }[]>(
@@ -171,10 +185,12 @@ export class ConversationsService {
     const joined =
       (await this.insertMembers([[conversation.id, openerId]])).length > 0;
     const memberIds = await this.listMemberIds(conversation.id);
-    const [summary] = await this.withMemberCounts([conversation]);
     return {
-      ...summary,
+      conversation,
       memberCount: memberIds.length,
+      directPeople: (await this.directPeopleOf([conversation])).get(
+        conversation.id,
+      ),
       created: inserted.length > 0,
       joined,
       memberIds,
@@ -490,6 +506,6 @@ export function counterpartOf(
   viewerId: string,
 ): DirectPerson | null {
   const people = summary.directPeople;
-  if (!people) return null;
+  if (!people?.length) return null;
   return people.find((person) => person.id !== viewerId) ?? people[0];
 }

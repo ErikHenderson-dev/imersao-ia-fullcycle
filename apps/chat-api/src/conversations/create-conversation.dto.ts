@@ -43,11 +43,12 @@ export class CreateConversationDto {
   @IsUUID()
   person_id?: string;
 
-  // Os campos que o tipo não aceita.
+  // Os campos que o tipo não aceita, cada um conferido: um vazio não esconde os outros.
   @ValidateIf(isDirect)
   @IsEmpty()
   get channelFields(): unknown {
-    return this.name ?? this.topic ?? this.client_id;
+    const fields = [this.name, this.topic, this.client_id];
+    return fields.every((field) => field === undefined) ? undefined : fields;
   }
 
   @ValidateIf(isChannel)

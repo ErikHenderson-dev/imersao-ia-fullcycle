@@ -146,6 +146,20 @@ describe('Conversa direta', () => {
     });
   });
 
+  it('aceita o id da outra Pessoa em maiúsculas', async () => {
+    const opener = await authRoutes.loggedIn(app);
+    const other = await authRoutes.loggedIn(app);
+
+    const response = await conversationRoutes.openDirect(
+      app,
+      opener.cookie,
+      other.person.id.toUpperCase(),
+    );
+
+    expect(response.status).toBe(201);
+    expect(conversationOf(response).counterpart?.id).toBe(other.person.id);
+  });
+
   it('responde 404 person_not_found para quem não é Pessoa', async () => {
     const opener = await authRoutes.loggedIn(app);
 
@@ -163,6 +177,7 @@ describe('Conversa direta', () => {
     ['o nome junto', { name: 'dm' }],
     ['o client_id junto', { client_id: randomUUID() }],
     ['o Tópico junto', { topic: 'Tópico' }],
+    ['um nome vazio escondendo o Tópico', { name: '', topic: 'Tópico' }],
   ])('responde 400 para %s', async (_case, extra) => {
     const opener = await authRoutes.loggedIn(app);
     const other = await authRoutes.loggedIn(app);

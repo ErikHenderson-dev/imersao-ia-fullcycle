@@ -97,11 +97,18 @@ export class MembershipsService {
     this.publisher
       .memberAdded(
         memberIds,
-        (personId) => toConversationResponse(summary, personId),
+        // Só a Conversa direta muda de quem recebe para quem recebe; a do Canal é montada uma vez.
+        summary.conversation.kind === 'direct'
+          ? (personId) => toConversationResponse(summary, personId)
+          : constant(toConversationResponse(summary, '')),
         addedIds,
       )
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a participação gravada', error),
       );
   }
+}
+
+function constant<T>(value: T): () => T {
+  return () => value;
 }

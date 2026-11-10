@@ -48,6 +48,10 @@ export default async function ConversationPage({ params }: PageProps<"/conversas
   }
 
   const { conversation } = conversationResult;
+  // A Pessoa da Sessão já foi pedida junto com a Conversa: com ela, a caixa de mensagem da Conversa
+  // consigo mesma diz "você" desde o carregamento.
+  const personResult = await person;
+  const selfId = personResult.kind === "ok" ? personResult.person.id : null;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <RememberConversation conversationId={conversation.id} />
@@ -64,7 +68,7 @@ export default async function ConversationPage({ params }: PageProps<"/conversas
       />
       <Suspense
         key={conversation.id}
-        fallback={<HistoryLoading composerLabel={composerLabel(conversation, null)} />}
+        fallback={<HistoryLoading composerLabel={composerLabel(conversation, selfId)} />}
       >
         <ConversationHistory conversation={conversation} history={history} path={path} />
       </Suspense>
@@ -98,7 +102,8 @@ async function ConversationHistory({ conversation, history, path }: Conversation
   }
   if (pageResult.kind === "not_found") notFound();
   if (personResult.kind !== "ok" || pageResult.kind !== "ok") {
-    return <HistoryError composerLabel={composerLabel(conversation, null)} />;
+    const selfId = personResult.kind === "ok" ? personResult.person.id : null;
+    return <HistoryError composerLabel={composerLabel(conversation, selfId)} />;
   }
 
   const { id: authorId, name, initials } = personResult.person;

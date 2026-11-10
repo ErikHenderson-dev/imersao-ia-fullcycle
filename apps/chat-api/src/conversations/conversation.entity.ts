@@ -47,6 +47,8 @@ export type ConversationKind = 'public_channel' | 'private_channel' | 'direct';
     where: `"kind" = 'direct'`,
   },
 )
+// Para a exclusão em cascata de uma Pessoa achar as Conversas diretas em que ela é a segunda do par.
+@Index('conversations_direct_person_high_idx', ['directPersonHighId'])
 @Index('conversations_creator_client_key', ['createdBy', 'clientId'], {
   unique: true,
   where: '"created_by" IS NOT NULL AND "client_id" IS NOT NULL',
