@@ -1,6 +1,6 @@
 # 02: Abrir a Conversa na Mensagem
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** abrir a Conversa por um link que aponta uma Mensagem leva direto a ela, com o
 destaque, mesmo quando ela está longe no histórico. É o destino do item de Atividade, do Alerta e
