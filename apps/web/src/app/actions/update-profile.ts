@@ -1,15 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateProfile as updateProfileInChat, type Profile } from "@/app/services/chat-api";
+import {
+  updateProfile as updateProfileInChat,
+  type UpdateProfileResult,
+} from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { parseProfileFields, type ProfileFieldError } from "@/app/utils/profile-fields";
 
 export type UpdateProfileActionResult =
-  | { kind: "ok"; profile: Profile }
-  | { kind: "invalid"; errors: ProfileFieldError[] }
-  | { kind: "unauthenticated" }
-  | { kind: "failure" };
+  | UpdateProfileResult
+  | { kind: "invalid"; errors: ProfileFieldError[] };
 
 // Edita o próprio Perfil (spec da F09, "BFF"): valida com as mesmas regras da API, e é essa
 // validação que preenche o "Erro de campo". Um 400 da API que escape dela vira o erro geral.

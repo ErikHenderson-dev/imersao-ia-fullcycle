@@ -76,6 +76,8 @@ describe('edição do próprio Perfil', () => {
     ['o nome com quebra de linha', { name: 'Ana\nLima' }],
     ['o nome com 81 caracteres', { name: 'n'.repeat(81) }],
     ['o nome que não é texto', { name: 42 }],
+    ['o nome com o caractere nulo', { name: 'Ana\u0000' }],
+    ['o cargo com o caractere nulo', { title: 'Produto\u0000' }],
     ['o cargo com 81 caracteres', { title: 'c'.repeat(81) }],
     ['o telefone com letra', { phone: '+55 11 ABCD' }],
   ])('responde 400 validation_failed para %s', async (_case, body) => {

@@ -111,7 +111,6 @@ test.describe("Editar o próprio Perfil", () => {
   test("outra Pessoa vê o nome novo numa Mensagem antiga ao recarregar", async ({
     page,
     person,
-    otherPerson,
     sharedChannel,
     otherPage,
   }) => {
@@ -137,7 +136,6 @@ test.describe("Editar o próprio Perfil", () => {
     await readyHistory(otherPage, sharedChannel.name);
 
     await expect(authorButton(otherPage, "Ana Lima")).toBeVisible();
-    void otherPerson;
   });
 
   test("o painel de outra Pessoa não tem Editar perfil", async ({

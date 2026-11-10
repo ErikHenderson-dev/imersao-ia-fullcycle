@@ -495,6 +495,10 @@ export type Profile = {
 
 type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
 
+function toProfile({ time_zone: timeZone, ...person }: ApiProfile): Profile {
+  return { ...withInitials(person), timeZone };
+}
+
 export type GetProfileResult =
   | { kind: "ok"; profile: Profile }
   | { kind: "not_found" }
@@ -509,8 +513,7 @@ export async function getProfile(token: string, personId: string): Promise<GetPr
   if (response?.status !== 200) return commonFailure(response);
   const body = await jsonBody<{ person: ApiProfile }>(response);
   if (!body) return { kind: "failure" };
-  const { time_zone: timeZone, ...person } = body.person;
-  return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+  return { kind: "ok", profile: toProfile(body.person) };
 }
 
 export type UpdateProfileResult =
@@ -533,8 +536,7 @@ export async function updateProfile(
   if (response?.status !== 200) return { kind: "failure" };
   const body = await jsonBody<{ person: ApiProfile }>(response);
   if (!body) return { kind: "failure" };
-  const { time_zone: timeZone, ...person } = body.person;
-  return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+  return { kind: "ok", profile: toProfile(body.person) };
 }
 
 export type OpenDirectConversationResult =

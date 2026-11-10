@@ -162,12 +162,7 @@ export class PeopleService {
   async updateProfile(email: string, changes: ProfileChanges): Promise<Person> {
     const person = await this.findByEmail(email);
     if (!person) throw new PersonNotFoundError(normalizeEmail(email));
-    const update: Partial<Pick<Person, 'title' | 'phone'>> = {};
-    if (changes.title !== undefined) update.title = parseTitle(changes.title);
-    if (changes.phone !== undefined) update.phone = parsePhone(changes.phone);
-    if (Object.keys(update).length === 0) return person;
-    await this.people.update({ id: person.id }, update);
-    return this.people.findOneByOrFail({ id: person.id });
+    return this.updateOwnProfile(person.id, changes);
   }
 
   // Grava o próprio Perfil numa escrita só, depois de validar cada campo presente.
@@ -177,12 +172,10 @@ export class PeopleService {
   ): Promise<Person> {
     const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
     if (changes.name !== undefined) update.name = parseName(changes.name);
-    if (changes.title !== undefined) {
+    if (changes.title !== undefined)
       update.title = parseTitle(changes.title ?? '');
-    }
-    if (changes.phone !== undefined) {
+    if (changes.phone !== undefined)
       update.phone = parsePhone(changes.phone ?? '');
-    }
     if (Object.keys(update).length > 0) {
       await this.people.update({ id: personId }, update);
     }

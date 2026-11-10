@@ -94,10 +94,7 @@ function EditProfileDialog({ sessionPersonId, onSaved, onCloseAutoFocus }: EditP
           profile={profile}
           isSaving={isSaving}
           onSavingChange={setIsSaving}
-          onSaved={(saved) => {
-            void mutate(saved, { revalidate: false });
-            onSaved();
-          }}
+          onSaved={onSaved}
         />
       ) : error ? (
         <DialogBody>
@@ -122,11 +119,23 @@ function EditProfileDialog({ sessionPersonId, onSaved, onCloseAutoFocus }: EditP
   );
 }
 
+const FIELDS: {
+  field: ProfileField;
+  label: string;
+  optional: boolean;
+  autoComplete: string;
+  type: string;
+}[] = [
+  { field: "name", label: "Nome completo", optional: false, autoComplete: "name", type: "text" },
+  { field: "title", label: "Cargo", optional: true, autoComplete: "organization-title", type: "text" },
+  { field: "phone", label: "Telefone", optional: true, autoComplete: "tel", type: "tel" },
+];
+
 type EditProfileFormProps = {
   profile: Profile;
   isSaving: boolean;
   onSavingChange: (isSaving: boolean) => void;
-  onSaved: (profile: Profile) => void;
+  onSaved: () => void;
 };
 
 function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditProfileFormProps) {
@@ -139,14 +148,7 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
   const [errors, setErrors] = useState<ProfileFieldError[]>([]);
   const [hasFailed, setHasFailed] = useState(false);
   const inputs = useRef<Partial<Record<ProfileField, HTMLInputElement | null>>>({});
-  const ids = {
-    name: useId(),
-    title: useId(),
-    phone: useId(),
-    nameError: useId(),
-    titleError: useId(),
-    phoneError: useId(),
-  };
+  const id = useId();
 
   // O Perfil pode chegar depois de o diálogo abrir, quando o Radix já procurou o primeiro campo:
   // o foco vai para "Nome completo" quando o formulário aparece.
@@ -176,7 +178,7 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
       case "ok":
         // Outros lugares que leem este Perfil (o painel aberto) passam a mostrar o novo.
         void mutate(profileKey(result.profile.id), result.profile, { revalidate: false });
-        onSaved(result.profile);
+        onSaved();
         return;
       case "invalid":
         setErrors(result.errors);
@@ -189,24 +191,19 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
     }
   }
 
-  const fields: { field: ProfileField; label: string; optional: boolean; autoComplete: string; type?: string }[] = [
-    { field: "name", label: "Nome completo", optional: false, autoComplete: "name" },
-    { field: "title", label: "Cargo", optional: true, autoComplete: "organization-title" },
-    { field: "phone", label: "Telefone", optional: true, autoComplete: "tel", type: "tel" },
-  ];
-
   return (
     <form onSubmit={submit} noValidate>
       <DialogBody>
-        {fields.map(({ field, label, optional, autoComplete, type }) => {
+        {FIELDS.map(({ field, label, optional, autoComplete, type }) => {
           const error = errorOf(field);
-          const errorId = ids[`${field}Error`];
+          const inputId = `${id}-${field}`;
+          const errorId = `${inputId}-error`;
           return (
             <Field
               key={field}
               label={label}
               optional={optional}
-              htmlFor={ids[field]}
+              htmlFor={inputId}
               error={error}
               errorId={errorId}
             >
@@ -214,8 +211,8 @@ function EditProfileForm({ profile, isSaving, onSavingChange, onSaved }: EditPro
                 ref={(element) => {
                   inputs.current[field] = element;
                 }}
-                id={ids[field]}
-                type={type ?? "text"}
+                id={inputId}
+                type={type}
                 value={values[field]}
                 // Somente leitura no envio: o que vai para a API é o que está na tela.
                 readOnly={isSaving}

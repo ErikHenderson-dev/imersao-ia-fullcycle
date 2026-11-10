@@ -17,18 +17,23 @@ function blankToNull(value: string): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
+// Recusa o texto com quebra de linha ou acima do limite; `noun` entra na mensagem.
+function assertSingleLine(value: string, max: number, noun: string): void {
+  if (/[\r\n]/.test(value)) {
+    throw new InvalidProfileError(`${noun} precisa ficar numa linha só.`);
+  }
+  if (codePointLength(value) > max) {
+    throw new InvalidProfileError(
+      `${noun} pode ter no máximo ${max} caracteres.`,
+    );
+  }
+}
+
 // O nome pronto para gravar, ou a recusa com o motivo. Obrigatório, numa linha só, como o cargo.
 export function parseName(value: string): string {
   const name = value.trim();
   if (name === '') throw new InvalidProfileError('Informe o nome completo.');
-  if (/[\r\n]/.test(name)) {
-    throw new InvalidProfileError('O nome precisa ficar numa linha só.');
-  }
-  if (codePointLength(name) > NAME_MAX_LENGTH) {
-    throw new InvalidProfileError(
-      `O nome pode ter no máximo ${NAME_MAX_LENGTH} caracteres.`,
-    );
-  }
+  assertSingleLine(name, NAME_MAX_LENGTH, 'O nome');
   return name;
 }
 
@@ -53,15 +58,7 @@ export function namesOutsideRule(
 // O cargo pronto para gravar, ou a recusa com o motivo.
 export function parseTitle(value: string): string | null {
   const title = blankToNull(value);
-  if (title === null) return null;
-  if (/[\r\n]/.test(title)) {
-    throw new InvalidProfileError('O cargo precisa ficar numa linha só.');
-  }
-  if (codePointLength(title) > TITLE_MAX_LENGTH) {
-    throw new InvalidProfileError(
-      `O cargo pode ter no máximo ${TITLE_MAX_LENGTH} caracteres.`,
-    );
-  }
+  if (title !== null) assertSingleLine(title, TITLE_MAX_LENGTH, 'O cargo');
   return title;
 }
 

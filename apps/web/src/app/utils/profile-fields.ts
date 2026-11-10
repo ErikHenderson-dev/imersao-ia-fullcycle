@@ -26,22 +26,20 @@ function blankToNull(value: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-function nameError(name: string): string | null {
-  if (name === "") return "Informe seu nome completo.";
-  if (LINE_BREAK.test(name)) return "O nome precisa ficar numa linha só.";
-  if (codePointLength(name) > NAME_MAX_LENGTH) {
-    return `O nome pode ter no máximo ${NAME_MAX_LENGTH} caracteres.`;
-  }
+// O erro do texto com quebra de linha ou acima do limite; `noun` entra na mensagem.
+function singleLineError(value: string, max: number, noun: string): string | null {
+  if (LINE_BREAK.test(value)) return `${noun} precisa ficar numa linha só.`;
+  if (codePointLength(value) > max) return `${noun} pode ter no máximo ${max} caracteres.`;
   return null;
 }
 
+function nameError(name: string): string | null {
+  if (name === "") return "Informe seu nome completo.";
+  return singleLineError(name, NAME_MAX_LENGTH, "O nome");
+}
+
 function titleError(title: string | null): string | null {
-  if (title === null) return null;
-  if (LINE_BREAK.test(title)) return "O cargo precisa ficar numa linha só.";
-  if (codePointLength(title) > TITLE_MAX_LENGTH) {
-    return `O cargo pode ter no máximo ${TITLE_MAX_LENGTH} caracteres.`;
-  }
-  return null;
+  return title === null ? null : singleLineError(title, TITLE_MAX_LENGTH, "O cargo");
 }
 
 function phoneError(phone: string | null): string | null {
