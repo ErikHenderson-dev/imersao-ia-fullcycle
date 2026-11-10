@@ -1,3 +1,5 @@
+import { InvalidProfileError } from './invalid-profile.error';
+
 // O @usuário de uma Pessoa (spec da F05, "Pessoas"; LLD, "Valores e configuração", "Formato do
 // @usuário"). A mesma derivação serve à conta nova e à migração que preenche as contas que já
 // existiam: uma regra escrita duas vezes divergiria.
@@ -7,7 +9,17 @@ export const USERNAME_MAX_LENGTH = 30;
 // Letras de a a z sem acento, números, `.`, `_` e `-`, de 2 a 30 caracteres, começando e terminando
 // com letra ou número. É a mesma expressão do CHECK de `people`.
 export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,28}[a-z0-9]$/;
-export const USERNAME_SQL_PATTERN = '^[a-z0-9][a-z0-9._-]{0,28}[a-z0-9]$';
+
+// O @usuário informado no comando, pronto para gravar, ou a recusa com o motivo.
+export function parseUsername(value: string): string {
+  const username = value.trim();
+  if (!USERNAME_PATTERN.test(username)) {
+    throw new InvalidProfileError(
+      'O @usuário aceita letras de a a z sem acento, números, ., _ e -, de 2 a 30 caracteres, começando e terminando com letra ou número.',
+    );
+  }
+  return username;
+}
 
 // O que sobra curto demais vira este @usuário, com sufixo quando repete.
 const FALLBACK_USERNAME = 'pessoa';

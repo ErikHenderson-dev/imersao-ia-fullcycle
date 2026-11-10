@@ -4,44 +4,14 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager, In, Repository } from 'typeorm';
 import { randomUUIDv7 } from 'node:crypto';
 import { EmailAlreadyExistsError } from './email-already-exists.error';
-import { InvalidProfileError } from './invalid-profile.error';
 import { normalizeEmail } from './normalize-email';
 import { PasswordHasher } from './password-hasher';
 import type { PersonSummary } from './person-summary';
 import { PersonNotFoundError } from './person-not-found.error';
 import { Person } from './person.entity';
-import {
-  normalizePhone,
-  normalizeTitle,
-  phoneProblem,
-  titleProblem,
-} from './profile-values';
+import { parsePhone, parseTitle } from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
-import { USERNAME_PATTERN, firstFreeUsername, usernameBase } from './username';
-
-function checkedTitle(value: string | undefined): string | null {
-  const title = value === undefined ? null : normalizeTitle(value);
-  const problem = titleProblem(title);
-  if (problem) throw new InvalidProfileError(problem);
-  return title;
-}
-
-function checkedPhone(value: string | undefined): string | null {
-  const phone = value === undefined ? null : normalizePhone(value);
-  const problem = phoneProblem(phone);
-  if (problem) throw new InvalidProfileError(problem);
-  return phone;
-}
-
-function checkedUsername(value: string): string {
-  const username = value.trim();
-  if (!USERNAME_PATTERN.test(username)) {
-    throw new InvalidProfileError(
-      'O @usuário aceita letras de a a z sem acento, números, ., _ e -, de 2 a 30 caracteres, começando e terminando com letra ou número.',
-    );
-  }
-  return username;
-}
+import { firstFreeUsername, parseUsername, usernameBase } from './username';
 
 export interface NewPerson {
   email: string;
@@ -54,10 +24,7 @@ export interface NewPerson {
 }
 
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
-export interface ProfileChanges {
-  title?: string;
-  phone?: string;
-}
+export type ProfileChanges = Pick<NewPerson, 'title' | 'phone'>;
 
 // Quantas vezes a criação tenta o próximo sufixo quando outra criação, ao mesmo tempo, toma o
 // @usuário derivado.
@@ -77,51 +44,85 @@ export class PeopleService {
 
   async create(newPerson: NewPerson): Promise<Person> {
     const email = normalizeEmail(newPerson.email);
-    const title = checkedTitle(newPerson.title);
-    const phone = checkedPhone(newPerson.phone);
+    const fields = {
+      email,
+      name: newPerson.name.trim(),
+      title: parseTitle(newPerson.title ?? ''),
+      phone: parsePhone(newPerson.phone ?? ''),
+    };
     const informed =
       newPerson.username === undefined
         ? null
-        : checkedUsername(newPerson.username);
+        : parseUsername(newPerson.username);
+    // Antes do hash: o Argon2id é caro, e o e-mail repetido é o erro comum.
     if (await this.people.existsBy({ email })) {
       throw new EmailAlreadyExistsError(email);
     }
     const passwordHash = await this.passwords.hash(newPerson.password);
-    for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
-      const username = informed ?? (await this.freeUsername(email));
-      const person = this.people.create({
-        id: randomUUIDv7(),
-        email,
-        name: newPerson.name.trim(),
+    if (informed) {
+      const person = await this.insert({
+        ...fields,
         passwordHash,
-        username,
-        title,
-        phone,
+        username: informed,
       });
-      // ON CONFLICT DO NOTHING, e não captura do erro: a criação roda dentro da transação da
-      // participação, que um erro de unicidade abortaria.
-      const inserted = await this.people
-        .createQueryBuilder()
-        .insert()
-        .values(person)
-        .orIgnore()
-        .returning(['created_at', 'updated_at'])
-        .execute();
-      if (inserted.raw.length > 0) {
-        return this.people.findOneByOrFail({ id: person.id });
-      }
-      // Duas criações simultâneas passam pelo existsBy; o índice único decide.
-      if (await this.people.existsBy({ email })) {
-        throw new EmailAlreadyExistsError(email);
-      }
-      if (informed) throw new UsernameTakenError(informed);
+      if (person) return person;
+      await this.throwIfEmailTaken(email);
+      throw new UsernameTakenError(informed);
     }
-    throw new UsernameTakenError(usernameBase(email));
+    const base = usernameBase(email);
+    const taken = await this.usernamesStartingWith(base);
+    for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
+      const username = firstFreeUsername(base, (candidate) =>
+        taken.has(candidate),
+      );
+      const person = await this.insert({ ...fields, passwordHash, username });
+      if (person) return person;
+      await this.throwIfEmailTaken(email);
+      // Outra criação, ao mesmo tempo, ficou com este @usuário: tenta o próximo.
+      taken.add(username);
+    }
+    throw new UsernameTakenError(base);
   }
 
-  // O primeiro @usuário livre da base do e-mail, pelos que já existem com o mesmo começo.
-  private async freeUsername(email: string): Promise<string> {
-    const base = usernameBase(email);
+  // ON CONFLICT DO NOTHING, e não a captura do erro: a criação roda dentro da transação da
+  // participação, que um erro de unicidade abortaria. Devolve null no conflito.
+  private async insert(
+    values: Omit<
+      Person,
+      'id' | 'createdAt' | 'updatedAt' | 'timeZone' | 'generateId'
+    >,
+  ): Promise<Person | null> {
+    const person = this.people.create({ ...values, id: randomUUIDv7() });
+    const inserted = await this.people
+      .createQueryBuilder()
+      .insert()
+      .values(person)
+      .orIgnore()
+      .returning(['created_at', 'updated_at', 'time_zone'])
+      .execute();
+    const [row] = inserted.raw as {
+      created_at: Date;
+      updated_at: Date;
+      time_zone: string | null;
+    }[];
+    if (!row) return null;
+    return this.people.merge(person, {
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      timeZone: row.time_zone,
+    });
+  }
+
+  // Duas criações simultâneas passam pelo existsBy; o índice único decide.
+  private async throwIfEmailTaken(email: string): Promise<void> {
+    if (await this.people.existsBy({ email })) {
+      throw new EmailAlreadyExistsError(email);
+    }
+  }
+
+  // Os @usuário que podem colidir com os candidatos da base: os que começam pelo que sobra dela
+  // depois do corte para o sufixo mais longo.
+  private async usernamesStartingWith(base: string): Promise<Set<string>> {
     const prefix = base.slice(0, 20).replace(/[\\%_]/g, '\\$&');
     const rows = await this.people
       .createQueryBuilder('person')
@@ -130,8 +131,7 @@ export class PeopleService {
         prefix: `${prefix}%`,
       })
       .getRawMany<{ username: string }>();
-    const taken = new Set(rows.map((row) => row.username));
-    return firstFreeUsername(base, (candidate) => taken.has(candidate));
+    return new Set(rows.map((row) => row.username));
   }
 
   // Troca o cargo e o telefone (spec da F05, "Comando de contas"); o @usuário não muda.
@@ -139,8 +139,8 @@ export class PeopleService {
     const person = await this.findByEmail(email);
     if (!person) throw new PersonNotFoundError(normalizeEmail(email));
     const update: Partial<Pick<Person, 'title' | 'phone'>> = {};
-    if (changes.title !== undefined) update.title = checkedTitle(changes.title);
-    if (changes.phone !== undefined) update.phone = checkedPhone(changes.phone);
+    if (changes.title !== undefined) update.title = parseTitle(changes.title);
+    if (changes.phone !== undefined) update.phone = parsePhone(changes.phone);
     await this.people.update({ id: person.id }, update);
     return this.people.findOneByOrFail({ id: person.id });
   }
