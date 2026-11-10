@@ -1,6 +1,6 @@
 # 06: Notificação do navegador
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa liga a notificação do navegador pelo menu da conta, e a permissão só
 é pedida aí. Com a opção ligada e nenhuma aba do chat em foco, cada Notificação sai uma vez como
