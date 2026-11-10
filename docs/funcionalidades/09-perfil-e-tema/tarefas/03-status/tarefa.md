@@ -1,6 +1,6 @@
 # 03: Status
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** no diálogo "Editar perfil", a Pessoa escolhe um dos sete emojis e escreve a
 mensagem de Status, ou limpa os dois. Para os outros, o emoji aparece ao lado do nome dela em
