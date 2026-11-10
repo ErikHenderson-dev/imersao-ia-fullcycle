@@ -1,5 +1,9 @@
-import type { ClientToServerEvents, ServerToClientEvents } from 'chat-events';
-import type { Server, Socket } from 'socket.io';
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  StoredEventPayloads,
+} from 'chat-events';
+import type { BroadcastOperator, Server, Socket } from 'socket.io';
 import type { Person } from '../people/person.entity';
 
 // O que o handshake grava no socket depois de verificar a Sessão.
@@ -28,6 +32,42 @@ export type RealtimeSocket = Socket<
   Record<string, never>,
   RealtimeSocketData
 >;
+
+export type StoredEventName = keyof StoredEventPayloads;
+
+// Os nomes dos eventos guardados por Pessoa (StoredEventPayloads, em chat-events). O registro
+// obriga uma entrada por evento: um evento novo no contrato não compila até entrar aqui, em vez de
+// ficar de fora da reconexão sem aviso.
+const STORED_EVENTS: Record<StoredEventName, true> = {
+  'message.created': true,
+  'conversation.member_added': true,
+};
+
+export function isStoredEventName(name: string): name is StoredEventName {
+  return Object.hasOwn(STORED_EVENTS, name);
+}
+
+// Um evento guardado, com o cursor da Pessoa quando ele existe.
+type StoredEvent<N extends StoredEventName> = StoredEventPayloads[N] & {
+  event_id?: string;
+};
+
+// Quem recebe um evento: um socket, ou as salas escolhidas no servidor.
+type StoredEventTarget =
+  RealtimeSocket | BroadcastOperator<ServerToClientEvents, RealtimeSocketData>;
+
+// Emite um evento guardado com o par nome e carga do contrato. O emit tipado do Socket.IO não aceita
+// um nome genérico; a conversão fica só aqui.
+export function emitStoredEvent<N extends StoredEventName>(
+  target: StoredEventTarget,
+  name: N,
+  event: StoredEvent<N>,
+): void {
+  (target as unknown as { emit(name: string, event: object): boolean }).emit(
+    name,
+    event,
+  );
+}
 
 export function personRoom(personId: string): string {
   return `person:${personId}`;

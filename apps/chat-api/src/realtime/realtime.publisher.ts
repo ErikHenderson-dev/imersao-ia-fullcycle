@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   ConversationPayload,
-  MessageCreatedEvent,
   MessagePayload,
   StoredEventPayloads,
 } from 'chat-events';
 import { EventsStore } from './events.store';
 import { RealtimeGateway } from './realtime.gateway';
-import { personRoom } from './realtime-socket';
-
-type StoredEventName = keyof StoredEventPayloads;
+import {
+  emitStoredEvent,
+  personRoom,
+  type StoredEventName,
+} from './realtime-socket';
 
 // Emite os eventos guardados por Pessoa para as abas dela (spec da F03, "Eventos por Pessoa e
 // reconexão"). Quem chama publica depois da gravação. Cada evento entra antes no stream de cada
@@ -89,11 +90,11 @@ export class RealtimePublisher {
     }
   }
 
-  // O emit do Socket.IO não aceita um nome genérico; o par nome e carga já vem de
-  // StoredEventPayloads.
-  private emit(rooms: string | string[], name: StoredEventName, event: object) {
-    this.gateway.server
-      .to(rooms)
-      .emit(name as 'message.created', event as MessageCreatedEvent);
+  private emit<N extends StoredEventName>(
+    rooms: string | string[],
+    name: N,
+    event: StoredEventPayloads[N] & { event_id?: string },
+  ) {
+    emitStoredEvent(this.gateway.server.to(rooms), name, event);
   }
 }
