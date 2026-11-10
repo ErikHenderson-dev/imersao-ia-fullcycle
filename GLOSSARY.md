@@ -10,8 +10,17 @@ vocabulário do produto; os termos do processo de desenvolvimento ficam no `AGEN
 Quem tem conta no workspace, criada pela empresa, e entra no chat com o próprio e-mail e senha.
 _Avoid_: usuário, conta, membro
 
+**@usuário**:
+O nome único de uma Pessoa no workspace, que não muda, usado para encontrá-la e mencioná-la.
+_Avoid_: handle, apelido, login
+
+**Perfil**:
+O que o workspace vê de uma Pessoa: nome, cargo, @usuário, contato e hora local.
+_Avoid_: conta
+
 **Membro**:
-Uma Pessoa enquanto participante de um canal. Fora de um canal, é só Pessoa.
+Uma Pessoa enquanto participante de uma Conversa, seja Canal ou Conversa direta. Fora de uma
+Conversa, é só Pessoa.
 _Avoid_: participante
 
 **Conversa**:
@@ -29,7 +38,7 @@ O chamado, por e-mail, para quem ainda não tem conta criar a própria e entrar 
 _Avoid_: convite para Canal
 
 **Conversa direta**:
-Conversa entre duas Pessoas, sem nome.
+Conversa sem nome entre duas Pessoas, ou de uma Pessoa consigo mesma.
 _Avoid_: DM, exceto como rótulo da aba em Atividade
 
 **Tópico**:
