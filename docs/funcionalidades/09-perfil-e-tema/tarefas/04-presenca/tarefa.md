@@ -40,7 +40,7 @@ Sessões e navegadores. Referências:
 - [x] **CA7** · O Playwright, com a carência reduzida no ambiente de teste, prova "Definir como
   ausente" visto pela outra Pessoa sem recarregar e a Pessoa ausente depois de fechar o contexto;
   tudo pelo teclado; e o axe no menu, sem violações.
-- [ ] **CA8** · A validação visual de "Casca / Menu do usuário" (Disponível e Ausente), do painel
+- [x] **CA8** · A validação visual de "Casca / Menu do usuário" (Disponível e Ausente), do painel
   de perfil e dos frames novos, nos dois temas, fica nesta pasta, e o roteiro do Lighthouse com
   nota 100 na Conversa com o painel de perfil aberto e com o diálogo aberto, nos dois temas,
   também.

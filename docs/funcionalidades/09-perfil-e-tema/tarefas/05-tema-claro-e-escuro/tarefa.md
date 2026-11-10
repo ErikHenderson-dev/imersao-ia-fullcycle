@@ -28,5 +28,5 @@ telas ficam no claro. Referências:
 - [x] **CA6** · O Playwright prova a troca nas duas abas do mesmo contexto e o tema aplicado num
   contexto novo da mesma Pessoa, com o `data-theme` já no HTML do servidor; tudo pelo teclado; e
   o axe nas telas principais nos dois temas, sem violações.
-- [ ] **CA7** · A validação visual do Rail com o botão de tema, nos dois temas, fica nesta pasta,
+- [x] **CA7** · A validação visual do Rail com o botão de tema, nos dois temas, fica nesta pasta,
   e o roteiro do Lighthouse com nota 100 nos dois temas também.
