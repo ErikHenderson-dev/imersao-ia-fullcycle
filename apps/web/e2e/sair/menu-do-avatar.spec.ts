@@ -13,8 +13,9 @@ test.describe("Sair", () => {
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
     await expect(menu.getByText(person.name)).toBeVisible();
-    // "Perfil" (F05) e "Sair do Full Cycle".
-    await expect(menu.getByRole("menuitem")).toHaveCount(2);
+    // "Perfil" (F05), a opção da notificação do navegador (F08) e "Sair do Full Cycle".
+    await expect(menu.getByRole("menuitem")).toHaveCount(3);
+    await expect(menu.getByRole("menuitem", { name: /notificações do navegador/ })).toBeVisible();
     await expect(menu.getByRole("menuitem", { name: "Sair do Full Cycle" })).toBeVisible();
 
     // 2. Esc fecha o menu e devolve o foco ao avatar
