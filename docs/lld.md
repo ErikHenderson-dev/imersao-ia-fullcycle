@@ -554,9 +554,9 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 - **Última Conversa:** o id da Conversa aberta, gravado ao abri-la e lido pela Home para
   redirecionar. Fica no navegador, e não na Pessoa, porque o PRD da F02 (história 2) fala do último
   canal visitado naquele navegador.
-- **Tema:** `light` ou `dark`, o espelho da escolha da Pessoa. Gravado ao entrar, pela Server
-  Action `saveTheme` e pelo ThemeToggle; corrigido pelo layout das telas logadas quando difere da
-  Pessoa; apagado ao sair.
+- **Tema:** `light` ou `dark`, o espelho da escolha da Pessoa. Gravado pelo servidor ao entrar e
+  pelo cliente ao trocar (o ThemeProvider das telas logadas, que também o corrige quando difere da
+  Pessoa); apagado ao sair e quando a Sessão vence.
 - **Fuso:** o fuso IANA do navegador. O servidor formata horas e datas com ele e, sem o cookie, usa
   o `fuso padrão`. Se o fuso gravado difere do navegador, o cliente regrava o cookie e renderiza a
   rota de novo. É também o fuso de quem pediu que o BFF leva ao agente (HLD 6.3). O cliente
