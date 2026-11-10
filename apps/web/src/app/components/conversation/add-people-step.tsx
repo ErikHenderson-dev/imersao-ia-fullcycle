@@ -1,23 +1,15 @@
 "use client";
 
-import { Check, Search, X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { X } from "lucide-react";
+import { useState } from "react";
 import { addMembers } from "@/app/actions/add-members";
 import { Button } from "@/app/components/ui/button";
 import { DialogBody, DialogContent, DialogFooter } from "@/app/components/ui/dialog";
 import { IconButton } from "@/app/components/ui/icon-button";
-import { Input } from "@/app/components/ui/input";
-import { PersonRow } from "@/app/components/user/person-row";
-import type { PersonSummary } from "@/app/services/chat-api";
+import { PeoplePicker } from "@/app/components/user/people-picker";
+import { usePeopleSearch } from "@/app/hooks/use-people-search";
+import type { PersonEntry } from "@/app/services/chat-api";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
-
-// Espera da busca de Pessoas (LLD, "Valores e configuração").
-const SEARCH_DELAY_MS = 200;
-
-type SearchState =
-  | { kind: "loading" }
-  | { kind: "ok"; people: PersonSummary[] }
-  | { kind: "failure" };
 
 type AddPeopleStepProps = {
   conversation: { id: string; name: string };
@@ -29,7 +21,7 @@ type AddPeopleStepProps = {
 };
 
 // Passo "Adicionar pessoas" ("Diálogos / Adicionar pessoas"): busca as Pessoas do workspace pelo
-// nome, sem os Membros, e adiciona as escolhidas ao Canal privado (spec da F04, "Passo 'Adicionar
+// nome ou @usuário (F05), sem os Membros, e adiciona as escolhidas ao Canal privado (spec da F04, "Passo 'Adicionar
 // pessoas'"). Usado depois de criar o Canal e pela lista de Membros. Fechar o diálogo, pelo X, pelo
 // Esc ou por "Pular", fica com quem o abriu.
 export function AddPeopleStep({
@@ -39,34 +31,9 @@ export function AddPeopleStep({
   onCloseAutoFocus,
 }: AddPeopleStepProps) {
   const [query, setQuery] = useState("");
-  const [search, setSearch] = useState<SearchState>({ kind: "loading" });
-  const [chosen, setChosen] = useState<PersonSummary[]>([]);
+  const search = usePeopleSearch(query, conversation.id);
+  const [chosen, setChosen] = useState<PersonEntry[]>([]);
   const [status, setStatus] = useState<"idle" | "sending" | "failure">("idle");
-  const searchId = useId();
-
-  // Uma busca nova cancela a anterior, esperando ou em andamento: só a resposta da última vale.
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      const params = new URLSearchParams({ q: query, not_member_of: conversation.id });
-      try {
-        const response = await fetch(`/api/people?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        if (response.status === 401) return void redirectToExpiredSession();
-        if (!response.ok) throw new Error("Falha na busca");
-        const people = (await response.json()) as PersonSummary[];
-        // A busca pode ter sido trocada por outra depois de responder: só a última vale.
-        if (!controller.signal.aborted) setSearch({ kind: "ok", people });
-      } catch {
-        if (!controller.signal.aborted) setSearch({ kind: "failure" });
-      }
-    }, SEARCH_DELAY_MS);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query, conversation.id]);
 
   const chosenIds = new Set(chosen.map((person) => person.id));
   // As escolhidas continuam nos resultados, marcadas: a busca devolve no máximo 20, e tirá-las da
@@ -76,7 +43,7 @@ export function AddPeopleStep({
   const canAdd = chosen.length > 0 && !isSending;
 
   // Mudar as escolhidas tira a falha anterior.
-  function updateChosen(next: (current: PersonSummary[]) => PersonSummary[]) {
+  function updateChosen(next: (current: PersonEntry[]) => PersonEntry[]) {
     setChosen(next);
     if (status === "failure") setStatus("idle");
   }
@@ -101,27 +68,29 @@ export function AddPeopleStep({
       onCloseAutoFocus={onCloseAutoFocus}
     >
       <DialogBody>
-        <div className="relative">
-          <label htmlFor={searchId} className="sr-only">
-            Buscar pessoas
-          </label>
-          <Search
-            size={16}
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted"
-          />
-          <Input
-            id={searchId}
-            type="search"
-            value={query}
-            placeholder="Buscar por nome"
-            autoComplete="off"
-            readOnly={isSending}
-            // Os resultados anteriores ficam na tela até a busca nova responder.
-            onChange={(event) => setQuery(event.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <PeoplePicker
+          query={query}
+          onQueryChange={setQuery}
+          people={search.kind === "ok" ? results : null}
+          selectedIds={chosenIds}
+          disabled={isSending}
+          onPick={(person) =>
+            updateChosen((current) =>
+              chosenIds.has(person.id)
+                ? current.filter((item) => item.id !== person.id)
+                : [...current, person],
+            )
+          }
+          emptyState={
+            search.kind === "failure" ? (
+              <p className="px-2 py-3 text-small text-danger-fg">
+                Não foi possível buscar as pessoas.
+              </p>
+            ) : search.kind === "ok" ? (
+              <p className="px-2 py-3 text-body text-fg-muted">Ninguém encontrado.</p>
+            ) : null
+          }
+        />
         {chosen.length > 0 && (
           <ul aria-label="Escolhidas" className="flex flex-wrap gap-2">
             {chosen.map((person) => (
@@ -143,44 +112,6 @@ export function AddPeopleStep({
             ))}
           </ul>
         )}
-        <div aria-live="polite" className="flex max-h-72 flex-col overflow-y-auto">
-          {search.kind === "failure" && (
-            <p className="px-2 py-3 text-small text-danger-fg">
-              Não foi possível buscar as pessoas.
-            </p>
-          )}
-          {search.kind === "ok" && results.length === 0 && (
-            <p className="px-2 py-3 text-body text-fg-muted">Ninguém encontrado com esse nome.</p>
-          )}
-          {results.length > 0 && (
-            <ul aria-label="Pessoas" className="flex flex-col">
-              {results.map((person) => {
-                const isChosen = chosenIds.has(person.id);
-                return (
-                  <li key={person.id}>
-                    <button
-                      type="button"
-                      disabled={isSending}
-                      // O nome visível é o nome acessível; aria-pressed diz se ela está escolhida.
-                      aria-pressed={isChosen}
-                      onClick={() =>
-                        updateChosen((current) =>
-                          isChosen
-                            ? current.filter((item) => item.id !== person.id)
-                            : [...current, person],
-                        )
-                      }
-                      className="flex w-full items-center gap-3 rounded-item p-2 text-left hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-focus/30 disabled:opacity-50"
-                    >
-                      <PersonRow person={person} />
-                      {isChosen && <Check size={18} aria-hidden className="shrink-0 text-primary" />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
         {status === "failure" && (
           <p role="alert" className="text-small text-danger-fg">
             Não foi possível adicionar as pessoas. Tente de novo.

@@ -76,3 +76,20 @@ Pessoas em dois contextos do navegador.
    Conversa não aparece na barra lateral da outra e o endereço mostra "Conversa não encontrada";
    depois da primeira Mensagem, a Conversa aparece na barra lateral dela sem recarregar e sem abrir
    sozinha; ela abre, vê a Mensagem e responde, e a resposta chega em tempo real.
+
+### 7. "Nova conversa": buscar por nome ou @usuário (F05-T06)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa-direta/nova-conversa.spec.ts`
+
+1. **busca pelo @usuário e escolhe pelas setas e Enter:** o foco vai para a busca; a linha traz
+   "@usuário · cargo"; as setas mudam o `aria-activedescendant`; Enter abre a Conversa direta e
+   fecha o diálogo.
+2. **a própria pessoa aparece com (você) e abre a Conversa consigo mesma.**
+3. **mostra Ninguém encontrado:** com o texto buscado.
+4. **a falha ao abrir mantém o diálogo e tenta de novo:** a Server Action responde 500 uma vez.
+5. **Esc fecha e devolve o foco** ao "Nova conversa".
+
+**File:** `e2e/canais-privados/adicionar-pessoas-na-criacao.spec.ts`, "acha pelo @usuário": o passo
+da F04 acha pelo `@usuário`, com a linha trazendo o `@usuário`.
+
+**File:** `e2e/acessibilidade/nova-conversa-sem-violacoes.spec.ts`: o axe no diálogo com resultados.

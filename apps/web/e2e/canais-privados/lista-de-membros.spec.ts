@@ -31,8 +31,8 @@ test.describe("Lista de Membros", () => {
       // 3. "Adicionar pessoas" abre o passo; adicionar volta à lista, já com a Pessoa nova
       await dialog.getByRole("button", { name: "Adicionar pessoas" }).click();
       const step = addPeopleDialog(page, channel.name);
-      await step.getByRole("searchbox", { name: "Buscar pessoas" }).fill(guest.name);
-      await step.getByRole("button", { name: guest.name, exact: true }).click();
+      await step.getByRole("combobox", { name: "Buscar pessoas" }).fill(guest.name);
+      await step.getByRole("option", { name: guest.name }).click();
       await step.getByRole("button", { name: "Adicionar" }).click();
       await expect(list.getByRole("listitem")).toHaveCount(3);
       await expect(list).toContainText(guest.name);
@@ -76,8 +76,8 @@ test.describe("Lista de Membros", () => {
       await ownerSession.page.getByRole("button", { name: "Membros: 2" }).click();
       await ownerSession.page.getByRole("button", { name: "Adicionar pessoas" }).click();
       const step = addPeopleDialog(ownerSession.page, channel.name);
-      await step.getByRole("searchbox", { name: "Buscar pessoas" }).fill(guest.name);
-      await step.getByRole("button", { name: guest.name, exact: true }).click();
+      await step.getByRole("combobox", { name: "Buscar pessoas" }).fill(guest.name);
+      await step.getByRole("option", { name: guest.name }).click();
       await step.getByRole("button", { name: "Adicionar" }).click();
 
       // 3. Na aba da segunda, a lista e a quantidade mudam sem recarregar

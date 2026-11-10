@@ -6,6 +6,7 @@ import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
 import { applyMemberAdded } from "@/app/utils/conversation-list";
 import { AddChannelAction } from "./add-channel-action";
+import { NewConversationAction } from "./new-conversation-action";
 import { SidebarRow } from "./sidebar-row";
 import { SidebarSection } from "./sidebar-section";
 
@@ -86,7 +87,10 @@ export function ConversationList({ initialConversations, personId }: Conversatio
         {channels.map(row)}
         <AddChannelAction />
       </SidebarSection>
-      <SidebarSection title="Mensagens diretas">{directs.map(row)}</SidebarSection>
+      <SidebarSection title="Mensagens diretas">
+        {directs.map(row)}
+        <NewConversationAction personId={personId} />
+      </SidebarSection>
     </>
   );
 }
