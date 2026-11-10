@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { saveTimeZone } from "@/app/actions/save-time-zone";
 import { readClientCookie, writeClientCookie } from "@/app/utils/client-cookies";
 import { DEFAULT_TIME_ZONE } from "@/app/utils/format-time";
-import { TIME_ZONE_COOKIE } from "@/app/utils/time-zone";
+import { browserTimeZone, TIME_ZONE_COOKIE } from "@/app/utils/time-zone";
 
 type TimeZoneSyncProps = {
   // O fuso gravado na Pessoa da Sessão, ou null se ela nunca abriu o chat.
@@ -22,20 +22,20 @@ export function TimeZoneSync({ personTimeZone }: TimeZoneSyncProps) {
   const savedToPerson = useRef(false);
 
   useEffect(() => {
-    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!browserTimeZone || savedToPerson.current || browserTimeZone === personTimeZone) return;
+    const timeZone = browserTimeZone();
+    if (!timeZone || savedToPerson.current || timeZone === personTimeZone) return;
     savedToPerson.current = true;
-    void saveTimeZone(browserTimeZone).catch(() => undefined);
+    void saveTimeZone(timeZone).catch(() => undefined);
   }, [personTimeZone]);
 
   useEffect(() => {
-    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timeZone = browserTimeZone();
     const saved = readClientCookie(TIME_ZONE_COOKIE);
-    if (!browserTimeZone || saved === browserTimeZone) return;
-    writeClientCookie(TIME_ZONE_COOKIE, browserTimeZone);
+    if (!timeZone || saved === timeZone) return;
+    writeClientCookie(TIME_ZONE_COOKIE, timeZone);
     // Sem cookie, o servidor já usou o fuso padrão: se é o do navegador, não há o que renderizar.
     const renderedIn = saved ?? DEFAULT_TIME_ZONE;
-    if (renderedIn !== browserTimeZone && readClientCookie(TIME_ZONE_COOKIE) === browserTimeZone) {
+    if (renderedIn !== timeZone && readClientCookie(TIME_ZONE_COOKIE) === timeZone) {
       router.refresh();
     }
   }, [router]);
