@@ -4,17 +4,19 @@ import { Person } from '../people/person.entity';
 import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
 import {
-  ConversationResponse,
   ListedConversationResponse,
-  toConversationResponse,
   toListedConversationResponse,
 } from './conversation.response';
 import { ConversationsService } from './conversations.service';
+import { UnreadCounter } from './unread-counter';
 
 @Controller('conversations')
 @UseGuards(AuthGuard)
 export class ConversationsController {
-  constructor(private readonly conversations: ConversationsService) {}
+  constructor(
+    private readonly conversations: ConversationsService,
+    private readonly unreadCounter: UnreadCounter,
+  ) {}
 
   @Get()
   async list(
@@ -42,9 +44,21 @@ export class ConversationsController {
   async get(
     @CurrentPerson() person: Person,
     @Param('id') id: string,
-  ): Promise<{ conversation: ConversationResponse }> {
+  ): Promise<{ conversation: ListedConversationResponse }> {
     const conversation = await this.conversations.getForMember(person.id, id);
-    const [summary] = await this.conversations.withMemberCounts([conversation]);
-    return { conversation: toConversationResponse(summary, person.id) };
+    const [[summary], unread] = await Promise.all([
+      this.conversations.withMemberCounts([conversation]),
+      this.unreadCounter.countOne({
+        conversationId: conversation.id,
+        personId: person.id,
+      }),
+    ]);
+    // Com a Última leitura e os números: a página da Conversa começa por eles (spec da F07).
+    return {
+      conversation: toListedConversationResponse(
+        { ...summary, unread },
+        person.id,
+      ),
+    };
   }
 }

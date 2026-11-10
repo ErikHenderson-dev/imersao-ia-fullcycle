@@ -9,6 +9,8 @@ import { Message } from './message.entity';
 import { MessageMention } from './message-mention.entity';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
+import { ReadController } from './read.controller';
+import { ReadService } from './read.service';
 
 @Module({
   // O forFeature registra a entidade no autoLoadEntities; o service usa o TransactionHost.
@@ -20,7 +22,7 @@ import { MessagesService } from './messages.service';
     RealtimeModule,
     MembershipsModule,
   ],
-  controllers: [MessagesController],
-  providers: [MessagesService],
+  controllers: [MessagesController, ReadController],
+  providers: [MessagesService, ReadService],
 })
 export class MessagesModule {}

@@ -43,6 +43,12 @@ export class UnreadCounter {
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
   ) {}
 
+  // As contagens de uma participação; sem ela, nada de novo.
+  async countOne(member: MemberKey): Promise<Unread> {
+    const counts = await this.countFor([member]);
+    return counts.get(memberKey(member)) ?? EMPTY_UNREAD;
+  }
+
   // As contagens de várias participações numa consulta só, com uma subconsulta limitada por par.
   // A participação que não existe fica fora do mapa.
   async countFor(members: MemberKey[]): Promise<Map<string, Unread>> {

@@ -11,6 +11,8 @@ import {
   conversationFromPayload,
   listedConversationFromPayload,
   type ListedConversationPayload,
+  unreadFromPayload,
+  type UnreadPayload,
 } from "@/app/utils/conversation-event";
 import { initials } from "@/app/utils/initials";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -284,9 +286,9 @@ export async function getConversation(
   token: string,
   id: string,
 ): Promise<ConversationResult> {
-  const result = await getJson<{ conversation: ApiConversation }>(token, conversationPath(id));
+  const result = await getJson<{ conversation: ListedConversationPayload }>(token, conversationPath(id));
   return result.kind === "ok"
-    ? { kind: "ok", conversation: conversationFromPayload(result.body.conversation) }
+    ? { kind: "ok", conversation: listedConversationFromPayload(result.body.conversation) }
     : result;
 }
 
@@ -395,6 +397,35 @@ export async function editMessage(
   }
   if (response?.status === 400) return { kind: "invalid" };
   if (response?.status === 403) return { kind: "forbidden" };
+  return commonFailure(response);
+}
+
+// Ler a Conversa até uma Mensagem (spec da F07, "Rotas").
+
+export type Unread = Pick<Conversation, "lastReadMessageId" | "unreadCount" | "mentionCount">;
+
+export type MarkReadResult =
+  | { kind: "ok"; unread: Unread }
+  | { kind: "not_found" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function markConversationRead(
+  token: string,
+  conversationId: string,
+  messageId: string,
+): Promise<MarkReadResult> {
+  const response = await request(conversationPath(conversationId, "/read"), {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  if (response?.status === 200) {
+    const parsed = await jsonBody<UnreadPayload>(response);
+    return parsed ? { kind: "ok", unread: unreadFromPayload(parsed) } : { kind: "failure" };
+  }
+  if (response?.status === 400) return { kind: "invalid" };
   return commonFailure(response);
 }
 

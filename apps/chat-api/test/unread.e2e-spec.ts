@@ -45,11 +45,8 @@ describe('Não lidas e Menções', () => {
     };
   }
 
-  async function send(cookie: string, conversationId: string, body: string) {
-    const response = await conversationRoutes
-      .sendMessage(app, cookie, conversationId, { body })
-      .expect(201);
-    return (response.body as { message: { id: string } }).message.id;
+  function send(cookie: string, conversationId: string, body: string) {
+    return conversationRoutes.sentId(app, cookie, conversationId, body);
   }
 
   // Um Canal privado com a Pessoa que lê e uma autora que escreve.

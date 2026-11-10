@@ -18,6 +18,7 @@ import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
 import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
+import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
 import {
   type PendingMessage,
@@ -121,6 +122,14 @@ function History({
     reloadLatest,
   });
   const typing = useTypingAnnouncer(conversation.id);
+  const newestOfSaved = saved.at(-1);
+  useReadReport({
+    conversationId: conversation.id,
+    personId: currentPerson.id,
+    newestSaved: newestOfSaved && { id: newestOfSaved.id, authorId: newestOfSaved.author.id },
+    initialLastReadId: conversation.lastReadMessageId,
+    isReady: isSynced,
+  });
   // As pendentes vêm sempre depois das gravadas, e passam pelo mesmo agrupamento.
   const messages = useMemo<(Message & { status?: PendingStatus })[]>(
     () => [...saved, ...pending],

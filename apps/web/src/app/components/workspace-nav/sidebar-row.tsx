@@ -15,6 +15,8 @@ type SidebarRowProps = {
   conversation: Conversation;
   // A Pessoa da Sessão: a Conversa direta consigo mesma leva "você" ao lado do nome.
   selfId: string;
+  // A Conversa está aberta com a aba em foco: não mostra nada de novo (spec da F07).
+  isOpenAndFocused: boolean;
 };
 
 // Linha de Conversa da barra lateral (SidebarRow): h-7, ou 44 px abaixo de md, raio item. A da Conversa aberta fica
@@ -22,10 +24,10 @@ type SidebarRowProps = {
 // Pessoa no lugar do ícone e do nome do Canal (spec da F05, "Lista de Conversas e barra lateral").
 // Com Não lidas, o nome fica em negrito, com o contador no fim, e um texto só para o leitor de tela
 // diz o que há de novo, depois do nome (spec da F07, "Lista de Conversas e barra lateral").
-export function SidebarRow({ href, conversation, selfId }: SidebarRowProps) {
+export function SidebarRow({ href, conversation, selfId, isOpenAndFocused }: SidebarRowProps) {
   const { kind, name, counterpart } = conversation;
   const isActive = usePathname() === href;
-  const unread = unreadDisplay(conversation);
+  const unread = unreadDisplay(conversation, isOpenAndFocused);
   // Dentro do mesmo span do nome: fora dele, o leitor de tela poria um espaço antes da vírgula.
   const suffix = unread.suffix && <span className="sr-only">{unread.suffix}</span>;
   return (

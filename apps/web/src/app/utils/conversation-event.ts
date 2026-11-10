@@ -1,5 +1,5 @@
 import type { ConversationPayload } from "chat-events";
-import type { Conversation } from "@/app/services/chat-api";
+import type { Conversation, Unread } from "@/app/services/chat-api";
 import { initials } from "./initials";
 
 // A Conversa da lista de Conversas, com a Última leitura e os números (spec da F07, "Rotas").
@@ -9,13 +9,18 @@ export type ListedConversationPayload = ConversationPayload & {
   mention_count: number;
 };
 
-export function listedConversationFromPayload(payload: ListedConversationPayload): Conversation {
+export type UnreadPayload = Omit<ListedConversationPayload, keyof ConversationPayload>;
+
+export function unreadFromPayload(payload: UnreadPayload): Unread {
   return {
-    ...conversationFromPayload(payload),
     lastReadMessageId: payload.last_read_message_id,
     unreadCount: payload.unread_count,
     mentionCount: payload.mention_count,
   };
+}
+
+export function listedConversationFromPayload(payload: ListedConversationPayload): Conversation {
+  return { ...conversationFromPayload(payload), ...unreadFromPayload(payload) };
 }
 
 // A Conversa da API, no REST ou num evento do tempo real, no formato da web. Os números só vêm na

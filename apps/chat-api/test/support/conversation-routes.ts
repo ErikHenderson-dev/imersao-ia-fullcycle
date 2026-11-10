@@ -126,6 +126,19 @@ export const conversationRoutes = {
       });
   },
 
+  // Pelo REST, como a web: envia e devolve o id da Mensagem gravada.
+  async sentId(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+    body: string,
+  ): Promise<string> {
+    const response = await conversationRoutes
+      .sendMessage(app, cookie, conversationId, { body })
+      .expect(201);
+    return (response.body as { message: { id: string } }).message.id;
+  },
+
   // Pelo REST, como a web: edita a Mensagem (spec da F06, "Rotas"). Aceita qualquer corpo, para os
   // testes da validação.
   editMessage(

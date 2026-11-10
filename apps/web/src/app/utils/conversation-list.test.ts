@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Conversation } from "@/app/services/chat-api";
-import { applyMemberAdded } from "./conversation-list";
+import { applyMemberAdded, applyUnread } from "./conversation-list";
 
 function channel(name: string, memberCount = 2): Conversation {
   return {
@@ -73,5 +73,25 @@ describe("ordem com Conversas diretas", () => {
     const result = applyMemberAdded(list, direct("Érica"), ["eu"], "eu");
 
     expect(result.map((item) => item.id)).toEqual(["id-abelha", "dm-Ana", "dm-Érica", "dm-Zeca"]);
+  });
+});
+
+describe("applyUnread", () => {
+  const OLD = "01a1c5a4-0000-7000-8000-000000000001";
+  const NEW = "01a1c5a4-0000-7000-8000-000000000002";
+  const read = (lastReadMessageId: string | null, unreadCount: number) => ({
+    lastReadMessageId,
+    unreadCount,
+    mentionCount: 0,
+  });
+
+  it("troca os números da Conversa e descarta a resposta atrasada", () => {
+    const list = [{ ...channel("abelha"), ...read(OLD, 3) }];
+
+    const newer = applyUnread(list, "id-abelha", read(NEW, 0));
+    const stale = applyUnread(newer, "id-abelha", read(OLD, 1));
+
+    expect(newer[0]).toMatchObject(read(NEW, 0));
+    expect(stale[0]).toMatchObject(read(NEW, 0));
   });
 });

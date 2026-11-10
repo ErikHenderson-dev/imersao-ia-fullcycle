@@ -55,4 +55,10 @@ describe("unreadDisplay", () => {
     expect(unreadDisplay(direct(100)).suffix).toBe(", mais de 99 mensagens não lidas");
     expect(unreadDisplay(direct(0)).suffix).toBe("");
   });
+
+  it("a Conversa aberta em foco não mostra negrito nem contador", () => {
+    expect(unreadDisplay(channel(5, 2), true)).toEqual({ isUnread: false, count: 0, suffix: "" });
+    expect(unreadDisplay(direct(3), true)).toEqual({ isUnread: false, count: 0, suffix: "" });
+    expect(unreadDisplay(direct(3), false)).toMatchObject({ isUnread: true, count: 3 });
+  });
 });

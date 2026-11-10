@@ -9,6 +9,7 @@ import {
   type TestChannel,
   type TestPerson,
 } from "../support/database";
+import { readyHistory } from "../support/conversation-page";
 import { sidebarLink, unreadRowName } from "../support/sidebar";
 
 
@@ -26,6 +27,8 @@ test.describe("Não lidas na barra lateral", () => {
     person,
     otherPerson,
   }) => {
+    // O primeiro da lista, sem Mensagens: a Home o abre, e abrir uma Conversa a lê (F07-T02).
+    const primeiro = await insertChannel([person], { name: `e2e-0-${Date.now()}` });
     const comMencao = await insertChannel([person, otherPerson], { name: `e2e-a-${Date.now()}` });
     const semMencao = await insertChannel([person, otherPerson], { name: `e2e-b-${Date.now()}` });
     const direta = await insertDirect(person, otherPerson);
@@ -36,6 +39,7 @@ test.describe("Não lidas na barra lateral", () => {
 
     // 1. Entra; a Home abre outra Conversa, e a barra lateral já chega com os números
     await logIn(page, person);
+    await readyHistory(page, primeiro.name);
 
     // 2. O Canal com a Menção: negrito e contador 1
     const canal = sidebarLink(page, unreadRowName(comMencao.name, ", não lidas, 1 menção"));
@@ -55,10 +59,12 @@ test.describe("Não lidas na barra lateral", () => {
   });
 
   test("a seção recolhida mostra só as Conversas Não lidas", async ({ page, person, otherPerson }) => {
+    const primeiro = await insertChannel([person], { name: `e2e-0-${Date.now()}` });
     const naoLido = await insertChannel([person, otherPerson], { name: `e2e-c-${Date.now()}` });
     const lido = await insertChannel([person], { name: `e2e-d-${Date.now()}` });
     await messagesFrom(naoLido, otherPerson, [`Oi @${person.username}`]);
     await logIn(page, person);
+    await readyHistory(page, primeiro.name);
     const secao = page.getByRole("region", { name: "Canais" });
     await expect(secao.getByRole("link", { name: lido.name })).toBeVisible();
 
