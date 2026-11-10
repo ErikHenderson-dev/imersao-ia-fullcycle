@@ -10,18 +10,15 @@ export function formatCount(count: number): string {
 
 // O que a linha da barra lateral exibe de uma Conversa (spec da F07, "Lista de Conversas e barra
 // lateral"): o negrito quando há Não lidas; o contador, que no Canal é o número de Menções e na
-// Conversa direta o de Não lidas, porque toda Mensagem dela é para a Pessoa; e o rótulo do leitor
-// de tela, com o nome e o que há de novo. O `suffix` é o que vem depois do nome, escrito só para o
-// leitor de tela, para o nome visível continuar no começo do nome acessível.
-export type UnreadDisplay = { isUnread: boolean; count: number; label: string; suffix: string };
+// Conversa direta o de Não lidas, porque toda Mensagem dela é para a Pessoa; e o que o leitor de
+// tela diz depois do nome visível (`suffix`), como ", não lidas, 2 menções".
+export type UnreadDisplay = { isUnread: boolean; count: number; suffix: string };
 
 export function unreadDisplay(conversation: Conversation): UnreadDisplay {
   const isDirect = conversation.kind === "direct";
-  const name = isDirect ? (conversation.counterpart?.name ?? "") : conversation.name;
   const isUnread = conversation.unreadCount > 0;
   const count = isDirect ? conversation.unreadCount : conversation.mentionCount;
-  const suffix = rowSuffix(isDirect, isUnread, count);
-  return { isUnread, count, label: `${name}${suffix}`, suffix };
+  return { isUnread, count, suffix: rowSuffix(isDirect, isUnread, count) };
 }
 
 function rowSuffix(isDirect: boolean, isUnread: boolean, count: number): string {

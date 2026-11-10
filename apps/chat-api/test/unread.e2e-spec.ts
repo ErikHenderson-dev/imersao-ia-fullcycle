@@ -26,20 +26,15 @@ describe('Não lidas e Menções', () => {
     await app.close();
   });
 
-  // Como a Conversa aparece na lista de quem tem o cookie.
-  async function listed(
+  function listed(
     cookie: string,
     conversationId: string,
   ): Promise<ListedConversation> {
-    const response = await request(server)
-      .get('/v1/conversations')
-      .set('Cookie', cookie)
-      .expect(200);
-    const found = (
-      response.body as { conversations: ListedConversation[] }
-    ).conversations.find((conversation) => conversation.id === conversationId);
-    if (!found) throw new Error('A Conversa não está na lista.');
-    return found;
+    return conversationRoutes.listed<ListedConversation>(
+      app,
+      cookie,
+      conversationId,
+    );
   }
 
   function numbers(conversation: ListedConversation) {
@@ -103,11 +98,11 @@ describe('Não lidas e Menções', () => {
   it('a própria Menção e a Conversa consigo mesma não contam', async () => {
     const { author, channelId } = await channelWithReader();
     await send(author.cookie, channelId, `Eu: @${author.person.username}`);
-    const self = await conversationRoutes
-      .openDirect(app, author.cookie, author.person.id)
-      .expect(201);
-    const selfId = (self.body as { conversation: { id: string } }).conversation
-      .id;
+    const selfId = await conversationRoutes.directOf(
+      app,
+      author.cookie,
+      author.person.id,
+    );
     await send(author.cookie, selfId, `Nota: @${author.person.username}`);
 
     expect(numbers(await listed(author.cookie, channelId))).toEqual({
@@ -263,11 +258,11 @@ describe('Não lidas e Menções', () => {
   it('a primeira Mensagem da Conversa direta é Não lida para a outra Pessoa', async () => {
     const opener = await authRoutes.loggedIn(app);
     const other = await authRoutes.loggedIn(app);
-    const opened = await conversationRoutes
-      .openDirect(app, opener.cookie, other.person.id)
-      .expect(201);
-    const directId = (opened.body as { conversation: { id: string } })
-      .conversation.id;
+    const directId = await conversationRoutes.directOf(
+      app,
+      opener.cookie,
+      other.person.id,
+    );
 
     await send(opener.cookie, directId, 'Oi');
     await send(opener.cookie, directId, 'Tudo bem?');

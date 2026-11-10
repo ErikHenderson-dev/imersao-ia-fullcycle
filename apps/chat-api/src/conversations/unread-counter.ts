@@ -3,6 +3,11 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable } from '@nestjs/common';
 import { UNREAD_COUNT_LIMIT } from './unread-values';
 
+// A Última leitura nula vale como antes da primeira Mensagem: o menor uuid. Uma faixa simples
+// (`id > x`), em vez de um OR com a nula, deixa o índice (conversation_id, id) ler só as Mensagens
+// depois da Última leitura.
+const NOTHING_READ = '00000000-0000-0000-0000-000000000000';
+
 // O que uma Pessoa tem de novo numa Conversa (spec da F07, "Última leitura e contagem").
 export interface Unread {
   lastReadMessageId: string | null;
@@ -48,8 +53,7 @@ export class UnreadCounter {
                   WHERE message.conversation_id = member.conversation_id
                     AND message.author_id <> member.person_id
                     AND message.deleted_at IS NULL
-                    AND (member.last_read_message_id IS NULL
-                         OR message.id > member.last_read_message_id)
+                    AND message.id > COALESCE(member.last_read_message_id, $4::uuid)
                   LIMIT $3) AS unread) AS unread_count,
               (SELECT count(*)::int FROM (
                  SELECT 1 FROM messages message
@@ -59,8 +63,7 @@ export class UnreadCounter {
                   WHERE message.conversation_id = member.conversation_id
                     AND message.author_id <> member.person_id
                     AND message.deleted_at IS NULL
-                    AND (member.last_read_message_id IS NULL
-                         OR message.id > member.last_read_message_id)
+                    AND message.id > COALESCE(member.last_read_message_id, $4::uuid)
                   LIMIT $3) AS mentioned) AS mention_count
          FROM unnest($1::uuid[], $2::uuid[]) AS pair(conversation_id, person_id)
          JOIN conversation_members member
@@ -70,6 +73,7 @@ export class UnreadCounter {
         members.map((member) => member.conversationId),
         members.map((member) => member.personId),
         UNREAD_COUNT_LIMIT,
+        NOTHING_READ,
       ],
     );
     return new Map(

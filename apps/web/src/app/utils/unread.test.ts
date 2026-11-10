@@ -44,15 +44,15 @@ describe("unreadDisplay", () => {
     expect(unreadDisplay(direct(3))).toMatchObject({ isUnread: true, count: 3 });
   });
 
-  it("monta o rótulo da linha para o leitor de tela", () => {
-    expect(unreadDisplay(channel(5, 2)).label).toBe("geral, não lidas, 2 menções");
-    expect(unreadDisplay(channel(5, 1)).label).toBe("geral, não lidas, 1 menção");
-    expect(unreadDisplay(channel(5, 100)).label).toBe("geral, não lidas, mais de 99 menções");
-    expect(unreadDisplay(channel(1, 0)).label).toBe("geral, não lidas");
-    expect(unreadDisplay(channel(0, 0)).label).toBe("geral");
-    expect(unreadDisplay(direct(3)).label).toBe("Alfredo Luiz, 3 mensagens não lidas");
-    expect(unreadDisplay(direct(1)).label).toBe("Alfredo Luiz, 1 mensagem não lida");
-    expect(unreadDisplay(direct(100)).label).toBe("Alfredo Luiz, mais de 99 mensagens não lidas");
-    expect(unreadDisplay(direct(0)).label).toBe("Alfredo Luiz");
+  it("monta o texto da linha para o leitor de tela", () => {
+    expect(unreadDisplay(channel(5, 2)).suffix).toBe(", não lidas, 2 menções");
+    expect(unreadDisplay(channel(5, 1)).suffix).toBe(", não lidas, 1 menção");
+    expect(unreadDisplay(channel(5, 100)).suffix).toBe(", não lidas, mais de 99 menções");
+    expect(unreadDisplay(channel(1, 0)).suffix).toBe(", não lidas");
+    expect(unreadDisplay(channel(0, 0)).suffix).toBe("");
+    expect(unreadDisplay(direct(3)).suffix).toBe(", 3 mensagens não lidas");
+    expect(unreadDisplay(direct(1)).suffix).toBe(", 1 mensagem não lida");
+    expect(unreadDisplay(direct(100)).suffix).toBe(", mais de 99 mensagens não lidas");
+    expect(unreadDisplay(direct(0)).suffix).toBe("");
   });
 });
