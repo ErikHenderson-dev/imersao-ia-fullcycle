@@ -154,8 +154,9 @@ novas tentativas e idempotência").
   segue a mesma regra, por pessoa. Mensagens sem a marca saem num evento só para a conversa
   ([ADR 0020](adr/0020-dados-de-negocio-pessoa-a-pessoa.md); depende de mudança no HLD). Uma
   função única monta a mensagem para o histórico, o REST e os eventos, `planejada` na
-  [spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"; se ela também monta a versão de cada
-  destinatário (dados de negócio e notificação) está a definir.
+  [spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens". Ela também monta a versão de cada
+  destinatário de Atividade, `planejada` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem"); a versão de
+  dados de negócio de cada destinatário segue a detalhar.
 
 ### Concorrência e idempotência
 
@@ -214,6 +215,13 @@ novas tentativas e idempotência").
   abas calculados na hora de publicar, numa fila por Conversa na API, separada da fila por
   Mensagem, que não espera por ela; tudo isso existe (spec da F07,
   seções "Última leitura e contagem" e "Tempo real").
+- **Notificações:** calculadas, e não gravadas: as Menções à Pessoa em Canais de que ela é Membro e
+  as Mensagens de outro autor nas Conversas diretas dela, não apagadas; lida quando a Mensagem é
+  igual ou anterior à Última leitura da Conversa ou à marca de Atividade da Pessoa, que só avança,
+  como a Última leitura. A exclusão, a edição que muda Menção e a leitura da Conversa não gravam
+  nada a mais ([ADR 0027](adr/0027-notificacoes-calculadas.md)). Os números de Atividade, com o
+  "Teto da contagem de não lidas", saem para as abas calculados na hora de publicar, numa fila
+  por Pessoa na API, `planejada` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seções "Notificações e contagem" e "Tempo real").
 
 ### Transações
 
@@ -293,7 +301,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: autor pessoa, texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor bot e marca a detalhar |
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
-| Chat | Notificações | a detalhar |
+| Chat | Notificações, calculadas sem tabela (ADR 0027) | planejada: só a marca de Atividade, `activity_read_message_id` em `people` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem") |
 | Chat | Tarefas | a detalhar |
 | Chat | Pedidos aos agentes e ações de bot | a detalhar |
 | Chat | Perguntas pendentes | a detalhar |
@@ -346,7 +354,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/people` | existe | Busca de Pessoas pelo nome ou pelo @usuário, fora dos Membros de uma Conversa ou, sem ela, todas: spec da F04, seções "Busca de Pessoas" e "Rotas"; a mudança: spec da F05, seções "Busca e Perfil" e "Rotas"; só os Membros de uma Conversa (`member_of`): spec da F06, seção "Busca de Pessoas para a lista de menções" |
 | API do chat: `GET /v1/people/:id` | existe | Perfil de uma Pessoa: spec da F05, seções "Busca e Perfil" e "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
-| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added` e `conversation.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real" |
+| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added` e `conversation.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`, `planejada`: spec da F08, seção "Tempo real" |
 | BFF: `GET /api/conversations/:id/messages` | existe | Páginas anteriores do histórico, lidas pelo cliente: "Cliente", "Leituras e tempo real" |
 | BFF: `GET /api/conversations`, `GET /api/conversations/:id/members` e `GET /api/people` | existe | Leituras do cliente: a lista de Conversas no `reset`, os Membros e a busca de Pessoas (spec da F04, seção "BFF") |
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
@@ -355,6 +363,9 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: Server Action `openDirectConversation` | existe | Abrir Conversa direta: spec da F05, seção "BFF" |
 | BFF: Server Action `editMessage` | existe | Editar a própria Mensagem: spec da F06, seção "BFF" |
 | BFF: Server Action `deleteMessage` | existe | Apagar a própria Mensagem: spec da F06, seção "BFF" |
+| API do chat: `GET /v1/activity` e `GET /v1/activity/unread` | planejada | Notificações da Pessoa, por tipo, e os números de Atividade: [spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Rotas" |
+| API do chat: `PUT /v1/activity/read` | planejada | Avançar a marca de Atividade ("Concorrência e idempotência"): spec da F08, seção "Rotas" |
+| BFF: `GET /api/activity` e `PUT /api/activity/read` | planejada | Páginas de Atividade e a marca, pedidas pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
 
@@ -476,9 +487,9 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | --- | --- | --- | --- | --- |
 | `/entrar` | Público | Sessão, quando há cookie | Entrar com e-mail e senha | existe |
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
-| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); o resto a detalhar |
-| Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente") |
-| A definir | Sessão | Atividade: Menções, DMs, Tarefas | Abrir a mensagem; concluir e reabrir tarefa | a detalhar |
+| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=`, `planejada` (spec da F08, seção "Cliente"); o resto a detalhar |
+| Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta, `planejados` (spec da F08, seção "Cliente") |
+| `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | planejada: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); Tarefas a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"); editar a detalhar |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
 | A definir | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão | Conectar e desconectar agente | a detalhar |
@@ -534,9 +545,12 @@ Component, como `fallbackData` do cache; as anteriores vêm do cliente pela rota
 
 **Notificação do navegador.**
 
-- A permissão do navegador é pedida só quando a pessoa liga a opção (brief, item 6 do escopo).
-- A notificação sai do evento do WebSocket, com o chat aberto em alguma aba (HLD, seção 4).
-- O clique abre a conversa posicionada na mensagem.
+- A permissão do navegador é pedida só quando a pessoa liga a opção (brief, item 6 do escopo), e a
+  opção vale por navegador.
+- A notificação sai do evento do WebSocket, com o chat aberto em alguma aba (HLD, seção 4), e só
+  sem nenhuma aba do chat em foco; com uma aba em foco, sai o Alerta, só nela.
+- O clique abre a conversa posicionada na mensagem (`?mensagem=`).
+- Tudo isso `planejado` na [spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente".
 
 **Reação a erros da API.** 401: "Sessão no cliente". Mensagem gravada com erro do agente:
 "Conceitos transversais de implementação", seção "Erros".
@@ -566,7 +580,8 @@ Component, como `fallbackData` do cache; as anteriores vêm do cliente pela rota
 | Atraso da faixa de conexão | 3 s (PRD da F03, história 4) | Web | Constante |
 | Distância do fim da lista | 100 px: até ela, a Mensagem nova rola a lista | Web | Constante |
 | Intervalo do aviso de leitura | 1 s: no máximo um aviso de leitura por Conversa nesse intervalo (spec da F07) | Web | Constante |
-| Teto da contagem de não lidas | 100: as contagens de não lidas e de menções param nele, e o contador mostra `99+` (spec da F07) | API do chat e web | Constante |
+| Teto da contagem de não lidas | 100: as contagens de não lidas e de menções param nele, e o contador mostra `99+` (spec da F07); vale também para os números de Atividade (spec da F08) | API do chat e web | Constante |
+| Duração do Alerta | 8 s: o Alerta some sozinho depois disso (spec da F08) | Web | Constante |
 | Tempo limite da consulta ao Banco de negócio | A definir | Serviço de agentes e Worker | A definir |
 | Tamanho da página | Padrão 50, máximo 100 | API do chat | Constante |
 | Limite da busca de Pessoas | 20 Pessoas por busca (spec da F04) | API do chat | Constante |
@@ -684,6 +699,7 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
 | [0024](adr/0024-conversas-numa-tabela-so.md) | Canais e Conversas diretas numa tabela só, com participação gravada | aceita |
 | [0025](adr/0025-membro-da-conversa-direta-na-primeira-mensagem.md) | Na Conversa direta, a outra Pessoa vira Membro na primeira Mensagem | aceita |
 | [0026](adr/0026-nao-lidas-calculadas-da-ultima-leitura.md) | Não lidas e menções calculadas a partir da Última leitura | aceita |
+| [0027](adr/0027-notificacoes-calculadas.md) | Notificações calculadas a partir das Menções, das Conversas diretas e da Última leitura | aceita |
 
 As decisões que mudam o desenho estão no HLD, seção 10.
 
@@ -742,10 +758,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 **Estados, regras e processos**
 
 - [ ] Subseções de "Estados e regras": pedido ao agente (estados; resposta a uma pergunta como
-      pedido novo ou continuação), pergunta pendente (quando termina), mensagem (o que a
-      exclusão e a edição que acrescenta menção fazem com as notificações, na F08; as menções na
-      edição e na exclusão estão na spec da F06, e os números de não lidas e de menções se
-      corrigem pela contagem, ADR 0026), consulta
+      pedido novo ou continuação), pergunta pendente (quando termina), consulta
       a dados de negócio (comparação do lastro), limite de pedidos e teto de custo e presença.
 - [ ] Tarefa: concluir uma já concluída, ou reabrir uma aberta.
 - [ ] Idempotência do job do PDF (chave no S3, entrega única) e outras rotinas (retenção dos

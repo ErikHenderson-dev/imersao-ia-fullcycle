@@ -66,6 +66,19 @@ Mensagem de outro autor, numa Conversa de que a Pessoa é Membro, que chegou dep
 leitura dela.
 _Avoid_: nova, como sinônimo
 
+**Notificação**:
+O aviso a uma Pessoa de uma Menção a ela, ou de uma Mensagem de outro autor numa Conversa direta
+com ela. Fica lida quando ela lê a Conversa até aquela Mensagem ou marca tudo como lido.
+_Avoid_: alerta, aviso
+
+**Atividade**:
+A tela que reúne as Notificações de uma Pessoa.
+_Avoid_: caixa de entrada, inbox
+
+**Alerta**:
+Uma Notificação mostrada na tela do chat no momento em que chega.
+_Avoid_: toast, pop-up
+
 **Sessão**:
 O acesso de uma Pessoa ao chat num navegador, do momento em que ela entra até sair, a Sessão
 vencer por falta de uso ou ser revogada. Vale para todas as abas daquele navegador.
