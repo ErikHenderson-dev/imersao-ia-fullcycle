@@ -8,7 +8,9 @@ export const USERNAME_MAX_LENGTH = 30;
 
 // Letras de a a z sem acento, números, `.`, `_` e `-`, de 2 a 30 caracteres, começando e terminando
 // com letra ou número. É a mesma expressão do CHECK de `people`.
-export const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,28}[a-z0-9]$/;
+export const USERNAME_PATTERN = new RegExp(
+  `^[a-z0-9][a-z0-9._-]{0,${USERNAME_MAX_LENGTH - 2}}[a-z0-9]$`,
+);
 
 // O @usuário informado no comando, pronto para gravar, ou a recusa com o motivo.
 export function parseUsername(value: string): string {
@@ -61,6 +63,11 @@ export function firstFreeUsername(
   let n = 1;
   while (isTaken(withSuffix(base, n))) n += 1;
   return withSuffix(base, n);
+}
+
+// Os candidatos da base, do primeiro (a própria base) ao `count`-ésimo.
+export function usernameCandidates(base: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => withSuffix(base, i + 1));
 }
 
 // O @usuário de cada e-mail, na ordem de criação das contas: quem veio antes fica com a base.

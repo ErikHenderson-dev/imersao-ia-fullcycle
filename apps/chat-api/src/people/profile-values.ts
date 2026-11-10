@@ -7,7 +7,7 @@ import { InvalidProfileError } from './invalid-profile.error';
 export const TITLE_MAX_LENGTH = 80;
 export const PHONE_MAX_LENGTH = 30;
 
-export const PHONE_PATTERN = /^[0-9 +()-]{1,30}$/;
+export const PHONE_PATTERN = new RegExp(`^[0-9 +()-]{1,${PHONE_MAX_LENGTH}}$`);
 
 // Vazio, depois de aparado, vira nulo: o campo some do Perfil.
 function blankToNull(value: string): string | null {

@@ -11,7 +11,8 @@ import { PersonNotFoundError } from './person-not-found.error';
 import { Person } from './person.entity';
 import { parsePhone, parseTitle } from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
-import { firstFreeUsername, parseUsername, usernameBase } from './username';
+import { InvalidProfileError } from './invalid-profile.error';
+import { parseUsername, usernameBase, usernameCandidates } from './username';
 
 export interface NewPerson {
   email: string;
@@ -29,6 +30,9 @@ export type ProfileChanges = Pick<NewPerson, 'title' | 'phone'>;
 // Quantas vezes a criação tenta o próximo sufixo quando outra criação, ao mesmo tempo, toma o
 // @usuário derivado.
 const USERNAME_ATTEMPTS = 5;
+
+// Quantos candidatos de @usuário cada consulta confere.
+const USERNAME_BATCH = 20;
 
 @Injectable()
 export class PeopleService {
@@ -58,6 +62,9 @@ export class PeopleService {
     if (await this.people.existsBy({ email })) {
       throw new EmailAlreadyExistsError(email);
     }
+    if (informed && (await this.people.existsBy({ username: informed }))) {
+      throw new UsernameTakenError(informed);
+    }
     const passwordHash = await this.passwords.hash(newPerson.password);
     if (informed) {
       const person = await this.insert({
@@ -70,18 +77,16 @@ export class PeopleService {
       throw new UsernameTakenError(informed);
     }
     const base = usernameBase(email);
-    const taken = await this.usernamesStartingWith(base);
     for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
-      const username = firstFreeUsername(base, (candidate) =>
-        taken.has(candidate),
-      );
+      const username = await this.freeUsername(base);
       const person = await this.insert({ ...fields, passwordHash, username });
       if (person) return person;
       await this.throwIfEmailTaken(email);
-      // Outra criação, ao mesmo tempo, ficou com este @usuário: tenta o próximo.
-      taken.add(username);
+      // Outra criação, ao mesmo tempo, ficou com este @usuário: procura de novo.
     }
-    throw new UsernameTakenError(base);
+    throw new InvalidProfileError(
+      `Não foi possível escolher um @usuário livre a partir de ${base}; tente de novo ou informe --username.`,
+    );
   }
 
   // ON CONFLICT DO NOTHING, e não a captura do erro: a criação roda dentro da transação da
@@ -120,18 +125,21 @@ export class PeopleService {
     }
   }
 
-  // Os @usuário que podem colidir com os candidatos da base: os que começam pelo que sobra dela
-  // depois do corte para o sufixo mais longo.
-  private async usernamesStartingWith(base: string): Promise<Set<string>> {
-    const prefix = base.slice(0, 20).replace(/[\\%_]/g, '\\$&');
-    const rows = await this.people
-      .createQueryBuilder('person')
-      .select('person.username', 'username')
-      .where("person.username LIKE :prefix ESCAPE '\\'", {
-        prefix: `${prefix}%`,
-      })
-      .getRawMany<{ username: string }>();
-    return new Set(rows.map((row) => row.username));
+  // O primeiro candidato livre da base, conferido em lotes pelo índice único do @usuário.
+  private async freeUsername(base: string): Promise<string> {
+    for (let start = 0; ; start += USERNAME_BATCH) {
+      const candidates = usernameCandidates(base, start + USERNAME_BATCH).slice(
+        start,
+      );
+      const rows = await this.people
+        .createQueryBuilder('person')
+        .select('person.username', 'username')
+        .where('person.username = ANY(:candidates)', { candidates })
+        .getRawMany<{ username: string }>();
+      const taken = new Set(rows.map((row) => row.username));
+      const free = candidates.find((candidate) => !taken.has(candidate));
+      if (free) return free;
+    }
   }
 
   // Troca o cargo e o telefone (spec da F05, "Comando de contas"); o @usuário não muda.
@@ -141,6 +149,7 @@ export class PeopleService {
     const update: Partial<Pick<Person, 'title' | 'phone'>> = {};
     if (changes.title !== undefined) update.title = parseTitle(changes.title);
     if (changes.phone !== undefined) update.phone = parsePhone(changes.phone);
+    if (Object.keys(update).length === 0) return person;
     await this.people.update({ id: person.id }, update);
     return this.people.findOneByOrFail({ id: person.id });
   }

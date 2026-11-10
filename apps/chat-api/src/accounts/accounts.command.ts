@@ -5,6 +5,8 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { normalizeEmail } from '../people/normalize-email';
 import { PASSWORD_MAX_LENGTH } from '../people/password-policy';
 import { PeopleService } from '../people/people.service';
+import { parsePhone, parseTitle } from '../people/profile-values';
+import { parseUsername } from '../people/username';
 import { PersonNotFoundError } from '../people/person-not-found.error';
 import { Person } from '../people/person.entity';
 import { SessionsService } from '../sessions/sessions.service';
@@ -78,6 +80,11 @@ export class AccountsCommand implements Command {
       this.output.error(`E-mail inválido: ${email.trim()}`);
       return 1;
     }
+    // Antes da senha: um valor fora da regra não faz quem opera digitá-la à toa.
+    const { username, title, phone } = parsed.options;
+    if (username !== undefined) parseUsername(username);
+    if (title !== undefined) parseTitle(title);
+    if (phone !== undefined) parsePhone(phone);
     const password = await this.askNewPassword('Senha: ');
     if (!password) return 1;
     // A Pessoa entra em todos os Canais públicos na mesma transação (spec da F02, história 11).
