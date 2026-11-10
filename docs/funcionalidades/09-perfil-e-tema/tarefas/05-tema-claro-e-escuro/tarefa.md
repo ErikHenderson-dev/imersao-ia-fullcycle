@@ -1,6 +1,6 @@
 # 05: Tema claro e escuro
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa clica no botão de tema do Rail e o chat troca entre o claro e o
 escuro na hora, em todas as abas daquele navegador. A escolha fica na Pessoa: ao entrar em outro

@@ -541,10 +541,12 @@ do cliente, alimentado pelo retrato e pelos eventos `person.updated` e `presence
 componentes de Pessoa leem dele e, sem entrada, usam o que veio no payload. Assim, um nome trocado aparece nas Mensagens já carregadas sem buscar o
 histórico de novo (spec da F09, seção "Cliente").
 
-**Tema.** Situação: `planejada`. O tema é gravado na Pessoa, e não num cookie, para valer em
-qualquer navegador. O layout raiz o lê da Pessoa da Sessão e põe `data-theme` no `<html>` no
-servidor; sem Sessão, vale o claro. A troca vale na hora em todas as abas do navegador, avisadas
-por `BroadcastChannel`, e nos outros navegadores na próxima carga (spec da F09, seção "Cliente").
+**Tema.** Situação: `planejada`. O tema é gravado na Pessoa, para valer em qualquer navegador, e o
+cookie **Tema** ("Cookies do cliente") o espelha para a primeira pintura: com Cache Components, o
+layout raiz não lê a Sessão fora de um `<Suspense>`. Um script bloqueante no `<head>` aplica o
+`data-theme` antes da pintura, fora de "Entrar", que fica no claro. A troca vale na hora em todas as
+abas do navegador, avisadas por `BroadcastChannel`, e nos outros navegadores na próxima carga das
+telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 
 **Cookies do cliente.** Gravados pelo navegador, sem `HttpOnly` e sem dado sensível, com `Path=/`,
 `SameSite=Lax` e a `validade do cookie de sessão`:
@@ -552,6 +554,9 @@ por `BroadcastChannel`, e nos outros navegadores na próxima carga (spec da F09,
 - **Última Conversa:** o id da Conversa aberta, gravado ao abri-la e lido pela Home para
   redirecionar. Fica no navegador, e não na Pessoa, porque o PRD da F02 (história 2) fala do último
   canal visitado naquele navegador.
+- **Tema:** `light` ou `dark`, o espelho da escolha da Pessoa. Gravado ao entrar, pela Server
+  Action `saveTheme` e pelo ThemeToggle; corrigido pelo layout das telas logadas quando difere da
+  Pessoa; apagado ao sair.
 - **Fuso:** o fuso IANA do navegador. O servidor formata horas e datas com ele e, sem o cookie, usa
   o `fuso padrão`. Se o fuso gravado difere do navegador, o cliente regrava o cookie e renderiza a
   rota de novo. É também o fuso de quem pediu que o BFF leva ao agente (HLD 6.3). O cliente
