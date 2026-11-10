@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BfcacheReload } from "@/app/components/bfcache-reload";
+import { AlertCenter } from "@/app/components/notification/alert-center";
 import { ProfilePanel } from "@/app/components/profile/profile-panel";
 import { ProfilePanelProvider } from "@/app/components/profile/profile-panel-provider";
 import { ConnectionBanner } from "@/app/components/realtime/connection-banner";
@@ -73,6 +74,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <Toaster />
+        <AlertCenter personId={result.person.id} />
       </ProfilePanelProvider>
     </RealtimeProvider>
   );

@@ -104,7 +104,7 @@ test.describe("Ir até a Mensagem citada", () => {
     const [original] = await insertMessages(sharedChannel, [
       { author: otherPerson, body: "A original que some", at: new Date(at) },
     ]);
-    await insertMessages(sharedChannel, [
+    const inserted = await insertMessages(sharedChannel, [
       ...Array.from({ length: 60 }, (_, index) => ({
         author: person,
         body: `Recheio ${index + 1}`,
@@ -112,6 +112,8 @@ test.describe("Ir até a Mensagem citada", () => {
       })),
       { author: person, body: "A resposta", at: new Date(at + 61 * 30_000), quotedMessageId: original.id },
     ]);
+    // Já lida: sem Não lidas, a Conversa abre no fim (F07) e não carrega a original antes do clique.
+    await setLastRead(sharedChannel, person, inserted.at(-1)!.id);
     await page.goto(`/conversas/${sharedChannel.id}`);
     await readyHistory(page, sharedChannel.name);
     // Apagada direto no banco, sem o evento: a tela ainda mostra a Citação.

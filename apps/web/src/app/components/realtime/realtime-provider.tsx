@@ -37,8 +37,12 @@ export type MemberAdded = { conversation: Conversation; personIds: readonly stri
 // A Última leitura e os números de uma Conversa, calculados pelo servidor (spec da F07).
 export type ConversationUnread = { conversationId: string; unread: Unread };
 
+// Como a Mensagem chegou: no reenvio da reconexão (os eventos guardados enquanto a conexão
+// sincronizava) ou ao vivo. Só a ao vivo alerta (spec da F08, "Alerta e notificação do navegador").
+export type MessageArrival = { isReplay: boolean };
+
 export type RealtimeListener = {
-  onMessage?: (message: Message) => void;
+  onMessage?: (message: Message, arrival: MessageArrival) => void;
   // Uma Mensagem editada (spec da F06, "Eventos no cliente").
   onMessageUpdated?: (message: Message) => void;
   // Uma Mensagem apagada, que sai da Conversa (spec da F06, "Eventos no cliente").
@@ -124,15 +128,22 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     // O cursor do último evento recebido, mandado a cada handshake (spec da F03, "Conexão por aba"):
     // a API reenvia o que veio depois dele.
     let cursor: string | null = null;
+    let sentCursor = false;
     const socket: RealtimeSocket = io(url, {
       transports: ["websocket"],
       withCredentials: true,
-      auth: (send) => send(cursor ? { cursor } : {}),
+      auth: (send) => {
+        // Só uma conexão que manda cursor recebe o reenvio do que perdeu.
+        sentCursor = cursor !== null;
+        send(cursor ? { cursor } : {});
+      },
     });
     // Até o sync de cada conexão, os eventos ficam guardados: a sala da Pessoa já recebe os novos
     // enquanto a API reenvia os perdidos, e a ordem é a do cursor.
     let isSyncing = true;
     let pendingEvents: ReceivedEvent[] = [];
+    // Verdadeiro enquanto o sync de uma reconexão aplica os eventos guardados.
+    let isReplaying = false;
     let retryDelay = RETRY_MIN_MS;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const setStatus = (status: RealtimeStatus) =>
@@ -187,7 +198,8 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
         message.conversationId,
         rememberMessage(received.get(message.conversationId) ?? [], message),
       );
-      listeners.current.forEach((listener) => listener.onMessage?.(message));
+      const arrival = { isReplay: isReplaying };
+      listeners.current.forEach((listener) => listener.onMessage?.(message, arrival));
     };
     const applyMessageUpdated = (event: MessageUpdatedEvent) => {
       const message = messageFromEvent(event.message);
@@ -246,7 +258,14 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
       untypedSocket.on(name, (event) => receive({ name, event } as ReceivedEvent));
     }
     socket.on("sync", (event) => {
-      orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
+      // O que ficou guardado até o sync de uma reconexão com cursor é, quase todo, o reenvio do que a
+      // aba perdeu; na primeira conexão não há reenvio, e o que chegou é novo.
+      isReplaying = sentCursor;
+      try {
+        orderForSync(pendingEvents, (received) => received.event.event_id).forEach(apply);
+      } finally {
+        isReplaying = false;
+      }
       pendingEvents = [];
       isSyncing = false;
       cursor = laterCursor(cursor, event.cursor);

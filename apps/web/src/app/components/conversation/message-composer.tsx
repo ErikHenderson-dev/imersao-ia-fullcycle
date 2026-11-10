@@ -1,5 +1,6 @@
 "use client";
 
+import { useComposerOffset } from "@/app/hooks/use-composer-offset";
 import { AtSign, CornerUpLeft, SendHorizontal, X } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { MentionPicker } from "@/app/components/message/mention-picker";
@@ -49,6 +50,9 @@ export function MessageComposer({
   const [text, setText] = useState("");
   const localRef = useRef<HTMLTextAreaElement>(null);
   const textarea = inputRef ?? localRef;
+  // A altura do campo, para os toasts ficarem acima dele (F08, o Alerta).
+  const container = useRef<HTMLDivElement>(null);
+  useComposerOffset(container);
   const mentions = useMentionPicker({
     conversationId,
     text,
@@ -73,7 +77,7 @@ export function MessageComposer({
   }
 
   return (
-    <div className="shrink-0 px-5 pb-5">
+    <div ref={container} className="shrink-0 px-5 pb-5">
       <form
         onSubmit={(event) => {
           event.preventDefault();

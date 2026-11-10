@@ -1,6 +1,6 @@
 # 05: Alerta na tela
 
-**Status:** a fazer
+**Status:** concluída
 
 **O que construir:** uma Menção num Canal ou uma Mensagem numa Conversa direta aparece como Alerta
 na aba do chat em foco, com o autor, onde foi, o começo do texto e o botão "Abrir", que leva à
@@ -20,19 +20,19 @@ Notificação" (nada, Alerta ou navegador), que a 06 estende. Referências:
 
 **Bloqueada por:** 02 (Abrir a Conversa na Mensagem), 03 (Atividade em tempo real)
 
-- [ ] **CA1** · No Figma, antes do código: "Portas / Toast de atividade" com o Alerta acima do
+- [x] **CA1** · No Figma, antes do código: "Portas / Toast de atividade" com o Alerta acima do
   campo de envio, sem cobri-lo.
-- [ ] **CA2** · A função pura de destino tem testes: aba em foco com a Conversa da Mensagem aberta,
+- [x] **CA2** · A função pura de destino tem testes: aba em foco com a Conversa da Mensagem aberta,
   nada; aba em foco com outra tela, Alerta; aba sem foco, nada (o navegador fica para a 06).
-- [ ] **CA3** · A aba só alerta depois do `sync` da conexão atual; os eventos reenviados não
+- [x] **CA3** · A aba só alerta depois do `sync` da conexão atual; os eventos reenviados não
   alertam.
-- [ ] **CA4** · O Alerta segue o frame, com o título da spec, o começo do texto em até duas linhas
+- [x] **CA4** · O Alerta segue o frame, com o título da spec, o começo do texto em até duas linhas
   e "Abrir"; some depois da Duração do Alerta ou pelo botão de fechar, e vários se empilham acima
   do campo de envio.
-- [ ] **CA5** · O Alerta é anunciado pelo leitor de tela sem tirar o foco, e "Abrir" e fechar são
+- [x] **CA5** · O Alerta é anunciado pelo leitor de tela sem tirar o foco, e "Abrir" e fechar são
   alcançáveis pelo teclado.
-- [ ] **CA6** · "Abrir" leva à Mensagem, e a Notificação fica lida.
-- [ ] **CA7** · O Playwright prova o Alerta só na aba em foco, nenhum com a Conversa aberta e em
+- [x] **CA6** · "Abrir" leva à Mensagem, e a Notificação fica lida.
+- [x] **CA7** · O Playwright prova o Alerta só na aba em foco, nenhum com a Conversa aberta e em
   foco, "Abrir" levando à Mensagem e o rail descendo nas duas abas; e o axe com o Alerta na tela,
   sem violações.
-- [ ] **CA8** · A validação visual do Alerta, nos dois temas, contra o frame, fica nesta pasta.
+- [x] **CA8** · A validação visual do Alerta, nos dois temas, contra o frame, fica nesta pasta.

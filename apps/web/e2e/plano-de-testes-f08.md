@@ -52,3 +52,18 @@ A outra Pessoa envia e apaga pela API do chat (`support/chat-api.ts`), com o coo
    o botão fica ocupado enquanto espera e volta a ficar habilitado depois do toast.
 3. **Marcar tudo zera o rail nas duas abas e mantém o negrito da barra lateral:** o item fica lido,
    o botão fica desabilitado, e o Canal da Menção continua em negrito, com o contador.
+
+## F08-T05 · Alerta na tela (`atividade/alerta.spec.ts`)
+
+1. **A Menção e a Mensagem direta alertam na aba em foco:** com o título, o começo do texto e
+   "Abrir".
+2. **O Alerta fica acima do campo de envio e fecha:** o fundo dele fica acima do topo do campo, que
+   continua clicável; o botão de fechar o tira.
+3. **O Alerta não tira o foco e é alcançável pelo teclado:** a caixa de mensagem continua em foco, a
+   região é `aria-live` educada, e Alt+T e Tab chegam ao Alerta.
+4. **Abrir leva à Mensagem e baixa o rail** nas duas abas.
+5. **Só a aba em foco alerta:** a outra, sem foco, só conta no rail.
+6. **A Conversa aberta em foco não alerta.**
+7. **O que chegou durante a queda não alerta:** conta no rail ao reconectar.
+
+Acessibilidade (`acessibilidade/alerta-sem-violacoes.spec.ts`): a tela com o Alerta, sem violações.
