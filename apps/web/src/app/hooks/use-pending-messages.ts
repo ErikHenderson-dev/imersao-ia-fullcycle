@@ -9,7 +9,8 @@ import { redirectToExpiredSession } from "@/app/utils/return-path";
 
 export type PendingStatus = "sending" | "failed";
 
-export type PendingMessage = Message & { status: PendingStatus };
+// `failure` diz por que o envio falhou, quando há um motivo para mostrar (a Citação apagada).
+export type PendingMessage = Message & { status: PendingStatus; failure?: "quote_deleted" };
 
 // Mensagens ainda não gravadas (spec da F02, "Envio"): fora do cache do SWR, na ordem do envio,
 // sempre depois das gravadas. Uma fila, feita de uma cadeia de promessas, manda uma por vez, para
@@ -30,16 +31,20 @@ export function usePendingMessages(
   }, []);
 
   const enqueue = useCallback(
-    (clientId: string, body: string) => {
+    (clientId: string, body: string, quotedMessageId?: string) => {
       queue.current = queue.current.then(async () => {
         let result: SendMessageResult;
         try {
-          result = await sendMessage(conversationId, clientId, body);
+          result = await sendMessage(conversationId, clientId, body, quotedMessageId);
         } catch {
           // Rede fora: o Server Action nem respondeu. Vira falha, como os outros erros.
           result = { kind: "failure" };
         }
         if (result.kind === "unauthenticated") return redirectToExpiredSession();
+        // Com Citação, o 404 é da Mensagem citada, apagada antes do envio (spec da F06, "Citação").
+        if (result.kind === "not_found" && quotedMessageId) {
+          return update(clientId, { status: "failed", failure: "quote_deleted" });
+        }
         if (result.kind !== "ok") return update(clientId, { status: "failed" });
         onSent(result.message);
         setPending((current) => current.filter((message) => message.clientId !== clientId));
@@ -48,8 +53,9 @@ export function usePendingMessages(
     [conversationId, onSent, update],
   );
 
+  // `quoted` é a Mensagem citada: a pendente já mostra a Citação com os dados da tela.
   const send = useCallback(
-    (body: string) => {
+    (body: string, quoted?: Message) => {
       const clientId = newClientId();
       setPending((current) => [
         ...current,
@@ -62,10 +68,18 @@ export function usePendingMessages(
           createdAt: new Date().toISOString(),
           editedAt: null,
           mentions: [],
+          quote: quoted
+            ? {
+                id: quoted.id,
+                deleted: false,
+                author: { id: quoted.author.id, name: quoted.author.name },
+                body: quoted.body,
+              }
+            : null,
           status: "sending",
         },
       ]);
-      enqueue(clientId, body);
+      enqueue(clientId, body, quoted?.id);
     },
     [conversationId, author, enqueue],
   );
@@ -74,8 +88,12 @@ export function usePendingMessages(
   // passa a ser a da nova tentativa.
   const retry = useCallback(
     (message: PendingMessage) => {
-      update(message.clientId, { status: "sending", createdAt: new Date().toISOString() });
-      enqueue(message.clientId, message.body);
+      update(message.clientId, {
+        status: "sending",
+        failure: undefined,
+        createdAt: new Date().toISOString(),
+      });
+      enqueue(message.clientId, message.body, message.quote?.id);
     },
     [update, enqueue],
   );

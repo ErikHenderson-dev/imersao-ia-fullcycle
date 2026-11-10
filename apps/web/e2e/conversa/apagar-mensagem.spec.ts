@@ -109,7 +109,7 @@ test.describe("Apagar a própria Mensagem", () => {
     const item = messageItem(page, sharedChannel.name, "Da outra Pessoa");
     await item.hover();
     await item.getByRole("button", { name: "Mais ações" }).click();
-    await expect(page.getByRole("menuitem")).toHaveText(["Copiar texto"]);
+    await expect(page.getByRole("menuitem")).toHaveText(["Responder", "Copiar texto"]);
   });
 
   test("a edição aberta fecha quando a Mensagem é apagada em outra aba", async ({

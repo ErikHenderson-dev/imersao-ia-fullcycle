@@ -38,7 +38,7 @@ test.describe("Histórico até a primeira Mensagem", () => {
     const botao = page.getByRole("button", { name: "Carregar mensagens anteriores" });
     const focoNoBotao = () => botao.evaluate((element) => element === document.activeElement);
     for (let paradas = 0; !(await focoNoBotao()); paradas += 1) {
-      expect(paradas).toBeLessThan(200);
+      expect(paradas).toBeLessThan(400);
       await page.keyboard.press("Shift+Tab");
       if (await focoNoBotao()) break;
       expect(

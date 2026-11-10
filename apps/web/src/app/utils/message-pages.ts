@@ -49,6 +49,38 @@ export function replaceEdited(pages: MessagePage[], edited: Message): MessagePag
   return pages.with(index, { ...pages[index], messages });
 }
 
+// As Citações das Mensagens carregadas acompanham a original (spec da F06, "Eventos no cliente"): a
+// editada troca o texto, se a edição for mais nova e a Citação não estiver apagada; a apagada vira a
+// marca de apagada.
+export function patchQuotes(
+  pages: MessagePage[],
+  original: { id: string; edited?: Message; deleted?: boolean },
+): MessagePage[] {
+  let changed = false;
+  const next = pages.map((page) => {
+    let pageChanged = false;
+    const messages = page.messages.map((message) => {
+      const quote = message.quote;
+      if (!quote || quote.id !== original.id || quote.deleted) return message;
+      if (original.deleted) {
+        pageChanged = true;
+        return { ...message, quote: { id: quote.id, deleted: true as const } };
+      }
+      const edited = original.edited;
+      if (!edited || edited.body === quote.body) return message;
+      pageChanged = true;
+      return {
+        ...message,
+        quote: { ...quote, body: edited.body, author: { id: edited.author.id, name: edited.author.name } },
+      };
+    });
+    if (!pageChanged) return page;
+    changed = true;
+    return { ...page, messages };
+  });
+  return changed ? next : pages;
+}
+
 // Tira a Mensagem apagada do cache, pelo id (spec da F06, "Eventos no cliente").
 export function removeDeleted(pages: MessagePage[], messageId: string): MessagePage[] {
   const index = pages.findIndex((page) => page.messages.some((message) => message.id === messageId));

@@ -12,6 +12,7 @@ describe("messageFromEvent", () => {
       created_at: "2026-11-09T12:00:00.000Z",
       edited_at: null,
       mentions: [],
+      quote: null,
     });
 
     expect(message).toEqual({
@@ -23,6 +24,7 @@ describe("messageFromEvent", () => {
       createdAt: "2026-11-09T12:00:00.000Z",
       editedAt: null,
       mentions: [],
+      quote: null,
     });
   });
 
@@ -36,6 +38,6 @@ describe("messageFromEvent", () => {
       created_at: "2026-11-09T12:00:00.000Z",
     } as unknown as Parameters<typeof messageFromEvent>[0];
 
-    expect(messageFromEvent(legacy)).toMatchObject({ editedAt: null, mentions: [] });
+    expect(messageFromEvent(legacy)).toMatchObject({ editedAt: null, mentions: [], quote: null });
   });
 });

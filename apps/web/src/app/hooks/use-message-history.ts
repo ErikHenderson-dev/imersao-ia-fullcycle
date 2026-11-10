@@ -6,6 +6,7 @@ import type { Message, MessagePage } from "@/app/services/chat-api";
 import {
   appendToLatestPage,
   flattenPages,
+  patchQuotes,
   removeDeleted,
   replaceEdited,
 } from "@/app/utils/message-pages";
@@ -97,9 +98,14 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
   const applyEdited = useCallback(
     (message: Message) => {
       saved.current = rememberEdit(saved.current, message);
-      void mutate((current) => replaceEdited(current ?? [initialPage], message), {
-        revalidate: false,
-      });
+      void mutate(
+        (current) =>
+          patchQuotes(replaceEdited(current ?? [initialPage], message), {
+            id: message.id,
+            edited: message,
+          }),
+        { revalidate: false },
+      );
     },
     [mutate, initialPage],
   );
@@ -112,9 +118,14 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     (messageId: string) => {
       deleted.current.add(messageId);
       saved.current = forgetMessage(saved.current, messageId);
-      void mutate((current) => removeDeleted(current ?? [initialPage], messageId), {
-        revalidate: false,
-      });
+      void mutate(
+        (current) =>
+          patchQuotes(removeDeleted(current ?? [initialPage], messageId), {
+            id: messageId,
+            deleted: true,
+          }),
+        { revalidate: false },
+      );
     },
     [mutate, initialPage],
   );

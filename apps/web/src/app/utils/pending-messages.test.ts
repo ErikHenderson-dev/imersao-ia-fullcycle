@@ -12,6 +12,7 @@ function message(clientId: string, authorId = "p1"): Message {
     createdAt: "2026-11-09T12:00:00.000Z",
     editedAt: null,
     mentions: [],
+    quote: null,
   };
 }
 

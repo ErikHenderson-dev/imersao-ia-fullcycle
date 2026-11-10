@@ -1,4 +1,9 @@
-import type { ConversationPayload, MessagePayload, MentionPayload } from "chat-events";
+import type {
+  ConversationPayload,
+  MentionPayload,
+  MessagePayload,
+  QuotePayload,
+} from "chat-events";
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
@@ -185,9 +190,12 @@ export type Message = {
   editedAt: string | null;
   // As Pessoas mencionadas, resolvidas ao gravar (spec da F06, "Texto da Mensagem").
   mentions: Mention[];
+  // A Citação, com o autor e o texto atual da original, ou a marca de apagada (spec da F06).
+  quote: Quote | null;
 };
 
 export type Mention = MentionPayload;
+export type Quote = QuotePayload;
 
 export type MessagePage = { messages: Message[]; hasMore: boolean };
 
@@ -319,12 +327,16 @@ export async function listMessages(
 export async function sendMessage(
   token: string,
   conversationId: string,
-  message: { clientId: string; body: string },
+  message: { clientId: string; body: string; quotedMessageId?: string },
 ): Promise<SendMessageResult> {
   const response = await request(conversationPath(conversationId, "/messages"), {
     method: "POST",
     headers: { ...authenticated(token), "content-type": "application/json" },
-    body: JSON.stringify({ client_id: message.clientId, body: message.body }),
+    body: JSON.stringify({
+      client_id: message.clientId,
+      body: message.body,
+      quoted_message_id: message.quotedMessageId,
+    }),
   });
   if (response?.status === 201) {
     const body = await jsonBody<{ message: ApiMessage }>(response);

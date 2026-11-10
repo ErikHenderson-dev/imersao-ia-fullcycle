@@ -12,6 +12,7 @@ import { DayDivider } from "./day-divider";
 import { MessageActions } from "./message-actions";
 import { MessageBody } from "./message-body";
 import { MessageEditor } from "./message-editor";
+import { ReplyQuote } from "./reply-quote";
 
 type MessageItemProps = {
   message: Message;
@@ -31,6 +32,8 @@ type MessageItemProps = {
   // A Pessoa logada: a Menção a ela é amarela, e a Mensagem que a menciona ganha o destaque de
   // "Menciona você" (spec da F06, "Texto da Mensagem").
   currentPersonId?: string;
+  // Responder citando esta Mensagem (spec da F06, "Citação").
+  onReply?: () => void;
 };
 
 export type MessageEdit = {
@@ -54,6 +57,7 @@ export function MessageItem({
   onDiscard,
   edit,
   currentPersonId,
+  onReply,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -67,7 +71,11 @@ export function MessageItem({
     wasEditing.current = isEditing;
   }, [isEditing]);
   const failed = status === "failed" && (
-    <SendFailure onRetry={onRetry} onDiscard={onDiscard} />
+    <SendFailure
+      onRetry={onRetry}
+      onDiscard={onDiscard}
+      reason={"failure" in message ? (message.failure as string | undefined) : undefined}
+    />
   );
   const content = edit?.isEditing ? (
     <MessageEditor
@@ -78,6 +86,7 @@ export function MessageItem({
     />
   ) : (
     <>
+      {message.quote && <ReplyQuote quote={message.quote} />}
       <MessageBody
         text={message.body}
         mentions={message.mentions}
@@ -113,7 +122,12 @@ export function MessageItem({
           <FullRow message={message} timeZone={timeZone} content={content} />
         )}
         {status === "sent" && !isEditing && (
-          <MessageActions message={message} onEdit={edit?.start} onDeleted={edit?.onDeleted} />
+          <MessageActions
+            message={message}
+            onEdit={edit?.start}
+            onDeleted={edit?.onDeleted}
+            onReply={onReply}
+          />
         )}
       </div>
     </li>
@@ -122,14 +136,25 @@ export function MessageItem({
 
 type RowProps = { message: Message; timeZone: string; content?: React.ReactNode };
 
-// "Não foi possível enviar." com "Tentar de novo" e "Descartar" (22:12030).
-function SendFailure({ onRetry, onDiscard }: { onRetry?: () => void; onDiscard?: () => void }) {
+// "Não foi possível enviar." com "Tentar de novo" e "Descartar" (22:12030). Com a Citação apagada antes
+// do envio, o motivo vem junto (spec da F06, "Citação").
+function SendFailure({
+  onRetry,
+  onDiscard,
+  reason,
+}: {
+  onRetry?: () => void;
+  onDiscard?: () => void;
+  reason?: string;
+}) {
   const action = buttonVariants({ variant: "link", className: "text-small" });
   return (
     <div className="flex flex-wrap items-center gap-x-2 pt-1 text-small">
       <span role="alert" className="flex items-center gap-2 text-danger-fg">
         <CircleAlert size={16} aria-hidden />
-        Não foi possível enviar.
+        {reason === "quote_deleted"
+          ? "Não foi possível enviar: a mensagem citada foi apagada."
+          : "Não foi possível enviar."}
       </span>
       <button type="button" onClick={onRetry} className={action}>
         Tentar de novo
