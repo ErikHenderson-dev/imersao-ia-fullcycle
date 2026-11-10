@@ -16,9 +16,10 @@ import { MESSAGE_MAX_LENGTH } from './message-values';
 @Entity('messages')
 @Index('messages_conversation_id_id_idx', ['conversationId', 'id'])
 @Unique('messages_author_client_key', ['authorId', 'clientId'])
+// Só a Mensagem apagada fica sem texto (spec da F06, "Apagar"); a migração escreve o mesmo CHECK.
 @Check(
-  'messages_body_length_check',
-  `char_length("body") BETWEEN 1 AND ${MESSAGE_MAX_LENGTH}`,
+  'messages_body_check',
+  `("deleted_at" IS NULL AND "body" IS NOT NULL AND char_length("body") BETWEEN 1 AND ${MESSAGE_MAX_LENGTH}) OR ("deleted_at" IS NOT NULL AND "body" IS NULL)`,
 )
 export class Message extends BaseEntity {
   @Column({ type: 'uuid' })
