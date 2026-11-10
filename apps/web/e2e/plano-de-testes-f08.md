@@ -67,3 +67,18 @@ A outra Pessoa envia e apaga pela API do chat (`support/chat-api.ts`), com o coo
 7. **O que chegou durante a queda não alerta:** conta no rail ao reconectar.
 
 Acessibilidade (`acessibilidade/alerta-sem-violacoes.spec.ts`): a tela com o Alerta, sem violações.
+
+## F08-T06 · Notificação do navegador (`atividade/notificacao-do-navegador.spec.ts`)
+
+A Notification do navegador é trocada por uma instrumentada (`support/browser-notifications.ts`),
+que guarda o que foi criado, responde a permissão pedida pelo teste e deixa clicar; o foco das abas
+é controlado por `support/tab-focus.ts`.
+
+1. **Ativar pede a permissão e liga a opção:** com a permissão `default` e a resposta `granted`, o
+   item passa a "Desativar" e continua assim depois de recarregar.
+2. **Desativar desliga a opção.**
+3. **Com a permissão negada, a opção fica bloqueada:** "Bloqueadas neste navegador", desabilitado.
+4. **Sem aba em foco sai uma notificação só:** as duas abas criam a notificação com o mesmo `tag`,
+   o id da Mensagem, que o navegador junta numa só.
+5. **Com uma aba em foco não sai notificação:** a aba em foco mostra o Alerta.
+6. **O clique abre a Mensagem.**
