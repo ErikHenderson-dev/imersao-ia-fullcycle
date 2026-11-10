@@ -9,6 +9,7 @@ import { normalizeEmail } from './normalize-email';
 import { PasswordHasher } from './password-hasher';
 import type { PersonSummary } from './person-summary';
 import { PersonNotFoundError } from './person-not-found.error';
+import { canonicalTimeZone } from './time-zone';
 import { Person } from './person.entity';
 import { parsePhone, parseTitle } from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
@@ -202,9 +203,19 @@ export class PeopleService {
     });
   }
 
-  // Gravar o mesmo fuso de novo não muda nada visível.
+  // Grava o nome canônico; o mesmo fuso de novo não grava nada.
   async saveTimeZone(personId: string, timeZone: string): Promise<void> {
-    await this.people.update({ id: personId }, { timeZone });
+    const canonical = canonicalTimeZone(timeZone);
+    if (!canonical) throw new InvalidProfileError('Fuso inválido.');
+    await this.people
+      .createQueryBuilder()
+      .update()
+      .set({ timeZone: canonical })
+      .where('id = :personId AND time_zone IS DISTINCT FROM :canonical', {
+        personId,
+        canonical,
+      })
+      .execute();
   }
 
   findByEmail(email: string): Promise<Person | null> {

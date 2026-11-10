@@ -41,6 +41,16 @@ describe('fuso da Pessoa', () => {
     });
   });
 
+  it('grava o nome canônico do fuso', async () => {
+    const { person, cookie } = await authRoutes.loggedIn(app);
+
+    await saveTimeZone(cookie, { time_zone: 'asia/tokyo' });
+
+    expect((await profileOf(cookie, person.id)).body).toMatchObject({
+      person: { time_zone: 'Asia/Tokyo' },
+    });
+  });
+
   it('responde 204 ao gravar o mesmo fuso', async () => {
     const { cookie } = await authRoutes.loggedIn(app);
     await saveTimeZone(cookie, { time_zone: 'Asia/Tokyo' });
@@ -55,6 +65,7 @@ describe('fuso da Pessoa', () => {
     ['um texto vazio', { time_zone: '' }],
     ['a falta do campo', {}],
     ['um texto longo demais', { time_zone: 'A'.repeat(65) }],
+    ['um deslocamento', { time_zone: '+05:30' }],
   ])('responde 400 validation_failed para %s', async (_case, body) => {
     const { cookie } = await authRoutes.loggedIn(app);
 

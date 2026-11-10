@@ -7,6 +7,24 @@ import { readClientCookie, writeClientCookie } from "@/app/utils/client-cookies"
 import { DEFAULT_TIME_ZONE } from "@/app/utils/format-time";
 import { browserTimeZone, TIME_ZONE_COOKIE } from "@/app/utils/time-zone";
 
+const REJECTED_TIME_ZONE_KEY = "fc_tz_rejected";
+
+function readRejectedTimeZone(): string | null {
+  try {
+    return sessionStorage.getItem(REJECTED_TIME_ZONE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeRejectedTimeZone(timeZone: string): void {
+  try {
+    sessionStorage.setItem(REJECTED_TIME_ZONE_KEY, timeZone);
+  } catch {
+    // Sem sessionStorage, a gravação só é tentada de novo na próxima carga.
+  }
+}
+
 type TimeZoneSyncProps = {
   // O fuso gravado na Pessoa da Sessão, ou null se ela nunca abriu o chat.
   personTimeZone: string | null;
@@ -24,8 +42,14 @@ export function TimeZoneSync({ personTimeZone }: TimeZoneSyncProps) {
   useEffect(() => {
     const timeZone = browserTimeZone();
     if (!timeZone || savedToPerson.current || timeZone === personTimeZone) return;
+    // Um fuso já recusado nesta aba não é mandado de novo a cada carga.
+    if (readRejectedTimeZone() === timeZone) return;
     savedToPerson.current = true;
-    void saveTimeZone(timeZone).catch(() => undefined);
+    void saveTimeZone(timeZone)
+      .then((result) => {
+        if (result.kind === "invalid") writeRejectedTimeZone(timeZone);
+      })
+      .catch(() => undefined);
   }, [personTimeZone]);
 
   useEffect(() => {
