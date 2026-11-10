@@ -1,6 +1,6 @@
 # 01: Números na barra lateral
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** ao carregar a página, a barra lateral mostra em negrito as Conversas com
 Mensagens Não lidas e o contador: o número de Menções Não lidas num Canal e o número de Não lidas
