@@ -63,14 +63,22 @@ export function ActivityList({
   // O tempo real muda as páginas carregadas desta aba, sem buscar nada (spec da F08, "Tela
   // Atividade"). A Conversa do item vem da lista de Conversas no cache.
   const { subscribe } = useRealtime();
+  // As Conversas que chegaram pelo evento de entrada: a primeira Mensagem de uma Conversa direta nova
+  // chega logo depois dele, antes de a lista de Conversas trazer essa Conversa (ADR 0025).
+  const joined = useRef(new Map<string, Conversation>());
   const itemFor = useEffectEvent((message: Message): ActivityItem | null => {
-    const conversation = conversations.find((entry) => entry.id === message.conversationId);
+    const conversation =
+      conversations.find((entry) => entry.id === message.conversationId) ??
+      joined.current.get(message.conversationId);
     const kind = notificationKindFor(message, conversation, personId);
     return kind && conversation ? { kind, message, conversation } : null;
   });
   useEffect(
     () =>
       subscribe({
+        onMemberAdded: ({ conversation }) => {
+          joined.current.set(conversation.id, conversation);
+        },
         onMessage: (message) => {
           const item = itemFor(message);
           if (item) void mutate((current) => applyCreated(current ?? [], item, filter), { revalidate: false });

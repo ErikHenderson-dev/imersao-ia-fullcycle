@@ -84,6 +84,23 @@ test.describe("Atividade em tempo real", () => {
     await expect(activityLink(outra)).toHaveAccessibleName("Atividade");
   });
 
+  test("a primeira Mensagem de uma Conversa direta nova entra na Atividade", async ({
+    page,
+    person,
+    otherPage,
+  }) => {
+    await twoTabs(page, person);
+    const opened = await otherPage.request.post("http://localhost:3001/v1/conversations", {
+      data: { kind: "direct", person_id: person.id },
+    });
+    const { conversation } = (await opened.json()) as { conversation: { id: string } };
+
+    await sendByApi(otherPage, conversation.id, "Primeira");
+
+    await expect(activityItems(page)).toHaveCount(1);
+    await expect(activityItems(page).first()).toHaveAccessibleName(/enviou uma mensagem direta.*Primeira/);
+  });
+
   test("a queda de conexão termina com os números certos", async ({
     page,
     context,
