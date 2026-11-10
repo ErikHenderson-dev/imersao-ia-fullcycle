@@ -122,8 +122,9 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - **Ordem:** os números são calculados na hora de publicar, dentro de uma fila em memória por
   Conversa na API, como a fila por Mensagem da F06 (LLD, "Concorrência e idempotência"). Cada
   evento reflete o banco no momento em que sai, e os eventos de uma Conversa saem um depois do
-  outro, então o último que a aba recebe é o mais novo. A fila vale para uma instância da API,
-  como a da F06.
+  outro, então o último que a aba recebe é o mais novo. As publicações que esperam a vez na mesma
+  Conversa se juntam numa só, com todas as Pessoas delas, e a fila não segura a da Mensagem. A
+  fila vale para uma instância da API, como a da F06.
 - **Falha na publicação:** só registrada em log, como as outras (LLD, "Transações"). Os números
   voltam a ficar certos na próxima mudança daquela Conversa, ao recarregar ou na reconexão com
   `reset`.
@@ -158,8 +159,9 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - As chamadas de uma Conversa são agrupadas em no máximo uma por segundo, com a última posição do
   intervalo (valor no LLD, "Valores de regra"). A Mensagem `sending` ou `failed` não conta; a
   enviada já avança a leitura no servidor.
-- O `ok` aplica os números na lista, como o evento. A falha não mostra nada: a próxima ocasião
-  tenta de novo.
+- Os números da lista vêm só do `conversation.unread`, e não da resposta da leitura: a resposta,
+  contada fora da fila da Conversa, pode chegar depois de um evento mais novo. A falha não mostra
+  nada: a próxima ocasião tenta de novo.
 
 **Lista de Conversas e barra lateral**
 
