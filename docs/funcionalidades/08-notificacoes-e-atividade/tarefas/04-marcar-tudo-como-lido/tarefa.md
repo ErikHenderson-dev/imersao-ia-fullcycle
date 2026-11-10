@@ -1,6 +1,6 @@
 # 04: Marcar tudo como lido
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** "Marcar tudo como lido", na tela Atividade, deixa todas as Notificações lidas,
 zera o número do rail e os contadores das abas em todas as abas e navegadores da Pessoa, e não muda
