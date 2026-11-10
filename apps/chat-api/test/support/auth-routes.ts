@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { ConversationsService } from '../../src/conversations/conversations.service';
 import { PeopleService } from '../../src/people/people.service';
 import { Person } from '../../src/people/person.entity';
 import { uniqueEmail } from './unique-email';
@@ -52,6 +53,22 @@ export const authRoutes = {
       overrides,
     );
     const token = await authRoutes.login(app, email, password);
+    return { person, token, cookie: authRoutes.sessionCookie(token) };
+  },
+
+  // Pessoa nova pelo caminho do comando de contas: já Membro de todos os Canais públicos.
+  async loggedInInPublicChannels(
+    app: INestApplication,
+  ): Promise<{ person: Person; token: string; cookie: string }> {
+    const email = uniqueEmail();
+    const person = await app
+      .get(ConversationsService)
+      .createPersonInPublicChannels({
+        email,
+        name: 'Ana Souza',
+        password: TEST_PASSWORD,
+      });
+    const token = await authRoutes.login(app, email, TEST_PASSWORD);
     return { person, token, cookie: authRoutes.sessionCookie(token) };
   },
 

@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
 import { applyMemberAdded } from "@/app/utils/conversation-list";
+import { unreadDisplay } from "@/app/utils/unread";
 import { AddChannelAction } from "./add-channel-action";
 import { NewConversationAction } from "./new-conversation-action";
 import { SidebarRow } from "./sidebar-row";
@@ -57,10 +58,13 @@ export function ConversationList({ initialConversations, personId }: Conversatio
     () =>
       subscribe({
         onMemberAdded: ({ conversation, personIds }) => {
+          // Quem acabou de entrar busca a lista de novo, para trazer a Última leitura e os números
+          // da Conversa nova, que o evento não leva (spec da F07, "Rotas"). É raro.
+          const hasJoined = personIds.includes(personId);
           void mutate(
             (current) =>
               applyMemberAdded(current ?? initialConversations, conversation, personIds, personId),
-            { revalidate: false },
+            { revalidate: hasJoined },
           );
         },
         onSync: (event) => {
@@ -81,13 +85,17 @@ export function ConversationList({ initialConversations, personId }: Conversatio
       selfId={personId}
     />
   );
+  const unreadRows = (list: Conversation[]) => {
+    const rows = list.filter((conversation) => unreadDisplay(conversation).isUnread).map(row);
+    return rows.length > 0 ? rows : undefined;
+  };
   return (
     <>
-      <SidebarSection title="Canais">
+      <SidebarSection title="Canais" collapsedChildren={unreadRows(channels)}>
         {channels.map(row)}
         <AddChannelAction />
       </SidebarSection>
-      <SidebarSection title="Mensagens diretas">
+      <SidebarSection title="Mensagens diretas" collapsedChildren={unreadRows(directs)}>
         {directs.map(row)}
         <NewConversationAction personId={personId} />
       </SidebarSection>

@@ -5,7 +5,9 @@ import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
 import {
   ConversationResponse,
+  ListedConversationResponse,
   toConversationResponse,
+  toListedConversationResponse,
 } from './conversation.response';
 import { ConversationsService } from './conversations.service';
 
@@ -17,13 +19,13 @@ export class ConversationsController {
   @Get()
   async list(
     @CurrentPerson() person: Person,
-  ): Promise<{ conversations: ConversationResponse[] }> {
+  ): Promise<{ conversations: ListedConversationResponse[] }> {
     const summaries = await this.conversations.listSummariesForMember(
       person.id,
     );
     return {
       conversations: summaries.map((summary) =>
-        toConversationResponse(summary, person.id),
+        toListedConversationResponse(summary, person.id),
       ),
     };
   }

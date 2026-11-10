@@ -1,6 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
+import { backfillLastRead } from '../migrations/support/backfill-last-read';
+import { authRoutes } from './support/auth-routes';
+import { conversationRoutes } from './support/conversation-routes';
 import { createTestApp } from './support/create-test-app';
 import { uniqueEmail } from './support/unique-email';
 
@@ -275,6 +278,54 @@ describe('banco de testes', () => {
       await expect(
         insertMessage({ body: null, deletedAt: null }),
       ).rejects.toThrow(/messages_body_check/);
+    });
+  });
+
+  describe('conversation_members', () => {
+    it('o preenchimento da Última leitura põe cada participação na última Mensagem da Conversa', async () => {
+      const dataSource = app.get(DataSource);
+      const author = await authRoutes.loggedIn(app);
+      const withMessages = await conversationRoutes.privateChannelOf(
+        app,
+        author.cookie,
+      );
+      const empty = await conversationRoutes.privateChannelOf(
+        app,
+        author.cookie,
+      );
+      const [, last] = await conversationRoutes.insertMessages(app, {
+        conversationId: withMessages,
+        authorId: author.person.id,
+        count: 2,
+      });
+      await dataSource.query(
+        'UPDATE messages SET body = NULL, deleted_at = now() WHERE id = $1',
+        [last],
+      );
+      await dataSource.query(
+        'UPDATE conversation_members SET last_read_message_id = NULL WHERE conversation_id = ANY($1)',
+        [[withMessages, empty]],
+      );
+      const queryRunner = dataSource.createQueryRunner();
+
+      await backfillLastRead(queryRunner, [withMessages, empty]).finally(() =>
+        queryRunner.release(),
+      );
+
+      const rows = await dataSource.query<
+        { conversation_id: string; last_read_message_id: string | null }[]
+      >(
+        'SELECT conversation_id, last_read_message_id FROM conversation_members WHERE conversation_id = ANY($1)',
+        [[withMessages, empty]],
+      );
+      expect(
+        Object.fromEntries(
+          rows.map((row) => [row.conversation_id, row.last_read_message_id]),
+        ),
+      ).toEqual({
+        [withMessages]: last,
+        [empty]: null,
+      });
     });
   });
 });

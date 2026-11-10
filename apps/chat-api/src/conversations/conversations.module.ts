@@ -6,6 +6,7 @@ import { ConversationMember } from './conversation-member.entity';
 import { Conversation } from './conversation.entity';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
+import { UnreadCounter } from './unread-counter';
 
 @Module({
   // O forFeature registra as entidades no autoLoadEntities; o service usa o TransactionHost.
@@ -15,7 +16,7 @@ import { ConversationsService } from './conversations.service';
     SessionsModule,
   ],
   controllers: [ConversationsController],
-  providers: [ConversationsService],
+  providers: [ConversationsService, UnreadCounter],
   exports: [ConversationsService],
 })
 export class ConversationsModule {}

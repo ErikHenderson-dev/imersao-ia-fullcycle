@@ -156,10 +156,22 @@ export type Conversation = {
   memberCount: number;
   // Só na Conversa direta (spec da F05, "Conversa direta").
   counterpart: Counterpart | null;
+  // A Última leitura e o que a Pessoa tem de novo, só na lista de Conversas (spec da F07, "Rotas");
+  // a Conversa que chega por outro caminho entra com nula e zero.
+  lastReadMessageId: string | null;
+  unreadCount: number;
+  mentionCount: number;
 };
 
 // A Conversa da API é a mesma do evento do tempo real (pacote chat-events).
 type ApiConversation = ConversationPayload;
+
+// A Conversa da lista, com a Última leitura e os números (spec da F07, "Rotas").
+type ApiListedConversation = ConversationPayload & {
+  last_read_message_id: string | null;
+  unread_count: number;
+  mention_count: number;
+};
 
 // A Mensagem da API é a mesma do evento do tempo real (pacote chat-events).
 type ApiMessage = MessagePayload;
@@ -263,7 +275,7 @@ async function getJson<T>(token: string, path: string): Promise<GetResult<T>> {
 export const listConversations = cache(fetchConversations);
 
 async function fetchConversations(token: string): Promise<ConversationsResult> {
-  const result = await getJson<{ conversations: ApiConversation[] }>(token, "/v1/conversations");
+  const result = await getJson<{ conversations: ApiListedConversation[] }>(token, "/v1/conversations");
   if (result.kind === "ok") {
     return { kind: "ok", conversations: result.body.conversations.map(conversationFromPayload) };
   }

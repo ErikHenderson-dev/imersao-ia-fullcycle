@@ -469,6 +469,15 @@ export class MessagesService {
     // Antes do commit: outro envio na mesma Conversa espera esta participação no índice único e,
     // quando passa, já encontra a barreira.
     if (joinedId) onBarrier(this.raiseBarrier(conversationId));
+    // Quem escreve leu a Conversa até a própria Mensagem (spec da F07, "Avançar a Última
+    // leitura"); o reenvio não muda nada.
+    if (row) {
+      await this.conversations.advanceLastRead(
+        conversationId,
+        author.id,
+        message.id,
+      );
+    }
     // Depois da participação da outra Pessoa da Conversa direta: ela já pode ser mencionada.
     const mentions = row
       ? await this.saveMentions(message, body, false)
