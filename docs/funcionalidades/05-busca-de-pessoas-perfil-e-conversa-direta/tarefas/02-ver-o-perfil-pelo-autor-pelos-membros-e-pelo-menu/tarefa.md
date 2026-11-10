@@ -1,6 +1,6 @@
 # 02: Ver um Perfil pelo autor da Mensagem, pela lista de Membros e pelo menu do avatar
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa clica no nome ou no avatar de quem escreveu uma Mensagem, ou numa
 Pessoa de "Membros de #nome", e o painel de perfil abre ao lado da Conversa, com o avatar grande, o
