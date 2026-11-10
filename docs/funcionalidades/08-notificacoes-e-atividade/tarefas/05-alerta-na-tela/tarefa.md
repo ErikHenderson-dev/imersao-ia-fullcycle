@@ -1,6 +1,6 @@
 # 05: Alerta na tela
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Menção num Canal ou uma Mensagem numa Conversa direta aparece como Alerta
 na aba do chat em foco, com o autor, onde foi, o começo do texto e o botão "Abrir", que leva à
