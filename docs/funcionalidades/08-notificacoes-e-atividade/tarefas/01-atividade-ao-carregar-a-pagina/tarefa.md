@@ -39,6 +39,6 @@ recarregar. Referências:
 - [x] **CA8** · O Playwright prova a Menção e a Mensagem direta nas abas certas, com os contadores,
   depois de recarregar; o marcador do Início da F07 na tela Atividade; tudo pelo teclado; e o axe
   na tela Atividade com itens lidos e não lidos, sem violações.
-- [x] **CA9** · A validação visual dos frames de Atividade e de "Casca / Rail / Atividade ativa",
+- [ ] **CA9** · A validação visual dos frames de Atividade e de "Casca / Rail / Atividade ativa",
   nos dois temas, fica nesta pasta, e o roteiro do Lighthouse com nota 100 na tela Atividade
   também.

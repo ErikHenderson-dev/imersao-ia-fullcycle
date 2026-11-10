@@ -9,6 +9,12 @@ export function conversationHref(conversation: Pick<Conversation, "id">): string
   return `/conversas/${conversation.id}`;
 }
 
+// O endereço de uma Mensagem na Conversa dela (spec da F08, "Abrir a Conversa na Mensagem"): o
+// destino do item de Atividade, do Alerta e da notificação do navegador.
+export function messageHref(conversationId: string, messageId: string): string {
+  return `/conversas/${conversationId}?mensagem=${messageId}`;
+}
+
 // A chave do cache da lista de Conversas, por Pessoa: quem entra depois de outra na mesma aba, sem
 // recarregar a página, não herda a lista dela. A barra lateral, o cabeçalho da Conversa e o aviso
 // de leitura leem e mudam o mesmo cache, o global do SWR.

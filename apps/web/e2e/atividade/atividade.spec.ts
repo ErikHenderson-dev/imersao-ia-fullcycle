@@ -174,6 +174,6 @@ test.describe("Atividade ao carregar a página", () => {
     const primeiroItem = activityList(page).getByRole("link").first();
     await expect(primeiroItem).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(new RegExp(`/conversas/${direta.id}$`));
+    await expect(page).toHaveURL(new RegExp(`/conversas/${direta.id}\\?mensagem=`));
   });
 });

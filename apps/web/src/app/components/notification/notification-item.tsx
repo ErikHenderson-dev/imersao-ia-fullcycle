@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/app/components/ui/avatar";
 import type { ActivityItem } from "@/app/services/chat-api";
 import { notificationSuffix, notificationTitle } from "@/app/utils/activity";
-import { conversationHref } from "@/app/utils/conversation-list";
+import { messageHref } from "@/app/utils/conversation-list";
 import { cn } from "@/app/utils/cn";
 
 type NotificationItemProps = {
@@ -20,7 +20,7 @@ export function NotificationItem({ item, isRead, time }: NotificationItemProps) 
   return (
     <li>
       <Link
-        href={conversationHref({ id: item.conversation.id })}
+        href={messageHref(item.conversation.id, item.message.id)}
         data-read={isRead}
         className={cn(
           "flex items-start gap-3 border-b border-border-subtle px-5 py-3 hover:bg-surface-subtle",
