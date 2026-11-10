@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyTabFocus } from "./tab-presence";
+import { anyFocusedAnswer } from "./tab-presence";
 
-describe("applyTabFocus", () => {
-  it("o conjunto das abas em foco", () => {
-    let focused = applyTabFocus(new Set(), { type: "focus", tabId: "a", isFocused: true });
-    expect([...focused]).toEqual(["a"]);
-    focused = applyTabFocus(focused, { type: "focus", tabId: "b", isFocused: true });
-    expect(focused.size).toBe(2);
-    focused = applyTabFocus(focused, { type: "focus", tabId: "a", isFocused: false });
-    expect([...focused]).toEqual(["b"]);
-    focused = applyTabFocus(focused, { type: "hello", tabId: "c" });
-    expect([...focused]).toEqual(["b"]);
-    focused = applyTabFocus(focused, { type: "bye", tabId: "b" });
-    expect(focused.size).toBe(0);
+describe("anyFocusedAnswer", () => {
+  it("só as respostas desta pergunta contam", () => {
+    expect(anyFocusedAnswer([], "a")).toBe(false);
+    expect(anyFocusedAnswer([{ type: "answer", askId: "a", isFocused: false }], "a")).toBe(false);
+    expect(anyFocusedAnswer([{ type: "answer", askId: "a", isFocused: true }], "a")).toBe(true);
+    expect(anyFocusedAnswer([{ type: "answer", askId: "b", isFocused: true }], "a")).toBe(false);
+    expect(anyFocusedAnswer([{ type: "ask", askId: "a" }], "a")).toBe(false);
   });
 });

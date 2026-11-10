@@ -20,14 +20,37 @@ function subscribe(onChange: () => void): () => void {
     if (event.key === BROWSER_NOTIFICATIONS_KEY) onChange();
   };
   window.addEventListener("storage", onStorage);
+  // A permissão também muda fora do chat (o cadeado da barra de endereço, as configurações do site).
+  let status: PermissionStatus | null = null;
+  void navigator.permissions
+    ?.query({ name: "notifications" })
+    .then((result) => {
+      status = result;
+      result.addEventListener("change", onChange);
+    })
+    .catch(() => {});
   return () => {
     listeners.delete(onChange);
     window.removeEventListener("storage", onStorage);
+    status?.removeEventListener("change", onChange);
   };
 }
 
 function snapshot(): BrowserNotificationsState {
   return browserNotificationsState(currentPermission(), readOptIn());
+}
+
+// Pede a permissão: o Safari antigo só responde pelo callback, e uma recusa do navegador vale como
+// "não decidida".
+function requestPermission(): Promise<NotificationPermission> {
+  return new Promise((resolve) => {
+    try {
+      const pending = Notification.requestPermission(resolve);
+      if (pending) pending.then(resolve, () => resolve("default"));
+    } catch {
+      resolve("default");
+    }
+  });
 }
 
 function notifyAll() {
@@ -45,7 +68,7 @@ export function useBrowserNotifications(): {
 
   const enable = useCallback(async () => {
     let permission = currentPermission();
-    if (permission === "default") permission = await Notification.requestPermission();
+    if (permission === "default") permission = await requestPermission();
     writeOptIn(permission === "granted");
     notifyAll();
   }, []);

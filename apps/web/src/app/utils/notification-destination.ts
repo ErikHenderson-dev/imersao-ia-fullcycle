@@ -13,14 +13,14 @@ export function notificationDestination({
   kind,
   isTabFocused,
   isConversationOpen,
-  isAnyTabFocused = isTabFocused,
-  isBrowserEnabled = false,
+  isAnyTabFocused,
+  isBrowserEnabled,
 }: {
   kind: NotificationKind | null;
   isTabFocused: boolean;
   isConversationOpen: boolean;
-  isAnyTabFocused?: boolean;
-  isBrowserEnabled?: boolean;
+  isAnyTabFocused: boolean;
+  isBrowserEnabled: boolean;
 }): NotificationDestination {
   if (!kind) return "none";
   if (isTabFocused) return isConversationOpen ? "none" : "alert";

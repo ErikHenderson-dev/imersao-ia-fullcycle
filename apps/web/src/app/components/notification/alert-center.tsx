@@ -37,24 +37,31 @@ export function AlertCenter({ personId }: { personId: string }) {
       await mutate(conversationsKey(personId), fetchConversationList()).catch(() => {});
       item = itemFor(message);
     }
+    const isBrowserEnabled = browser.state === "on";
     const destination = notificationDestination({
       kind: item?.kind ?? null,
       isTabFocused,
       isConversationOpen: isOpenAndFocused({ id: message.conversationId }),
-      isAnyTabFocused: isAnyTabFocused(),
-      isBrowserEnabled: browser.state === "on",
+      // Só vale perguntar às outras abas quando a resposta pode mandar ao navegador.
+      isAnyTabFocused: isTabFocused || !isBrowserEnabled || !item ? isTabFocused : await isAnyTabFocused(),
+      isBrowserEnabled,
     });
     if (!item || destination === "none") return;
     const href = messageHref(message.conversationId, message.id);
     if (destination === "browser") {
       // Todas as abas sem foco criam a mesma notificação, com o id da Mensagem no tag: o navegador
       // mostra uma só. O clique traz esta aba para a frente na Mensagem.
-      const notification = new Notification(notificationTitle(item), { body: message.body, tag: message.id });
-      notification.onclick = () => {
-        window.focus();
-        router.push(href);
-        notification.close();
-      };
+      try {
+        const notification = new Notification(notificationTitle(item), { body: message.body, tag: message.id });
+        notification.onclick = () => {
+          window.focus();
+          router.push(href);
+          notification.close();
+        };
+      } catch {
+        // Navegadores que só aceitam notificação por service worker (Chrome no Android) recusam o
+        // construtor: a Notificação fica em Atividade e no rail.
+      }
       return;
     }
     toast(notificationTitle(item), {
