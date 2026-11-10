@@ -6,21 +6,23 @@ import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
-import { applyMemberAdded, conversationsKey } from "@/app/utils/conversation-list";
-
-export { conversationsKey };
+import {
+  applyMemberAdded,
+  CONVERSATIONS_URL,
+  conversationsKey,
+} from "@/app/utils/conversation-list";
 import { unreadDisplay } from "@/app/utils/unread";
 import { AddChannelAction } from "./add-channel-action";
 import { NewConversationAction } from "./new-conversation-action";
 import { SidebarRow } from "./sidebar-row";
 import { SidebarSection } from "./sidebar-section";
 
+export { conversationsKey };
+
 function hrefOf(conversation: Conversation): string {
   return `/conversas/${conversation.id}`;
 }
 
-// A rota do BFF que lê a lista de novo.
-const CONVERSATIONS_URL = "/api/conversations";
 
 // Um 401 aqui é só uma falha: a lista que está na tela fica, e quem leva a "Entrar" é o fim da
 // Sessão no tempo real (session.ended) ou a próxima ação da Pessoa. Sem isso, a busca do reset da

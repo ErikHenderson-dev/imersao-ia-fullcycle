@@ -122,10 +122,11 @@ function History({
     reloadLatest,
   });
   const typing = useTypingAnnouncer(conversation.id);
+  const newestOfSaved = saved.at(-1);
   useReadReport({
     conversationId: conversation.id,
     personId: currentPerson.id,
-    newestSaved: saved.at(-1) && { id: saved.at(-1)!.id, authorId: saved.at(-1)!.author.id },
+    newestSaved: newestOfSaved && { id: newestOfSaved.id, authorId: newestOfSaved.author.id },
     initialLastReadId: conversation.lastReadMessageId,
     isReady: isSynced,
   });
