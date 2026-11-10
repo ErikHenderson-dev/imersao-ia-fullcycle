@@ -12,7 +12,7 @@ criados direto no banco, com cargo e telefone quando o cenário pede.
 **Seed:** `e2e/seed.spec.ts` · **File:** `e2e/perfil/ver-perfil.spec.ts`
 
 1. **mostra o Perfil de outra Pessoa:** clicar no nome da autora de uma Mensagem; o painel mostra
-   nome, cargo, `@usuário`, "Mensagem" desabilitado, o e-mail como `mailto:` e o telefone, com o
+   nome, cargo, `@usuário`, "Mensagem", o e-mail como `mailto:` e o telefone, com o
    foco em "Fechar perfil".
 2. **esconde cargo e telefone que não existem:** o Perfil de quem não tem os dois não mostra
    "Telefone".
@@ -50,3 +50,19 @@ completo aberto.
 2. **sem fuso, a linha não aparece:** o Perfil de quem nunca abriu o chat.
 3. **a recusa ao gravar o fuso não aparece nem repete:** fora de "Entrar", as Server Actions
    respondem 500; uma chamada por carga da página, nenhum aviso na tela e nada gravado.
+
+### 5. Abrir a Conversa direta pelo Perfil (F05-T04)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa-direta/abrir-pelo-perfil.spec.ts`
+
+1. **abre a Conversa direta pelo Perfil e reabrir cai na mesma:** "Mensagem" pelo teclado abre a
+   Conversa, com o foco em "Mensagem para Regina", o começo da conversa direta, a linha em
+   "Mensagens diretas" e nenhum botão de Membros; reabrir pelo Perfil cai no mesmo endereço, sem
+   linha repetida.
+2. **a Conversa consigo mesma aparece com você:** pelo próprio Perfil.
+3. **o cabeçalho abre o Perfil da outra Pessoa.**
+4. **a Conversa aparece em outra aba sem recarregar.**
+5. **a falha ao abrir aparece no painel e tenta de novo:** a Server Action responde 500 uma vez.
+
+**File:** `e2e/acessibilidade/conversa-direta-sem-violacoes.spec.ts`: o axe na Conversa direta.
+

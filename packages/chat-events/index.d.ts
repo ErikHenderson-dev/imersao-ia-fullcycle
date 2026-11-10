@@ -30,13 +30,22 @@ export interface MessageCreatedEvent {
   message: MessagePayload;
 }
 
-/** Uma Conversa, no mesmo formato da resposta REST (spec da F04, "Rotas"). */
+/** A outra Pessoa de uma Conversa direta, para quem a recebe (spec da F05, "Conversa direta"). */
+export interface CounterpartPayload {
+  id: string;
+  name: string;
+  username: string;
+}
+
+/** Uma Conversa, no mesmo formato da resposta REST (spec da F04 e da F05, "Rotas"). */
 export interface ConversationPayload {
   id: string;
-  kind: "public_channel" | "private_channel";
+  kind: "public_channel" | "private_channel" | "direct";
   name: string | null;
   topic: string | null;
   member_count: number;
+  /** A outra Pessoa da Conversa direta (a própria, na Conversa consigo mesma); nulo nos Canais. */
+  counterpart: CounterpartPayload | null;
 }
 
 /** Pessoas que entraram numa Conversa (spec da F04, "Tempo real"). */

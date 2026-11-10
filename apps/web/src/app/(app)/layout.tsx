@@ -65,7 +65,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
               }
             >
               <main className="flex min-w-0 flex-1 flex-col bg-surface">{children}</main>
-              <ProfilePanel />
+              <ProfilePanel sessionPersonId={result.person.id} />
             </NavigationDrawer>
           </div>
         </div>

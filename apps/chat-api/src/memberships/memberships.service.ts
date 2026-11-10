@@ -3,6 +3,7 @@ import { toConversationResponse } from '../conversations/conversation.response';
 import type {
   ConversationSummary,
   NewChannel,
+  OpenedDirectConversation,
 } from '../conversations/conversations.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { PeopleService } from '../people/people.service';
@@ -71,6 +72,21 @@ export class MembershipsService {
     return summary;
   }
 
+  // Abre a Conversa direta e, só quando quem abriu virou Membro agora, avisa os Membros dela: as
+  // outras abas de quem abriu e, se ela já abriu antes, a outra Pessoa (spec da F05, "Tempo real").
+  async openDirectConversation(
+    openerId: string,
+    personId: string,
+  ): Promise<OpenedDirectConversation> {
+    const opened = await this.conversations.openDirectConversation(
+      openerId,
+      personId,
+    );
+    if (opened.joined)
+      this.publishMemberAdded(opened, opened.memberIds, [openerId]);
+    return opened;
+  }
+
   // Publica sem prender a resposta: a gravação já aconteceu, e a falha vai para o log, como no envio
   // de Mensagem.
   private publishMemberAdded(
@@ -79,9 +95,20 @@ export class MembershipsService {
     addedIds: string[],
   ): void {
     this.publisher
-      .memberAdded(memberIds, toConversationResponse(summary), addedIds)
+      .memberAdded(
+        memberIds,
+        // Só a Conversa direta muda de quem recebe para quem recebe; a do Canal é montada uma vez.
+        summary.conversation.kind === 'direct'
+          ? (personId) => toConversationResponse(summary, personId)
+          : constant(toConversationResponse(summary, '')),
+        addedIds,
+      )
       .catch((error: unknown) =>
         this.logger.error('Falha ao publicar a participação gravada', error),
       );
   }
+}
+
+function constant<T>(value: T): () => T {
+  return () => value;
 }

@@ -3,7 +3,25 @@ import type { Conversation } from "@/app/services/chat-api";
 import { applyMemberAdded } from "./conversation-list";
 
 function channel(name: string, memberCount = 2): Conversation {
-  return { id: `id-${name}`, kind: "public_channel", name, topic: null, memberCount };
+  return {
+    id: `id-${name}`,
+    kind: "public_channel",
+    name,
+    topic: null,
+    memberCount,
+    counterpart: null,
+  };
+}
+
+function direct(counterpartName: string): Conversation {
+  return {
+    id: `dm-${counterpartName}`,
+    kind: "direct",
+    name: "",
+    topic: null,
+    memberCount: 1,
+    counterpart: { id: `p-${counterpartName}`, name: counterpartName, username: "x", initials: "X" },
+  };
 }
 
 describe("applyMemberAdded", () => {
@@ -33,5 +51,21 @@ describe("applyMemberAdded", () => {
     const result = applyMemberAdded(list, channel("segredo"), ["outra"], "eu");
 
     expect(result.map((item) => item.name)).toEqual(["abelha", "zebra"]);
+  });
+});
+
+describe("ordem com Conversas diretas", () => {
+  it("ordena os Canais antes das Conversas diretas", () => {
+    const result = applyMemberAdded([direct("Bruno")], channel("zebra"), ["eu"], "eu");
+
+    expect(result.map((item) => item.id)).toEqual(["id-zebra", "dm-Bruno"]);
+  });
+
+  it("insere a Conversa direta pela ordem do counterpart", () => {
+    const list = [channel("abelha"), direct("Ana"), direct("Zeca")];
+
+    const result = applyMemberAdded(list, direct("Érica"), ["eu"], "eu");
+
+    expect(result.map((item) => item.id)).toEqual(["id-abelha", "dm-Ana", "dm-Érica", "dm-Zeca"]);
   });
 });

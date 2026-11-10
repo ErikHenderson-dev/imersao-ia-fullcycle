@@ -42,11 +42,28 @@ export interface NewChannel {
   clientId: string;
 }
 
+// Uma das duas Pessoas de uma Conversa direta, como a Conversa a mostra a quem é Membro.
+export interface DirectPerson {
+  id: string;
+  name: string;
+  username: string;
+}
+
 // Uma Conversa com a quantidade de Membros: o que a Conversa do REST e o evento do tempo real levam
-// (spec da F04, "Rotas" e "Tempo real").
+// (spec da F04, "Rotas" e "Tempo real"). Na Conversa direta, também as duas Pessoas do par, das
+// quais sai a outra Pessoa de quem recebe (spec da F05, "Conversa direta").
 export interface ConversationSummary {
   conversation: Conversation;
   memberCount: number;
+  directPeople?: DirectPerson[];
+}
+
+export interface OpenedDirectConversation extends ConversationSummary {
+  // Verdadeiro quando a Conversa do par foi criada agora.
+  created: boolean;
+  // Verdadeiro quando quem abriu virou Membro agora: só aí a abertura vira evento.
+  joined: boolean;
+  memberIds: string[];
 }
 
 export interface CreatedChannel extends ConversationSummary {
@@ -73,23 +90,111 @@ export class ConversationsService {
     return this.txHost.tx.getRepository(Conversation);
   }
 
-  // Conversas de que a Pessoa é Membro, em ordem alfabética do nome ("name-order.ts").
-  async listForMember(personId: string): Promise<Conversation[]> {
-    const conversations = await this.memberConversations(personId).getMany();
-    return conversations.sort((a, b) => compareNames(a.name, b.name));
+  // Conversas de que a Pessoa é Membro: os Canais em ordem alfabética do nome e depois as Conversas
+  // diretas, pela ordem do nome da outra Pessoa ("name-order.ts"; spec da F05, "Lista de Conversas").
+  async listSummariesForMember(
+    personId: string,
+  ): Promise<ConversationSummary[]> {
+    const summaries = await this.withMemberCounts(
+      await this.memberConversations(personId).getMany(),
+    );
+    const sortName = (summary: ConversationSummary) =>
+      summary.conversation.kind === 'direct'
+        ? (counterpartOf(summary, personId)?.name ?? null)
+        : summary.conversation.name;
+    return summaries.sort(
+      (a, b) =>
+        Number(a.conversation.kind === 'direct') -
+          Number(b.conversation.kind === 'direct') ||
+        compareNames(sortName(a), sortName(b)),
+    );
   }
 
-  // As Conversas com a quantidade de Membros de cada uma, na mesma ordem.
+  // As Conversas com a quantidade de Membros de cada uma, na mesma ordem, e, nas Conversas diretas,
+  // as duas Pessoas do par, lidas numa consulta só.
   async withMemberCounts(
     conversations: Conversation[],
   ): Promise<ConversationSummary[]> {
-    const counts = await this.countMembers(
-      conversations.map((conversation) => conversation.id),
-    );
+    const [counts, directPeople] = await Promise.all([
+      this.countMembers(conversations.map((conversation) => conversation.id)),
+      this.directPeopleOf(conversations),
+    ]);
     return conversations.map((conversation) => ({
       conversation,
       memberCount: counts.get(conversation.id) ?? 0,
+      directPeople: directPeople.get(conversation.id),
     }));
+  }
+
+  // As duas Pessoas de cada Conversa direta, numa consulta só. Uma Pessoa que sumiu no meio fica de
+  // fora, e a Conversa fica sem a outra Pessoa, em vez de quebrar a lista.
+  private async directPeopleOf(
+    conversations: Conversation[],
+  ): Promise<Map<string, DirectPerson[]>> {
+    const directs = conversations.filter(
+      (conversation) => conversation.kind === 'direct',
+    );
+    const ids = directs.flatMap((conversation) => [
+      conversation.directPersonLowId!,
+      conversation.directPersonHighId!,
+    ]);
+    const people = new Map(
+      (await this.people.findByIds([...new Set(ids)])).map((person) => [
+        person.id,
+        { id: person.id, name: person.name, username: person.username },
+      ]),
+    );
+    return new Map(
+      directs.map((conversation) => [
+        conversation.id,
+        [conversation.directPersonLowId!, conversation.directPersonHighId!]
+          .map((id) => people.get(id))
+          .filter((person): person is DirectPerson => person !== undefined),
+      ]),
+    );
+  }
+
+  // Abre a Conversa direta com a Pessoa (spec da F05, "Conversa direta", "Abrir"): grava a Conversa
+  // do par, se ela ainda não existe, e a participação de quem abriu. A outra Pessoa só vira Membro
+  // na primeira Mensagem, ou ao abrir ela mesma (ADR 0025).
+  @Transactional()
+  async openDirectConversation(
+    openerId: string,
+    personId: string,
+  ): Promise<OpenedDirectConversation> {
+    const person = isUUID(personId)
+      ? await this.people.findById(personId)
+      : null;
+    if (!person) throw new PersonNotFoundError(null);
+    // Os ids como o banco os guarda: um id em maiúsculas inverteria a ordem do par.
+    const [low, high] = [openerId, person.id].sort();
+    // Abrir pelas duas pontas ao mesmo tempo: a única parcial do par decide, e quem perdeu lê a do
+    // outro.
+    const inserted = await this.txHost.tx.query<{ id: string }[]>(
+      `INSERT INTO conversations (id, kind, direct_person_low_id, direct_person_high_id)
+       VALUES ($1, 'direct', $2, $3)
+       ON CONFLICT (direct_person_low_id, direct_person_high_id) WHERE kind = 'direct' DO NOTHING
+       RETURNING id`,
+      [randomUUIDv7(), low, high],
+    );
+    const conversation = await this.conversations.findOneByOrFail({
+      kind: 'direct',
+      directPersonLowId: low,
+      directPersonHighId: high,
+    });
+    const joined =
+      (await this.insertMembers([[conversation.id, openerId]])).length > 0;
+    const memberIds = await this.listMemberIds(conversation.id);
+    return {
+      conversation,
+      memberCount: memberIds.length,
+      directPeople: (await this.directPeopleOf([conversation])).get(
+        conversation.id,
+      ),
+      created: inserted.length > 0,
+      joined,
+      memberIds,
+    };
   }
 
   // Quantidade de Membros de cada Conversa pedida, numa consulta agrupada. A Conversa sem Membros
@@ -393,4 +498,14 @@ export class ConversationsService {
         { personId },
       );
   }
+}
+
+// A outra Pessoa de uma Conversa direta para quem a vê; a própria, na Conversa consigo mesma.
+export function counterpartOf(
+  summary: ConversationSummary,
+  viewerId: string,
+): DirectPerson | null {
+  const people = summary.directPeople;
+  if (!people?.length) return null;
+  return people.find((person) => person.id !== viewerId) ?? people[0];
 }

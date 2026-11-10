@@ -18,9 +18,14 @@ export class ConversationsController {
   async list(
     @CurrentPerson() person: Person,
   ): Promise<{ conversations: ConversationResponse[] }> {
-    const conversations = await this.conversations.listForMember(person.id);
-    const summaries = await this.conversations.withMemberCounts(conversations);
-    return { conversations: summaries.map(toConversationResponse) };
+    const summaries = await this.conversations.listSummariesForMember(
+      person.id,
+    );
+    return {
+      conversations: summaries.map((summary) =>
+        toConversationResponse(summary, person.id),
+      ),
+    };
   }
 
   @Get(':id/members')
@@ -38,6 +43,6 @@ export class ConversationsController {
   ): Promise<{ conversation: ConversationResponse }> {
     const conversation = await this.conversations.getForMember(person.id, id);
     const [summary] = await this.conversations.withMemberCounts([conversation]);
-    return { conversation: toConversationResponse(summary) };
+    return { conversation: toConversationResponse(summary, person.id) };
   }
 }

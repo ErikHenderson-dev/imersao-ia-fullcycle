@@ -7,8 +7,9 @@ import { Kbd } from "@/app/components/ui/kbd";
 import { codePointLength, MESSAGE_MAX_LENGTH } from "@/app/utils/message-text";
 
 type MessageComposerProps = {
-  // Sem o nome (Conversa ainda carregando), o rótulo é só "Mensagem".
-  conversationName?: string;
+  // "Mensagem para #nome" e as variantes da Conversa direta ("conversation-title.ts"); sem ele
+  // (Conversa ainda carregando), só "Mensagem".
+  label?: string;
   // A cada mudança do texto, inclusive o esvaziamento depois do envio: o aviso de "digitando".
   onTextChange?: (text: string) => void;
 } & (
@@ -25,7 +26,7 @@ type MessageComposerProps = {
 // Caixa de mensagem (MessageComposer): Enter envia e Shift+Enter quebra a linha. Acima do limite,
 // o contador toma o lugar da dica e o envio fica bloqueado. O botão de menções entra na F06.
 export function MessageComposer({
-  conversationName,
+  label = "Mensagem",
   onTextChange,
   onSend,
   disabled,
@@ -34,7 +35,6 @@ export function MessageComposer({
   const body = text.trim();
   const overLimit = codePointLength(body) - MESSAGE_MAX_LENGTH;
   const canSend = !disabled && body !== "" && overLimit <= 0;
-  const label = conversationName ? `Mensagem para #${conversationName}` : "Mensagem";
   // O contador fica ligado à caixa: o leitor de tela o lê com ela, sem anunciar cada tecla.
   const counterId = useId();
 

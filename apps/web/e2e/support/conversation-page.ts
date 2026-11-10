@@ -5,7 +5,13 @@ import type { Locator, Page } from "@playwright/test";
 // pede as anteriores, a abertura leva a lista de volta ao fim, e o reset da conexão ainda recarrega
 // a página mais recente.
 export async function readyHistory(page: Page, channelName: string): Promise<Locator> {
-  const history = page.getByRole("region", { name: `Histórico de #${channelName}` });
+  return readyConversation(page, `#${channelName}`);
+}
+
+// O mesmo para qualquer Conversa, pelo título dela: "#nome" no Canal e o nome da outra Pessoa na
+// Conversa direta (F05).
+export async function readyConversation(page: Page, title: string): Promise<Locator> {
+  const history = page.getByRole("region", { name: `Histórico de ${title}` });
   await history.and(page.locator("[data-ready][data-synced]")).waitFor();
   return history;
 }

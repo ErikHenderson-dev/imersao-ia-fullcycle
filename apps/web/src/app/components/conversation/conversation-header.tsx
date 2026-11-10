@@ -1,18 +1,37 @@
+import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
+import { Avatar } from "@/app/components/ui/avatar";
 import { OpenNavigationButton } from "@/app/components/workspace-nav/navigation-drawer";
-import type { ConversationKind } from "@/app/services/chat-api";
+import type { Conversation } from "@/app/services/chat-api";
 import { ChannelIcon } from "./channel-icon";
 
 type ConversationHeaderProps = {
-  name: string;
-  topic: string | null;
-  kind: ConversationKind;
+  conversation: Pick<Conversation, "kind" | "name" | "topic" | "counterpart">;
   // O botão de Membros, que a página põe quando tem a Conversa inteira.
   members?: React.ReactNode;
 };
 
 // Cabeçalho da Conversa (ConversationHeader): h-header; o Tópico some abaixo de 640 px, e o botão
-// da gaveta (Menu) só aparece abaixo de 768 px.
-export function ConversationHeader({ name, topic, kind, members }: ConversationHeaderProps) {
+// da gaveta (Menu) só aparece abaixo de 768 px. Na Conversa direta, o avatar e o nome da outra
+// Pessoa, que abrem o Perfil dela, sem Tópico nem Membros ("Conversa / Estrutura / Conversa
+// direta").
+export function ConversationHeader({ conversation, members }: ConversationHeaderProps) {
+  const { name, topic, kind, counterpart } = conversation;
+  if (kind === "direct" && counterpart) {
+    return (
+      <header className="flex h-header shrink-0 items-center gap-2 border-b border-border bg-surface pr-5 pl-2 md:pl-5">
+        <OpenNavigationButton />
+        <h1 className="min-w-0 text-title font-black text-fg">
+          <OpenProfileButton
+            personId={counterpart.id}
+            className="flex min-w-0 items-center gap-2 hover:underline"
+          >
+            <Avatar initials={counterpart.initials} seed={counterpart.id} size="sm" />
+            <span className="truncate">{counterpart.name}</span>
+          </OpenProfileButton>
+        </h1>
+      </header>
+    );
+  }
   return (
     <header className="flex h-header shrink-0 items-center gap-2 border-b border-border bg-surface pr-5 pl-2 md:pl-5">
       <OpenNavigationButton />

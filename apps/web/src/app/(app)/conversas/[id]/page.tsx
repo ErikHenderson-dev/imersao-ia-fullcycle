@@ -17,6 +17,7 @@ import {
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { readTimeZone } from "@/app/services/time-zone-cookie";
+import { composerLabel } from "@/app/utils/conversation-title";
 import { expiredSessionPath } from "@/app/utils/return-path";
 
 // Uma Conversa: o cabeçalho sai assim que a Conversa é lida, e o histórico (a Pessoa e a página
@@ -47,21 +48,28 @@ export default async function ConversationPage({ params }: PageProps<"/conversas
   }
 
   const { conversation } = conversationResult;
+  // A Pessoa da Sessão já foi pedida junto com a Conversa: com ela, a caixa de mensagem da Conversa
+  // consigo mesma diz "você" desde o carregamento.
+  const personResult = await person;
+  const selfId = personResult.kind === "ok" ? personResult.person.id : null;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <RememberConversation conversationId={conversation.id} />
       <ConversationHeader
-        name={conversation.name}
-        topic={conversation.topic}
-        kind={conversation.kind}
+        conversation={conversation}
         members={
-          // O botão espera a Pessoa da Sessão sem segurar o cabeçalho.
-          <Suspense fallback={null}>
-            <HeaderMembers conversation={conversation} person={person} />
-          </Suspense>
+          // O botão espera a Pessoa da Sessão sem segurar o cabeçalho. A Conversa direta não tem.
+          conversation.kind !== "direct" && (
+            <Suspense fallback={null}>
+              <HeaderMembers conversation={conversation} person={person} />
+            </Suspense>
+          )
         }
       />
-      <Suspense key={conversation.id} fallback={<HistoryLoading conversationName={conversation.name} />}>
+      <Suspense
+        key={conversation.id}
+        fallback={<HistoryLoading composerLabel={composerLabel(conversation, selfId)} />}
+      >
         <ConversationHistory conversation={conversation} history={history} path={path} />
       </Suspense>
     </div>
@@ -94,7 +102,8 @@ async function ConversationHistory({ conversation, history, path }: Conversation
   }
   if (pageResult.kind === "not_found") notFound();
   if (personResult.kind !== "ok" || pageResult.kind !== "ok") {
-    return <HistoryError conversationName={conversation.name} />;
+    const selfId = personResult.kind === "ok" ? personResult.person.id : null;
+    return <HistoryError composerLabel={composerLabel(conversation, selfId)} />;
   }
 
   const { id: authorId, name, initials } = personResult.person;

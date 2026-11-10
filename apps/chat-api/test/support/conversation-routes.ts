@@ -42,6 +42,20 @@ export const conversationRoutes = {
       });
   },
 
+  // Pelo REST, como a web: abre a Conversa direta com a Pessoa (F05). Aceita qualquer corpo extra,
+  // para os testes da validação.
+  openDirect(
+    app: INestApplication,
+    cookie: string,
+    personId: string,
+    extra: Record<string, unknown> = {},
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .post('/v1/conversations')
+      .set('Cookie', cookie)
+      .send({ kind: 'direct', person_id: personId, ...extra });
+  },
+
   // Pelo REST: um Canal privado só de quem o cria. Devolve o id.
   async privateChannelOf(
     app: INestApplication,

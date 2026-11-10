@@ -128,4 +128,106 @@ describe('banco de testes', () => {
       await expect(insert).resolves.toBeDefined();
     });
   });
+
+  describe('conversations', () => {
+    async function twoPeople(): Promise<[string, string]> {
+      const ids: string[] = [];
+      for (let i = 0; i < 2; i += 1) {
+        const id = randomUUID();
+        await app
+          .get(DataSource)
+          .query(
+            `INSERT INTO people (id, email, name, password_hash, username) VALUES ($1, $2, 'Ana', 'hash', $3)`,
+            [
+              id,
+              uniqueEmail(),
+              `u${randomUUID().replaceAll('-', '').slice(0, 20)}`,
+            ],
+          );
+        ids.push(id);
+      }
+      return ids.sort() as [string, string];
+    }
+
+    function insertConversation(values: {
+      kind: string;
+      name?: string | null;
+      topic?: string | null;
+      low?: string | null;
+      high?: string | null;
+    }) {
+      return app.get(DataSource).query(
+        `INSERT INTO conversations (id, kind, name, topic, direct_person_low_id, direct_person_high_id)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          randomUUID(),
+          values.kind,
+          values.name ?? null,
+          values.topic ?? null,
+          values.low ?? null,
+          values.high ?? null,
+        ],
+      );
+    }
+
+    it.each([
+      [
+        'a Conversa direta com nome',
+        (l: string, h: string) => ({
+          kind: 'direct',
+          name: `dm-${randomUUID()}`,
+          low: l,
+          high: h,
+        }),
+      ],
+      [
+        'a Conversa direta com Tópico',
+        (l: string, h: string) => ({
+          kind: 'direct',
+          topic: 'Tópico',
+          low: l,
+          high: h,
+        }),
+      ],
+      ['a Conversa direta sem o par', () => ({ kind: 'direct' })],
+      [
+        'o par fora de ordem',
+        (l: string, h: string) => ({ kind: 'direct', low: h, high: l }),
+      ],
+      [
+        'o Canal com o par',
+        (l: string, h: string) => ({
+          kind: 'public_channel',
+          name: `c-${randomUUID().slice(0, 8)}`,
+          low: l,
+          high: h,
+        }),
+      ],
+    ])('conversations recusa %s', async (_case, build) => {
+      const [low, high] = await twoPeople();
+
+      const insert = insertConversation(build(low, high));
+
+      await expect(insert).rejects.toThrow(
+        /conversations_(direct|kind|channel_name)_check/,
+      );
+    });
+
+    it('conversations recusa uma segunda Conversa direta do mesmo par', async () => {
+      const [low, high] = await twoPeople();
+      await insertConversation({ kind: 'direct', low, high });
+
+      const insert = insertConversation({ kind: 'direct', low, high });
+
+      await expect(insert).rejects.toThrow(/conversations_direct_pair_key/);
+    });
+
+    it('conversations aceita a Conversa direta de uma Pessoa consigo mesma', async () => {
+      const [low] = await twoPeople();
+
+      const insert = insertConversation({ kind: 'direct', low, high: low });
+
+      await expect(insert).resolves.toBeDefined();
+    });
+  });
 });
