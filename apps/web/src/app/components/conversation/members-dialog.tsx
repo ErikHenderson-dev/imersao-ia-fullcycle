@@ -21,13 +21,21 @@ async function fetchMembers(url: string): Promise<PersonSummary[]> {
 type MembersDialogProps = {
   conversation: { id: string; name: string; kind: ConversationKind };
   personId: string;
+  // Escolher uma Pessoa da lista abre o Perfil dela.
+  onPersonSelect: (personId: string) => void;
+  onCloseAutoFocus: (event: Event) => void;
 };
 
 // "Membros de #nome" ("Conversa / Sobreposições / Membros do canal"): lida ao abrir e de novo a
 // cada conversation.member_added da Conversa enquanto está aberta. No Canal privado, "Adicionar
 // pessoas" troca o conteúdo pelo passo da criação, e adicionar ou voltar mostra a lista de novo
 // (spec da F04, "Lista de Membros").
-export function MembersDialog({ conversation, personId }: MembersDialogProps) {
+export function MembersDialog({
+  conversation,
+  personId,
+  onPersonSelect,
+  onCloseAutoFocus,
+}: MembersDialogProps) {
   const [view, setView] = useState<"list" | "add">("list");
   const membersKey = `/api/conversations/${encodeURIComponent(conversation.id)}/members`;
   const { data: members, error, mutate } = useSWR(membersKey, fetchMembers, {
@@ -63,7 +71,7 @@ export function MembersDialog({ conversation, personId }: MembersDialogProps) {
   }
 
   return (
-    <DialogContent title={`Membros de #${conversation.name}`}>
+    <DialogContent title={`Membros de #${conversation.name}`} onCloseAutoFocus={onCloseAutoFocus}>
       <DialogBody>
         {!members && !error && (
           <p role="status" className="flex items-center gap-2 p-2 text-body text-fg-muted">
@@ -84,8 +92,14 @@ export function MembersDialog({ conversation, personId }: MembersDialogProps) {
         {members && (
           <ul aria-label="Membros" className="flex max-h-96 flex-col overflow-y-auto">
             {members.map((member) => (
-              <li key={member.id} className="flex items-center p-2">
-                <PersonRow person={member} isSelf={member.id === personId} />
+              <li key={member.id} className="flex">
+                <button
+                  type="button"
+                  onClick={() => onPersonSelect(member.id)}
+                  className="flex flex-1 items-center rounded-item p-2 text-left hover:bg-surface-subtle"
+                >
+                  <PersonRow person={member} isSelf={member.id === personId} />
+                </button>
               </li>
             ))}
           </ul>
