@@ -1,6 +1,6 @@
 # 01: Editar o próprio Perfil
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa abre "Editar perfil" pelo menu do avatar do Rail ou pelo botão do
 próprio perfil, troca o nome, o cargo e o telefone e salva. O diálogo mostra "Salvando", o erro
