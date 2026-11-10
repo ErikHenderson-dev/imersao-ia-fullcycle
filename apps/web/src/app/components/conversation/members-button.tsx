@@ -7,6 +7,7 @@ import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-pane
 import { Dialog, DialogTrigger } from "@/app/components/ui/dialog";
 import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
 import type { Conversation } from "@/app/services/chat-api";
+import { fetchConversationList } from "@/app/services/conversation-list";
 import { MembersDialog } from "./members-dialog";
 
 type MembersButtonProps = {
@@ -23,11 +24,13 @@ export function MembersButton({ conversation, personId }: MembersButtonProps) {
   // painel, ele volta a este botão (spec da F05, "Onde o Perfil abre").
   const profile = useOpenProfileFromOverlay();
   const trigger = useRef<HTMLButtonElement>(null);
-  // Sem fetcher: só lê o cache que a barra lateral mantém.
-  const { data: conversations } = useSWR<readonly Conversation[]>(
-    conversationsKey(personId),
-    null,
-  );
+  // Só lê o cache que a barra lateral mantém, sem buscar sozinho; com a mesma busca dela, porque o
+  // reset do tempo real revalida a chave pela busca do primeiro hook registrado nela.
+  const { data: conversations } = useSWR(conversationsKey(personId), fetchConversationList, {
+    revalidateOnMount: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
   const memberCount =
     conversations?.find((item) => item.id === conversation.id)?.memberCount ??
     conversation.memberCount;

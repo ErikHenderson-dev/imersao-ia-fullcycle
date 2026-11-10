@@ -9,6 +9,7 @@ import { RealtimeProvider } from "@/app/components/realtime/realtime-provider";
 import { AppLoading } from "@/app/components/session/app-loading";
 import { SessionError } from "@/app/components/session/session-error";
 import { TimeZoneSync } from "@/app/components/session/time-zone-sync";
+import { DocumentTitle } from "@/app/components/workspace-nav/document-title";
 import { NavigationDrawer } from "@/app/components/workspace-nav/navigation-drawer";
 import { Rail } from "@/app/components/workspace-nav/rail";
 import { Sidebar } from "@/app/components/workspace-nav/sidebar";
@@ -57,6 +58,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           <div className="relative flex min-h-0 flex-1">
             <BfcacheReload />
             <TimeZoneSync personId={result.person.id} personTimeZone={result.person.timeZone} />
+            <DocumentTitle personId={result.person.id} />
             <NavigationDrawer
               navigation={
                 <>

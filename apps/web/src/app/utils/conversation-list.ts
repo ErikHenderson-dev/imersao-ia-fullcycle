@@ -4,6 +4,11 @@ import { compareNames } from "./name-order";
 // A rota do BFF que lê a lista de Conversas.
 export const CONVERSATIONS_URL = "/api/conversations";
 
+// O endereço de uma Conversa.
+export function conversationHref(conversation: Pick<Conversation, "id">): string {
+  return `/conversas/${conversation.id}`;
+}
+
 // A chave do cache da lista de Conversas, por Pessoa: quem entra depois de outra na mesma aba, sem
 // recarregar a página, não herda a lista dela. A barra lateral, o cabeçalho da Conversa e o aviso
 // de leitura leem e mudam o mesmo cache, o global do SWR.

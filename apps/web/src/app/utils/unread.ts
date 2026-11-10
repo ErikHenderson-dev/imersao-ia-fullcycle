@@ -36,3 +36,30 @@ function rowSuffix(isDirect: boolean, isUnread: boolean, count: number): string 
 function spoken(count: number): string {
   return count > COUNT_DISPLAY_LIMIT ? `mais de ${COUNT_DISPLAY_LIMIT}` : String(count);
 }
+
+// O nome do produto no título da aba e no metadata das páginas.
+export const APP_TITLE = "Full Cycle Chat";
+
+// O título da aba (spec da F07, "Título da aba e rail"): a soma dos contadores visíveis da barra
+// lateral, sem a Conversa aberta com a aba em foco, entre parênteses, com "99+" acima de 99; sem
+// contador, só o nome do produto.
+export function unreadTitle(
+  conversations: readonly Conversation[],
+  isOpenAndFocused: (conversation: Conversation) => boolean,
+): string {
+  const total = conversations.reduce(
+    (sum, conversation) => sum + unreadDisplay(conversation, isOpenAndFocused(conversation)).count,
+    0,
+  );
+  return total > 0 ? `(${formatCount(total)}) ${APP_TITLE}` : APP_TITLE;
+}
+
+// O marcador do Início: há ao menos uma Conversa Não lida, fora a aberta com a aba em foco.
+export function hasVisibleUnread(
+  conversations: readonly Conversation[],
+  isOpenAndFocused: (conversation: Conversation) => boolean,
+): boolean {
+  return conversations.some(
+    (conversation) => unreadDisplay(conversation, isOpenAndFocused(conversation)).isUnread,
+  );
+}

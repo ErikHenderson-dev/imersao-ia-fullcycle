@@ -70,3 +70,12 @@ A Última leitura é gravada direto no banco (`setLastRead`), e a volta do foco 
 **File:** `e2e/acessibilidade/divisor-sem-violacoes.spec.ts`
 
 4. **a Conversa com o divisor de novas Mensagens não tem violações de acessibilidade.**
+
+### 5. Título da aba e marcador no rail (F07-T05)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/nao-lidas/titulo-e-rail.spec.ts`
+
+1. **o título e o marcador do Início avisam e somem ao ler:** com a Pessoa num Canal vazio, uma
+   Menção em outro Canal muda o título para "(1) Full Cycle Chat", o nome do Início para "Início,
+   há mensagens não lidas" e mostra o marcador; abrir o Canal volta o título a "Full Cycle Chat" e
+   tira o marcador.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lato } from "next/font/google";
 import { TooltipProvider } from "@/app/components/ui/tooltip";
+import { APP_TITLE } from "@/app/utils/unread";
 import "./globals.css";
 
 const lato = Lato({
@@ -11,7 +12,7 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: "Full Cycle Chat",
+  title: APP_TITLE,
   description: "Chat de equipe com agentes de IA",
 };
 

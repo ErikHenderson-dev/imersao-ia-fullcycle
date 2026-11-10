@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Conversation } from "@/app/services/chat-api";
-import { formatCount, unreadDisplay } from "./unread";
+import { formatCount, hasVisibleUnread, unreadDisplay, unreadTitle } from "./unread";
 
 function channel(unreadCount: number, mentionCount: number): Conversation {
   return {
@@ -60,5 +60,26 @@ describe("unreadDisplay", () => {
     expect(unreadDisplay(channel(5, 2), true)).toEqual({ isUnread: false, count: 0, suffix: "" });
     expect(unreadDisplay(direct(3), true)).toEqual({ isUnread: false, count: 0, suffix: "" });
     expect(unreadDisplay(direct(3), false)).toMatchObject({ isUnread: true, count: 3 });
+  });
+});
+
+describe("título e marcador", () => {
+  const noneOpen = () => false;
+
+  it("o título soma os contadores visíveis", () => {
+    const list = [channel(5, 2), { ...direct(3), id: "d1" }, { ...channel(4, 0), id: "c2" }];
+
+    expect(unreadTitle(list, noneOpen)).toBe("(5) Full Cycle Chat");
+    expect(unreadTitle(list, (conversation) => conversation.id === "d1")).toBe("(2) Full Cycle Chat");
+    expect(unreadTitle([channel(0, 0)], noneOpen)).toBe("Full Cycle Chat");
+    expect(unreadTitle([channel(100, 100), { ...direct(5), id: "d1" }], noneOpen)).toBe(
+      "(99+) Full Cycle Chat",
+    );
+  });
+
+  it("o marcador acende com qualquer Conversa Não lida", () => {
+    expect(hasVisibleUnread([channel(4, 0)], noneOpen)).toBe(true);
+    expect(hasVisibleUnread([channel(4, 0)], () => true)).toBe(false);
+    expect(hasVisibleUnread([channel(0, 0)], noneOpen)).toBe(false);
   });
 });

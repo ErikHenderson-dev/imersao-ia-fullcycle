@@ -1,15 +1,15 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useTabFocus } from "@/app/hooks/use-tab-focus";
+import { useIsOpenAndFocused } from "@/app/hooks/use-is-open-and-focused";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
+import { fetchConversationList } from "@/app/services/conversation-list";
 import {
   applyMemberAdded,
   applyUnread,
-  CONVERSATIONS_URL,
+  conversationHref,
   conversationsKey,
 } from "@/app/utils/conversation-list";
 import { unreadDisplay } from "@/app/utils/unread";
@@ -20,19 +20,7 @@ import { SidebarSection } from "./sidebar-section";
 
 export { conversationsKey };
 
-function hrefOf(conversation: Conversation): string {
-  return `/conversas/${conversation.id}`;
-}
 
-
-// Um 401 aqui é só uma falha: a lista que está na tela fica, e quem leva a "Entrar" é o fim da
-// Sessão no tempo real (session.ended) ou a próxima ação da Pessoa. Sem isso, a busca do reset da
-// primeira conexão disputaria a navegação com quem acabou de sair.
-async function fetchConversations(): Promise<readonly Conversation[]> {
-  const response = await fetch(CONVERSATIONS_URL);
-  if (!response.ok) throw new Error("Não foi possível carregar as conversas.");
-  return (await response.json()) as Conversation[];
-}
 
 type ConversationListProps = {
   // A lista lida pelo Server Component, ponto de partida do cache.
@@ -45,15 +33,15 @@ type ConversationListProps = {
 // cliente"; spec da F05): o conversation.member_added muda o cache sem nova requisição, e o reset
 // do tempo real busca a lista de novo. Uma falha nessa busca mantém a lista que já está na tela.
 export function ConversationList({ initialConversations, personId }: ConversationListProps) {
-  const { data: conversations, mutate } = useSWR(conversationsKey(personId), fetchConversations, {
+  const { data: conversations, mutate } = useSWR(conversationsKey(personId), fetchConversationList, {
     fallbackData: initialConversations,
     revalidateOnMount: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
   const { subscribe } = useRealtime();
-  const pathname = usePathname();
-  const isTabFocused = useTabFocus();
+  // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
+  const isOpenAndFocused = useIsOpenAndFocused();
 
   // Uma lista nova do servidor (a revalidação do layout depois de criar um Canal) vale mais que a
   // do cache, que o fallbackData não substitui depois do primeiro mutate.
@@ -92,13 +80,10 @@ export function ConversationList({ initialConversations, personId }: Conversatio
 
   const channels = conversations.filter((conversation) => conversation.kind !== "direct");
   const directs = conversations.filter((conversation) => conversation.kind === "direct");
-  // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
-  const isOpenAndFocused = (conversation: Conversation) =>
-    isTabFocused && hrefOf(conversation) === pathname;
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}
-      href={hrefOf(conversation)}
+      href={conversationHref(conversation)}
       conversation={conversation}
       selfId={personId}
       isOpenAndFocused={isOpenAndFocused(conversation)}
