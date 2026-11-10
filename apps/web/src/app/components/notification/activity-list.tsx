@@ -65,7 +65,10 @@ export function ActivityList({
   const { subscribe } = useRealtime();
   // As Conversas que chegaram pelo evento de entrada: a primeira Mensagem de uma Conversa direta nova
   // chega logo depois dele, antes de a lista de Conversas trazer essa Conversa (ADR 0025).
+  // A ref serve o evento que chega logo depois, antes da próxima renderização; o conjunto em estado,
+  // o estado de lido do item na renderização.
   const joined = useRef(new Map<string, Conversation>());
+  const [joinedIds, setJoinedIds] = useState<ReadonlySet<string>>(() => new Set());
   const itemFor = useEffectEvent((message: Message): ActivityItem | null => {
     const conversation =
       conversations.find((entry) => entry.id === message.conversationId) ??
@@ -78,6 +81,7 @@ export function ActivityList({
       subscribe({
         onMemberAdded: ({ conversation }) => {
           joined.current.set(conversation.id, conversation);
+          setJoinedIds((current) => new Set(current).add(conversation.id));
         },
         onMessage: (message) => {
           const item = itemFor(message);
@@ -93,12 +97,20 @@ export function ActivityList({
         onSync: (event) => {
           if (event.reset) void mutate();
         },
+        replayLastReset: true,
       }),
     [subscribe, mutate, filter],
   );
   const lastRead = new Map(conversations.map((conversation) => [conversation.id, conversation.lastReadMessageId]));
   // O fallbackData já devolve a primeira página enquanto o cache está vazio.
   const pages = data ?? [];
+  // Sem a Conversa na lista (a lista falhou), o item não acende como não lido; a Conversa direta que
+  // acabou de chegar pelo evento de entrada ainda não foi lida.
+  const isItemRead = (item: ActivityItem) => {
+    const id = item.conversation.id;
+    if (lastRead.has(id)) return isNotificationRead(item.message.id, lastRead.get(id) ?? null);
+    return !joinedIds.has(id);
+  };
   const items = pages.flatMap((page) => page.items.toReversed());
   const hasMore = pages.at(-1)?.hasMore ?? false;
   const isLoadingMore = isValidating && size > pages.length;
@@ -133,11 +145,7 @@ export function ActivityList({
           <NotificationItem
             key={item.message.id}
             item={item}
-            isRead={
-              // Sem a Conversa na lista (a lista falhou), o item não acende como não lido.
-              !lastRead.has(item.conversation.id) ||
-              isNotificationRead(item.message.id, lastRead.get(item.conversation.id) ?? null)
-            }
+            isRead={isItemRead(item)}
             time={relativeTime(item.message.createdAt, now, timeZone)}
           />
         ))}

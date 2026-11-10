@@ -34,21 +34,26 @@ export function ActivityLink({
   // Os números chegam pelo tempo real, em todas as abas (spec da F08, "Tempo real"); depois de uma
   // queda longa (`reset`), são buscados de novo. O link fica montado em todas as telas logadas.
   const { subscribe } = useRealtime();
-  useEffect(
-    () =>
-      subscribe({
-        onActivityUnread: (next) =>
-          void mutate(activityUnreadKey(personId), next, { revalidate: false }),
-        onSync: (event) => {
-          if (!event.reset) return;
-          fetchActivityUnread()
-            .then((next) => mutate(activityUnreadKey(personId), next, { revalidate: false }))
-            .catch(() => {});
-        },
-        replayLastReset: true,
-      }),
-    [subscribe, mutate, personId],
-  );
+  useEffect(() => {
+    // Cada evento conta: a busca do reset que termina depois de um evento mais novo é descartada.
+    let received = 0;
+    return subscribe({
+      onActivityUnread: (next) => {
+        received += 1;
+        void mutate(activityUnreadKey(personId), next, { revalidate: false });
+      },
+      onSync: (event) => {
+        if (!event.reset) return;
+        const before = received;
+        fetchActivityUnread()
+          .then((next) => {
+            if (received === before) void mutate(activityUnreadKey(personId), next, { revalidate: false });
+          })
+          .catch(() => {});
+      },
+      replayLastReset: true,
+    });
+  }, [subscribe, mutate, personId]);
 
   return (
     <Link
