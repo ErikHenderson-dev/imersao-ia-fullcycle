@@ -541,15 +541,23 @@ export class ConversationsService {
     { startRead }: { startRead: boolean } = { startRead: true },
   ): Promise<string[]> {
     const rows = await this.txHost.tx.query<{ person_id: string }[]>(
-      `INSERT INTO conversation_members (id, conversation_id, person_id, last_read_message_id)
-       SELECT pair.id, pair.conversation_id, pair.person_id,
-              CASE WHEN $4 THEN (
-                SELECT message.id FROM messages message
-                 WHERE message.conversation_id = pair.conversation_id
-                 ORDER BY message.id DESC
-                 LIMIT 1
-              ) END
-         FROM unnest($1::uuid[], $2::uuid[], $3::uuid[]) AS pair(id, conversation_id, person_id)
+      // A última Mensagem é lida uma vez por Conversa, e não por participação: um Canal público
+      // grava a participação do workspace inteiro de uma vez.
+      `WITH pair AS (
+         SELECT * FROM unnest($1::uuid[], $2::uuid[], $3::uuid[]) AS pair(id, conversation_id, person_id)
+       ), latest AS (
+         SELECT conversation.conversation_id,
+                CASE WHEN $4 THEN (
+                  SELECT message.id FROM messages message
+                   WHERE message.conversation_id = conversation.conversation_id
+                   ORDER BY message.id DESC
+                   LIMIT 1
+                ) END AS message_id
+           FROM (SELECT DISTINCT conversation_id FROM pair) AS conversation
+       )
+       INSERT INTO conversation_members (id, conversation_id, person_id, last_read_message_id)
+       SELECT pair.id, pair.conversation_id, pair.person_id, latest.message_id
+         FROM pair JOIN latest ON latest.conversation_id = pair.conversation_id
        ON CONFLICT (conversation_id, person_id) DO NOTHING
        RETURNING person_id`,
       [
