@@ -1,6 +1,6 @@
 # 05: Título da aba e marcador no rail
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o título da aba do navegador começa com a soma dos contadores visíveis da
 barra lateral, como "(3) Full Cycle Chat", e o ícone Início do rail ganha um marcador quando há ao
