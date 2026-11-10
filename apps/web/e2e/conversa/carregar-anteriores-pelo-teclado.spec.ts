@@ -32,12 +32,17 @@ test.describe("Histórico até a primeira Mensagem", () => {
     const caixa = page.getByRole("textbox", { name: `Mensagem para #${channel.name}` });
     await expect(caixa).toBeFocused();
 
-    // 2. A área de rolagem recebe o foco e rola pelas teclas. Antes do botão, o nome da autora da
-    // primeira Mensagem à vista, que abre o Perfil (F05).
-    await page.keyboard.press("Shift+Tab");
-    await expect(page.getByRole("button", { name: person.name, exact: true })).toBeFocused();
-    await page.keyboard.press("Shift+Tab");
+    // 2. A área de rolagem recebe o foco e rola pelas teclas. Entre a caixa e o botão ficam os
+    // nomes da autora nas Mensagens que abrem um grupo, que abrem o Perfil (F05): um por dia à vista.
     const botao = page.getByRole("button", { name: "Carregar mensagens anteriores" });
+    const nomes = page.getByRole("main").getByRole("button", { name: person.name, exact: true });
+    const paradasDeNome = await nomes.count();
+    expect(paradasDeNome).toBeGreaterThan(0);
+    for (let i = 0; i < paradasDeNome; i += 1) {
+      await page.keyboard.press("Shift+Tab");
+      await expect(nomes.nth(paradasDeNome - 1 - i)).toBeFocused();
+    }
+    await page.keyboard.press("Shift+Tab");
     await expect(botao).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     await expect(historico).toBeFocused();

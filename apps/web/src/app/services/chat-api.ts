@@ -11,14 +11,20 @@ import { messageFromEvent } from "@/app/utils/message-event";
 
 const TIMEOUT_MS = 5000;
 
-type ApiPerson = { id: string; name: string; email: string };
+type ApiPerson = {
+  id: string;
+  name: string;
+  email: string;
+  username: string;
+  time_zone: string | null;
+};
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
 // (utils/initials.ts).
-export type Person = ApiPerson & { initials: string };
+export type Person = Omit<ApiPerson, "time_zone"> & { initials: string; timeZone: string | null };
 
-function toPerson(person: ApiPerson): Person {
-  return withInitials(person);
+function toPerson({ time_zone: timeZone, ...person }: ApiPerson): Person {
+  return { ...withInitials(person), timeZone };
 }
 
 export type LoginResult =
@@ -365,6 +371,24 @@ export async function getProfile(token: string, personId: string): Promise<GetPr
   if (!body) return { kind: "failure" };
   const { time_zone: timeZone, ...person } = body.person;
   return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+}
+
+export type SaveTimeZoneResult =
+  | { kind: "ok" }
+  | { kind: "invalid" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+export async function saveTimeZone(token: string, timeZone: string): Promise<SaveTimeZoneResult> {
+  const response = await request("/v1/people/me/time-zone", {
+    method: "PUT",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ time_zone: timeZone }),
+  });
+  if (response?.status === 204) return { kind: "ok" };
+  if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 401) return { kind: "unauthenticated" };
+  return { kind: "failure" };
 }
 
 export type AddMembersResult =

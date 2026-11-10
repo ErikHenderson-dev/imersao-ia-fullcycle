@@ -159,3 +159,12 @@ export async function membersOfChannelNamed(name: string): Promise<string[]> {
   );
   return result.rows.map((row) => row.person_id);
 }
+
+// O fuso gravado na Pessoa (F05-T03), ou null.
+export async function timeZoneOf(personId: string): Promise<string | null> {
+  const result = await pool.query<{ time_zone: string | null }>(
+    "SELECT time_zone FROM people WHERE id = $1",
+    [personId],
+  );
+  return result.rows[0]?.time_zone ?? null;
+}

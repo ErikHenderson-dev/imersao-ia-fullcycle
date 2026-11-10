@@ -317,13 +317,14 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/conversations/:id/members` | existe | Adicionar ao Canal privado: spec da F04, seção "Rotas" |
 | API do chat: `GET /v1/people` | existe; busca pelo @usuário e `not_member_of` opcional `planejados` (F05) | Busca de Pessoas pelo nome, fora dos Membros de uma Conversa: spec da F04, seções "Busca de Pessoas" e "Rotas"; a mudança: spec da F05, seções "Busca e Perfil" e "Rotas" |
 | API do chat: `GET /v1/people/:id` | existe | Perfil de uma Pessoa: spec da F05, seções "Busca e Perfil" e "Rotas" |
-| API do chat: `PUT /v1/people/me/time-zone` | planejada | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
+| API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
 | API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created` e `conversation.member_added` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`, `planejada`: spec da F05, seção "Tempo real" |
 | BFF: `GET /api/conversations/:id/messages` | existe | Páginas anteriores do histórico, lidas pelo cliente: "Cliente", "Leituras e tempo real" |
 | BFF: `GET /api/conversations`, `GET /api/conversations/:id/members` e `GET /api/people` | existe | Leituras do cliente: a lista de Conversas no `reset`, os Membros e a busca de Pessoas (spec da F04, seção "BFF") |
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
 | BFF: `GET /api/people/:id` | existe | Perfil: spec da F05, seção "BFF" |
-| BFF: Server Actions `openDirectConversation` e `saveTimeZone` | planejada | Abrir Conversa direta e gravar o fuso: spec da F05, seção "BFF" |
+| BFF: Server Action `saveTimeZone` | existe | Gravar o fuso: spec da F05, seção "BFF" |
+| BFF: Server Action `openDirectConversation` | planejada | Abrir Conversa direta: spec da F05, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
 
 ## 6. Estados e regras
@@ -465,9 +466,9 @@ Component, como `fallbackData` do cache; as anteriores vêm do cliente pela rota
   canal visitado naquele navegador.
 - **Fuso:** o fuso IANA do navegador. O servidor formata horas e datas com ele e, sem o cookie, usa
   o `fuso padrão`. Se o fuso gravado difere do navegador, o cliente regrava o cookie e renderiza a
-  rota de novo. É também o fuso de quem pediu que o BFF leva ao agente (HLD 6.3).
-  Alteração `planejada` (F05): o cliente também grava o fuso na Pessoa quando ele difere do da
-  Sessão, para a hora local do Perfil (spec da F05, seção "Cliente", "Fuso").
+  rota de novo. É também o fuso de quem pediu que o BFF leva ao agente (HLD 6.3). O cliente
+  também grava o fuso na Pessoa quando ele difere do da Sessão, uma vez por carga, para a hora
+  local do Perfil (spec da F05, seção "Cliente", "Fuso").
 
 **Sessão no cliente.**
 

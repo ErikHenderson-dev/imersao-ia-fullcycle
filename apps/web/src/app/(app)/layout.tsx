@@ -55,7 +55,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
           <ConnectionBanner />
           <div className="relative flex min-h-0 flex-1">
             <BfcacheReload />
-            <TimeZoneSync />
+            <TimeZoneSync personId={result.person.id} personTimeZone={result.person.timeZone} />
             <NavigationDrawer
               navigation={
                 <>

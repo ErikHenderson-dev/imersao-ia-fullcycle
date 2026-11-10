@@ -1,17 +1,24 @@
 "use client";
 
-import { Mail, MessageSquare, Phone, X } from "lucide-react";
-import { useEffect } from "react";
+import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
 import type { Profile } from "@/app/services/chat-api";
+import { localTimeLabel, msUntilNextMinute } from "@/app/utils/local-time";
+import { isValidTimeZone } from "@/app/utils/time-zone";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
 
 class ProfileNotFoundError extends Error {}
+
+// A chave do Perfil no SWR, também usada por quem muda o Perfil e precisa que ele seja lido de novo.
+export function profileKey(personId: string): string {
+  return `/api/people/${encodeURIComponent(personId)}`;
+}
 
 async function fetchProfile(url: string): Promise<Profile> {
   const response = await fetch(url);
@@ -68,7 +75,7 @@ export function ProfilePanel() {
 
 function ProfileContent({ personId }: { personId: string }) {
   const { data: profile, error, isLoading, mutate } = useSWR(
-    `/api/people/${encodeURIComponent(personId)}`,
+    profileKey(personId),
     fetchProfile,
     // Lido de novo a cada abertura, e não ao voltar o foco para a janela.
     { revalidateOnFocus: false, dedupingInterval: 0 },
@@ -113,6 +120,8 @@ function ProfileContent({ personId }: { personId: string }) {
         {profile.title && <p className="text-body break-words text-fg">{profile.title}</p>}
         <p className="text-small text-fg-muted">@{profile.username}</p>
       </div>
+      {/* Um fuso que este navegador não formata some, em vez de quebrar o painel. */}
+      {isValidTimeZone(profile.timeZone) && <LocalTime timeZone={profile.timeZone} />}
       <div className="flex flex-wrap gap-2">
         {/* A Conversa direta só existe a partir da F05-T04. */}
         <Button type="button" variant="secondary" icon={MessageSquare} disabled>
@@ -146,6 +155,23 @@ function ProfileContent({ personId }: { personId: string }) {
         )}
       </section>
     </div>
+  );
+}
+
+// A hora atual no fuso da Pessoa, que muda na virada de cada minuto (Figma, "Local time").
+function LocalTime({ timeZone }: { timeZone: string }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    // Pelo relógio de agora, e não pelo do último render: depois de a máquina dormir, a hora
+    // acerta na primeira volta.
+    const timer = setTimeout(() => setNow(new Date()), msUntilNextMinute(new Date()));
+    return () => clearTimeout(timer);
+  }, [now]);
+  return (
+    <p className="flex items-center gap-2 text-body text-fg">
+      <Clock size={16} aria-hidden />
+      {localTimeLabel(timeZone, now)}
+    </p>
   );
 }
 

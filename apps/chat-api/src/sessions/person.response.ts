@@ -5,6 +5,7 @@ export interface PersonResponse {
   name: string;
   email: string;
   username: string;
+  time_zone: string | null;
 }
 
 export function toPersonResponse(person: Person): PersonResponse {
@@ -13,5 +14,6 @@ export function toPersonResponse(person: Person): PersonResponse {
     name: person.name,
     email: person.email,
     username: person.username,
+    time_zone: person.timeZone,
   };
 }
