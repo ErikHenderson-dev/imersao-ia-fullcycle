@@ -84,10 +84,13 @@ test.describe("Abrir na primeira Não lida", () => {
     await caixa.press("Enter");
     await expect(messageItem(page, canal.name, "Chegou sem foco")).toBeVisible();
 
-    // 2. O foco volta: o divisor passa para cima dela
+    // 2. O foco volta: o divisor passa para cima dela, e a rolagem não muda
+    const historico = await readyHistory(page, canal.name);
+    const rolagemAntes = await historico.evaluate((element) => element.scrollTop);
     await setTabFocus(page, true);
     await expect(messageItem(page, canal.name, "Chegou sem foco").locator("[data-unread-divider]")).toBeVisible();
     await expect(messageList(page, canal.name).locator("[data-unread-divider]")).toHaveCount(1);
+    expect(await historico.evaluate((element) => element.scrollTop)).toBe(rolagemAntes);
     await context.close();
   });
 });
