@@ -3,10 +3,9 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { LessThan, Repository } from 'typeorm';
-import { Conversation } from '../conversations/conversation.entity';
 import { ConversationsService } from '../conversations/conversations.service';
-import { PeopleService } from '../people/people.service';
 import { MembershipsService } from '../memberships/memberships.service';
+import { PeopleService } from '../people/people.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
@@ -47,7 +46,11 @@ export interface SentMessage {
   created: boolean;
   // A Pessoa que virou Membro da Conversa direta com esta Mensagem (a primeira), ou null.
   joinedId: string | null;
-  conversation: Conversation;
+}
+
+interface Barrier {
+  done: Promise<void>;
+  release: () => void;
 }
 
 @Injectable()
@@ -96,70 +99,74 @@ export class MessagesService {
     conversationId: string,
     newMessage: NewMessage,
   ): Promise<MessageView> {
-    const { message, created, joinedId, conversation } = await this.send(
-      author,
-      conversationId,
-      newMessage,
-    );
-    if (created) {
-      // A gravação no Redis e a emissão não prendem a resposta do envio.
-      this.publishInOrder(conversationId, Boolean(joinedId), async () => {
+    // A barreira desta Mensagem, se ela for a que põe a outra Pessoa na Conversa direta: montada
+    // dentro da transação (em `send`), antes do commit, e liberada depois da publicação.
+    let barrier: Barrier | null = null;
+    let sent: SentMessage;
+    try {
+      sent = await this.send(author, conversationId, newMessage, (created) => {
+        barrier = created;
+      });
+    } catch (error) {
+      (barrier as Barrier | null)?.release();
+      throw error;
+    }
+    const { message, created, joinedId } = sent;
+    const own = barrier as Barrier | null;
+    if (!created) return message;
+    // Uma Mensagem que não abre a Conversa direta espera a barreira que estiver montada nela, para
+    // a entrada da outra Pessoa chegar antes de qualquer Mensagem (spec da F05, "Tempo real",
+    // "Ordem"). Sem barreira, a publicação sai na hora, sem prender a resposta do envio.
+    const waitFor = own
+      ? Promise.resolve()
+      : this.barriers.get(conversationId)?.done;
+    void (waitFor ?? Promise.resolve())
+      .then(async () => {
         const memberIds =
           await this.conversations.listMemberIds(conversationId);
         if (joinedId) {
           // Uma falha aqui fica no log e não segura a Mensagem.
-          await this.announceJoin(conversation, memberIds, joinedId);
+          await this.memberships
+            .announceDirectJoin(conversationId, memberIds, joinedId)
+            .catch((error: unknown) =>
+              this.logger.error(
+                'Falha ao publicar a participação gravada',
+                error,
+              ),
+            );
         }
         await this.publisher.messageCreated(
           memberIds,
           toMessageResponse(message),
         );
-      });
-    }
+      })
+      .catch((error: unknown) =>
+        this.logger.error('Falha ao publicar a Mensagem gravada', error),
+      )
+      .finally(() => own?.release());
     return message;
   }
 
-  // As publicações de uma Conversa que estão esperando a entrada da outra Pessoa da Conversa direta
-  // ser publicada (spec da F05, "Tempo real", "Ordem"): uma Mensagem enviada logo depois da primeira
-  // espera, para o member_added chegar antes de qualquer Mensagem. Sem entrada pendente, a
-  // publicação sai na hora. A API roda numa instância só.
-  private readonly pendingJoins = new Map<string, Promise<void>>();
+  // As barreiras das Conversas diretas cuja outra Pessoa acabou de entrar e ainda não foi anunciada.
+  // A API roda numa instância só.
+  private readonly barriers = new Map<string, Barrier>();
 
-  private publishInOrder(
-    conversationId: string,
-    announcesJoin: boolean,
-    publish: () => Promise<void>,
-  ): void {
-    const pending = this.pendingJoins.get(conversationId);
-    const run = (pending ?? Promise.resolve())
-      .then(publish)
-      .catch((error: unknown) =>
-        this.logger.error('Falha ao publicar a Mensagem gravada', error),
-      );
-    if (!announcesJoin && !pending) return;
-    this.pendingJoins.set(conversationId, run);
-    void run.then(() => {
-      if (this.pendingJoins.get(conversationId) === run) {
-        this.pendingJoins.delete(conversationId);
-      }
+  private raiseBarrier(conversationId: string): Barrier {
+    let release!: () => void;
+    const done = new Promise<void>((resolve) => {
+      release = resolve;
     });
-  }
-
-  private async announceJoin(
-    conversation: Conversation,
-    memberIds: string[],
-    joinedId: string,
-  ): Promise<void> {
-    try {
-      const [summary] = await this.conversations.withMemberCounts([
-        conversation,
-      ]);
-      await this.memberships.announceMemberAdded(summary, memberIds, [
-        joinedId,
-      ]);
-    } catch (error) {
-      this.logger.error('Falha ao publicar a participação gravada', error);
-    }
+    const barrier: Barrier = {
+      done,
+      release: () => {
+        release();
+        if (this.barriers.get(conversationId) === barrier) {
+          this.barriers.delete(conversationId);
+        }
+      },
+    };
+    this.barriers.set(conversationId, barrier);
+    return barrier;
   }
 
   // Envio sem duplicar (LLD, "Concorrência e idempotência"): o mesmo `client_id` do mesmo autor
@@ -172,6 +179,7 @@ export class MessagesService {
     author: MessageAuthor,
     conversationId: string,
     { clientId, body }: NewMessage,
+    onBarrier: (barrier: Barrier) => void,
   ): Promise<SentMessage> {
     const conversation = await this.conversations.getForMember(
       author.id,
@@ -209,11 +217,13 @@ export class MessagesService {
     const joinedId = row
       ? await this.conversations.joinDirectCounterpart(conversation, author.id)
       : null;
+    // Antes do commit: outro envio na mesma Conversa espera esta participação no índice único e,
+    // quando passa, já encontra a barreira.
+    if (joinedId) onBarrier(this.raiseBarrier(conversationId));
     return {
       message: toView(message, author),
       created: Boolean(row),
       joinedId,
-      conversation,
     };
   }
 

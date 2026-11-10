@@ -87,6 +87,21 @@ export class MembershipsService {
     return opened;
   }
 
+  // A entrada da outra Pessoa da Conversa direta na primeira Mensagem (spec da F05, "Tempo real"):
+  // monta a Conversa pelo lado de cada Membro e publica, para o envio esperar antes da Mensagem.
+  async announceDirectJoin(
+    conversationId: string,
+    memberIds: string[],
+    joinedId: string,
+  ): Promise<void> {
+    const conversation = await this.conversations.getForMember(
+      joinedId,
+      conversationId,
+    );
+    const [summary] = await this.conversations.withMemberCounts([conversation]);
+    await this.announceMemberAdded(summary, memberIds, [joinedId]);
+  }
+
   // Publica sem prender a resposta: a gravação já aconteceu, e a falha vai para o log, como no envio
   // de Mensagem. Devolve a promessa, que nunca rejeita, para o envio de Mensagem esperar por ela
   // antes de publicar a Mensagem (spec da F05, "Tempo real", "Ordem").
