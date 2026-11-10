@@ -1,3 +1,4 @@
+import type { StatusPayload } from "chat-events";
 import { initials } from "./initials";
 
 // O que a camada guarda de cada Pessoa (spec da F09, "Cliente", "Camada de Pessoas"): o nome atual,
@@ -10,8 +11,15 @@ export type KnownPerson = {
   title?: string | null;
 };
 
-// O que um evento ou o Perfil salvo trazem; sem `title`, o cargo continua o que era.
-export type PersonChange = { id: string; name: string; username?: string; title?: string | null };
+// O que um evento ou o Perfil salvo trazem; sem `title`, o cargo continua o que era, e sem `status`,
+// o Status.
+export type PersonChange = {
+  id: string;
+  name: string;
+  username?: string;
+  title?: string | null;
+  status?: StatusPayload | null;
+};
 
 export type PeopleStore = {
   get: (personId: string) => KnownPerson | undefined;
@@ -19,6 +27,10 @@ export type PeopleStore = {
   apply: (change: PersonChange) => boolean;
   // Esquece todas as Pessoas, menos `keepId`: os payloads lidos de novo voltam a valer.
   forgetAllBut: (keepId: string) => void;
+  // O Status de uma Pessoa: o dela, nulo sem Status, ou indefinido antes do primeiro retrato.
+  getStatus: (personId: string) => StatusPayload | null | undefined;
+  // O retrato de quem tem Status (spec da F09, "Camada de Pessoas"): quem não está nele fica sem.
+  applySnapshot: (people: { id: string; status: StatusPayload | null }[]) => void;
   // Cresce a cada mudança: quem lê várias Pessoas de uma vez assina por ela.
   version: () => number;
   subscribe: (listener: () => void) => () => void;
@@ -30,8 +42,23 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
   const entries = new Map<string, KnownPerson>();
   const listeners = new Set<() => void>();
   let currentVersion = 0;
+  // O Status fica à parte: o retrato traz quem tem Status, sem o nome.
+  let statuses = new Map<string, StatusPayload | null>();
+  let hasSnapshot = false;
 
-  function put(change: PersonChange): boolean {
+  function sameStatus(a: StatusPayload | null | undefined, b: StatusPayload | null | undefined) {
+    return a === b || (!!a && !!b && a.emoji === b.emoji && a.text === b.text);
+  }
+
+  function putStatus(personId: string, status: StatusPayload | null): boolean {
+    const current = statuses.has(personId) ? statuses.get(personId) : hasSnapshot ? null : undefined;
+    if (sameStatus(current, status)) return false;
+    statuses.set(personId, status);
+    return true;
+  }
+
+  function put({ status, ...change }: PersonChange): boolean {
+    const statusChanged = status !== undefined && putStatus(change.id, status);
     const current = entries.get(change.id);
     const next: KnownPerson = {
       ...current,
@@ -44,7 +71,7 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
       current.username === next.username &&
       current.title === next.title
     ) {
-      return false;
+      return statusChanged;
     }
     entries.set(change.id, next);
     return true;
@@ -68,6 +95,15 @@ export function createPeopleStore(seed: PersonChange[] = []): PeopleStore {
       if (entries.size === (kept ? 1 : 0)) return;
       entries.clear();
       if (kept) entries.set(keepId, kept);
+      notify();
+    },
+    getStatus(personId) {
+      if (statuses.has(personId)) return statuses.get(personId);
+      return hasSnapshot ? null : undefined;
+    },
+    applySnapshot(people) {
+      statuses = new Map(people.map((person) => [person.id, person.status]));
+      hasSnapshot = true;
       notify();
     },
     version: () => currentVersion,

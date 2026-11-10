@@ -15,6 +15,7 @@ import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
 import { isTooltipEscape } from "@/app/components/ui/tooltip";
 import { useEditProfile } from "./edit-profile-dialog";
+import { UserStatusLine } from "@/app/components/people/user-status";
 
 class ProfileNotFoundError extends Error {}
 
@@ -130,6 +131,7 @@ function ProfileContent({
         {profile.title && <p className="text-body break-words text-fg">{profile.title}</p>}
         <p className="text-small text-fg-muted">@{profile.username}</p>
       </div>
+      <UserStatusLine personId={profile.id} status={profile.status} />
       {/* Um fuso que este navegador não formata some, em vez de quebrar o painel. */}
       {isValidTimeZone(profile.timeZone) && <LocalTime timeZone={profile.timeZone} />}
       <div className="flex flex-wrap items-start gap-2">

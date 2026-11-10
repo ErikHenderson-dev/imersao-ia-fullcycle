@@ -110,7 +110,7 @@ test.describe("Ver um Perfil", () => {
     // 1. A primeira leitura do Perfil falha
     await insertHistory(sharedChannel, otherPerson, 1);
     let failures = 0;
-    await page.route("**/api/people/*", async (route) => {
+    await page.route(`**/api/people/${otherPerson.id}`, async (route) => {
       if (failures++ === 0) return route.fulfill({ status: 502, json: { kind: "failure" } });
       return route.continue();
     });

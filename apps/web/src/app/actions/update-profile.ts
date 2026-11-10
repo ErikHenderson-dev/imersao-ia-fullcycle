@@ -17,6 +17,8 @@ export async function updateProfile(input: {
   name: unknown;
   title: unknown;
   phone: unknown;
+  statusEmoji: unknown;
+  statusText: unknown;
 }): Promise<UpdateProfileActionResult> {
   const parsed = parseProfileFields(input ?? {});
   if (parsed.kind === "invalid") return parsed;
@@ -24,5 +26,10 @@ export async function updateProfile(input: {
   if (!token) return { kind: "unauthenticated" };
   // O nome novo chega ao Rail e ao menu pela camada de Pessoas, sem renderizar o layout de novo
   // (spec da F09, "Cliente").
-  return updateProfileInChat(token, parsed.fields);
+  const { statusEmoji, statusText, ...fields } = parsed.fields;
+  return updateProfileInChat(token, {
+    ...fields,
+    status_emoji: statusEmoji,
+    status_text: statusText,
+  });
 }

@@ -4,6 +4,7 @@ import { CircleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
+import { UserStatus } from "@/app/components/people/user-status";
 import { buttonVariants } from "@/app/components/ui/button";
 import { cn } from "@/app/utils/cn";
 import type { Message } from "@/app/services/chat-api";
@@ -222,6 +223,7 @@ function FullRow({ message, timeZone, content }: RowProps) {
           >
             <PersonName id={message.author.id} name={message.author.name} />
           </OpenProfileButton>
+          <UserStatus personId={message.author.id} />
           <MessageTime message={message} timeZone={timeZone} />
         </p>
         {content}

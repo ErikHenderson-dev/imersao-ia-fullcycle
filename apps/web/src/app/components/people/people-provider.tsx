@@ -6,6 +6,7 @@ import { profileKey } from "@/app/components/profile/profile-panel";
 import { useProfilePanelPerson } from "@/app/components/profile/profile-panel-provider";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import { conversationsKey } from "@/app/utils/conversation-list";
+import type { Status } from "@/app/services/chat-api";
 import { createPeopleStore, type KnownPerson, type PeopleStore } from "@/app/utils/people-store";
 
 const PeopleContext = createContext<PeopleStore | null>(null);
@@ -44,15 +45,18 @@ export function PeopleProvider({
     [subscribe, store, mutate],
   );
 
-  // Volta a conectar depois de uma queda: o primeiro "connected" é a conexão que acabou de abrir,
-  // com tudo recém-lido.
+  // A cada conexão, o retrato de quem tem Status (spec da F09, "Camada de Pessoas"). Volta a
+  // conectar depois de uma queda: o primeiro "connected" é a conexão que acabou de abrir, com tudo
+  // recém-lido.
   const wasDisconnected = useRef(false);
   useEffect(() => {
     if (status === "disconnected") {
       wasDisconnected.current = true;
       return;
     }
-    if (status !== "connected" || !wasDisconnected.current) return;
+    if (status !== "connected") return;
+    void loadSnapshot(store);
+    if (!wasDisconnected.current) return;
     wasDisconnected.current = false;
     store.forgetAllBut(sessionPerson.id);
     void mutate(conversationsKey(sessionPerson.id));
@@ -60,6 +64,18 @@ export function PeopleProvider({
   }, [status, store, mutate, sessionPerson.id]);
 
   return <PeopleContext value={store}>{children}</PeopleContext>;
+}
+
+// O retrato pela rota do BFF; uma falha deixa o Status como estava, até a próxima conexão.
+async function loadSnapshot(store: PeopleStore): Promise<void> {
+  try {
+    const response = await fetch("/api/people/presence");
+    if (!response.ok) return;
+    const body = (await response.json()) as { people: { id: string; status: Status | null }[] };
+    store.applySnapshot(body.people);
+  } catch {
+    // Rede fora: a próxima conexão lê de novo.
+  }
 }
 
 export function usePeopleStore(): PeopleStore {
@@ -79,6 +95,18 @@ export function useKnownPerson(personId: string | undefined): KnownPerson | unde
     () => (personId ? store?.get(personId) : undefined),
     () => undefined,
   );
+}
+
+// O Status de uma Pessoa pela camada: o do retrato e dos eventos, ou o do payload antes do primeiro
+// retrato.
+export function useKnownStatus(personId: string, fallback?: Status | null): Status | null {
+  const store = useContext(PeopleContext);
+  const status = useSyncExternalStore(
+    store?.subscribe ?? noopSubscribe,
+    () => store?.getStatus(personId),
+    () => undefined,
+  );
+  return status === undefined ? (fallback ?? null) : status;
 }
 
 // Os nomes atuais de várias Pessoas de uma vez, como as do "digitando".

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChannelIcon } from "@/app/components/conversation/channel-icon";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
+import { UserStatus } from "@/app/components/people/user-status";
 import { CountBadge } from "@/app/components/ui/count-badge";
 import type { Conversation } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
@@ -51,6 +52,7 @@ export function SidebarRow({ href, conversation, selfId, isOpenAndFocused }: Sid
               <PersonName id={counterpart.id} name={counterpart.name} />
               {suffix}
             </span>
+            <UserStatus personId={counterpart.id} />
             {isSelfConversation(conversation, selfId) && <span className="shrink-0 opacity-70">você</span>}
           </>
         ) : (

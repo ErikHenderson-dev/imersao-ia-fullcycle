@@ -3,6 +3,8 @@ import type {
   MentionPayload,
   MessagePayload,
   QuotePayload,
+  StatusEmoji,
+  StatusPayload,
 } from "chat-events";
 import { connection } from "next/server";
 import { cache } from "react";
@@ -23,12 +25,16 @@ import { activityUnreadFromPayload, type ActivityUnreadPayload } from "@/app/uti
 
 const TIMEOUT_MS = 5000;
 
+// O Status de uma Pessoa (spec da F09, "Pessoas"): a chave do emoji e a mensagem.
+export type Status = StatusPayload;
+
 type ApiPerson = {
   id: string;
   name: string;
   email: string;
   username: string;
   time_zone: string | null;
+  status: Status | null;
 };
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
@@ -181,7 +187,11 @@ export type PersonSummary = { id: string; name: string; initials: string };
 
 // Uma Pessoa nas listas de Pessoas (busca e Membros), com o @usuário e o cargo (spec da F05,
 // "Pessoa nas listas").
-export type PersonEntry = PersonSummary & { username: string; title: string | null };
+export type PersonEntry = PersonSummary & {
+  username: string;
+  title: string | null;
+  status: Status | null;
+};
 
 type ApiPersonEntry = Omit<PersonEntry, "initials">;
 
@@ -491,6 +501,7 @@ export type Profile = {
   email: string;
   phone: string | null;
   timeZone: string | null;
+  status: Status | null;
 };
 
 type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
@@ -525,7 +536,13 @@ export type UpdateProfileResult =
 // a mensagem de cada campo é a da web.
 export async function updateProfile(
   token: string,
-  changes: { name: string; title: string | null; phone: string | null },
+  changes: {
+    name: string;
+    title: string | null;
+    phone: string | null;
+    status_emoji: StatusEmoji | null;
+    status_text: string | null;
+  },
 ): Promise<UpdateProfileResult> {
   const response = await request("/v1/people/me", {
     method: "PATCH",
@@ -537,6 +554,23 @@ export async function updateProfile(
   const body = await jsonBody<{ person: ApiProfile }>(response);
   if (!body) return { kind: "failure" };
   return { kind: "ok", profile: toProfile(body.person) };
+}
+
+export type PresenceResult =
+  | { kind: "ok"; people: { id: string; status: Status | null }[] }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// O retrato de quem tem Status (spec da F09, "Rotas").
+export async function getPresence(token: string): Promise<PresenceResult> {
+  const response = await request("/v1/people/presence", {
+    method: "GET",
+    headers: authenticated(token),
+  });
+  if (response?.status === 401) return { kind: "unauthenticated" };
+  if (response?.status !== 200) return { kind: "failure" };
+  const body = await jsonBody<{ people: { id: string; status: Status | null }[] }>(response);
+  return body ? { kind: "ok", people: body.people } : { kind: "failure" };
 }
 
 export type OpenDirectConversationResult =

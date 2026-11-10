@@ -5,6 +5,7 @@ import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
 import { useEditProfile } from "@/app/components/profile/edit-profile-dialog";
 import { useKnownPerson } from "@/app/components/people/people-provider";
+import { UserStatus } from "@/app/components/people/user-status";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
 import { Avatar } from "@/app/components/ui/avatar";
@@ -57,8 +58,9 @@ export function UserMenu({ person: sessionPerson }: UserMenuProps) {
       >
         <div className="flex items-center gap-3 px-4 pt-1 pb-2">
           <Avatar initials={person.initials} seed={person.id} />
-          <p className="min-w-0 flex-1 truncate text-body font-black text-fg">
-            {person.name}
+          <p className="flex min-w-0 flex-1 items-center gap-1 text-body font-black text-fg">
+            <span className="truncate">{person.name}</span>
+            <UserStatus personId={person.id} status={sessionPerson.status} />
           </p>
         </div>
         <DropdownMenuSeparator />

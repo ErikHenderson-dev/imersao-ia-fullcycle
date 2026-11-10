@@ -58,3 +58,40 @@ describe("camada de Pessoas", () => {
     expect(store.get("1")?.name).toBe("Ana Souza");
   });
 });
+
+describe("Status na camada de Pessoas", () => {
+  const VACATION = { emoji: "vacation" as const, text: "De férias" };
+
+  it("antes do retrato não sabe; depois, quem não está nele fica sem Status", () => {
+    const store = createPeopleStore([ANA]);
+    expect(store.getStatus("1")).toBeUndefined();
+
+    store.applySnapshot([{ id: "2", status: VACATION }]);
+
+    expect(store.getStatus("2")).toEqual(VACATION);
+    expect(store.getStatus("1")).toBeNull();
+  });
+
+  it("o retrato novo troca o anterior", () => {
+    const store = createPeopleStore();
+    store.applySnapshot([{ id: "2", status: VACATION }]);
+
+    store.applySnapshot([]);
+
+    expect(store.getStatus("2")).toBeNull();
+  });
+
+  it("o person.updated troca o Status e avisa, mesmo sem mudar o nome", () => {
+    const store = createPeopleStore([ANA]);
+    store.applySnapshot([]);
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    const changed = store.apply({ ...ANA, status: VACATION });
+
+    expect(changed).toBe(true);
+    expect(store.getStatus("1")).toEqual(VACATION);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(store.apply({ ...ANA, status: { ...VACATION } })).toBe(false);
+  });
+});

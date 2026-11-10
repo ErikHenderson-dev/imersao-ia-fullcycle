@@ -1,23 +1,34 @@
+import type { StatusEmoji } from "chat-events";
 import { codePointLength } from "./message-text";
+import { STATUS_EMOJIS } from "./status-emojis";
 
 // Espelho, na web, das regras do Perfil da API do chat (spec da F09, "BFF", "Regras
 // compartilhadas"; LLD, "Valores de regra", "Tamanho do nome", "Tamanho do cargo" e "Formato do
-// telefone"). A API continua dona da regra; esta preenche o "Erro de campo" do diálogo.
+// telefone", "Tamanho do texto do Status" e "Emojis do Status"). A API continua dona da regra; esta
+// preenche o "Erro de campo" do diálogo.
 export const NAME_MAX_LENGTH = 80;
 export const TITLE_MAX_LENGTH = 80;
 export const PHONE_MAX_LENGTH = 30;
+export const STATUS_TEXT_MAX_LENGTH = 100;
 
 const PHONE_PATTERN = new RegExp(`^[0-9 +()-]{1,${PHONE_MAX_LENGTH}}$`);
 const LINE_BREAK = /[\r\n]/;
 // O text do Postgres recusa o U+0000, e a API também (NoNullCharacter).
 const NULL_CHARACTER = String.fromCharCode(0);
 
-export type ProfileField = "name" | "title" | "phone";
+export type ProfileField = "name" | "title" | "phone" | "statusEmoji" | "statusText";
 
 export type ProfileFieldError = { field: ProfileField; message: string };
 
-// O que o diálogo grava: o nome aparado e o cargo e o telefone aparados, ou nulos quando vazios.
-export type ProfileFields = { name: string; title: string | null; phone: string | null };
+// O que o diálogo grava: o nome aparado; o cargo, o telefone e a mensagem de status aparados, ou
+// nulos quando vazios; e o emoji, que a mensagem sem emoji ganha como o `speech`, como na API.
+export type ProfileFields = {
+  name: string;
+  title: string | null;
+  phone: string | null;
+  statusEmoji: StatusEmoji | null;
+  statusText: string | null;
+};
 
 export type ProfileFieldsResult =
   | { kind: "ok"; fields: ProfileFields }
@@ -50,31 +61,49 @@ function phoneError(phone: string | null): string | null {
   return `O telefone aceita só dígitos, espaço, +, -, ( e ), até ${PHONE_MAX_LENGTH} caracteres.`;
 }
 
+function isStatusEmoji(value: unknown): value is StatusEmoji {
+  return STATUS_EMOJIS.some((item) => item.key === value);
+}
+
 // Valida o que o diálogo envia, na ordem dos campos na tela.
 export function parseProfileFields(input: {
   name: unknown;
   title: unknown;
   phone: unknown;
+  statusEmoji: unknown;
+  statusText: unknown;
 }): ProfileFieldsResult {
-  const notText = (["name", "title", "phone"] as const).filter(
+  const notText = (["name", "title", "phone", "statusText"] as const).filter(
     (field) => typeof input[field] !== "string",
   );
+  if (input.statusEmoji !== null && !isStatusEmoji(input.statusEmoji)) {
+    return { kind: "invalid", errors: [{ field: "statusEmoji", message: "Dados inválidos." }] };
+  }
   if (notText.length > 0) {
     return {
       kind: "invalid",
       errors: notText.map((field) => ({ field, message: "Dados inválidos." })),
     };
   }
+  const statusText = blankToNull(input.statusText as string);
   const fields: ProfileFields = {
     name: (input.name as string).trim(),
     title: blankToNull(input.title as string),
     phone: blankToNull(input.phone as string),
+    statusEmoji: input.statusEmoji ?? (statusText === null ? null : "speech"),
+    statusText,
   };
   const errors: ProfileFieldError[] = [];
   const checks: [ProfileField, string | null][] = [
     ["name", nameError(fields.name)],
     ["title", titleError(fields.title)],
     ["phone", phoneError(fields.phone)],
+    [
+      "statusText",
+      fields.statusText === null
+        ? null
+        : singleLineError(fields.statusText, STATUS_TEXT_MAX_LENGTH, "A mensagem de status"),
+    ],
   ];
   for (const [field, message] of checks) {
     if (message) errors.push({ field, message });
