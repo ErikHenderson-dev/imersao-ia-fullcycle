@@ -15,6 +15,11 @@ import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-p
 
 class ProfileNotFoundError extends Error {}
 
+// A chave do Perfil no SWR, também usada por quem muda o Perfil e precisa que ele seja lido de novo.
+export function profileKey(personId: string): string {
+  return `/api/people/${encodeURIComponent(personId)}`;
+}
+
 async function fetchProfile(url: string): Promise<Profile> {
   const response = await fetch(url);
   if (response.status === 401) return redirectToExpiredSession();
@@ -70,7 +75,7 @@ export function ProfilePanel() {
 
 function ProfileContent({ personId }: { personId: string }) {
   const { data: profile, error, isLoading, mutate } = useSWR(
-    `/api/people/${encodeURIComponent(personId)}`,
+    profileKey(personId),
     fetchProfile,
     // Lido de novo a cada abertura, e não ao voltar o foco para a janela.
     { revalidateOnFocus: false, dedupingInterval: 0 },
