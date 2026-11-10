@@ -5,10 +5,15 @@ import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
 import { applyMemberAdded } from "@/app/utils/conversation-list";
+import { unreadDisplay } from "@/app/utils/unread";
 import { AddChannelAction } from "./add-channel-action";
 import { NewConversationAction } from "./new-conversation-action";
 import { SidebarRow } from "./sidebar-row";
 import { SidebarSection } from "./sidebar-section";
+
+function hrefOf(conversation: Conversation): string {
+  return `/conversas/${conversation.id}`;
+}
 
 // A rota do BFF que lê a lista de novo.
 const CONVERSATIONS_URL = "/api/conversations";
@@ -57,10 +62,13 @@ export function ConversationList({ initialConversations, personId }: Conversatio
     () =>
       subscribe({
         onMemberAdded: ({ conversation, personIds }) => {
+          // Quem acabou de entrar busca a lista de novo, para trazer a Última leitura e os números
+          // da Conversa nova, que o evento não leva (spec da F07, "Rotas"). É raro.
+          const hasJoined = personIds.includes(personId);
           void mutate(
             (current) =>
               applyMemberAdded(current ?? initialConversations, conversation, personIds, personId),
-            { revalidate: false },
+            { revalidate: hasJoined },
           );
         },
         onSync: (event) => {
@@ -76,20 +84,32 @@ export function ConversationList({ initialConversations, personId }: Conversatio
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}
-      href={`/conversas/${conversation.id}`}
+      href={hrefOf(conversation)}
       conversation={conversation}
       selfId={personId}
     />
   );
+  // Recolhida, a seção mostra só as Conversas Não lidas (spec da F07, "Lista de Conversas e barra
+  // lateral").
+  const rows = (list: Conversation[], isExpanded: boolean) =>
+    list.filter((conversation) => isExpanded || unreadDisplay(conversation).isUnread).map(row);
   return (
     <>
       <SidebarSection title="Canais">
-        {channels.map(row)}
-        <AddChannelAction />
+        {(isExpanded) => (
+          <>
+            {rows(channels, isExpanded)}
+            {isExpanded && <AddChannelAction />}
+          </>
+        )}
       </SidebarSection>
       <SidebarSection title="Mensagens diretas">
-        {directs.map(row)}
-        <NewConversationAction personId={personId} />
+        {(isExpanded) => (
+          <>
+            {rows(directs, isExpanded)}
+            {isExpanded && <NewConversationAction personId={personId} />}
+          </>
+        )}
       </SidebarSection>
     </>
   );

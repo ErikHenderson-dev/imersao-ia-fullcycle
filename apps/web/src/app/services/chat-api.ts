@@ -7,7 +7,11 @@ import type {
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
-import { conversationFromPayload } from "@/app/utils/conversation-event";
+import {
+  conversationFromPayload,
+  listedConversationFromPayload,
+  type ListedConversationPayload,
+} from "@/app/utils/conversation-event";
 import { initials } from "@/app/utils/initials";
 import { messageFromEvent } from "@/app/utils/message-event";
 
@@ -156,6 +160,11 @@ export type Conversation = {
   memberCount: number;
   // Só na Conversa direta (spec da F05, "Conversa direta").
   counterpart: Counterpart | null;
+  // A Última leitura e o que a Pessoa tem de novo, só na lista de Conversas (spec da F07, "Rotas");
+  // a Conversa que chega por outro caminho entra com nula e zero.
+  lastReadMessageId: string | null;
+  unreadCount: number;
+  mentionCount: number;
 };
 
 // A Conversa da API é a mesma do evento do tempo real (pacote chat-events).
@@ -263,9 +272,9 @@ async function getJson<T>(token: string, path: string): Promise<GetResult<T>> {
 export const listConversations = cache(fetchConversations);
 
 async function fetchConversations(token: string): Promise<ConversationsResult> {
-  const result = await getJson<{ conversations: ApiConversation[] }>(token, "/v1/conversations");
+  const result = await getJson<{ conversations: ListedConversationPayload[] }>(token, "/v1/conversations");
   if (result.kind === "ok") {
-    return { kind: "ok", conversations: result.body.conversations.map(conversationFromPayload) };
+    return { kind: "ok", conversations: result.body.conversations.map(listedConversationFromPayload) };
   }
   // A lista não tem 404: só a Sessão recusada ou a falha.
   return result.kind === "unauthenticated" ? result : { kind: "failure" };

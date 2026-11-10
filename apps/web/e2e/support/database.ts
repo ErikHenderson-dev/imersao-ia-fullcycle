@@ -177,3 +177,28 @@ export async function softDeleteMessage(id: string): Promise<void> {
     [id],
   );
 }
+
+// Conversa direta entre as duas Pessoas, com as duas participações, direto no banco (F05).
+export async function insertDirect(a: TestPerson, b: TestPerson): Promise<TestChannel> {
+  const id = randomUUIDv7();
+  const [low, high] = [a.id, b.id].sort();
+  await pool.query(
+    `INSERT INTO conversations (id, kind, direct_person_low_id, direct_person_high_id)
+     VALUES ($1, 'direct', $2, $3)`,
+    [id, low, high],
+  );
+  await pool.query(
+    `INSERT INTO conversation_members (id, conversation_id, person_id)
+     VALUES ($1, $3, $4), ($2, $3, $5)`,
+    [randomUUIDv7(), randomUUIDv7(), id, a.id, b.id],
+  );
+  return { id, name: "", topic: null };
+}
+
+// A Menção da Pessoa numa Mensagem já gravada, direto no banco (F06).
+export async function insertMention(messageId: string, person: TestPerson): Promise<void> {
+  await pool.query(
+    "INSERT INTO message_mentions (id, message_id, person_id) VALUES ($1, $2, $3)",
+    [randomUUIDv7(), messageId, person.id],
+  );
+}

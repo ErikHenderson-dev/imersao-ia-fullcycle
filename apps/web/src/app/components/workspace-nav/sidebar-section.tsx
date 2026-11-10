@@ -6,7 +6,9 @@ import { cn } from "@/app/utils/cn";
 
 type SidebarSectionProps = {
   title: string;
-  children: React.ReactNode;
+  // As linhas da seção, pelo estado dela: recolhida, quem a usa mostra só o que continua visível,
+  // como as Conversas Não lidas (spec da F07, "Lista de Conversas e barra lateral").
+  children: (isExpanded: boolean) => React.ReactNode;
 };
 
 // Seção da barra lateral: o título é um botão que recolhe e expande a lista (25:20813). O estado
@@ -32,8 +34,8 @@ export function SidebarSection({ title, children }: SidebarSectionProps) {
           {title}
         </button>
       </h2>
-      <ul id={listId} hidden={!isExpanded} className="flex flex-col gap-px pt-1">
-        {children}
+      <ul id={listId} className="flex flex-col gap-px pt-1 empty:hidden">
+        {children(isExpanded)}
       </ul>
     </section>
   );

@@ -1,6 +1,6 @@
 # 01: Números na barra lateral
 
-**Status:** a fazer
+**Status:** concluída
 
 **O que construir:** ao carregar a página, a barra lateral mostra em negrito as Conversas com
 Mensagens Não lidas e o contador: o número de Menções Não lidas num Canal e o número de Não lidas
@@ -19,30 +19,30 @@ de contagem, que a 02 e a 03 reaproveitam. Ler a Conversa fica para a 02, e o te
 
 **Bloqueada por:** Nenhuma (pode começar imediatamente)
 
-- [ ] **CA1** · No Figma, antes do código: criar a Conversa direta com contador de Não lidas na
+- [x] **CA1** · No Figma, antes do código: criar a Conversa direta com contador de Não lidas na
   barra lateral e a seção recolhida com as Conversas Não lidas visíveis.
-- [ ] **CA2** · A migração acrescenta a Última leitura às participações e põe cada uma que já
+- [x] **CA2** · A migração acrescenta a Última leitura às participações e põe cada uma que já
   existe na última Mensagem da Conversa, ou nula sem Mensagens; o teste da migração prova isso.
-- [ ] **CA3** · A Última leitura inicial segue a spec: quem é adicionado a um Canal privado, a
+- [x] **CA3** · A Última leitura inicial segue a spec: quem é adicionado a um Canal privado, a
   conta nova nos Canais públicos e quem abre uma Conversa direta começam na última Mensagem que já
   existia; a outra Pessoa da Conversa direta começa nula, e a primeira Mensagem conta.
-- [ ] **CA4** · Enviar uma Mensagem avança a Última leitura do autor na mesma transação, só para
+- [x] **CA4** · Enviar uma Mensagem avança a Última leitura do autor na mesma transação, só para
   frente; o reenvio idempotente não muda nada.
-- [ ] **CA5** · `GET /v1/conversations` traz, em cada Conversa, a Última leitura e os números: as
+- [x] **CA5** · `GET /v1/conversations` traz, em cada Conversa, a Última leitura e os números: as
   Mensagens de outros posteriores à Última leitura contam; as próprias, as apagadas e as anteriores
   não; a Menção conta uma vez por Mensagem; a Menção a si mesma e a Conversa direta consigo mesma
   não contam; as duas contagens param no teto, numa consulta só para a lista inteira. A edição que
   acrescenta ou tira a Menção de uma Mensagem Não lida e a exclusão de uma Não lida mudam os
   números, sem gravação a mais.
-- [ ] **CA6** · O CountBadge entra como primitivo (`99+` acima de 99, some em zero) e a SidebarRow
+- [x] **CA6** · O CountBadge entra como primitivo (`99+` acima de 99, some em zero) e a SidebarRow
   ganha o estado Não lida: negrito com Não lidas; contador de Menções no Canal e de Não lidas na
   Conversa direta.
-- [ ] **CA7** · Cada linha anuncia ao leitor de tela o nome e o que há de novo, como no PRD, sem o
+- [x] **CA7** · Cada linha anuncia ao leitor de tela o nome e o que há de novo, como no PRD, sem o
   número visual lido duas vezes; o texto sai de uma função pura com teste.
-- [ ] **CA8** · Uma seção recolhida continua mostrando as Conversas dela com Não lidas, com o
+- [x] **CA8** · Uma seção recolhida continua mostrando as Conversas dela com Não lidas, com o
   negrito e o contador.
-- [ ] **CA9** · O Playwright prova a Menção num Canal e a Mensagem numa Conversa direta aparecendo,
+- [x] **CA9** · O Playwright prova a Menção num Canal e a Mensagem numa Conversa direta aparecendo,
   depois de recarregar, com o negrito e o contador certos na outra Pessoa, e o axe na barra lateral
   com Não lidas, sem violações.
-- [ ] **CA10** · A validação visual de "Casca / Sidebar / Com dados", da seção recolhida e da
+- [x] **CA10** · A validação visual de "Casca / Sidebar / Com dados", da seção recolhida e da
   Conversa direta com contador, nos dois temas, contra os frames, fica nesta pasta.

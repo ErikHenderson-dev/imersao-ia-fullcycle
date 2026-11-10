@@ -28,6 +28,12 @@ import { PersonNotFoundError } from '../people/person-not-found.error';
 import { lockPublicMembership } from './public-membership-lock';
 import { InvalidPeopleError } from '../people/invalid-people.error';
 import { PersonSummary, sortedSummaries } from '../people/person-summary';
+import {
+  EMPTY_UNREAD,
+  memberKey,
+  Unread,
+  UnreadCounter,
+} from './unread-counter';
 
 // Tipos de Canal que a Pessoa cria pelo produto.
 export type ChannelKind = Extract<
@@ -58,6 +64,12 @@ export interface ConversationSummary {
   directPeople?: DirectPerson[];
 }
 
+// Uma Conversa da lista de quem é Membro, com o que a Pessoa tem de novo nela (spec da F07,
+// "Rotas").
+export interface ListedConversation extends ConversationSummary {
+  unread: Unread;
+}
+
 export interface OpenedDirectConversation extends ConversationSummary {
   // Verdadeiro quando a Conversa do par foi criada agora.
   created: boolean;
@@ -84,6 +96,7 @@ export class ConversationsService {
   constructor(
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private readonly people: PeopleService,
+    private readonly unreadCounter: UnreadCounter,
   ) {}
 
   private get conversations(): Repository<Conversation> {
@@ -92,12 +105,27 @@ export class ConversationsService {
 
   // Conversas de que a Pessoa é Membro: os Canais em ordem alfabética do nome e depois as Conversas
   // diretas, pela ordem do nome da outra Pessoa ("name-order.ts"; spec da F05, "Lista de Conversas").
+  // Com as Não lidas e as Menções de cada uma (spec da F07, "Última leitura e contagem").
   async listSummariesForMember(
     personId: string,
-  ): Promise<ConversationSummary[]> {
-    const summaries = await this.withMemberCounts(
-      await this.memberConversations(personId).getMany(),
-    );
+  ): Promise<ListedConversation[]> {
+    const conversations = await this.memberConversations(personId).getMany();
+    const [counted, unread] = await Promise.all([
+      this.withMemberCounts(conversations),
+      this.unreadCounter.countFor(
+        conversations.map((conversation) => ({
+          conversationId: conversation.id,
+          personId,
+        })),
+      ),
+    ]);
+    const summaries = counted.map((summary) => ({
+      ...summary,
+      unread:
+        unread.get(
+          memberKey({ conversationId: summary.conversation.id, personId }),
+        ) ?? EMPTY_UNREAD,
+    }));
     const sortName = (summary: ConversationSummary) =>
       summary.conversation.kind === 'direct'
         ? (counterpartOf(summary, personId)?.name ?? null)
@@ -266,9 +294,11 @@ export class ConversationsService {
     const { directPersonLowId: low, directPersonHighId: high } = conversation;
     const counterpartId = low === authorId ? high! : low!;
     if (counterpartId === authorId) return null;
-    const [added] = await this.insertMembers([
-      [conversation.id, counterpartId],
-    ]);
+    // Começa sem Última leitura: a Mensagem que abriu a Conversa direta conta como Não lida.
+    const [added] = await this.insertMembers(
+      [[conversation.id, counterpartId]],
+      { startRead: false },
+    );
     return added ?? null;
   }
 
@@ -503,20 +533,59 @@ export class ConversationsService {
 
   // Grava as participações (Conversa, Pessoa); a que já existe fica como está. Os ids saem da
   // aplicação, e os pares vão como arrays: o número de parâmetros não cresce com o workspace.
-  // Devolve as Pessoas gravadas agora.
-  private async insertMembers(pairs: [string, string][]): Promise<string[]> {
+  // Devolve as Pessoas gravadas agora. Quem entra começa com a Última leitura na última Mensagem
+  // que já existia, e o histórico anterior não conta como Não lido (spec da F07, "Onde a Última
+  // leitura começa"); com `startRead` falso, começa nula.
+  private async insertMembers(
+    pairs: [string, string][],
+    { startRead }: { startRead: boolean } = { startRead: true },
+  ): Promise<string[]> {
     const rows = await this.txHost.tx.query<{ person_id: string }[]>(
-      `INSERT INTO conversation_members (id, conversation_id, person_id)
-       SELECT * FROM unnest($1::uuid[], $2::uuid[], $3::uuid[])
+      // A última Mensagem é lida uma vez por Conversa, e não por participação: um Canal público
+      // grava a participação do workspace inteiro de uma vez.
+      `WITH pair AS (
+         SELECT * FROM unnest($1::uuid[], $2::uuid[], $3::uuid[]) AS pair(id, conversation_id, person_id)
+       ), latest AS (
+         SELECT conversation.conversation_id,
+                CASE WHEN $4 THEN (
+                  SELECT message.id FROM messages message
+                   WHERE message.conversation_id = conversation.conversation_id
+                   ORDER BY message.id DESC
+                   LIMIT 1
+                ) END AS message_id
+           FROM (SELECT DISTINCT conversation_id FROM pair) AS conversation
+       )
+       INSERT INTO conversation_members (id, conversation_id, person_id, last_read_message_id)
+       SELECT pair.id, pair.conversation_id, pair.person_id, latest.message_id
+         FROM pair JOIN latest ON latest.conversation_id = pair.conversation_id
        ON CONFLICT (conversation_id, person_id) DO NOTHING
        RETURNING person_id`,
       [
         pairs.map(() => randomUUIDv7()),
         pairs.map(([conversationId]) => conversationId),
         pairs.map(([, personId]) => personId),
+        startRead,
       ],
     );
     return rows.map((row) => row.person_id);
+  }
+
+  // Avança a Última leitura da Pessoa na Conversa até a Mensagem, só para frente (LLD,
+  // "Concorrência e idempotência", "Última leitura"): uma posição igual ou anterior não grava
+  // nada. Diz se gravou.
+  async advanceLastRead(
+    conversationId: string,
+    personId: string,
+    messageId: string,
+  ): Promise<boolean> {
+    const [, affected] = await this.txHost.tx.query<[unknown, number]>(
+      `UPDATE conversation_members
+          SET last_read_message_id = $3
+        WHERE conversation_id = $1 AND person_id = $2
+          AND (last_read_message_id IS NULL OR last_read_message_id < $3)`,
+      [conversationId, personId, messageId],
+    );
+    return affected > 0;
   }
 
   private memberConversations(

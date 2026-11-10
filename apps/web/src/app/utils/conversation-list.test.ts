@@ -10,6 +10,9 @@ function channel(name: string, memberCount = 2): Conversation {
     topic: null,
     memberCount,
     counterpart: null,
+    lastReadMessageId: null,
+    unreadCount: 0,
+    mentionCount: 0,
   };
 }
 
@@ -21,6 +24,9 @@ function direct(counterpartName: string): Conversation {
     topic: null,
     memberCount: 1,
     counterpart: { id: `p-${counterpartName}`, name: counterpartName, username: "x", initials: "X" },
+    lastReadMessageId: null,
+    unreadCount: 0,
+    mentionCount: 0,
   };
 }
 

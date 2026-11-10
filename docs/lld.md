@@ -202,15 +202,17 @@ novas tentativas e idempotência").
   Conversa posteriores a ela, de outro autor e não apagadas, e as menções à Pessoa entre elas, com
   a contagem parando no "Teto da contagem de não lidas" ("Valores e configuração"). A exclusão e a
   edição que muda menção não gravam nada a mais
-  ([ADR 0026](adr/0026-nao-lidas-calculadas-da-ultima-leitura.md)), `planejada`
+  ([ADR 0026](adr/0026-nao-lidas-calculadas-da-ultima-leitura.md)). As não lidas saem do índice de
+  Mensagens por Conversa e id, e as menções, do índice de menções por Pessoa e Mensagem, existe
   ([spec da F07](funcionalidades/07-nao-lidas-e-mencoes/spec.md), seção "Última leitura e
   contagem").
 - **Última leitura:** o id da última Mensagem lida, na participação; só avança. A atualização é
   condicional: grava só se a gravada for nula ou anterior à nova; uma posição igual ou anterior,
   vinda de uma aba atrasada, não muda nada nem publica evento. Enviar uma Mensagem avança a do
   autor na mesma transação, e a posição inicial de quem vira Membro é a última Mensagem que já
-  existia, menos a da outra Pessoa da Conversa direta, que começa nula. Os números saem para as
-  abas calculados na hora de publicar, numa fila por Conversa na API, `planejada` (spec da F07,
+  existia, menos a da outra Pessoa da Conversa direta, que começa nula; isso existe. A leitura
+  pedida pelo cliente e os números para as abas, calculados na hora de publicar numa fila por
+  Conversa na API, são `planejada` (spec da F07,
   seções "Última leitura e contagem" e "Tempo real").
 
 ### Transações
@@ -290,7 +292,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Conversas diretas | existe: tipo de Conversa (ADR 0024), com o par de Pessoas único (`conversations`) e a outra Pessoa Membro na primeira Mensagem (ADR 0025) (spec da F05, seção "Conversa direta") |
 | Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: autor pessoa, texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor bot e marca a detalhar |
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
-| Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | `planejada`: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
+| Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
 | Chat | Notificações | a detalhar |
 | Chat | Tarefas | a detalhar |
 | Chat | Pedidos aos agentes e ações de bot | a detalhar |
@@ -331,7 +333,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `DELETE /v1/sessions/current` | existe | Sair: mesma seção |
 | BFF: Server Actions entrar e sair | existe | Gravam e apagam o cookie: "Conceitos transversais de implementação", seção "Segurança" |
 | BFF: `GET /api/session/expired` | existe | Apaga o cookie de uma Sessão que a API recusa e leva a "Entrar": "Cliente", seção "Sessão no cliente" |
-| API do chat: `GET /v1/conversations` | existe | As Conversas de que a Pessoa é Membro: spec da F02, seção "Rotas"; com a Última leitura e os números, `planejada`: spec da F07, seção "Rotas" |
+| API do chat: `GET /v1/conversations` | existe | As Conversas de que a Pessoa é Membro: spec da F02, seção "Rotas"; com a Última leitura e os números: spec da F07, seção "Rotas" |
 | API do chat: `PUT /v1/conversations/:id/read` | `planejada` | Avançar a Última leitura ("Concorrência e idempotência"): spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id` | existe | Uma Conversa, pela conferência de participação ("Segurança"): spec da F02, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id/messages` | existe | Página do histórico: spec da F02, seção "Rotas" |
@@ -475,7 +477,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/entrar` | Público | Sessão, quando há cookie | Entrar com e-mail e senha | existe |
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
 | `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); abrir na primeira não lida, com o divisor, e informar a leitura `planejada` (spec da F07, seção "Cliente"); o resto a detalhar |
-| Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, no título da aba e no rail `planejada` (spec da F07, seção "Cliente") |
+| Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida (spec da F07, seção "Cliente"); a Conversa aberta em foco, o título da aba e o rail `planejada` |
 | A definir | Sessão | Atividade: Menções, DMs, Tarefas | Abrir a mensagem; concluir e reabrir tarefa | a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"); editar a detalhar |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
