@@ -55,7 +55,7 @@ export class MembershipsService {
     const { summary, addedIds, memberIds } =
       await this.conversations.addMembers(personId, conversationId, personIds);
     if (addedIds.length > 0) {
-      this.publishMemberAdded(summary, memberIds, addedIds);
+      void this.announceMemberAdded(summary, memberIds, addedIds);
     }
     return { addedIds, memberCount: summary.memberCount };
   }
@@ -68,7 +68,7 @@ export class MembershipsService {
   ): Promise<ConversationSummary> {
     const { created, memberIds, ...summary } =
       await this.conversations.createChannel(creatorId, newChannel);
-    if (created) this.publishMemberAdded(summary, memberIds, memberIds);
+    if (created) void this.announceMemberAdded(summary, memberIds, memberIds);
     return summary;
   }
 
@@ -83,18 +83,34 @@ export class MembershipsService {
       personId,
     );
     if (opened.joined)
-      this.publishMemberAdded(opened, opened.memberIds, [openerId]);
+      void this.announceMemberAdded(opened, opened.memberIds, [openerId]);
     return opened;
   }
 
+  // A entrada da outra Pessoa da Conversa direta na primeira Mensagem (spec da F05, "Tempo real"):
+  // monta a Conversa pelo lado de cada Membro e publica, para o envio esperar antes da Mensagem.
+  async announceDirectJoin(
+    conversationId: string,
+    memberIds: string[],
+    joinedId: string,
+  ): Promise<void> {
+    const conversation = await this.conversations.getForMember(
+      joinedId,
+      conversationId,
+    );
+    const [summary] = await this.conversations.withMemberCounts([conversation]);
+    await this.announceMemberAdded(summary, memberIds, [joinedId]);
+  }
+
   // Publica sem prender a resposta: a gravação já aconteceu, e a falha vai para o log, como no envio
-  // de Mensagem.
-  private publishMemberAdded(
+  // de Mensagem. Devolve a promessa, que nunca rejeita, para o envio de Mensagem esperar por ela
+  // antes de publicar a Mensagem (spec da F05, "Tempo real", "Ordem").
+  announceMemberAdded(
     summary: ConversationSummary,
     memberIds: string[],
     addedIds: string[],
-  ): void {
-    this.publisher
+  ): Promise<void> {
+    return this.publisher
       .memberAdded(
         memberIds,
         // Só a Conversa direta muda de quem recebe para quem recebe; a do Canal é montada uma vez.

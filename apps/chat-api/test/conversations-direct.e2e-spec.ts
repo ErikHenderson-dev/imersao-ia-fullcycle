@@ -306,10 +306,96 @@ describe('Conversa direta', () => {
       request(server)
         .get(`/v1/conversations/${id}/members`)
         .set('Cookie', other.cookie),
+      conversationRoutes.sendMessage(app, other.cookie, id),
     ]);
 
     expect(responses.map((response) => response.status)).toEqual([
-      404, 404, 404,
+      404, 404, 404, 404,
     ]);
+  });
+
+  describe('primeira Mensagem', () => {
+    async function opened() {
+      const opener = await authRoutes.loggedIn(app, { name: 'Ana Souza' });
+      const other = await authRoutes.loggedIn(app);
+      const response = await conversationRoutes.openDirect(
+        app,
+        opener.cookie,
+        other.person.id,
+      );
+      return { opener, other, id: conversationOf(response).id };
+    }
+
+    it('a primeira Mensagem torna a outra Pessoa Membro', async () => {
+      const { opener, other, id } = await opened();
+
+      const response = await conversationRoutes.sendMessage(
+        app,
+        opener.cookie,
+        id,
+      );
+
+      expect(response.status).toBe(201);
+      expect((await memberIds(id)).sort()).toEqual(
+        [opener.person.id, other.person.id].sort(),
+      );
+    });
+
+    it('o reenvio não grava nada a mais', async () => {
+      const { opener, id } = await opened();
+      const clientId = randomUUID();
+      await conversationRoutes.sendMessage(app, opener.cookie, id, {
+        clientId,
+      });
+
+      const response = await conversationRoutes.sendMessage(
+        app,
+        opener.cookie,
+        id,
+        { clientId },
+      );
+
+      expect(response.status).toBe(201);
+      expect(await memberIds(id)).toHaveLength(2);
+      const [{ count }] = await app
+        .get(DataSource)
+        .query<{ count: string }[]>(
+          'SELECT count(*) FROM messages WHERE conversation_id = $1',
+          [id],
+        );
+      expect(Number(count)).toBe(1);
+    });
+
+    it('na Conversa consigo mesma, a Mensagem não grava participação', async () => {
+      const person = await authRoutes.loggedIn(app);
+      const response = await conversationRoutes.openDirect(
+        app,
+        person.cookie,
+        person.person.id,
+      );
+      const { id } = conversationOf(response);
+
+      const sent = await conversationRoutes.sendMessage(app, person.cookie, id);
+
+      expect(sent.status).toBe(201);
+      expect(await memberIds(id)).toEqual([person.person.id]);
+    });
+
+    it('depois da primeira Mensagem, a Conversa entra na lista da outra Pessoa', async () => {
+      const { opener, other, id } = await opened();
+      await conversationRoutes.sendMessage(app, opener.cookie, id).expect(201);
+
+      const response = await request(server)
+        .get('/v1/conversations')
+        .set('Cookie', other.cookie);
+
+      const listed = (
+        response.body as { conversations: ConversationBody[] }
+      ).conversations.find((conversation) => conversation.id === id);
+      expect(listed?.counterpart).toMatchObject({
+        id: opener.person.id,
+        name: 'Ana Souza',
+      });
+    });
   });
 });
