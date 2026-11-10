@@ -23,14 +23,18 @@ export function isTooltipEscape(event: KeyboardEvent): boolean {
 type TooltipProps = {
   label: string;
   children: React.ReactElement;
+  // Controlado por quem o usa, como o UserStatus, que o abre também com o foco fora de diálogos e
+  // menus; sem eles, só o hover decide.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 // Dica de um controle, ao passar o mouse. O nome acessível continua no próprio controle, e é ele que
 // o teclado e o leitor de tela recebem: a dica não abre no foco, porque aberta ela seria a camada
 // de cima do Radix e o Esc fecharia só ela, e não o diálogo ou o menu em que o controle está.
-export function Tooltip({ label, children }: TooltipProps) {
+export function Tooltip({ label, children, open, onOpenChange }: TooltipProps) {
   return (
-    <Primitive.Root>
+    <Primitive.Root open={open} onOpenChange={onOpenChange}>
       <Primitive.Trigger asChild onFocus={(event) => event.preventDefault()}>
         {children}
       </Primitive.Trigger>

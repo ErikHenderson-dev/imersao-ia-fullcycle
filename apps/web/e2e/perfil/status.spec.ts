@@ -94,6 +94,19 @@ test.describe("Status", () => {
     await expect(profilePanel(otherPage).getByText("De férias até sexta")).toBeVisible();
     await main.getByRole("img", { name: status }).first().hover();
     await expect(otherPage.getByRole("tooltip")).toHaveText("De férias até sexta");
+    await otherPage.keyboard.press("Escape");
+    await expect(otherPage.getByRole("tooltip")).toHaveCount(0);
+    // Pelo teclado: o emoji do autor é focável; o da barra lateral abre com o foco do link.
+    await authorButton(otherPage, person.name).focus();
+    await otherPage.keyboard.press("Tab");
+    await expect(main.getByRole("img", { name: status }).first()).toBeFocused();
+    await expect(otherPage.getByRole("tooltip")).toHaveText("De férias até sexta");
+    await otherPage.keyboard.press("Shift+Tab");
+    await expect(otherPage.getByRole("tooltip")).toHaveCount(0);
+    await sidebarLink(otherPage, new RegExp(person.name)).focus();
+    await otherPage.keyboard.press("Shift+Tab");
+    await otherPage.keyboard.press("Tab");
+    await expect(otherPage.getByRole("tooltip")).toHaveText("De férias até sexta");
 
     // 4. Nos Membros e no cabeçalho da Conversa direta
     await otherPage.getByRole("button", { name: "Membros: 2" }).click();
