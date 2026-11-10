@@ -106,8 +106,11 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
 
   // Uma Mensagem apagada, pela própria exclusão ou pelo tempo real: sai do cache e das gravadas
   // nesta abertura, para não voltar (spec da F06, "Eventos no cliente").
+  // As apagadas nesta abertura: a recarga do reset não as traz de volta.
+  const deleted = useRef(new Set<string>());
   const applyDeleted = useCallback(
     (messageId: string) => {
+      deleted.current.add(messageId);
       saved.current = forgetMessage(saved.current, messageId);
       void mutate((current) => removeDeleted(current ?? [initialPage], messageId), {
         revalidate: false,
@@ -142,10 +145,12 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     }
     if (request !== reloadRequest.current) return;
     // Uma edição que chegou durante a leitura é mais nova que a página lida: volta por cima dela.
-    const merged = saved.current.reduce<MessagePage[]>(
+    // Uma exclusão que chegou durante a leitura também vale.
+    const edited = saved.current.reduce<MessagePage[]>(
       (pages, message) => (message.editedAt ? replaceEdited(pages, message) : pages),
       [page],
-    )[0];
+    );
+    const merged = [...deleted.current].reduce(removeDeleted, edited)[0];
     latestPage.current = merged;
     await setSize(1);
     await mutate([merged], { revalidate: false });
