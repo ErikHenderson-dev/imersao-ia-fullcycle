@@ -2,12 +2,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { ConversationsService } from '../conversations/conversations.service';
-import {
-  EMPTY_UNREAD,
-  memberKey,
-  Unread,
-  UnreadCounter,
-} from '../conversations/unread-counter';
+import { Unread, UnreadCounter } from '../conversations/unread-counter';
 import { Message } from './message.entity';
 import { MessageNotFoundError } from './message-not-found.error';
 
@@ -41,8 +36,9 @@ export class ReadService {
       personId,
       messageId,
     );
-    const key = { conversationId: conversation.id, personId };
-    const counts = await this.unreadCounter.countFor([key]);
-    return counts.get(memberKey(key)) ?? EMPTY_UNREAD;
+    return this.unreadCounter.countOne({
+      conversationId: conversation.id,
+      personId,
+    });
   }
 }

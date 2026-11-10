@@ -12,7 +12,11 @@ export function hasUnreadToReport(
 }
 
 // Quanto esperar antes do próximo aviso: nada no primeiro, e o resto do intervalo desde o último.
-export function readReportDelay(lastSentAt: number | null, now: number, interval: number): number {
+export function readReportDelay(
+  lastSentAt: number | null,
+  now: number,
+  interval = READ_REPORT_INTERVAL_MS,
+): number {
   if (lastSentAt === null) return 0;
   return Math.max(0, lastSentAt + interval - now);
 }

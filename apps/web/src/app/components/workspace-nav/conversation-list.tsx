@@ -6,7 +6,9 @@ import { useTabFocus } from "@/app/hooks/use-tab-focus";
 import useSWR from "swr";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Conversation } from "@/app/services/chat-api";
-import { applyMemberAdded } from "@/app/utils/conversation-list";
+import { applyMemberAdded, conversationsKey } from "@/app/utils/conversation-list";
+
+export { conversationsKey };
 import { unreadDisplay } from "@/app/utils/unread";
 import { AddChannelAction } from "./add-channel-action";
 import { NewConversationAction } from "./new-conversation-action";
@@ -19,12 +21,6 @@ function hrefOf(conversation: Conversation): string {
 
 // A rota do BFF que lê a lista de novo.
 const CONVERSATIONS_URL = "/api/conversations";
-
-// A chave do cache da lista de Conversas, por Pessoa: quem entra depois de outra na mesma aba, sem
-// recarregar a página, não herda a lista dela. O cabeçalho da Conversa lê o mesmo cache.
-export function conversationsKey(personId: string): [string, string] {
-  return [CONVERSATIONS_URL, personId];
-}
 
 // Um 401 aqui é só uma falha: a lista que está na tela fica, e quem leva a "Entrar" é o fim da
 // Sessão no tempo real (session.ended) ou a próxima ação da Pessoa. Sem isso, a busca do reset da
@@ -85,13 +81,16 @@ export function ConversationList({ initialConversations, personId }: Conversatio
 
   const channels = conversations.filter((conversation) => conversation.kind !== "direct");
   const directs = conversations.filter((conversation) => conversation.kind === "direct");
+  // A Conversa aberta com a aba em foco não mostra nada de novo (spec da F07).
+  const isOpenAndFocused = (conversation: Conversation) =>
+    isTabFocused && hrefOf(conversation) === pathname;
   const row = (conversation: Conversation) => (
     <SidebarRow
       key={conversation.id}
       href={hrefOf(conversation)}
       conversation={conversation}
       selfId={personId}
-      isTabFocused={isTabFocused}
+      isOpenAndFocused={isOpenAndFocused(conversation)}
     />
   );
   // Recolhida, a seção mostra só as Conversas Não lidas (spec da F07, "Lista de Conversas e barra
@@ -100,8 +99,7 @@ export function ConversationList({ initialConversations, personId }: Conversatio
     list
       .filter(
         (conversation) =>
-          isExpanded ||
-          unreadDisplay(conversation, isTabFocused && hrefOf(conversation) === pathname).isUnread,
+          isExpanded || unreadDisplay(conversation, isOpenAndFocused(conversation)).isUnread,
       )
       .map(row);
   return (

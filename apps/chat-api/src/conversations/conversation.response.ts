@@ -4,6 +4,7 @@ import type {
   ConversationSummary,
   ListedConversation,
 } from './conversations.service';
+import type { Unread } from './unread-counter';
 
 // A Conversa do REST é a mesma do evento do tempo real (pacote chat-events), montada para quem a
 // recebe: a outra Pessoa da Conversa direta depende de quem vê (spec da F05, "Conversa direta").
@@ -25,12 +26,25 @@ export function toConversationResponse(
 }
 
 // A Conversa da lista de quem é Membro: a do evento mais a Última leitura e os números (spec da
-// F07, "Rotas"). Só a lista os traz; o evento e a Conversa sozinha não.
+// F07, "Rotas"). A lista e a Conversa sozinha os trazem; o evento não.
 export type ListedConversationResponse = ConversationResponse & {
   last_read_message_id: string | null;
   unread_count: number;
   mention_count: number;
 };
+
+export type UnreadResponse = Omit<
+  ListedConversationResponse,
+  keyof ConversationResponse
+>;
+
+export function toUnreadResponse(unread: Unread): UnreadResponse {
+  return {
+    last_read_message_id: unread.lastReadMessageId,
+    unread_count: unread.unreadCount,
+    mention_count: unread.mentionCount,
+  };
+}
 
 export function toListedConversationResponse(
   listed: ListedConversation,
@@ -38,8 +52,6 @@ export function toListedConversationResponse(
 ): ListedConversationResponse {
   return {
     ...toConversationResponse(listed, viewerId),
-    last_read_message_id: listed.unread.lastReadMessageId,
-    unread_count: listed.unread.unreadCount,
-    mention_count: listed.unread.mentionCount,
+    ...toUnreadResponse(listed.unread),
   };
 }

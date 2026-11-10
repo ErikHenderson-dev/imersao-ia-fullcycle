@@ -3,22 +3,17 @@
 import { useEffect, useEffectEvent, useRef } from "react";
 import { mutate } from "swr";
 import { markConversationRead } from "@/app/actions/mark-conversation-read";
-import { conversationsKey } from "@/app/components/workspace-nav/conversation-list";
 import type { Conversation } from "@/app/services/chat-api";
-import { applyUnread } from "@/app/utils/conversation-list";
-import {
-  hasUnreadToReport,
-  READ_REPORT_INTERVAL_MS,
-  readReportDelay,
-} from "@/app/utils/read-report";
+import { applyUnread, conversationsKey } from "@/app/utils/conversation-list";
+import { hasUnreadToReport, readReportDelay } from "@/app/utils/read-report";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useTabFocus } from "./use-tab-focus";
 
 type ReadReport = {
   conversationId: string;
   personId: string;
-  // O id da Mensagem salva mais nova da lista carregada.
-  newestSavedId: string | undefined;
+  // A Mensagem salva mais nova da lista carregada.
+  newestSaved: { id: string; authorId: string } | undefined;
   // A Última leitura que a lista de Conversas trouxe ao abrir.
   initialLastReadId: string | null;
   // O histórico em dia com o tempo real: antes disso, a lista pode não ter a Mensagem mais nova.
@@ -32,10 +27,13 @@ type ReadReport = {
 export function useReadReport({
   conversationId,
   personId,
-  newestSavedId,
+  newestSaved,
   initialLastReadId,
   isReady,
 }: ReadReport): void {
+  const newestSavedId = newestSaved?.id;
+  // A própria Mensagem já avançou a Última leitura no envio (spec da F07): não há o que informar.
+  const isOwnNewest = newestSaved?.authorId === personId;
   const isFocused = useTabFocus();
   const knownLastRead = useRef(initialLastReadId);
   const lastSentAt = useRef<number | null>(null);
@@ -43,8 +41,8 @@ export function useReadReport({
 
   const send = useEffectEvent(async () => {
     timer.current = null;
-    if (!isFocused || !hasUnreadToReport(newestSavedId, knownLastRead.current)) return;
-    const messageId = newestSavedId!;
+    const messageId = newestSavedId;
+    if (!isFocused || !messageId || !hasUnreadToReport(messageId, knownLastRead.current)) return;
     const previous = knownLastRead.current;
     lastSentAt.current = Date.now();
     knownLastRead.current = messageId;
@@ -64,11 +62,15 @@ export function useReadReport({
   });
 
   useEffect(() => {
+    if (isOwnNewest && hasUnreadToReport(newestSavedId, knownLastRead.current)) {
+      knownLastRead.current = newestSavedId!;
+      return;
+    }
     if (!isReady || !isFocused || timer.current !== null) return;
     if (!hasUnreadToReport(newestSavedId, knownLastRead.current)) return;
-    const delay = readReportDelay(lastSentAt.current, Date.now(), READ_REPORT_INTERVAL_MS);
+    const delay = readReportDelay(lastSentAt.current, Date.now());
     timer.current = window.setTimeout(() => void send(), delay);
-  }, [isReady, isFocused, newestSavedId]);
+  }, [isReady, isFocused, newestSavedId, isOwnNewest]);
 
   useEffect(
     () => () => {

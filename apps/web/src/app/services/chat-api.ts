@@ -11,6 +11,8 @@ import {
   conversationFromPayload,
   listedConversationFromPayload,
   type ListedConversationPayload,
+  unreadFromPayload,
+  type UnreadPayload,
 } from "@/app/utils/conversation-event";
 import { initials } from "@/app/utils/initials";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -284,9 +286,9 @@ export async function getConversation(
   token: string,
   id: string,
 ): Promise<ConversationResult> {
-  const result = await getJson<{ conversation: ApiConversation }>(token, conversationPath(id));
+  const result = await getJson<{ conversation: ListedConversationPayload }>(token, conversationPath(id));
   return result.kind === "ok"
-    ? { kind: "ok", conversation: conversationFromPayload(result.body.conversation) }
+    ? { kind: "ok", conversation: listedConversationFromPayload(result.body.conversation) }
     : result;
 }
 
@@ -420,20 +422,8 @@ export async function markConversationRead(
     body: JSON.stringify({ message_id: messageId }),
   });
   if (response?.status === 200) {
-    const parsed = await jsonBody<{
-      last_read_message_id: string | null;
-      unread_count: number;
-      mention_count: number;
-    }>(response);
-    if (!parsed) return { kind: "failure" };
-    return {
-      kind: "ok",
-      unread: {
-        lastReadMessageId: parsed.last_read_message_id,
-        unreadCount: parsed.unread_count,
-        mentionCount: parsed.mention_count,
-      },
-    };
+    const parsed = await jsonBody<UnreadPayload>(response);
+    return parsed ? { kind: "ok", unread: unreadFromPayload(parsed) } : { kind: "failure" };
   }
   if (response?.status === 400) return { kind: "invalid" };
   return commonFailure(response);

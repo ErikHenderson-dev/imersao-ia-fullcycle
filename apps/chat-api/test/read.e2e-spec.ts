@@ -34,11 +34,8 @@ describe('leitura da Conversa', () => {
       .send({ message_id: messageId });
   }
 
-  async function send(cookie: string, conversationId: string, body: string) {
-    const response = await conversationRoutes
-      .sendMessage(app, cookie, conversationId, { body })
-      .expect(201);
-    return (response.body as { message: { id: string } }).message.id;
+  function send(cookie: string, conversationId: string, body: string) {
+    return conversationRoutes.sentId(app, cookie, conversationId, body);
   }
 
   // Um Canal privado com a Pessoa que lê e uma autora que escreve, já com Mensagens dela.
@@ -145,6 +142,25 @@ describe('leitura da Conversa', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({ code: 'validation_failed' });
+  });
+
+  it('a Conversa sozinha traz a Última leitura e os números', async () => {
+    const { reader, channelId, ids } = await channelWithUnread(['Uma', 'Duas']);
+    await read(reader.cookie, channelId, ids[0]).expect(200);
+
+    const response = await request(server)
+      .get(`/v1/conversations/${channelId}`)
+      .set('Cookie', reader.cookie);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      conversation: {
+        id: channelId,
+        last_read_message_id: ids[0],
+        unread_count: 1,
+        mention_count: 0,
+      },
+    });
   });
 
   it('responde 401 sem Sessão', async () => {

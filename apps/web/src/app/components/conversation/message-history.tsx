@@ -47,8 +47,6 @@ type MessageHistoryProps = {
   renderedAt: string;
   // A Pessoa da Sessão, autora das Mensagens que ainda estão sendo enviadas.
   currentPerson: MessageAuthor;
-  // A Última leitura da Conversa na lista de Conversas, ao abrir (spec da F07).
-  initialLastReadId: string | null;
 };
 
 // Distância do topo em que o sentinela pede a página anterior (spec da F02, "Lista de Mensagens").
@@ -76,7 +74,6 @@ function History({
   timeZone,
   renderedAt,
   currentPerson,
-  initialLastReadId,
 }: MessageHistoryProps) {
   const {
     messages: saved,
@@ -128,8 +125,8 @@ function History({
   useReadReport({
     conversationId: conversation.id,
     personId: currentPerson.id,
-    newestSavedId: saved.at(-1)?.id,
-    initialLastReadId,
+    newestSaved: saved.at(-1) && { id: saved.at(-1)!.id, authorId: saved.at(-1)!.author.id },
+    initialLastReadId: conversation.lastReadMessageId,
     isReady: isSynced,
   });
   // As pendentes vêm sempre depois das gravadas, e passam pelo mesmo agrupamento.

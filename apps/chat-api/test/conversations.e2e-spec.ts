@@ -114,6 +114,9 @@ describe('conversas', () => {
           topic: 'Conversas do time',
           member_count: expect.any(Number) as number,
           counterpart: null,
+          last_read_message_id: null,
+          unread_count: 0,
+          mention_count: 0,
         },
       });
     });

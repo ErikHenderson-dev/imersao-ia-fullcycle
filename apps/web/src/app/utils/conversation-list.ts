@@ -1,4 +1,11 @@
-import type { Conversation } from "@/app/services/chat-api";
+import type { Conversation, Unread } from "@/app/services/chat-api";
+
+// A chave do cache da lista de Conversas, por Pessoa: quem entra depois de outra na mesma aba, sem
+// recarregar a página, não herda a lista dela. A barra lateral, o cabeçalho da Conversa e o aviso
+// de leitura leem e mudam o mesmo cache, o global do SWR.
+export function conversationsKey(personId: string): [string, string] {
+  return ["/api/conversations", personId];
+}
 import { compareNames } from "./name-order";
 
 // A ordem da lista de Conversas, a mesma da API (spec da F05, "Lista de Conversas"): os Canais
@@ -19,7 +26,7 @@ function sortName(conversation: Conversation): string {
 export function applyUnread(
   list: readonly Conversation[],
   conversationId: string,
-  unread: Pick<Conversation, "lastReadMessageId" | "unreadCount" | "mentionCount">,
+  unread: Unread,
 ): readonly Conversation[] {
   return list.map((item) => (item.id === conversationId ? { ...item, ...unread } : item));
 }
