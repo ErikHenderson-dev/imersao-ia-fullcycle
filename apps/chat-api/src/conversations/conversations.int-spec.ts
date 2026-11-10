@@ -59,6 +59,6 @@ describe('restrições das Conversas no banco', () => {
       [randomUUIDv7(), channel.id, author.id, randomUUID(), '😀'.repeat(4001)],
     );
 
-    await expect(insert).rejects.toThrow('messages_body_length_check');
+    await expect(insert).rejects.toThrow('messages_body_check');
   });
 });
