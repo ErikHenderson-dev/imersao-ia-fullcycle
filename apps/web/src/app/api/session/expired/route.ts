@@ -1,3 +1,4 @@
+import { deleteThemeCookie } from "@/app/services/theme-cookie";
 import { type NextRequest } from "next/server";
 import { getCurrentPerson } from "@/app/services/chat-api";
 import {
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
     return redirectTo(loginPathAfterFailedVerification(returnPath));
   }
   await deleteSessionCookie();
+  // Sem Sessão, sem o espelho do tema dela (spec da F09, "Cliente", "Tema").
+  await deleteThemeCookie();
   return redirectTo(loginPath(returnPath));
 }
 

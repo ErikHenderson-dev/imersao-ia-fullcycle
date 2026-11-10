@@ -18,6 +18,13 @@ export function applyTheme(theme: Theme): void {
   root.style.colorScheme = theme;
 }
 
+// Volta ao claro, o padrão sem o atributo: "Entrar" e as telas sem Sessão.
+export function clearTheme(): void {
+  const root = document.documentElement;
+  root.removeAttribute("data-theme");
+  root.style.colorScheme = "";
+}
+
 // O script bloqueante do <head>: aplica o tema do cookie antes da pintura, sem esperar a
 // hidratação. "Entrar" fica no claro.
-export const THEME_SCRIPT = `(function(){try{if(location.pathname.indexOf("/entrar")===0)return;var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=(light|dark)(?:;|$)/);var t=m?m[1]:"light";var d=document.documentElement;d.setAttribute("data-theme",t);d.style.colorScheme=t;}catch(e){}})();`;
+export const THEME_SCRIPT = `(function(){try{var p=location.pathname;if(p==="/entrar"||p.indexOf("/entrar/")===0)return;var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=(light|dark)(?:;|$)/);var t=m?m[1]:"light";var d=document.documentElement;d.setAttribute("data-theme",t);d.style.colorScheme=t;}catch(e){}})();`;

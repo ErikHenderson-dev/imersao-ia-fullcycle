@@ -11,6 +11,7 @@ import { ConnectionBanner } from "@/app/components/realtime/connection-banner";
 import { RealtimeProvider } from "@/app/components/realtime/realtime-provider";
 import { AppLoading } from "@/app/components/session/app-loading";
 import { SessionError } from "@/app/components/session/session-error";
+import { ThemeProvider } from "@/app/components/session/theme-provider";
 import { TimeZoneSync } from "@/app/components/session/time-zone-sync";
 import { DocumentTitle } from "@/app/components/workspace-nav/document-title";
 import { NavigationDrawer } from "@/app/components/workspace-nav/navigation-drawer";
@@ -55,6 +56,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <RealtimeProvider url={env.CHAT_API_PUBLIC_URL}>
+      <ThemeProvider personTheme={result.person.theme}>
       <ProfilePanelProvider>
       <PeopleProvider sessionPerson={{ id: result.person.id, name: result.person.name }}>
         <EditProfileProvider sessionPersonId={result.person.id}>
@@ -82,6 +84,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         </EditProfileProvider>
       </PeopleProvider>
       </ProfilePanelProvider>
+      </ThemeProvider>
     </RealtimeProvider>
   );
 }

@@ -28,7 +28,7 @@ export function Rail({ person }: RailProps) {
         <ActivityNav personId={person.id} />
       </Suspense>
       <div className="flex-1" />
-      <ThemeToggle personTheme={person.theme} />
+      <ThemeToggle />
       <UserMenu person={person} />
     </nav>
   );
