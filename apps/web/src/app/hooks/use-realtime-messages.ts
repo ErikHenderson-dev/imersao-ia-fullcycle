@@ -41,8 +41,12 @@ export function useRealtimeMessages(
     void reloadLatest().finally(() => setSynced(true));
   });
   const catchUp = useEffectEvent(() => {
+    const recent = recentMessages(conversationId);
     const newest = initialPage.messages.at(-1)?.id;
-    newerThan(recentMessages(conversationId), newest).forEach(receive);
+    newerThan(recent, newest).forEach(receive);
+    // As edições recebidas enquanto a Conversa não estava aberta valem também para as Mensagens da
+    // primeira página; a troca só acontece se a edição for mais nova.
+    recent.filter((message) => message.editedAt).forEach(receiveEdit);
   });
 
   useEffect(() => {

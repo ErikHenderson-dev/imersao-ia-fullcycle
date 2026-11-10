@@ -125,7 +125,7 @@ export class MessagesService {
     const waitFor = own
       ? Promise.resolve()
       : this.barriers.get(conversationId)?.done;
-    void (waitFor ?? Promise.resolve())
+    const publication = (waitFor ?? Promise.resolve())
       .then(async () => {
         const memberIds =
           await this.conversations.listMemberIds(conversationId);
@@ -149,7 +149,25 @@ export class MessagesService {
         this.logger.error('Falha ao publicar a Mensagem gravada', error),
       )
       .finally(() => own?.release());
+    // A edição e a exclusão desta Mensagem só publicam depois da criação (spec da F06, "Tempo
+    // real", "Ordem"): a fila dela nasce aqui, antes de o envio responder.
+    this.queueForMessage(message.id, () => publication);
     return message;
+  }
+
+  // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
+  // ordem em que foram gravadas, mesmo publicando depois do commit. A API roda numa instância só.
+  private readonly messageQueues = new Map<string, Promise<void>>();
+
+  private queueForMessage(messageId: string, publish: () => Promise<void>) {
+    const previous = this.messageQueues.get(messageId) ?? Promise.resolve();
+    const next = previous.then(publish);
+    this.messageQueues.set(messageId, next);
+    void next.finally(() => {
+      if (this.messageQueues.get(messageId) === next) {
+        this.messageQueues.delete(messageId);
+      }
+    });
   }
 
   // Edita a própria Mensagem (spec da F06, "Editar"): grava numa transação e, só quando o texto
@@ -170,6 +188,7 @@ export class MessagesService {
     if (changed) {
       this.publishToMembers(
         conversationId,
+        message.id,
         (memberIds) =>
           this.publisher.messageUpdated(memberIds, toMessageResponse(message)),
         'Falha ao publicar a Mensagem editada',
@@ -178,17 +197,20 @@ export class MessagesService {
     return message;
   }
 
-  // Publica um evento para os Membros da Conversa depois do commit, sem prender a resposta: a
-  // gravação já valeu, e a falha só vai para o log (LLD, "Transações").
+  // Publica um evento de uma Mensagem para os Membros da Conversa depois do commit, na fila dela e
+  // sem prender a resposta: a gravação já valeu, e a falha só vai para o log (LLD, "Transações").
   private publishToMembers(
     conversationId: string,
+    messageId: string,
     publish: (memberIds: string[]) => Promise<void>,
     failureLog: string,
   ): void {
-    void this.conversations
-      .listMemberIds(conversationId)
-      .then(publish)
-      .catch((error: unknown) => this.logger.error(failureLog, error));
+    this.queueForMessage(messageId, () =>
+      this.conversations
+        .listMemberIds(conversationId)
+        .then(publish)
+        .catch((error: unknown) => this.logger.error(failureLog, error)),
+    );
   }
 
   // A trava de linha põe a edição e a exclusão da mesma Mensagem em fila (LLD, "Concorrência e
@@ -208,7 +230,11 @@ export class MessagesService {
     const changed = message.body !== body;
     if (changed) {
       message.body = body;
-      message.editedAt = new Date();
+      // Estritamente crescente por Mensagem, mesmo com duas edições no mesmo milissegundo: a aba só
+      // aceita uma edição com edited_at mais novo (spec da F06, "Eventos no cliente").
+      message.editedAt = new Date(
+        Math.max(Date.now(), (message.editedAt?.getTime() ?? 0) + 1),
+      );
       await this.messages.update(
         { id: message.id },
         { body, editedAt: message.editedAt },
@@ -227,6 +253,13 @@ export class MessagesService {
     messageId: string,
   ): Promise<Message> {
     try {
+      await this.conversations.getForMember(personId, conversationId);
+      // Em série com a remoção de Membro, que trava a Conversa (FOR UPDATE): a participação é
+      // conferida de novo sob a trava, e quem foi removido enquanto esperava não muda nada.
+      await this.txHost.tx.query(
+        'SELECT 1 FROM conversations WHERE id = $1 FOR SHARE',
+        [conversationId],
+      );
       await this.conversations.getForMember(personId, conversationId);
     } catch (error) {
       if (error instanceof ConversationNotFoundError) {

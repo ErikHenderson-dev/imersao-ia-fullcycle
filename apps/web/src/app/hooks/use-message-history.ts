@@ -124,9 +124,14 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
       return;
     }
     if (request !== reloadRequest.current) return;
-    latestPage.current = page;
+    // Uma edição que chegou durante a leitura é mais nova que a página lida: volta por cima dela.
+    const merged = saved.current.reduce<MessagePage[]>(
+      (pages, message) => (message.editedAt ? replaceEdited(pages, message) : pages),
+      [page],
+    )[0];
+    latestPage.current = merged;
     await setSize(1);
-    await mutate([page], { revalidate: false });
+    await mutate([merged], { revalidate: false });
   }, [conversationId, mutate, setSize]);
 
   return {
