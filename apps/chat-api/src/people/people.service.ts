@@ -11,7 +11,7 @@ import type { PersonSummary } from './person-summary';
 import { PersonNotFoundError } from './person-not-found.error';
 import { canonicalTimeZone } from './time-zone';
 import { Person } from './person.entity';
-import { parsePhone, parseTitle } from './profile-values';
+import { parseName, parsePhone, parseTitle } from './profile-values';
 import { UsernameTakenError } from './username-taken.error';
 import { InvalidProfileError } from './invalid-profile.error';
 import { parseUsername, usernameBase, usernameCandidates } from './username';
@@ -28,6 +28,14 @@ export interface NewPerson {
 
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
 export type ProfileChanges = Pick<NewPerson, 'title' | 'phone'>;
+
+// O que a Pessoa troca no próprio Perfil (spec da F09, "Rotas"): um campo ausente fica como está, e
+// o nulo ou o vazio apagam o cargo e o telefone.
+export interface OwnProfileChanges {
+  name?: string;
+  title?: string | null;
+  phone?: string | null;
+}
 
 // Quantas vezes a criação tenta o próximo sufixo quando outra criação, ao mesmo tempo, toma o
 // @usuário derivado.
@@ -52,7 +60,7 @@ export class PeopleService {
     const email = normalizeEmail(newPerson.email);
     const fields = {
       email,
-      name: newPerson.name.trim(),
+      name: parseName(newPerson.name),
       title: parseTitle(newPerson.title ?? ''),
       phone: parsePhone(newPerson.phone ?? ''),
     };
@@ -160,6 +168,25 @@ export class PeopleService {
     if (Object.keys(update).length === 0) return person;
     await this.people.update({ id: person.id }, update);
     return this.people.findOneByOrFail({ id: person.id });
+  }
+
+  // Grava o próprio Perfil numa escrita só, depois de validar cada campo presente.
+  async updateOwnProfile(
+    personId: string,
+    changes: OwnProfileChanges,
+  ): Promise<Person> {
+    const update: Partial<Pick<Person, 'name' | 'title' | 'phone'>> = {};
+    if (changes.name !== undefined) update.name = parseName(changes.name);
+    if (changes.title !== undefined) {
+      update.title = parseTitle(changes.title ?? '');
+    }
+    if (changes.phone !== undefined) {
+      update.phone = parsePhone(changes.phone ?? '');
+    }
+    if (Object.keys(update).length > 0) {
+      await this.people.update({ id: personId }, update);
+    }
+    return this.people.findOneByOrFail({ id: personId });
   }
 
   // Devolve a Pessoa só quando a senha confere. O e-mail sem conta passa pelo hash
