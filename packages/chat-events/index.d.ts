@@ -18,6 +18,14 @@ export interface MessagePayload {
   created_at: string;
   /** A hora da última edição que mudou o texto, ou nulo (spec da F06, "Mensagens"). */
   edited_at: string | null;
+  /** As Pessoas mencionadas, resolvidas ao gravar (spec da F06, "Menções, ao gravar"). */
+  mentions: MentionPayload[];
+}
+
+/** Uma Pessoa mencionada numa Mensagem. */
+export interface MentionPayload {
+  id: string;
+  username: string;
 }
 
 /** Pessoa que está digitando. */

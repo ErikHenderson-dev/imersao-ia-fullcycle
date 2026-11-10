@@ -3,7 +3,7 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
-import { IsNull, LessThan, Repository } from 'typeorm';
+import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -11,6 +11,8 @@ import { PeopleService } from '../people/people.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
+import { MessageMention } from './message-mention.entity';
+import { extractMentionUsernames } from './mentions';
 import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
 import { toMessageResponse } from './message.response';
@@ -18,6 +20,12 @@ import { toMessageResponse } from './message.response';
 export interface MessageAuthor {
   id: string;
   name: string;
+}
+
+// Uma Pessoa mencionada (spec da F06, "A Mensagem no REST e nos eventos").
+export interface MentionView {
+  id: string;
+  username: string;
 }
 
 export interface MessageView {
@@ -28,6 +36,7 @@ export interface MessageView {
   body: string;
   createdAt: Date;
   editedAt: Date | null;
+  mentions: MentionView[];
 }
 
 export interface MessagePage {
@@ -78,6 +87,10 @@ export class MessagesService {
     return this.txHost.tx.getRepository(Message);
   }
 
+  private get mentions(): Repository<MessageMention> {
+    return this.txHost.tx.getRepository(MessageMention);
+  }
+
   // Uma página do histórico, em ordem cronológica: as `limit` Mensagens anteriores a `before`, ou
   // as mais recentes sem ele. Uma linha a mais diz se há Mensagens anteriores (LLD, "Interfaces").
   async listPage(
@@ -98,7 +111,7 @@ export class MessagesService {
     });
     const hasMore = newestFirst.length > limit;
     const page = newestFirst.slice(0, limit).reverse();
-    return { messages: await this.withAuthors(page), hasMore };
+    return { messages: await this.withDetails(page), hasMore };
   }
 
   // Envia a Mensagem: grava e, só quando a gravação é nova, publica o evento para os Membros, depois
@@ -320,8 +333,11 @@ export class MessagesService {
         { body, editedAt: message.editedAt },
       );
     }
+    const mentions = changed
+      ? await this.saveMentions(message, body, true)
+      : await this.mentionsOf(message.id);
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
-    return { message: toView(message, author), changed };
+    return { message: toView(message, author, mentions), changed };
   }
 
   // A Mensagem do autor, lida com trava de linha. A Conversa sem participação, ou com id
@@ -433,29 +449,116 @@ export class MessagesService {
     // Antes do commit: outro envio na mesma Conversa espera esta participação no índice único e,
     // quando passa, já encontra a barreira.
     if (joinedId) onBarrier(this.raiseBarrier(conversationId));
+    // Depois da participação da outra Pessoa da Conversa direta: ela já pode ser mencionada.
+    const mentions = row
+      ? await this.saveMentions(message, body, false)
+      : await this.mentionsOf(message.id);
     return {
-      message: toView(message, author),
+      message: toView(message, author, mentions),
       created: Boolean(row),
       joinedId,
     };
   }
 
-  // Os nomes dos autores vêm do PeopleService, numa consulta pelos ids da página.
-  private async withAuthors(messages: Message[]): Promise<MessageView[]> {
+  // As Menções da Mensagem pelo texto gravado (spec da F06, "Menções, ao gravar"): os @usuário de
+  // Membros da Conversa, numa consulta só. Na edição, grava só a diferença.
+  private async saveMentions(
+    message: Message,
+    body: string,
+    replace: boolean,
+  ): Promise<MentionView[]> {
+    const usernames = extractMentionUsernames(body);
+    const mentioned =
+      usernames.length === 0
+        ? []
+        : await this.txHost.tx.query<MentionView[]>(
+            `SELECT p.id, p.username FROM people p
+               JOIN conversation_members m
+                 ON m.person_id = p.id AND m.conversation_id = $1
+              WHERE p.username = ANY($2)`,
+            [message.conversationId, usernames],
+          );
+    const ids = mentioned.map((person) => person.id);
+    if (replace) {
+      await this.mentions.delete({
+        messageId: message.id,
+        ...(ids.length > 0 ? { personId: Not(In(ids)) } : {}),
+      });
+    }
+    if (ids.length > 0) {
+      await this.mentions
+        .createQueryBuilder()
+        .insert()
+        .values(
+          ids.map((personId) => ({
+            id: randomUUIDv7(),
+            messageId: message.id,
+            personId,
+          })),
+        )
+        .orIgnore()
+        .execute();
+    }
+    return sortMentions(mentioned);
+  }
+
+  private async mentionsOf(messageId: string): Promise<MentionView[]> {
+    return (await this.mentionsByMessage([messageId])).get(messageId) ?? [];
+  }
+
+  // As Menções de várias Mensagens, numa consulta pelos ids.
+  private async mentionsByMessage(
+    messageIds: string[],
+  ): Promise<Map<string, MentionView[]>> {
+    const byMessage = new Map<string, MentionView[]>();
+    if (messageIds.length === 0) return byMessage;
+    const rows = await this.txHost.tx.query<
+      { message_id: string; id: string; username: string }[]
+    >(
+      `SELECT mm.message_id, p.id, p.username FROM message_mentions mm
+         JOIN people p ON p.id = mm.person_id
+        WHERE mm.message_id = ANY($1)`,
+      [messageIds],
+    );
+    for (const row of rows) {
+      const list = byMessage.get(row.message_id) ?? [];
+      list.push({ id: row.id, username: row.username });
+      byMessage.set(row.message_id, list);
+    }
+    for (const [id, list] of byMessage) byMessage.set(id, sortMentions(list));
+    return byMessage;
+  }
+
+  // Os autores e as Menções de uma página, numa consulta para cada.
+  private async withDetails(messages: Message[]): Promise<MessageView[]> {
     const authorIds = [...new Set(messages.map((message) => message.authorId))];
+    const [people, mentions] = await Promise.all([
+      this.people.findByIds(authorIds),
+      this.mentionsByMessage(messages.map((message) => message.id)),
+    ]);
     const authors = new Map(
-      (await this.people.findByIds(authorIds)).map((person) => [
-        person.id,
-        { id: person.id, name: person.name },
-      ]),
+      people.map((person) => [person.id, { id: person.id, name: person.name }]),
     );
     return messages.map((message) =>
-      toView(message, authors.get(message.authorId)!),
+      toView(
+        message,
+        authors.get(message.authorId)!,
+        mentions.get(message.id) ?? [],
+      ),
     );
   }
 }
 
-function toView(message: Message, author: MessageAuthor): MessageView {
+// Em ordem de @usuário, para a resposta não depender da ordem do banco.
+function sortMentions(mentions: MentionView[]): MentionView[] {
+  return mentions.toSorted((a, b) => a.username.localeCompare(b.username));
+}
+
+function toView(
+  message: Message,
+  author: MessageAuthor,
+  mentions: MentionView[],
+): MessageView {
   return {
     id: message.id,
     conversationId: message.conversationId,
@@ -465,5 +568,6 @@ function toView(message: Message, author: MessageAuthor): MessageView {
     body: message.body ?? '',
     createdAt: message.createdAt,
     editedAt: message.editedAt ?? null,
+    mentions,
   };
 }

@@ -8,6 +8,7 @@ export interface MessageResponse {
   body: string;
   created_at: string;
   edited_at: string | null;
+  mentions: { id: string; username: string }[];
 }
 
 export function toMessageResponse(message: MessageView): MessageResponse {
@@ -19,5 +20,6 @@ export function toMessageResponse(message: MessageView): MessageResponse {
     body: message.body,
     created_at: message.createdAt.toISOString(),
     edited_at: message.editedAt?.toISOString() ?? null,
+    mentions: message.mentions,
   };
 }

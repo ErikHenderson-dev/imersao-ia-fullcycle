@@ -192,4 +192,44 @@ describe('busca de Pessoas', () => {
       ]);
     });
   });
+  describe('member_of (lista de menções, F06)', () => {
+    it('traz só os Membros da Conversa', async () => {
+      const { owner, channelId, tag } = await privateChannel();
+      const { person: member } = await authRoutes.createPerson(app, {
+        name: `Mencionável ${tag}`,
+      });
+      await authRoutes.createPerson(app, { name: `Mencionável Fora ${tag}` });
+      await conversationRoutes
+        .addMembers(app, owner.cookie, channelId, [member.id])
+        .expect(200);
+
+      const response = await search(owner.cookie, {
+        q: `mencionável`,
+        member_of: channelId,
+      });
+
+      expect(response.status).toBe(200);
+      expect(ids(response)).toEqual([member.id]);
+    });
+
+    it('responde 404 para quem não é Membro da Conversa', async () => {
+      const { channelId } = await privateChannel();
+      const outsider = await authRoutes.loggedIn(app);
+
+      const response = await search(outsider.cookie, { member_of: channelId });
+
+      expect(response.status).toBe(404);
+    });
+
+    it('responde 400 com member_of e not_member_of juntos', async () => {
+      const { owner, channelId } = await privateChannel();
+
+      const response = await search(owner.cookie, {
+        member_of: channelId,
+        not_member_of: channelId,
+      });
+
+      expect(response.status).toBe(400);
+    });
+  });
 });
