@@ -25,5 +25,7 @@ entra em nenhum dos dois. Referências:
   aberta em foco, e o rótulo acessível passa a avisar as Não lidas.
 - [x] **CA4** · O Playwright prova o título com "(1)" e o marcador no Início depois de uma Menção
   em outra Conversa, também na tela Atividade, e os dois sumindo ao ler.
+  Nota da entrega: a tela Atividade ainda não existe (F08). O marcador está no rail de todas as
+  telas logadas, e a prova na tela Atividade fica para a F08 (spec da F07, "Título da aba e rail").
 - [x] **CA5** · A validação visual do rail com o marcador, nos dois temas, contra os frames, fica
   nesta pasta.

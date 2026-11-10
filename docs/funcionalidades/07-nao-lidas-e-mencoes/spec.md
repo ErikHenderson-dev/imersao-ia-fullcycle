@@ -212,6 +212,8 @@ Todas autenticadas pelo guard da F01 e com o corpo de erro da rule de erros da A
 - O ícone Início do Rail (`rail.tsx`) ganha um ponto na cor `badge` quando há ao menos uma Conversa
   com Não lidas, fora a aberta em foco, também na tela Atividade. O rótulo acessível do Início passa
   a dizer "Início, há mensagens não lidas" nesse caso.
+  A tela Atividade chega com a F08: até lá, o marcador vale no rail de todas as telas logadas, e
+  a F08 prova que ele também aparece nela.
 
 **Componentes novos**, pelo design system ("Componentes"): o CountBadge, primitivo sem estado
 (`99+` acima de 99, some em zero, `bg-badge text-on-badge`, `rounded-pill`), e o UnreadDivider.
