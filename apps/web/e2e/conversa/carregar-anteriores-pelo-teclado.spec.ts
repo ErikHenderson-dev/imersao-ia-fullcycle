@@ -33,16 +33,18 @@ test.describe("Histórico até a primeira Mensagem", () => {
     await expect(caixa).toBeFocused();
 
     // 2. A área de rolagem recebe o foco e rola pelas teclas. Entre a caixa e o botão ficam os
-    // nomes da autora nas Mensagens que abrem um grupo, que abrem o Perfil (F05): um por dia à vista.
+    // controles de cada Mensagem: o nome da autora, que abre o Perfil (F05), e a barra de ações
+    // (F06). Toda parada no caminho é um controle de dentro da lista de Mensagens.
     const botao = page.getByRole("button", { name: "Carregar mensagens anteriores" });
-    const nomes = page.getByRole("main").getByRole("button", { name: person.name, exact: true });
-    const paradasDeNome = await nomes.count();
-    expect(paradasDeNome).toBeGreaterThan(0);
-    for (let i = 0; i < paradasDeNome; i += 1) {
+    const focoNoBotao = () => botao.evaluate((element) => element === document.activeElement);
+    for (let paradas = 0; !(await focoNoBotao()); paradas += 1) {
+      expect(paradas).toBeLessThan(200);
       await page.keyboard.press("Shift+Tab");
-      await expect(nomes.nth(paradasDeNome - 1 - i)).toBeFocused();
+      if (await focoNoBotao()) break;
+      expect(
+        await mensagens.evaluate((lista) => lista.contains(document.activeElement)),
+      ).toBe(true);
     }
-    await page.keyboard.press("Shift+Tab");
     await expect(botao).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     await expect(historico).toBeFocused();

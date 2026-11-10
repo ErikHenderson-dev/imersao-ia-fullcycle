@@ -25,12 +25,15 @@ type TooltipProps = {
   children: React.ReactElement;
 };
 
-// Dica de um controle, ao passar o mouse ou focar. O nome acessível continua no próprio controle;
-// a dica repete o rótulo para quem vê.
+// Dica de um controle, ao passar o mouse. O nome acessível continua no próprio controle, e é ele que
+// o teclado e o leitor de tela recebem: a dica não abre no foco, porque aberta ela seria a camada
+// de cima do Radix e o Esc fecharia só ela, e não o diálogo ou o menu em que o controle está.
 export function Tooltip({ label, children }: TooltipProps) {
   return (
     <Primitive.Root>
-      <Primitive.Trigger asChild>{children}</Primitive.Trigger>
+      <Primitive.Trigger asChild onFocus={(event) => event.preventDefault()}>
+        {children}
+      </Primitive.Trigger>
       {/* Sem portal: a dica fica junto do controle, dentro da landmark dele, e o posicionamento
           fixo do Radix a tira do fluxo. */}
       <Primitive.Content
