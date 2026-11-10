@@ -1,12 +1,7 @@
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
-import { UNREAD_COUNT_LIMIT } from './unread-values';
-
-// A Última leitura nula vale como antes da primeira Mensagem: o menor uuid. Uma faixa simples
-// (`id > x`), em vez de um OR com a nula, deixa o índice (conversation_id, id) ler só as Mensagens
-// depois da Última leitura.
-const NOTHING_READ = '00000000-0000-0000-0000-000000000000';
+import { NOTHING_READ, UNREAD_COUNT_LIMIT } from './unread-values';
 
 // O que uma Pessoa tem de novo numa Conversa (spec da F07, "Última leitura e contagem").
 export interface Unread {

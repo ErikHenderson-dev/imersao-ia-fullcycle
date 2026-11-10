@@ -25,5 +25,7 @@ import { UnreadPublisher } from './unread.publisher';
   ],
   controllers: [MessagesController, ReadController],
   providers: [MessagesService, ReadService, UnreadPublisher],
+  // A Atividade monta a Mensagem dos itens como o histórico (spec da F08).
+  exports: [MessagesService],
 })
 export class MessagesModule {}

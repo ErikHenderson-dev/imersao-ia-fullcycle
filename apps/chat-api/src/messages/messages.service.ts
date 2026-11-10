@@ -121,6 +121,18 @@ export class MessagesService {
     return { messages: await this.withDetails(page), hasMore };
   }
 
+  // As Mensagens vivas desses ids, montadas como no histórico (autor, Menções e Citação), sem ordem
+  // garantida; a que foi apagada ou não existe fica fora. É a Mensagem dos itens de Atividade (spec
+  // da F08, "Notificações e contagem", "Versão por Pessoa").
+  async viewsByIds(ids: string[]): Promise<MessageView[]> {
+    if (ids.length === 0) return [];
+    const found = await this.messages.findBy({
+      id: In(ids),
+      deletedAt: IsNull(),
+    });
+    return this.withDetails(found);
+  }
+
   // Envia a Mensagem: grava e, só quando a gravação é nova, publica o evento para os Membros, depois
   // da gravação (spec da F03, "Eventos por Pessoa e reconexão", "Publicação"). A Mensagem já está
   // gravada quando a publicação falha: o envio responde sucesso e a falha vai para o log, porque um

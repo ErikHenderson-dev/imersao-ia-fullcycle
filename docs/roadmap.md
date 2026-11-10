@@ -24,7 +24,7 @@ O ID vira link para a pasta da funcionalidade, em `docs/funcionalidades/`, quand
 | [F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/) | Busca de pessoas, perfil e conversa direta | Buscar uma pessoa por nome ou @usuário, ver o perfil dela e conversar com ela numa conversa direta. | F02 | concluída |
 | [F06](funcionalidades/06-acoes-na-mensagem/) | Ações na mensagem | Mencionar pessoas, responder citando uma mensagem, copiar o texto e editar ou apagar as próprias mensagens, com a mudança aparecendo para todos na hora. | F03 | concluída |
 | [F07](funcionalidades/07-nao-lidas-e-mencoes/) | Não lidas e menções | Ver, em cada canal e conversa, quantas mensagens não lidas e quantas menções há. | F06 | concluída |
-| F08 | Notificações e Atividade | Receber um alerta na tela e, se ligar, uma notificação do navegador ao ser mencionada ou receber uma DM, clicar e cair na mensagem, e rever tudo em Atividade → Menções e DMs. | F05, F06 | planejada |
+| [F08](funcionalidades/08-notificacoes-e-atividade/) | Notificações e Atividade | Receber um alerta na tela e, se ligar, uma notificação do navegador ao ser mencionada ou receber uma DM, clicar e cair na mensagem, e rever tudo em Atividade → Menções e DMs. | F05, F06 | em andamento |
 | F09 | Perfil e tema | Editar nome, cargo, telefone, status e presença, e trocar entre o tema claro e o escuro. | F05 | planejada |
 
 ### Agentes: aguardam o Serviço de agentes
@@ -91,7 +91,8 @@ flowchart LR
   classDef concluida fill:#d1fae5,stroke:#059669,color:#111827
 
   class F01,F02,F03,F04,F05,F06,F07 concluida
-  class F08,F09,F10,F11,F12,F13,F14 planejada
+  class F08 emAndamento
+  class F09,F10,F11,F12,F13,F14 planejada
 ```
 
 A seta vai da funcionalidade que precisa estar concluída para a que depende dela. A cor é o
