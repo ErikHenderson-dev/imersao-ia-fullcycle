@@ -86,7 +86,7 @@ test.describe("Painel de perfil", () => {
     await drawer.getByRole("button", { name: `Menu de ${person.name}` }).click();
 
     // 2. Escolher "Perfil"
-    await page.getByRole("menuitem", { name: "Perfil" }).click();
+    await page.getByRole("menuitem", { name: "Perfil", exact: true }).click();
 
     await expect(drawer).toHaveCount(0);
     await expect(profilePanel(page).getByText(`@${person.username}`)).toBeVisible();

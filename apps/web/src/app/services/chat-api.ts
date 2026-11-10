@@ -513,6 +513,30 @@ export async function getProfile(token: string, personId: string): Promise<GetPr
   return { kind: "ok", profile: { ...withInitials(person), timeZone } };
 }
 
+export type UpdateProfileResult =
+  | { kind: "ok"; profile: Profile }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Grava o próprio Perfil (spec da F09, "Rotas"). O 400 que escape da validação do BFF vira falha:
+// a mensagem de cada campo é a da web.
+export async function updateProfile(
+  token: string,
+  changes: { name: string; title: string | null; phone: string | null },
+): Promise<UpdateProfileResult> {
+  const response = await request("/v1/people/me", {
+    method: "PATCH",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify(changes),
+  });
+  if (response?.status === 401) return { kind: "unauthenticated" };
+  if (response?.status !== 200) return { kind: "failure" };
+  const body = await jsonBody<{ person: ApiProfile }>(response);
+  if (!body) return { kind: "failure" };
+  const { time_zone: timeZone, ...person } = body.person;
+  return { kind: "ok", profile: { ...withInitials(person), timeZone } };
+}
+
 export type OpenDirectConversationResult =
   | { kind: "ok"; conversation: Conversation }
   | { kind: "invalid" }

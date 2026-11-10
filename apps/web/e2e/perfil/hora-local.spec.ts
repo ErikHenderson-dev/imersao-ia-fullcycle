@@ -33,7 +33,7 @@ test.describe("Hora local no Perfil", () => {
 
     // 2. O próprio Perfil, pelo menu do avatar
     await page.getByRole("button", { name: `Menu de ${person.name}` }).click();
-    await page.getByRole("menuitem", { name: "Perfil" }).click();
+    await page.getByRole("menuitem", { name: "Perfil", exact: true }).click();
 
     await expect(profilePanel(page).getByText(/no horário local$/)).toHaveText(tokyoTime());
   });

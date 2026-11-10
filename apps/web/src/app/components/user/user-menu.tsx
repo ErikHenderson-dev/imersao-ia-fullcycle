@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, BellOff, CircleUser, LogOut } from "lucide-react";
+import { Bell, BellOff, CircleUser, LogOut, Pencil } from "lucide-react";
 import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
+import { useEditProfile } from "@/app/components/profile/edit-profile-dialog";
 import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
 import { Avatar } from "@/app/components/ui/avatar";
@@ -19,14 +20,18 @@ import { markLeaving } from "@/app/utils/leaving";
 
 type UserMenuProps = { person: Person };
 
-// Menu do avatar do Rail: o cabeçalho, sem a linha de presença, "Perfil" (F05), a opção da
-// notificação do navegador (F08) e "Sair do Full Cycle". "Editar perfil" e a presença entram com a
-// F09.
+// Menu do avatar do Rail: o cabeçalho, sem a linha de presença, "Perfil" (F05), "Editar perfil"
+// (F09), a opção da notificação do navegador (F08) e "Sair do Full Cycle". A presença entra na
+// F09-T04.
 export function UserMenu({ person }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
   const profile = useOpenProfileFromOverlay();
   const trigger = useRef<HTMLButtonElement>(null);
   const browserNotifications = useBrowserNotifications();
+  const { openEditProfile } = useEditProfile();
+  // O diálogo abre depois de o menu fechar e devolver o foco ao avatar: abrir os dois ao mesmo tempo
+  // deixaria o foco preso entre eles.
+  const editingProfile = useRef(false);
 
   return (
     <DropdownMenu>
@@ -38,7 +43,13 @@ export function UserMenu({ person }: UserMenuProps) {
         side="right"
         align="end"
         className="w-72"
-        onCloseAutoFocus={profile.onCloseAutoFocus}
+        onCloseAutoFocus={(event) => {
+          profile.onCloseAutoFocus(event);
+          if (!editingProfile.current) return;
+          editingProfile.current = false;
+          event.preventDefault();
+          openEditProfile(trigger.current);
+        }}
       >
         <div className="flex items-center gap-3 px-4 pt-1 pb-2">
           <Avatar initials={person.initials} seed={person.id} />
@@ -52,6 +63,14 @@ export function UserMenu({ person }: UserMenuProps) {
         >
           <CircleUser size={16} aria-hidden />
           Perfil
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            editingProfile.current = true;
+          }}
+        >
+          <Pencil size={16} aria-hidden />
+          Editar perfil
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <BrowserNotificationsItem {...browserNotifications} />

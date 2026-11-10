@@ -1,7 +1,7 @@
 "use client";
 
-import { Clock, Mail, MessageSquare, Phone, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock, Mail, MessageSquare, Pencil, Phone, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { useOpenDirectConversation } from "@/app/hooks/use-open-direct-conversation";
 import { Avatar } from "@/app/components/ui/avatar";
@@ -14,6 +14,7 @@ import { isValidTimeZone } from "@/app/utils/time-zone";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
 import { isTooltipEscape } from "@/app/components/ui/tooltip";
+import { useEditProfile } from "./edit-profile-dialog";
 
 class ProfileNotFoundError extends Error {}
 
@@ -22,7 +23,7 @@ export function profileKey(personId: string): string {
   return `/api/people/${encodeURIComponent(personId)}`;
 }
 
-async function fetchProfile(url: string): Promise<Profile> {
+export async function fetchProfile(url: string): Promise<Profile> {
   const response = await fetch(url);
   if (response.status === 401) return redirectToExpiredSession();
   if (response.status === 404) throw new ProfileNotFoundError();
@@ -32,7 +33,7 @@ async function fetchProfile(url: string): Promise<Profile> {
 
 // O painel de perfil ("Painel de perfil", Figma): ao lado da Conversa a partir de 1280 px, sobre ela
 // abaixo disso, e na largura toda abaixo de 640 px (design system, "Layout e responsividade").
-// O próprio Perfil é igual ao dos outros: "Editar perfil" só entra com a F09.
+// O próprio Perfil tem, ao lado de "Mensagem", o botão "Editar perfil" (spec da F09, "Editar perfil").
 export function ProfilePanel({ sessionPersonId }: { sessionPersonId: string }) {
   const personId = useProfilePanelPerson();
   const { closeProfile, focusPanel, panelFocusTarget } = useProfilePanelActions();
@@ -131,7 +132,10 @@ function ProfileContent({
       </div>
       {/* Um fuso que este navegador não formata some, em vez de quebrar o painel. */}
       {isValidTimeZone(profile.timeZone) && <LocalTime timeZone={profile.timeZone} />}
-      <OpenDirectConversationButton personId={profile.id} sessionPersonId={sessionPersonId} />
+      <div className="flex flex-wrap items-start gap-2">
+        <OpenDirectConversationButton personId={profile.id} sessionPersonId={sessionPersonId} />
+        {profile.id === sessionPersonId && <EditProfileButton />}
+      </div>
       <section
         aria-labelledby="profile-contact-title"
         className="flex flex-col gap-3 border-t border-border-subtle pt-5"
@@ -207,6 +211,23 @@ function OpenDirectConversationButton({
         </p>
       )}
     </div>
+  );
+}
+
+// "Editar perfil", só no próprio Perfil; o foco volta a ele quando o diálogo fecha.
+function EditProfileButton() {
+  const { openEditProfile } = useEditProfile();
+  const button = useRef<HTMLButtonElement>(null);
+  return (
+    <Button
+      ref={button}
+      type="button"
+      variant="secondary"
+      icon={Pencil}
+      onClick={() => openEditProfile(button.current)}
+    >
+      Editar perfil
+    </Button>
   );
 }
 
