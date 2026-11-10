@@ -25,6 +25,7 @@ diálogo aberto), e registrar a nota e as falhas apontadas.
 ## Como foi medido
 
 Em 2026-11-10, com o Lighthouse 13.6.0 num *user flow* (modo Snapshot, só a categoria
-Accessibility), no Chromium 1254 do contêiner `e2e`, em 1440 × 900, contra o `next dev`. A conta
+Accessibility), no Chromium 1254 do contêiner `e2e`, em 1440 × 900, contra o build de produção
+(`pnpm build` e `pnpm start` no contêiner `web`, na porta 3000). A conta
 tinha um Status com mensagem e entrou pelo formulário; o tema foi trocado pelo botão do Rail entre
 as duas rodadas. Nenhuma auditoria de acessibilidade com peso ficou abaixo de 1.
