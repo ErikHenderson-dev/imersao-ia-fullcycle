@@ -357,7 +357,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/people/me/presence` e `PUT /v1/people/me/theme` | planejada | Gravar a escolha de presença e o tema: spec da F09, seção "Rotas"; a Presença: "Estados e regras", seção "Presença" |
 | API do chat: `GET /v1/people/presence` | planejada | Retrato de quem está disponível ou tem Status: spec da F09, seção "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
-| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added`, `conversation.unread` e `activity.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`: spec da F08, seção "Tempo real". Alteração `planejada`: a sala `workspace` e os eventos `person.updated` e `presence.changed`, sem cursor nem reenvio (spec da F09, seção "Tempo real") |
+| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas (inclusive `workspace`), `message.created`, `message.updated`, `message.deleted`, `conversation.member_added`, `conversation.unread` e `activity.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`: spec da F08, seção "Tempo real". A sala `workspace` e o `person.updated`, sem cursor nem reenvio: spec da F09, seção "Tempo real". Alteração `planejada`: o `presence.changed` (mesma seção) |
 | BFF: `GET /api/conversations/:id/messages` | existe | Páginas anteriores do histórico, lidas pelo cliente: "Cliente", "Leituras e tempo real" |
 | BFF: `GET /api/conversations`, `GET /api/conversations/:id/members` e `GET /api/people` | existe | Leituras do cliente: a lista de Conversas no `reset`, os Membros e a busca de Pessoas (spec da F04, seção "BFF") |
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
@@ -536,10 +536,10 @@ atualiza esse cache direto, sem nova requisição. A primeira página do histór
 Component, como `fallbackData` do cache; as anteriores vêm do cliente pela rota do BFF
 `GET /api/conversations/:id/messages`, porque um Server Action, além de usar POST, roda em série.
 
-**Camada de Pessoas.** Situação: `planejada`. O nome, as iniciais, a Presença e o Status das
-outras Pessoas ficam num mapa único do cliente, alimentado pelo retrato e pelos eventos
-`person.updated` e `presence.changed`; os componentes de Pessoa leem dele e, sem entrada, usam o
-que veio no payload. Assim, um nome trocado aparece nas Mensagens já carregadas sem buscar o
+**Camada de Pessoas.** Situação: `existe` com o nome e as iniciais; a Presença e o Status
+`planejados`. O nome, as iniciais, a Presença e o Status das outras Pessoas ficam num mapa único
+do cliente, alimentado pelo retrato e pelos eventos `person.updated` e `presence.changed`; os
+componentes de Pessoa leem dele e, sem entrada, usam o que veio no payload. Assim, um nome trocado aparece nas Mensagens já carregadas sem buscar o
 histórico de novo (spec da F09, seção "Cliente").
 
 **Tema.** Situação: `planejada`. O tema é gravado na Pessoa, e não num cookie, para valer em
