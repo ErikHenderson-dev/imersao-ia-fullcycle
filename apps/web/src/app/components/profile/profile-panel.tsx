@@ -13,7 +13,6 @@ import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-p
 
 class ProfileNotFoundError extends Error {}
 
-
 async function fetchProfile(url: string): Promise<Profile> {
   const response = await fetch(url);
   if (response.status === 401) return redirectToExpiredSession();
@@ -35,28 +34,30 @@ export function ProfilePanel() {
     if (isOpen) focusPanel();
   }, [isOpen, focusPanel]);
 
+  // Abaixo de 1280 px o painel cobre a Conversa e o foco pode sair dele pelo Tab: o Esc fecha de
+  // qualquer lugar, menos de dentro de um diálogo ou menu, que trata o próprio Esc.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if ((event.target as Element | null)?.closest?.("[role=dialog], [role=menu]")) return;
+      closeProfile();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, closeProfile]);
+
   if (!personId) return null;
   return (
     <aside
       aria-labelledby="profile-panel-title"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.stopPropagation();
-          closeProfile();
-        }
-      }}
       className="absolute inset-y-0 right-0 z-20 flex w-full animate-slide-in flex-col border-l border-border bg-surface shadow-3 sm:w-panel xl:static xl:shadow-none"
     >
       <header className="flex h-header shrink-0 items-center justify-between border-b border-border pr-2 pl-5">
         <h2 id="profile-panel-title" className="text-title font-black text-fg">
           Perfil
         </h2>
-        <IconButton
-          ref={panelFocusTarget}
-          icon={X}
-          label="Fechar perfil"
-          onClick={closeProfile}
-        />
+        <IconButton ref={panelFocusTarget} icon={X} label="Fechar perfil" onClick={closeProfile} />
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <ProfileContent personId={personId} />
@@ -126,13 +127,19 @@ function ProfileContent({ personId }: { personId: string }) {
           Informações de contato
         </h3>
         <ContactRow icon={Mail} label="E-mail">
-          <a href={`mailto:${profile.email}`} className="break-all text-link hover:text-link-hover hover:underline">
+          <a
+            href={`mailto:${profile.email}`}
+            className="break-all text-link hover:text-link-hover hover:underline"
+          >
             {profile.email}
           </a>
         </ContactRow>
         {profile.phone && (
           <ContactRow icon={Phone} label="Telefone">
-            <a href={`tel:${profile.phone.replace(/[^0-9+]/g, "")}`} className="text-link hover:text-link-hover hover:underline">
+            <a
+              href={`tel:${profile.phone.replace(/[^0-9+]/g, "")}`}
+              className="text-link hover:text-link-hover hover:underline"
+            >
               {profile.phone}
             </a>
           </ContactRow>

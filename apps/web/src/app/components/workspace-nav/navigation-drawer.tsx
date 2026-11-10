@@ -4,6 +4,10 @@ import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Dialog } from "radix-ui";
 import { useEffect, useState } from "react";
+import {
+  useProfilePanelActions,
+  useProfilePanelPerson,
+} from "@/app/components/profile/profile-panel-provider";
 import { IconButton } from "@/app/components/ui/icon-button";
 
 type NavigationDrawerProps = {
@@ -25,6 +29,14 @@ export function NavigationDrawer({ navigation, children }: NavigationDrawerProps
   if (openedAt !== null && openedAt !== pathname) {
     setOpenedAt(null);
     setClosedByNavigation(true);
+  }
+  // Abrir um Perfil de dentro da gaveta (o menu do avatar) também a fecha, e o foco fica no painel.
+  const profilePersonId = useProfilePanelPerson();
+  const { focusPanel } = useProfilePanelActions();
+  const [shownProfile, setShownProfile] = useState(profilePersonId);
+  if (shownProfile !== profilePersonId) {
+    setShownProfile(profilePersonId);
+    if (profilePersonId !== null && openedAt !== null) setOpenedAt(null);
   }
 
   // Em md ou mais, a navegação está em linha: a gaveta fecha, para o modal não travar a página.
@@ -54,6 +66,11 @@ export function NavigationDrawer({ navigation, children }: NavigationDrawerProps
           // Fechada por uma navegação, o botão que a abriu já saiu com a página antiga: o foco vai
           // para a caixa de mensagem da página nova, se houver.
           onCloseAutoFocus={(event) => {
+            if (profilePersonId !== null) {
+              event.preventDefault();
+              focusPanel();
+              return;
+            }
             if (!closedByNavigation) return;
             event.preventDefault();
             document.querySelector<HTMLElement>("main textarea:not([disabled])")?.focus();

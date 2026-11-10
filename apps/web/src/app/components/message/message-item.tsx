@@ -100,7 +100,7 @@ function FullRow({ message, timeZone, extra }: RowProps) {
     <div className="mt-2 flex gap-2 px-5 py-1">
       <div className="flex w-9 shrink-0 justify-end">
         {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
-        <OpenProfileButton personId={message.author.id} tabIndex={-1} aria-hidden className="self-start">
+        <OpenProfileButton personId={message.author.id} decorative className="self-start">
           <Avatar initials={message.author.initials} seed={message.author.id} />
         </OpenProfileButton>
       </div>

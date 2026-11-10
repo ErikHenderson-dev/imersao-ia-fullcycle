@@ -77,4 +77,36 @@ test.describe("Painel de perfil", () => {
     await page.setViewportSize({ width: 600, height: 800 });
     await expect.poll(async () => (await panel.boundingBox())?.width).toBe(600);
   });
+
+  test("abrir o Perfil pela gaveta fecha a gaveta", async ({ loggedInPage: page, person }) => {
+    // 1. Abaixo de 768 px, abrir a gaveta e o menu do avatar
+    await page.setViewportSize({ width: 700, height: 800 });
+    await page.getByRole("button", { name: "Abrir navegação" }).click();
+    const drawer = page.getByRole("dialog", { name: "Navegação" });
+    await drawer.getByRole("button", { name: `Menu de ${person.name}` }).click();
+
+    // 2. Escolher "Perfil"
+    await page.getByRole("menuitem", { name: "Perfil" }).click();
+
+    await expect(drawer).toHaveCount(0);
+    await expect(profilePanel(page).getByText(`@${person.username}`)).toBeVisible();
+    await expect(profilePanel(page).getByRole("button", { name: "Fechar perfil" })).toBeFocused();
+  });
+
+  test("aberto pelo avatar, devolve o foco ao nome da autora", async ({
+    page,
+    person,
+    sharedChannel,
+    otherPerson,
+  }) => {
+    // 1. Clicar no avatar da autora e fechar pelo X
+    await insertHistory(sharedChannel, otherPerson, 1);
+    await logIn(page, person);
+    await page.goto(`/conversas/${sharedChannel.id}`);
+    await readyHistory(page, sharedChannel.name);
+    await page.getByRole("main").locator("li button[aria-hidden]").first().click();
+    await profilePanel(page).getByRole("button", { name: "Fechar perfil" }).click();
+
+    await expect(authorButton(page, otherPerson.name)).toBeFocused();
+  });
 });

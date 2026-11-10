@@ -41,7 +41,12 @@ export function ProfilePanelProvider({ children }: { children: React.ReactNode }
     setPersonId(null);
     const target = returnFocus.current;
     returnFocus.current = null;
-    if (target?.isConnected) target.focus();
+    // Só leva o foco de volta quando ele estava no painel (ou perdido): quem já foi digitar na
+    // caixa de mensagem continua lá.
+    const active = document.activeElement;
+    const panel = panelFocusTarget.current?.closest("aside");
+    const focusWasInPanel = !active || active === document.body || panel?.contains(active);
+    if (focusWasInPanel && target?.isConnected) target.focus();
   }, []);
 
   const focusPanel = useCallback(() => panelFocusTarget.current?.focus(), []);

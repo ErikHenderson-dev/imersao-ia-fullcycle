@@ -210,7 +210,7 @@ export class PeopleService {
   // que não existe.
   async getProfile(id: string): Promise<Person> {
     const person = isUUID(id) ? await this.findById(id) : null;
-    if (!person) throw new PersonNotFoundError();
+    if (!person) throw new PersonNotFoundError(null);
     return person;
   }
 

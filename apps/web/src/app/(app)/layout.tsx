@@ -51,24 +51,24 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   return (
     <RealtimeProvider url={env.CHAT_API_PUBLIC_URL}>
       <ProfilePanelProvider>
-      <div className="flex h-screen flex-col">
-        <ConnectionBanner />
-        <div className="relative flex min-h-0 flex-1">
-          <BfcacheReload />
-          <TimeZoneSync />
-          <NavigationDrawer
-            navigation={
-              <>
-                <Rail person={result.person} />
-                <Sidebar personId={result.person.id} />
-              </>
-            }
-          >
-            <main className="flex min-w-0 flex-1 flex-col bg-surface">{children}</main>
-            <ProfilePanel />
-          </NavigationDrawer>
+        <div className="flex h-screen flex-col">
+          <ConnectionBanner />
+          <div className="relative flex min-h-0 flex-1">
+            <BfcacheReload />
+            <TimeZoneSync />
+            <NavigationDrawer
+              navigation={
+                <>
+                  <Rail person={result.person} />
+                  <Sidebar personId={result.person.id} />
+                </>
+              }
+            >
+              <main className="flex min-w-0 flex-1 flex-col bg-surface">{children}</main>
+              <ProfilePanel />
+            </NavigationDrawer>
+          </div>
         </div>
-      </div>
       </ProfilePanelProvider>
     </RealtimeProvider>
   );
