@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail, MessageSquare, Phone, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import useSWR from "swr";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
@@ -9,18 +9,10 @@ import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
 import type { Profile } from "@/app/services/chat-api";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
-import { useProfilePanel } from "./profile-panel-provider";
+import { useProfilePanelActions, useProfilePanelPerson } from "./profile-panel-provider";
 
 class ProfileNotFoundError extends Error {}
 
-// O botão de fechar, que recebe o foco quando o painel abre.
-const PROFILE_PANEL_CLOSE_ID = "profile-panel-close";
-
-// Põe o foco no painel. Para quem abre o Perfil de dentro de um menu do Radix, que prende o foco
-// enquanto está aberto: chamado no onCloseAutoFocus dele.
-export function focusProfilePanel(): void {
-  document.getElementById(PROFILE_PANEL_CLOSE_ID)?.focus();
-}
 
 async function fetchProfile(url: string): Promise<Profile> {
   const response = await fetch(url);
@@ -34,14 +26,14 @@ async function fetchProfile(url: string): Promise<Profile> {
 // abaixo disso, e na largura toda abaixo de 640 px (design system, "Layout e responsividade").
 // O próprio Perfil é igual ao dos outros: "Editar perfil" só entra com a F09.
 export function ProfilePanel() {
-  const { personId, closeProfile } = useProfilePanel();
-  const closeButton = useRef<HTMLButtonElement>(null);
+  const personId = useProfilePanelPerson();
+  const { closeProfile, focusPanel, panelFocusTarget } = useProfilePanelActions();
 
   // O foco entra no painel a cada abertura, e não a cada troca de Perfil.
   const isOpen = personId !== null;
   useEffect(() => {
-    if (isOpen) closeButton.current?.focus();
-  }, [isOpen]);
+    if (isOpen) focusPanel();
+  }, [isOpen, focusPanel]);
 
   if (!personId) return null;
   return (
@@ -60,8 +52,7 @@ export function ProfilePanel() {
           Perfil
         </h2>
         <IconButton
-          ref={closeButton}
-          id={PROFILE_PANEL_CLOSE_ID}
+          ref={panelFocusTarget}
           icon={X}
           label="Fechar perfil"
           onClick={closeProfile}
@@ -79,7 +70,7 @@ function ProfileContent({ personId }: { personId: string }) {
     `/api/people/${encodeURIComponent(personId)}`,
     fetchProfile,
     // Lido de novo a cada abertura, e não ao voltar o foco para a janela.
-    { revalidateOnFocus: false, revalidateOnMount: true, dedupingInterval: 0 },
+    { revalidateOnFocus: false, dedupingInterval: 0 },
   );
 
   if (error instanceof ProfileNotFoundError) {
@@ -106,9 +97,9 @@ function ProfileContent({ personId }: { personId: string }) {
   if (!profile || isLoading) {
     return (
       <div role="status" aria-label="Carregando o perfil" className="flex flex-col gap-4">
-        <span className="size-24 animate-pulse rounded-panel bg-surface-inset" />
-        <span className="h-6 w-48 animate-pulse rounded-control bg-surface-inset" />
-        <span className="h-4 w-32 animate-pulse rounded-control bg-surface-inset" />
+        <span className="size-24 motion-safe:animate-pulse rounded-panel bg-surface-inset" />
+        <span className="h-6 w-48 motion-safe:animate-pulse rounded-control bg-surface-inset" />
+        <span className="h-4 w-32 motion-safe:animate-pulse rounded-control bg-surface-inset" />
       </div>
     );
   }

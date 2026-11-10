@@ -3,8 +3,7 @@
 import { CircleUser, LogOut } from "lucide-react";
 import { useRef, useTransition } from "react";
 import { logout } from "@/app/actions/logout";
-import { focusProfilePanel } from "@/app/components/profile/profile-panel";
-import { useProfilePanel } from "@/app/components/profile/profile-panel-provider";
+import { useOpenProfileFromOverlay } from "@/app/components/profile/profile-panel-provider";
 import { Avatar } from "@/app/components/ui/avatar";
 import { Spinner } from "@/app/components/ui/spinner";
 import {
@@ -23,10 +22,8 @@ type UserMenuProps = { person: Person };
 // Cycle". "Editar perfil" e a presença entram com a F09.
 export function UserMenu({ person }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
-  const { openProfile } = useProfilePanel();
+  const profile = useOpenProfileFromOverlay();
   const trigger = useRef<HTMLButtonElement>(null);
-  // O menu devolve o foco ao avatar ao fechar; abrindo o Perfil, o foco fica no painel.
-  const openingProfile = useRef(false);
 
   return (
     <DropdownMenu>
@@ -38,12 +35,7 @@ export function UserMenu({ person }: UserMenuProps) {
         side="right"
         align="end"
         className="w-72"
-        onCloseAutoFocus={(event) => {
-          if (!openingProfile.current) return;
-          openingProfile.current = false;
-          event.preventDefault();
-          focusProfilePanel();
-        }}
+        onCloseAutoFocus={profile.onCloseAutoFocus}
       >
         <div className="flex items-center gap-3 px-4 pt-1 pb-2">
           <Avatar initials={person.initials} seed={person.id} />
@@ -53,10 +45,7 @@ export function UserMenu({ person }: UserMenuProps) {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={() => {
-            openingProfile.current = true;
-            openProfile(person.id, trigger.current);
-          }}
+          onSelect={() => profile.open(person.id, trigger.current)}
         >
           <CircleUser size={16} aria-hidden />
           Perfil
