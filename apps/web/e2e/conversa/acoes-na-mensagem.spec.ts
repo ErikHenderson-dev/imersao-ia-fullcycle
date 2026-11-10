@@ -130,7 +130,9 @@ test.describe("Barra de ações e copiar o texto", () => {
 
     // 3. Espaço também abre, e Enter no item copia
     await page.keyboard.press(" ");
+    await expect(page.getByRole("menuitem", { name: "Responder" })).toBeFocused();
     await page.keyboard.press("ArrowDown");
+    await expect(opcao).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByText("Texto copiado")).toBeVisible();
   });
