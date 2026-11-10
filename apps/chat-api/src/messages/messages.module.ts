@@ -6,13 +6,14 @@ import { PeopleModule } from '../people/people.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { SessionsModule } from '../sessions/sessions.module';
 import { Message } from './message.entity';
+import { MessageMention } from './message-mention.entity';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 
 @Module({
   // O forFeature registra a entidade no autoLoadEntities; o service usa o TransactionHost.
   imports: [
-    TypeOrmModule.forFeature([Message]),
+    TypeOrmModule.forFeature([Message, MessageMention]),
     ConversationsModule,
     PeopleModule,
     SessionsModule,

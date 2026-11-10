@@ -80,7 +80,7 @@ export class MembershipsController {
   ): Promise<{ people: PersonSummary[] }> {
     const people = await this.memberships.searchPeople(
       person.id,
-      query.not_member_of,
+      { notMemberOf: query.not_member_of, memberOf: query.member_of },
       query.q ?? '',
     );
     return { people };

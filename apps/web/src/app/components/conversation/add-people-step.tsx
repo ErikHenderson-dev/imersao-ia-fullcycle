@@ -31,7 +31,7 @@ export function AddPeopleStep({
   onCloseAutoFocus,
 }: AddPeopleStepProps) {
   const [query, setQuery] = useState("");
-  const search = usePeopleSearch(query, conversation.id);
+  const search = usePeopleSearch(query, { notMemberOf: conversation.id });
   const [chosen, setChosen] = useState<PersonEntry[]>([]);
   const [status, setStatus] = useState<"idle" | "sending" | "failure">("idle");
 

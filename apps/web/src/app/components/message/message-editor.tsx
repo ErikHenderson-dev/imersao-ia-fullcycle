@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { editMessage } from "@/app/actions/edit-message";
 import { Button } from "@/app/components/ui/button";
 import { Kbd } from "@/app/components/ui/kbd";
+import { useMentionPicker } from "@/app/hooks/use-mention-picker";
+import { MentionPicker } from "./mention-picker";
 import type { Message } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
 import { overLimitBy, overLimitLabel } from "@/app/utils/message-text";
@@ -24,6 +26,12 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
   const [status, setStatus] = useState<"editing" | "saving" | "error">("editing");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const counterId = useId();
+  const mentions = useMentionPicker({
+    conversationId: message.conversationId,
+    text,
+    setText,
+    textareaRef,
+  });
   const errorId = useId();
   const body = text.trim();
   const overLimit = overLimitBy(body);
@@ -65,14 +73,16 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
     >
       <div
         className={cn(
-          "flex rounded-card border bg-surface px-3 py-2 outline-2",
+          "relative flex rounded-card border bg-surface px-3 py-2 outline-2",
           status === "error" || overLimit > 0
             ? "border-danger outline-danger/30"
             : "border-border-strong focus-within:border-focus focus-within:outline-focus",
         )}
       >
+        {mentions.list && <MentionPicker {...mentions.list} />}
         <textarea
           ref={textareaRef}
+          {...mentions.textareaProps}
           aria-label="Editar mensagem"
           aria-invalid={overLimit > 0 || status === "error" || undefined}
           aria-describedby={
@@ -83,9 +93,11 @@ export function MessageEditor({ message, onSaved, onClose, onGone }: MessageEdit
           readOnly={status === "saving"}
           onChange={(event) => {
             setText(event.target.value);
+            mentions.handleChange(event);
             if (status === "error") setStatus("editing");
           }}
           onKeyDown={(event) => {
+            if (mentions.handleKeyDown(event)) return;
             if (event.key === "Escape") {
               // O Esc é da edição: não fecha o painel de perfil nem outra camada.
               event.preventDefault();

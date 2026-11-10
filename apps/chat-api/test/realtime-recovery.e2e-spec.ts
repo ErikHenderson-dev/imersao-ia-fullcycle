@@ -152,9 +152,14 @@ describe('Recuperação depois da queda', () => {
 
     const [sync] = await waitForCount(syncs, 1);
     expect(sync.reset).toBe(false);
-    const names = [
-      ...new Map(received.map((event) => [event.eventId, event.name])).values(),
-    ];
+    // Como a aba até o sync (orderForSync): um evento ao vivo pode chegar no meio do reenvio, então
+    // a ordem é a do cursor, e o mesmo cursor conta uma vez.
+    const byCursor = new Map(
+      received.map((event) => [event.eventId!, event.name] as const),
+    );
+    const names = [...byCursor.entries()]
+      .sort(([a], [b]) => compareStreamIds(a.split(':')[1], b.split(':')[1]))
+      .map(([, name]) => name);
     expect(names).toEqual(['message.updated', 'message.deleted']);
   });
 

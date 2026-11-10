@@ -88,3 +88,28 @@ diálogo aberto, o resto da página fica escondido dos papéis, e a Mensagem é 
 **File:** `e2e/acessibilidade/apagar-sem-violacoes.spec.ts`
 
 9. **a confirmação de apagar não tem violações de acessibilidade.**
+
+### 4. Mencionar um Membro (F06-T05)
+
+**Seed:** `e2e/seed.spec.ts` · **File:** `e2e/conversa/mencionar.spec.ts`
+
+Duas Pessoas num Canal em comum (Ana Souza, logada, e Bruno Lima).
+
+1. **menciona pela lista só pelo teclado:** "Oi @bru" abre a lista com Bruno destacado; Enter
+   escolhe sem enviar e põe "@usuario "; o envio mostra a Menção como botão.
+2. **Tab escolhe e as setas mudam a Pessoa destacada:** "@" lista os dois Membros; seta para baixo
+   destaca o segundo, e Tab o escolhe.
+3. **o botão @ abre a lista:** insere " @" depois de "Oi", com o foco na caixa.
+4. **Esc fecha a lista sem mudar o texto, e sem resultado ela fecha:** apagar o `@` e digitar de
+   novo abre a lista outra vez.
+5. **menciona na edição.**
+
+**File:** `e2e/tempo-real/mencao.spec.ts`
+
+6. **a Pessoa mencionada vê o destaque e abre o Perfil pela Menção:** o `@` de quem não é Membro
+   fica como texto.
+7. **a Menção acrescentada na edição destaca sem recarregar.**
+
+**File:** `e2e/acessibilidade/mencoes-sem-violacoes.spec.ts`
+
+8. **a lista de menções não tem violações de acessibilidade.**

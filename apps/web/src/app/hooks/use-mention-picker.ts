@@ -1,0 +1,107 @@
+"use client";
+
+import { useId, useState } from "react";
+import { usePeopleSearch } from "@/app/hooks/use-people-search";
+import type { PersonEntry } from "@/app/services/chat-api";
+import { applyMention, findMentionQuery } from "@/app/utils/mention-query";
+
+type MentionPickerOptions = {
+  // A Conversa cujos Membros a lista mostra; sem ela, a lista não existe.
+  conversationId: string | undefined;
+  text: string;
+  setText: (text: string) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+};
+
+// A lista de menções de uma caixa de texto (spec da F06, "Lista de menções"): abre com o `@` logo
+// antes do cursor, busca os Membros da Conversa pelo que vem depois e segue o padrão combobox, com o
+// foco na caixa. Quem usa espalha `textareaProps` na caixa (antes dos próprios `onChange` e
+// `onKeyDown`, que chama por `handleChange` e `handleKeyDown`).
+export function useMentionPicker({
+  conversationId,
+  text,
+  setText,
+  textareaRef,
+}: MentionPickerOptions) {
+  const listId = useId();
+  const [caret, setCaret] = useState<number | null>(null);
+  const [active, setActive] = useState(0);
+  // O `@` cuja lista foi fechada pelo Esc: ela só volta com outro `@`.
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null);
+  const query = conversationId && caret !== null ? findMentionQuery(text, caret) : null;
+  // A marca do Esc vale só enquanto aquele `@` existe: apagado e digitado de novo, a lista volta.
+  if (dismissedAt !== null && query?.start !== dismissedAt) setDismissedAt(null);
+  const isWanted = query !== null && query.start !== dismissedAt;
+  const search = usePeopleSearch(query?.query ?? "", { memberOf: conversationId }, isWanted);
+  // Só o resultado da busca do texto atual: enquanto ela não responde, a lista some, para Enter não
+  // escolher uma Pessoa que não corresponde ao que foi digitado.
+  const people: PersonEntry[] =
+    isWanted && search.kind === "ok" && search.query === query.query ? search.people : [];
+  const isOpen = people.length > 0;
+  const activeIndex = Math.min(active, Math.max(people.length - 1, 0));
+  const optionId = (index: number) => `${listId}-${index}`;
+
+  function moveCaret(position: number) {
+    setCaret(position);
+    setActive(0);
+  }
+
+  // Troca o texto (escolha na lista, botão @) e põe o foco e o cursor na posição, depois de renderizar.
+  function replaceText(value: string, position: number) {
+    setText(value);
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(position, position);
+      moveCaret(position);
+    });
+  }
+
+  function pick(person: PersonEntry) {
+    if (!query || caret === null) return;
+    const next = applyMention(text, query, caret, person.username);
+    replaceText(next.text, next.caret);
+  }
+
+  // Verdadeiro quando a tecla era da lista: Enter e Tab escolhem sem enviar nem salvar, e Esc fecha
+  // sem cancelar a edição nem fechar outra camada.
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>): boolean {
+    if (!isOpen || !query) return false;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setActive((activeIndex + step + people.length) % people.length);
+      return true;
+    }
+    if ((event.key === "Enter" && !event.shiftKey) || event.key === "Tab") {
+      event.preventDefault();
+      pick(people[activeIndex]);
+      return true;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      setDismissedAt(query.start);
+      return true;
+    }
+    return false;
+  }
+
+  return {
+    replaceText,
+    handleKeyDown,
+    handleChange: (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+      moveCaret(event.target.selectionStart),
+    // Os atributos da caixa de texto, que continua no papel dela (textbox, que aceita a lista
+    // ligada e a opção ativa).
+    textareaProps: conversationId
+      ? {
+          "aria-autocomplete": "list" as const,
+          "aria-controls": isOpen ? listId : undefined,
+          "aria-activedescendant": isOpen ? optionId(activeIndex) : undefined,
+          onSelect: (event: React.SyntheticEvent<HTMLTextAreaElement>) =>
+            moveCaret(event.currentTarget.selectionStart),
+        }
+      : {},
+    list: isOpen ? { id: listId, people, activeIndex, optionId, pick } : null,
+  };
+}

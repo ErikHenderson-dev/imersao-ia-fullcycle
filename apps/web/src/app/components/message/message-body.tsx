@@ -1,22 +1,39 @@
+import { useMemo } from "react";
+import type { Mention } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
-import { splitLinks } from "@/app/utils/message-links";
+import { splitMessageBody } from "@/app/utils/message-segments";
+import { MentionChip } from "./mention-chip";
 
-// Texto da Mensagem como foi escrito, com as quebras de linha. Só os endereços http(s) viram
-// links, que abrem em outra aba; nada mais vira marcação. A Mensagem editada leva "(editada)" no
-// fim, com a hora da edição na dica (spec da F06, "Texto da Mensagem").
+// Texto da Mensagem como foi escrito, com as quebras de linha. Os endereços http(s) viram links,
+// que abrem em outra aba, e os @usuário das Pessoas mencionadas viram Menções; nada mais vira
+// marcação. A Mensagem editada leva "(editada)" no fim, com a hora da edição na dica (spec da F06,
+// "Texto da Mensagem").
 export function MessageBody({
   text,
+  mentions = [],
+  currentPersonId,
   edited,
   timeZone,
 }: {
   text: string;
+  mentions?: readonly Mention[];
+  currentPersonId?: string;
   edited?: string | null;
   timeZone?: string;
 }) {
+  // A divisão só muda com o texto e as Menções, e não a cada renderização do histórico.
+  const segments = useMemo(() => splitMessageBody(text, mentions), [text, mentions]);
   return (
     <p className="whitespace-pre-wrap break-words text-body text-fg">
-      {splitLinks(text).map((segment, index) =>
-        segment.kind === "link" ? (
+      {segments.map((segment, index) =>
+        segment.kind === "mention" ? (
+          <MentionChip
+            key={index}
+            mention={segment.mention}
+            text={segment.text}
+            isSelf={segment.mention.id === currentPersonId}
+          />
+        ) : segment.kind === "link" ? (
           <a
             key={index}
             href={segment.href}

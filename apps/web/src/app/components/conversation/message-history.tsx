@@ -331,6 +331,7 @@ function History({
                 compact={compact}
                 dayLabel={dayLabel}
                 status={message.status ?? "sent"}
+                currentPersonId={currentPerson.id}
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
                 edit={
@@ -357,6 +358,7 @@ function History({
       <TypingIndicator conversationId={conversation.id} />
       <MessageComposer
         inputRef={composerRef}
+        conversationId={conversation.id}
         label={composerLabel(conversation, currentPerson.id)}
         onTextChange={typing.onTextChange}
         onSend={send}

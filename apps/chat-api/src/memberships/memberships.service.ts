@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConflictingPeopleFiltersError } from './conflicting-people-filters.error';
 import { toConversationResponse } from '../conversations/conversation.response';
 import type {
   ConversationSummary,
@@ -32,11 +33,17 @@ export class MembershipsService {
   // Pessoas para adicionar a uma Conversa de que quem busca é Membro, sem os Membros dela, ou, sem a
   // Conversa, todas (o "Nova conversa", spec da F05), em ordem
   // alfabética (spec da F04, "Busca de Pessoas").
+  // Fora dos Membros de uma Conversa (adicionar ao Canal privado), só entre eles (lista de menções,
+  // spec da F06) ou sem filtro ("Nova conversa"). Quem busca precisa ser Membro da Conversa.
   async searchPeople(
     personId: string,
-    conversationId: string | undefined,
+    { notMemberOf, memberOf }: { notMemberOf?: string; memberOf?: string },
     q: string,
   ): Promise<PersonSummary[]> {
+    if (notMemberOf !== undefined && memberOf !== undefined) {
+      throw new ConflictingPeopleFiltersError();
+    }
+    const conversationId = notMemberOf ?? memberOf;
     let memberIds: string[] = [];
     if (conversationId !== undefined) {
       await this.conversations.getForMember(personId, conversationId);
@@ -44,7 +51,9 @@ export class MembershipsService {
     }
     const people = await this.people.search(
       q.trim(),
-      memberIds,
+      memberOf !== undefined
+        ? { onlyIds: memberIds }
+        : { excludeIds: memberIds },
       PEOPLE_SEARCH_LIMIT,
     );
     return sortedSummaries(people);

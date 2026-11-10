@@ -1,4 +1,4 @@
-import type { ConversationPayload, MessagePayload } from "chat-events";
+import type { ConversationPayload, MessagePayload, MentionPayload } from "chat-events";
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
@@ -183,7 +183,11 @@ export type Message = {
   createdAt: string;
   // A hora da última edição, ou nulo (spec da F06, "A Mensagem no REST e nos eventos").
   editedAt: string | null;
+  // As Pessoas mencionadas, resolvidas ao gravar (spec da F06, "Texto da Mensagem").
+  mentions: Mention[];
 };
+
+export type Mention = MentionPayload;
 
 export type MessagePage = { messages: Message[]; hasMore: boolean };
 
@@ -399,12 +403,13 @@ export type SearchPeopleResult =
 
 export async function searchPeople(
   token: string,
-  { q, notMemberOf }: { q: string; notMemberOf?: string },
+  { q, notMemberOf, memberOf }: { q: string; notMemberOf?: string; memberOf?: string },
 ): Promise<SearchPeopleResult> {
-  // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca").
-  const query = new URLSearchParams(
-    notMemberOf === undefined ? { q } : { q, not_member_of: notMemberOf },
-  );
+  // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca"); com member_of, a lista de
+  // menções (spec da F06).
+  const query = new URLSearchParams({ q });
+  if (notMemberOf !== undefined) query.set("not_member_of", notMemberOf);
+  if (memberOf !== undefined) query.set("member_of", memberOf);
   const response = await request(`/v1/people?${query.toString()}`, {
     method: "GET",
     headers: authenticated(token),

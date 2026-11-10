@@ -232,6 +232,22 @@ export class ConversationsService {
   }
 
   // Ids das Pessoas que são Membros da Conversa: os destinatários dos eventos dela.
+  // Os Membros da Conversa com os @usuário dados, para as Menções (spec da F06, "Menções, ao
+  // gravar"): uma consulta só, e nada sem @usuário.
+  async findMembersByUsernames(
+    conversationId: string,
+    usernames: string[],
+  ): Promise<{ id: string; username: string }[]> {
+    if (usernames.length === 0) return [];
+    return this.txHost.tx.query<{ id: string; username: string }[]>(
+      `SELECT p.id, p.username FROM people p
+         JOIN conversation_members m
+           ON m.person_id = p.id AND m.conversation_id = $1
+        WHERE p.username = ANY($2)`,
+      [conversationId, usernames],
+    );
+  }
+
   async listMemberIds(conversationId: string): Promise<string[]> {
     const members = await this.txHost.tx
       .getRepository(ConversationMember)

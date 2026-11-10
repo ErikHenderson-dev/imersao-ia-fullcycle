@@ -242,7 +242,11 @@ export class PeopleService {
   // Busca pelo nome ou pelo @usuário, sem diferenciar maiúsculas, minúsculas e acentos, deixando de fora as Pessoas
   // de `excludeIds` (spec da F04, "Busca de Pessoas"). O banco filtra e corta em `limit`, pela
   // ordem do nome sem acento; quem chama reordena pela regra da aplicação.
-  search(q: string, excludeIds: string[], limit: number): Promise<Person[]> {
+  search(
+    q: string,
+    filter: { excludeIds: string[] } | { onlyIds: string[] },
+    limit: number,
+  ): Promise<Person[]> {
     // %, _ e \ do texto valem como literais no LIKE.
     // Os `@` do começo são do @usuário, e não do texto buscado (spec da F05, "Busca").
     const text = q.trim().replace(/^@+/, '').trim();
@@ -253,7 +257,12 @@ export class PeopleService {
         "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
         { pattern },
       )
-      .andWhere('NOT (person.id = ANY(:excludeIds))', { excludeIds })
+      .andWhere(
+        'excludeIds' in filter
+          ? 'NOT (person.id = ANY(:ids))'
+          : 'person.id = ANY(:ids)',
+        { ids: 'excludeIds' in filter ? filter.excludeIds : filter.onlyIds },
+      )
       .orderBy('unaccent(lower(person.name))', 'ASC')
       .limit(limit)
       .getMany();

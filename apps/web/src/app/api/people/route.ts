@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
         // Presente, mesmo vazio, vai para a API, que recusa o vazio: só a ausência é a busca sem
         // Conversa do "Nova conversa".
         notMemberOf: params.has("not_member_of") ? params.get("not_member_of")! : undefined,
+        memberOf: params.has("member_of") ? params.get("member_of")! : undefined,
       })
     : ({ kind: "unauthenticated" } as const);
   if (result.kind === "ok") return Response.json(result.people);
