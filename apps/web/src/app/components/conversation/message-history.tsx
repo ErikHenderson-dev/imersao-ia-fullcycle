@@ -17,6 +17,7 @@ import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
 import { useMessageHistory } from "@/app/hooks/use-message-history";
 import { JUMP_PAGE_SIZE, jumpStep } from "@/app/utils/jump-to-message";
+import { firstUnreadId, needsOlderForUnread } from "@/app/utils/unread-opening";
 import { useRealtimeMessages } from "@/app/hooks/use-realtime-messages";
 import { useReadReport } from "@/app/hooks/use-read-report";
 import { useTypingAnnouncer } from "@/app/hooks/use-typing";
@@ -67,6 +68,9 @@ export function MessageHistory(props: MessageHistoryProps) {
 
 // Quanto tempo a Mensagem citada fica destacada ao chegar (spec da F06, "Ir até a Mensagem citada").
 const HIGHLIGHT_MS = 2_000;
+
+// O alvo da ida: a original de uma Citação, ou a primeira Não lida depois da Última leitura.
+type JumpTarget = { kind: "message"; id: string } | { kind: "unread"; lastReadId: string | null };
 
 function History({
   conversation,
@@ -122,14 +126,6 @@ function History({
     reloadLatest,
   });
   const typing = useTypingAnnouncer(conversation.id);
-  const newestOfSaved = saved.at(-1);
-  useReadReport({
-    conversationId: conversation.id,
-    personId: currentPerson.id,
-    newestSaved: newestOfSaved && { id: newestOfSaved.id, authorId: newestOfSaved.author.id },
-    initialLastReadId: conversation.lastReadMessageId,
-    isReady: isSynced,
-  });
   // As pendentes vêm sempre depois das gravadas, e passam pelo mesmo agrupamento.
   const messages = useMemo<(Message & { status?: PendingStatus })[]>(
     () => [...saved, ...pending],
@@ -169,13 +165,41 @@ function History({
   // layout da renderização que a trouxe).
   const isAtEnd = useRef(true);
   const [hasNewBelow, setHasNewBelow] = useState(false);
-  // A ida até a Mensagem citada (spec da F06, "Ir até a Mensagem citada"): a original procurada,
-  // enquanto as páginas anteriores carregam, e a que fica destacada por 2 s ao chegar.
-  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
-  const isJumping = useRef(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  // O divisor de novas Mensagens (spec da F07, "Abrir na primeira Não lida e o divisor"): a Última
+  // leitura guardada ao abrir, só com Não lidas naquele momento, é a referência dele, e ele não se
+  // move enquanto a Pessoa fica na Conversa. Quando o foco da aba volta e chegaram Mensagens sem
+  // foco, a referência passa a ser a Última leitura que o aviso de leitura conhecia.
+  const [dividerAfter, setDividerAfter] = useState<{ lastReadId: string | null } | null>(() =>
+    conversation.unreadCount > 0 ? { lastReadId: conversation.lastReadMessageId } : null,
+  );
+  const firstUnread = useMemo(
+    () => (dividerAfter ? firstUnreadId(saved, dividerAfter.lastReadId, currentPerson.id) : null),
+    [saved, dividerAfter, currentPerson.id],
+  );
+  const newestOfSaved = saved.at(-1);
+  useReadReport({
+    conversationId: conversation.id,
+    personId: currentPerson.id,
+    newestSaved: newestOfSaved && { id: newestOfSaved.id, authorId: newestOfSaved.author.id },
+    initialLastReadId: conversation.lastReadMessageId,
+    isReady: isSynced,
+    // Quando o foco volta e chegaram Mensagens sem foco, a referência do divisor passa a ser a
+    // Última leitura que o aviso conhecia.
+    onFocusReturn: (lastReadId) => {
+      if (firstUnreadId(saved, lastReadId, currentPerson.id)) setDividerAfter({ lastReadId });
+    },
+  });
+  // A ida (spec da F06, "Ir até a Mensagem citada"): até a original de uma Citação, que fica
+  // destacada por 2 s ao chegar, ou, ao abrir com Não lidas, até a primeira delas, com o divisor no
+  // topo da área visível (spec da F07). As páginas anteriores carregam até o alvo estar na lista.
+  const [jumpTarget, setJumpTarget] = useState<JumpTarget | null>(() =>
+    dividerAfter ? { kind: "unread", lastReadId: dividerAfter.lastReadId } : null,
+  );
+  const isJumping = useRef(jumpTarget !== null);
   // Se a ida já pediu uma página: só a falha dessa carga encerra a ida, e não uma falha de antes.
   const jumpRequestedLoad = useRef(false);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const listRef = useRef<HTMLOListElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   // Depois de apagar a própria Mensagem, o foco vai para a seguinte da lista, ou para a caixa de
@@ -283,20 +307,47 @@ function History({
     }
     isJumping.current = true;
     jumpRequestedLoad.current = false;
-    setJumpTarget(messageId);
+    setJumpTarget({ kind: "message", id: messageId });
   }
+
+  // Leva o divisor ao topo da área visível, se ele ficou fora dela; à vista, a lista fica no fim.
+  const showDivider = useCallback(() => {
+    const element = scrollRef.current;
+    const divider = listRef.current?.querySelector("[data-unread-divider]");
+    if (!element || !divider) return;
+    const area = element.getBoundingClientRect();
+    const { top } = divider.getBoundingClientRect();
+    if (top >= area.top && top <= area.bottom) return;
+    anchor.current = null;
+    divider.scrollIntoView({ block: "start" });
+    measureEnd();
+  }, [measureEnd]);
 
   // Sem a original na lista, carrega as páginas anteriores, maiores, até achá-la ou até saber que
   // ela não está mais lá.
-  const step = jumpTarget ? jumpStep(saved, jumpTarget, hasOlder) : null;
+  const stepFor = (target: JumpTarget | null) => target
+    ? target.kind === "message"
+      ? jumpStep(saved, target.id, hasOlder)
+      : needsOlderForUnread(saved, target.lastReadId, hasOlder)
+        ? "continue"
+        : "found"
+    : null;
+  const step = stepFor(jumpTarget);
+  // Enquanto as anteriores carregam até a primeira Não lida, o divisor não aparece: ficaria acima da
+  // Mensagem mais antiga carregada, que ainda não é a primeira Não lida.
+  const shownUnread = jumpTarget?.kind === "unread" && step === "continue" ? null : firstUnread;
   const advanceJump = useEffectEvent(() => {
     if (!jumpTarget || !step) return;
+    const isUnread = jumpTarget.kind === "unread";
     if (step === "continue") {
       if (isLoadingOlder) return;
       if (olderFailed && jumpRequestedLoad.current) {
         isJumping.current = false;
         setJumpTarget(null);
-        toast.error("Não foi possível ir até a mensagem.");
+        // Sem chegar à primeira Não lida, a Conversa fica onde está, sem divisor: ele ficaria
+        // acima de uma Mensagem com Não lidas antes dela.
+        if (isUnread) setDividerAfter(null);
+        else toast.error("Não foi possível ir até a mensagem.");
         return;
       }
       jumpRequestedLoad.current = true;
@@ -305,7 +356,8 @@ function History({
     }
     isJumping.current = false;
     setJumpTarget(null);
-    if (step === "found") showMessage(jumpTarget);
+    if (isUnread) showDivider();
+    else if (step === "found") showMessage(jumpTarget.id);
     else toast("A mensagem não está mais disponível");
   });
   // A cada página que chega (ou falha), o próximo passo da ida, no quadro seguinte, depois de a lista
@@ -413,8 +465,10 @@ function History({
                 key={`${message.author.id}:${message.clientId}`}
                 message={message}
                 timeZone={timeZone}
-                compact={compact}
+                // A primeira Não lida mostra a autora, logo abaixo do divisor.
+                compact={compact && message.id !== shownUnread}
                 dayLabel={dayLabel}
+                unreadDivider={message.id === shownUnread}
                 status={message.status ?? "sent"}
                 currentPersonId={currentPerson.id}
                 onGoToQuote={goToMessage}
@@ -445,7 +499,7 @@ function History({
             ))}
           </ol>
         </div>
-        {jumpTarget ? (
+        {step === "continue" ? (
           <div className="absolute left-1/2 top-2 -translate-x-1/2" role="status">
             <span className="flex animate-pop-in items-center gap-2 rounded-pill border border-border bg-surface-raised px-3 py-1 text-small text-fg shadow-2">
               <Spinner size="sm" />

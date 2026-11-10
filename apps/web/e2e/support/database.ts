@@ -202,3 +202,15 @@ export async function insertMention(messageId: string, person: TestPerson): Prom
     [randomUUIDv7(), messageId, person.id],
   );
 }
+
+// A Última leitura da Pessoa na Conversa, direto no banco (F07).
+export async function setLastRead(
+  conversation: TestChannel,
+  person: TestPerson,
+  messageId: string | null,
+): Promise<void> {
+  await pool.query(
+    "UPDATE conversation_members SET last_read_message_id = $3 WHERE conversation_id = $1 AND person_id = $2",
+    [conversation.id, person.id, messageId],
+  );
+}

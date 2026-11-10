@@ -9,6 +9,7 @@ import { cn } from "@/app/utils/cn";
 import type { Message } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
+import { UnreadDivider } from "./unread-divider";
 import { MessageActions } from "./message-actions";
 import { MessageBody } from "./message-body";
 import { MessageEditor } from "./message-editor";
@@ -22,6 +23,8 @@ type MessageItemProps = {
   compact?: boolean;
   // Rótulo do divisor de dia, na primeira Mensagem de cada dia.
   dayLabel?: string;
+  // A primeira Não lida da Conversa leva o divisor de novas Mensagens (spec da F07).
+  unreadDivider?: boolean;
   // Estado do envio (22:11072 e 22:12030): "sent" para as gravadas.
   status?: "sent" | "sending" | "failed";
   onRetry?: () => void;
@@ -58,6 +61,7 @@ export function MessageItem({
   timeZone,
   compact = false,
   dayLabel,
+  unreadDivider = false,
   status = "sent",
   onRetry,
   onDiscard,
@@ -121,6 +125,7 @@ export function MessageItem({
       className={cn("flex flex-col", status === "sending" && "opacity-60")}
     >
       {dayLabel && <DayDivider label={dayLabel} />}
+      {unreadDivider && <UnreadDivider />}
       <div
         data-mentions-me={mentionsMe || undefined}
         data-highlighted={highlighted || undefined}

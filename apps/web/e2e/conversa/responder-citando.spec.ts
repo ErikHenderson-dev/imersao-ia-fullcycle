@@ -7,16 +7,18 @@ import {
   openDeleteDialog,
   readyHistory,
 } from "../support/conversation-page";
-import { insertMessages, softDeleteMessage } from "../support/database";
+import { insertMessages, setLastRead, softDeleteMessage } from "../support/database";
 
 test.describe("Responder citando uma Mensagem", () => {
   test.beforeEach(async ({ page, sharedChannel, person, otherPerson, loggedInPage }) => {
     void loggedInPage;
     const at = Date.now() - 120_000;
-    await insertMessages(sharedChannel, [
+    const iniciais = await insertMessages(sharedChannel, [
       { author: otherPerson, body: "Alguém viu o aviso de acessibilidade?", at: new Date(at) },
       { author: person, body: "Uma minha para citar", at: new Date(at + 1_000) },
     ]);
+    // Tudo lido: abrir com Não lidas mostraria o divisor de novas Mensagens (F07).
+    await setLastRead(sharedChannel, person, iniciais.at(-1)!.id);
     await page.goto(`/conversas/${sharedChannel.id}`);
     await readyHistory(page, sharedChannel.name);
   });
