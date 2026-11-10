@@ -1,6 +1,6 @@
 # 06: Responder citando uma Mensagem
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** qualquer Membro escolhe "Responder" numa Mensagem; a caixa de mensagem mostra
 "Respondendo a <nome>" com o começo do texto, e a Mensagem enviada aparece com a Citação acima do
