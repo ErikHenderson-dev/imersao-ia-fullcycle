@@ -11,7 +11,8 @@ from google.genai import types
 
 from app.config import ModelSettings, load_model_settings
 
-# Tentativas do cliente do Gemini numa falha transitória; o LiteLlm não tem equivalente no ADK.
+# Tentativas do cliente do Gemini numa falha transitória; a spec da F11 ("Modelo de IA") as dá só
+# ao caminho nativo, e o LiteLlm segue sem elas.
 GEMINI_ATTEMPTS = 3
 
 

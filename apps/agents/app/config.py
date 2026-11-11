@@ -46,8 +46,9 @@ class ModelSettings(BaseSettings):
         """O provedor pelo prefixo do AGENT_MODEL."""
         if self.agent_model.startswith("gemini") and "/" not in self.agent_model:
             return "gemini"
-        prefix = self.agent_model.split("/", 1)[0]
-        if prefix in PROVIDER_KEYS:
+        prefix, _, name = self.agent_model.partition("/")
+        # openai/ sem o nome do modelo falharia só na primeira chamada ao provedor.
+        if prefix in PROVIDER_KEYS and name.strip():
             return prefix
         raise _missing("AGENT_MODEL")
 

@@ -34,6 +34,7 @@ def test_openai_e_anthropic_usam_o_lite_llm(
     assert model._additional_args["api_key"] == next(iter(keys.values()))
 
 
-def test_falha_com_um_provedor_desconhecido() -> None:
+@pytest.mark.parametrize("agent_model", ["mistral/large", "openai/", "gemini/x"])
+def test_falha_com_um_provedor_desconhecido_ou_sem_modelo(agent_model: str) -> None:
     with pytest.raises(ConfigError, match="AGENT_MODEL"):
-        build_model(ModelSettings(agent_model="mistral/large"))
+        build_model(ModelSettings(agent_model=agent_model, openai_api_key="sk"))
