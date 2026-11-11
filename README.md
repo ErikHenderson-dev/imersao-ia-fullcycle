@@ -91,8 +91,9 @@ ao fim de uma aula, faça checkout da tag ou da branch dela.
 
 | Aula | O que foi feito | Onde ver |
 | --- | --- | --- |
-| 01 | Do zero ao chat completo. A base: product brief, HLD, LLD e ADRs escritos com IA, projetos Next.js e NestJS, ambiente no Docker e `AGENTS.md`, rules e skills para guiar os agentes de código. Depois, as funcionalidades [F01 a F09](docs/roadmap.md): login e sessão, mensagens em canal público, tempo real, criação de canais e canal privado, perfil e conversa direta, ações na mensagem, não lidas e menções, notificações e Atividade, perfil e tema | Branch [`feature/aula-01`](https://github.com/devfullcycle/imersao-ia1/tree/feature/aula-01) · tags [`aula-01-inicio`](https://github.com/devfullcycle/imersao-ia1/tree/aula-01-inicio) e [`aula-01-fim`](https://github.com/devfullcycle/imersao-ia1/tree/aula-01-fim) |
-| 02 | Em andamento 👀 Começa onde a aula 01 parou | Branch [`feature/aula-02`](https://github.com/devfullcycle/imersao-ia1/tree/feature/aula-02) |
+| 01 | Do zero à base do projeto: product brief, HLD, LLD e ADRs escritos com IA; projetos Next.js e NestJS criados; ambiente de desenvolvimento no Docker; `AGENTS.md`, rules e skills para guiar os agentes de código | Branch [`feature/aula-01`](https://github.com/devfullcycle/imersao-ia1/tree/feature/aula-01) · tags [`aula-01-inicio`](https://github.com/devfullcycle/imersao-ia1/tree/aula-01-inicio) e [`aula-01-fim`](https://github.com/devfullcycle/imersao-ia1/tree/aula-01-fim) |
+| 02 | Do planejamento ao chat completo: roadmap, design system e as skills de PRD, plano de tarefa e TDD; depois, as funcionalidades [F01 a F09](docs/roadmap.md), cada uma com PRD, spec e tarefas: login e sessão, mensagens em canal público, tempo real, criação de canais e canal privado, perfil e conversa direta, ações na mensagem, não lidas e menções, notificações e Atividade, perfil e tema | Branch [`feature/aula-02`](https://github.com/devfullcycle/imersao-ia1/tree/feature/aula-02) · tags [`aula-02-inicio`](https://github.com/devfullcycle/imersao-ia1/tree/aula-02-inicio) e [`aula-02-fim`](https://github.com/devfullcycle/imersao-ia1/tree/aula-02-fim) |
+| 03+ | Em breve 👀 | |
 
 ## ▶️ Como executar
 
