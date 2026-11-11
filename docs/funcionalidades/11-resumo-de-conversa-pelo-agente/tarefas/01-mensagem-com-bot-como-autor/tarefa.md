@@ -1,6 +1,6 @@
 # 01: A Mensagem pode ter um bot como autor
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Mensagem gravada por um bot aparece para todos os Membros, no histórico e
 em tempo real, como Mensagem de Agente: com o AgentAvatar, o nome do Agente e o AgentTag, e o nome
