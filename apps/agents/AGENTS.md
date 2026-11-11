@@ -15,8 +15,7 @@ implantação é numa PaaS (ADR 0004). A avaliação é pelo `adk eval`, e não 
 
 ## Agentes
 
-Cada agente tem uma pasta em `app/agents/<agente>/`, com `agent.py` (o `root_agent` e o `App`) e
-os arquivos só dele, como `tools.py`. As regras do layout estão no `docs/lld.md`, seção
+O layout de um agente por pasta, em `app/agents/<agente>/`, está no `docs/lld.md`, seção
 "Componentes e dependências", em "Agentes no projeto `agents`".
 
 O `agents-cli-manifest.yaml` aponta para um agente só, o `assistente`
@@ -32,9 +31,10 @@ Todos rodam no contêiner `agents`, a partir da raiz do repositório:
 docker compose -f compose.yaml exec agents <comando>
 ```
 
+Subir o Serviço de agentes está no `AGENTS.md` da raiz, seção "Subir e derrubar".
+
 | Comando | O que faz |
 | --- | --- |
-| `uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000` | Sobe o Serviço de agentes (`http://localhost:3002`, com a interface web do ADK) |
 | `uv run agents-cli playground --host 0.0.0.0 --port 8000` | Interface web do ADK com recarga, para conversar com os agentes |
 | `uv run agents-cli run "<pedido>"` | Teste rápido: manda um pedido ao agente do manifesto e mostra a resposta |
 | `uv run adk run app/agents/<agente>` | Conversa com um agente pelo terminal |
@@ -67,9 +67,6 @@ Os testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_
 | Integração | `tests/integration/` | O agente com o modelo real e o app HTTP de pé, num processo próprio e numa porta livre |
 | Avaliação | `tests/eval/<agente>/` | O comportamento do agente, pelo `adk eval` (seção "Avaliação") |
 
-Nunca escreva teste de unidade ou de integração que confira o conteúdo da resposta do modelo, que
-não é determinístico: o comportamento do agente se prova na avaliação.
-
 ## Avaliação
 
 Cada agente tem uma pasta em `tests/eval/<agente>/`, com:
@@ -79,20 +76,7 @@ Cada agente tem uma pasta em `tests/eval/<agente>/`, com:
 - `test_config.json`: os critérios e os limiares, como `tool_trajectory_avg_score` e
   `final_response_match_v2`.
 
-O juiz LLM usa a `GEMINI_API_KEY`, pelo AI Studio. Os critérios que delegam ao serviço de
-avaliação do Vertex (`safety_v1` e os `multi_turn_*`) exigem um projeto do Google Cloud e ficam
-de fora. O `agents-cli eval` também fica de fora: o `eval grade` dele exige credencial padrão do
-Google Cloud (ADC), mesmo com métrica local. O histórico de cada execução vai para
+Por que o `adk eval`, e não o `agents-cli eval`, e quais critérios ficam de fora: `docs/lld.md`,
+seção "Estrutura do código", linha "Avaliação dos agentes". O histórico de cada execução vai para
 `app/agents/<agente>/.adk/eval_history/`, ignorado pelo git. A interface web do ADK (`playground`)
 também cria e roda casos, na aba Eval.
-
-## Regras de código
-
-- **Preserve o que não foi pedido:** mude só o código que a tarefa pede e mantenha os valores de
-  configuração, os comentários e a formatação ao redor.
-- **Nunca troque o modelo** sem pedido expresso.
-- **Ferramentas do ADK:** importe a instância da ferramenta, e não o módulo:
-  `from google.adk.tools.load_web_page import load_web_page`.
-- **Python sempre pelo uv:** `uv run python <script>`, nunca o `python` da imagem direto.
-- **Erro repetido:** se o mesmo erro aparece três vezes seguidas, pare e ataque a causa em vez de
-  tentar de novo.
