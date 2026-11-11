@@ -104,12 +104,16 @@ class RunResult:
 
 
 async def run_agent(
-    request: AgentRequestBody, deps: ExecutionDeps, session: Session, usage: Usage
-) -> RunResult:
-    """Roda o agente na sessão dada e devolve o texto final ou a marca da pergunta, vista no
-    `state_delta` do evento da ferramenta."""
+    request: AgentRequestBody,
+    deps: ExecutionDeps,
+    session: Session,
+    usage: Usage,
+    result: RunResult,
+) -> None:
+    """Roda o agente na sessão dada e guarda em `result` o texto final ou a marca da pergunta, vista
+    no `state_delta` do evento da ferramenta. Quem chama fica com a marca mesmo se a execução falhar
+    depois da pergunta gravada."""
     runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
-    result = RunResult()
     request_id = str(request.request_id)
     async for event in runner.run_async(
         user_id=session.user_id,
@@ -126,7 +130,6 @@ async def run_agent(
         if event.is_final_response() and event.content and event.content.parts:
             joined = "".join(part.text or "" for part in event.content.parts).strip()
             result.text = joined or result.text
-    return result
 
 
 async def run_request(request: AgentRequestBody, deps: ExecutionDeps) -> None:
@@ -161,13 +164,10 @@ async def execute(
     CURRENT_CHAT_API.set(deps.chat_api)
     request_id = str(request.request_id)
     log = {"request_id": request_id}
-    text: str | None = None
+    result = RunResult()
     try:
         session = await request_session(request, deps)
-        result = await run_agent(request, deps, session, usage)
-        if result.asked:
-            return "question"
-        text = result.text
+        await run_agent(request, deps, session, usage, result)
     except AlreadyExistsError:
         # Duas entregas simultâneas do mesmo Pedido, que passaram juntas pela conferência da rota:
         # a primeira é que responde.
@@ -182,9 +182,13 @@ async def execute(
         logger.error(
             "Falha no Pedido %s: %s", request_id, type(error).__name__, extra=log
         )
+    # A pergunta gravada é o fim do Pedido, mesmo que a execução tenha falhado depois dela: um "não
+    # consegui" ao lado dela a contradiria.
+    if result.asked:
+        return "question"
     # O texto do modelo recusado por outro motivo que não o Pedido vira o "não consegui".
-    if text:
-        written = await write_reply(deps.chat_api, request_id, text)
+    if result.text:
+        written = await write_reply(deps.chat_api, request_id, result.text)
         if written == "ok":
             return "reply"
         if written == "gone":

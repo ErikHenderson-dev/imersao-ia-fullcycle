@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsNotEmpty,
   IsString,
@@ -24,6 +25,7 @@ export class QuestionDto extends ReplyDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(QUICK_REPLIES_MAX)
+  @ArrayUnique()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   @MaxLength(QUICK_REPLY_MAX_LENGTH, { each: true })

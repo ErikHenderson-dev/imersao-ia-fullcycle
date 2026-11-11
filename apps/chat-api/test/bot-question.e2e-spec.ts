@@ -220,6 +220,24 @@ describe('Contagens e pergunta do bot', () => {
     expect(rows[0].question_message_id).toBe(previousId);
   });
 
+  it('duas perguntas ao mesmo tempo para a mesma Pessoa deixam uma aberta', async () => {
+    const { member, channel, bot, requestId } = await openRequest();
+    const second = await botRoutes.insertRequest(app, {
+      conversationId: channel.id,
+      requesterId: member.person.id,
+      botId: bot.id,
+    });
+
+    const responses = await Promise.all(
+      [requestId, second].map((id) => botRoutes.question(app, id)),
+    );
+
+    expect(responses.map((response) => response.status)).toEqual([201, 201]);
+    const rows = await botRoutes.pendingQuestionRows(app, channel.id);
+    expect(rows).toHaveLength(2);
+    expect(rows.filter((row) => row.closed_at === null)).toHaveLength(1);
+  });
+
   it.each([
     ['sem quick_replies', { body: 'Qual período?' }],
     ['com a lista vazia', { body: 'Qual período?', quick_replies: [] }],
@@ -228,6 +246,10 @@ describe('Contagens e pergunta do bot', () => {
       { body: 'Qual período?', quick_replies: ['a', 'b', 'c', 'd', 'e'] },
     ],
     ['com um rótulo vazio', { body: 'Qual período?', quick_replies: ['  '] }],
+    [
+      'com rótulos repetidos',
+      { body: 'Qual período?', quick_replies: ['Hoje (1)', ' Hoje (1)'] },
+    ],
   ])('responde 400 com quick_replies inválidas (%s)', async (_, payload) => {
     const { requestId } = await openRequest();
 

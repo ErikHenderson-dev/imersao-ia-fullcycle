@@ -41,6 +41,13 @@ export class PendingQuestionsService {
     request: AgentRequest,
     questionMessageId: string,
   ): Promise<{ opened: PendingQuestion; closed: ClosedQuestion | null }> {
+    // Sem pergunta aberta, o UPDATE do encerramento não trava nada: duas perguntas ao mesmo tempo
+    // para a mesma Pessoa e Conversa entram em fila por esta trava, e a segunda encerra a primeira
+    // em vez de esbarrar na única das abertas.
+    await this.txHost.tx.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+      [`pending_questions:${request.conversationId}:${request.requesterId}`],
+    );
     const closed = await this.takeOpen(
       request.conversationId,
       request.requesterId,

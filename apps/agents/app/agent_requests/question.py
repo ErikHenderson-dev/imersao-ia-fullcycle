@@ -54,10 +54,13 @@ def count_window(state: Mapping[str, Any]) -> CountWindow:
         recorte_interval(recorte, time_zone, requested_at)
         for recorte, _ in COUNTED_RECORTES
     ]
-    return CountWindow(
-        sinces=[interval.since for interval in intervals if interval.since],
-        until=intervals[0].until,
-    )
+    sinces: list[datetime] = []
+    for interval in intervals:
+        # Todo Recorte contado tem início; sem ele, a contagem e o rótulo se desalinhariam.
+        if interval.since is None:
+            raise ValueError("Recorte contado sem início")
+        sinces.append(interval.since)
+    return CountWindow(sinces=sinces, until=intervals[0].until)
 
 
 def quick_reply_labels(counts: list[int], total: int) -> list[str]:
