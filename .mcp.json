@@ -2,10 +2,17 @@
   "mcpServers": {
     "adk-docs": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "docker",
       "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "fullcycle-slack-ia-adk-docs-uv-cache:/root/.cache/uv",
+        "ghcr.io/astral-sh/uv:python3.13-trixie-slim",
+        "uvx",
         "--from",
-        "mcpdoc",
+        "mcpdoc==0.0.10",
         "--with",
         "mcp<2",
         "mcpdoc",

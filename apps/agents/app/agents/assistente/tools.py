@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 
 def get_weather(query: str) -> str:
-    """Simulates a web search. Use it get information on weather.
+    """Simulates a web search. Use it to get information on weather.
 
     Args:
         query: A string containing the location to get weather information for.
@@ -34,7 +34,7 @@ def get_current_time(query: str) -> str:
     """Simulates getting the current time for a city.
 
     Args:
-        city: The name of the city to get the current time for.
+        query: A string containing the city to get the current time for.
 
     Returns:
         A string with the current time information.
