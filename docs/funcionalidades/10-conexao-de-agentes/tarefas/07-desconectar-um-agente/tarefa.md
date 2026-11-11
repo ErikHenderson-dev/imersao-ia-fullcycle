@@ -1,6 +1,6 @@
 # 07: Desconectar um Agente
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o administrador desconecta um Agente pelo diálogo. A confirmação "Desconectar
 <nome>?" explica que ninguém mais vai conseguir mencioná-lo, que as Mensagens dele continuam e que
