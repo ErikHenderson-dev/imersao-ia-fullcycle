@@ -36,6 +36,7 @@ import {
   usePendingMessages,
 } from "@/app/hooks/use-pending-messages";
 import type {
+  AgentError,
   Conversation,
   Message,
   MessageAuthor,
@@ -152,10 +153,20 @@ function History({
     }
     applyDeleted(messageId);
   };
+  // O erro do Agente de cada Mensagem enviada por esta aba (spec da F11, "Cliente"): só quem pediu o
+  // vê, e ele some ao recarregar (LLD, "Erros").
+  const [agentErrors, setAgentErrors] = useState<Record<string, AgentError>>({});
+  const onSent = useCallback(
+    (message: Message, agentError?: AgentError) => {
+      appendSaved(message);
+      if (agentError) setAgentErrors((current) => ({ ...current, [message.id]: agentError }));
+    },
+    [appendSaved],
+  );
   const { pending, send, retry, discard, dropDelivered } = usePendingMessages(
     conversation.id,
     currentPerson,
-    appendSaved,
+    onSent,
   );
   const { isSynced } = useRealtimeMessages(conversation.id, initialPage, {
     currentPersonId: currentPerson.id,
@@ -551,6 +562,7 @@ function History({
                 onRetry={message.status ? () => retryAndFollow(message as PendingMessage) : undefined}
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
                 failure={message.status ? (message as PendingMessage).failure : undefined}
+                agentError={agentErrors[message.id]}
                 edit={
                   message.author.id === currentPerson.id && !message.status
                     ? {

@@ -1,4 +1,4 @@
-"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3; F11-T03)."""
+"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3; F11-T03; F11-T06, CA2)."""
 
 import pytest
 
@@ -10,6 +10,7 @@ REQUIRED = {
     "AGENT_MODEL": "gemini-3.8-flash",
     "CHAT_API_URL": "http://chat-api:3000",
     "CHAT_BOT_TOKEN": "segredo-do-bot",
+    "REDIS_URL": "redis://redis:6379/0",
 }
 OPTIONAL = [
     "ADK_DEV_ROUTES",
@@ -17,6 +18,7 @@ OPTIONAL = [
     "ALLOW_ORIGINS",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
+    "AGENT_REQUESTS_PER_MINUTE",
 ]
 
 
@@ -49,6 +51,7 @@ def test_adk_dev_routes_e_falso_quando_ausente(env: pytest.MonkeyPatch) -> None:
 
     assert settings.adk_dev_routes is False
     assert settings.allow_origins_list is None
+    assert settings.agent_requests_per_minute == 10
 
 
 @pytest.mark.parametrize("name", list(REQUIRED))

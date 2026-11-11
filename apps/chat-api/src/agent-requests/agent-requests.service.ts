@@ -3,7 +3,10 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { In, Repository } from 'typeorm';
-import { AgentRequest } from './agent-request.entity';
+import {
+  AgentRequest,
+  type AgentRequestClosedStatus,
+} from './agent-request.entity';
 import { AGENT_REQUEST_TTL_MS } from './agent-request-values';
 import { BotAction, BotActionType } from './bot-action.entity';
 import { RequestClosedError } from './request-closed.error';
@@ -48,6 +51,25 @@ export class AgentRequestsService {
         expiresAt: new Date(Date.now() + AGENT_REQUEST_TTL_MS),
       }),
     );
+  }
+
+  // Encerra o Pedido de quem pediu (spec da F11, "Pedido e ações de bot"). Um UPDATE só, condicionado
+  // ao `open`: o `lockForAction` de uma ação concorrente vê o encerramento depois do commit, e o
+  // Pedido já encerrado fica como está. O de outra Pessoa é desconhecido para quem chama.
+  async close(
+    personId: string,
+    requestId: string,
+    status: AgentRequestClosedStatus,
+  ): Promise<void> {
+    if (!isUUID(requestId)) throw new RequestNotFoundError();
+    const mine = { id: requestId, requesterId: personId };
+    const { affected } = await this.requests.update(
+      { ...mine, status: 'open' },
+      { status },
+    );
+    if (!affected && !(await this.requests.existsBy(mine))) {
+      throw new RequestNotFoundError();
+    }
   }
 
   // O Pedido que a Mensagem criou, ou null: o reenvio da Mensagem devolve o mesmo.

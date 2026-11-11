@@ -107,6 +107,10 @@ services:
       # credencial de bot; segredo fixo, só de desenvolvimento, igual ao do chat-api.
       CHAT_API_URL: http://chat-api:3000
       CHAT_BOT_TOKEN: dev-chat-bot-token
+      # Limite de pedidos por Pessoa (spec da F11, "Rota de Pedido"); os testes de integração usam o
+      # banco lógico 2, e o 1 é dos testes da API do chat.
+      REDIS_URL: redis://redis:6379/0
+      TEST_REDIS_URL: redis://redis:6379/2
       # Rotas genéricas e interface web do ADK, só no desenvolvimento.
       ADK_DEV_ROUTES: "true"
       # Banco dos testes de integração, recriado a cada execução pelo superusuário local.
@@ -123,6 +127,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Sem o Redis, o Serviço de agentes sobe e recusa os Pedidos com agents_unavailable.
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:18

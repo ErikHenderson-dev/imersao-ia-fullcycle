@@ -17,7 +17,7 @@ from google.adk.agents import Agent
 from google.adk.apps import App
 
 from app.eval_fixtures import fixture_tool_callback
-from app.model import build_model
+from app.model import build_model, generation_config
 
 from .instructions import build_instruction
 from .tools import ler_mensagens
@@ -31,6 +31,8 @@ root_agent = Agent(
     name="assistente",
     # Provedor e modelo por AGENT_MODEL (spec da F11, "Modelo de IA").
     model=build_model(),
+    # O teto de tokens de saída do Pedido (spec da F11, "Modelo de IA").
+    generate_content_config=generation_config(),
     # Instruções do resumo (spec da F11, "O Agente `assistente`").
     instruction=build_instruction,
     tools=[ler_mensagens],

@@ -18,6 +18,7 @@ import {
   unreadFromPayload,
   type UnreadPayload,
 } from "@/app/utils/conversation-event";
+import type { AgentErrorReason } from "@/app/utils/agent-request-failure";
 import { initials } from "@/app/utils/initials";
 import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -283,8 +284,12 @@ export type AgentRequest = {
   parentRequestId: string | null;
 };
 
+// O Agente não recebeu o Pedido da Mensagem gravada: o aviso ao lado dela, só para quem pediu (LLD,
+// "Erros").
+export type AgentError = { reason: AgentErrorReason; agentName: string };
+
 export type SendMessageResult =
-  | { kind: "ok"; message: Message; agentRequest: AgentRequest | null }
+  | { kind: "ok"; message: Message; agentRequest: AgentRequest | null; agentError?: AgentError }
   // O agent_username não é de um bot: o Agente está conectado, mas o bot dele não foi criado.
   | { kind: "bot_not_found" }
   | { kind: "invalid" }
@@ -428,6 +433,23 @@ export async function sendMessage(
     return { kind: "quote_not_found" };
   }
   return commonFailure(response);
+}
+
+// Encerra o Pedido que o Serviço de agentes não aceitou (spec da F11, "Disparo pelo BFF"). A falha só
+// vai para o log: o Pedido vence sozinho, e a tela já mostra o que precisa.
+export async function closeAgentRequest(
+  token: string,
+  requestId: string,
+  status: "failed" | "cancelled",
+): Promise<void> {
+  const response = await request(`/v1/agent-requests/${encodeURIComponent(requestId)}/close`, {
+    method: "POST",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (response?.status !== 204) {
+    console.warn(`Pedido não encerrado na API do chat (status ${response?.status ?? "sem resposta"})`);
+  }
 }
 
 // Editar a própria Mensagem (spec da F06, "Rotas").

@@ -13,6 +13,7 @@ import subprocess
 import threading
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -64,7 +65,11 @@ def test_database_url() -> Iterator[str]:
 
 
 def settings_for(
-    url: str, *, adk_dev_routes: bool, chat_api_url: str = NO_CHAT_API
+    url: str,
+    *,
+    adk_dev_routes: bool,
+    chat_api_url: str = NO_CHAT_API,
+    redis_url: str | None = None,
 ) -> Settings:
     return Settings(
         database_url=url,
@@ -73,9 +78,18 @@ def settings_for(
         adk_dev_routes=adk_dev_routes,
         chat_api_url=chat_api_url,
         chat_bot_token=BOT_TOKEN,
+        # O banco lógico do Redis dos testes (TEST_REDIS_URL no compose.yaml).
+        redis_url=redis_url or redis_url_for_tests(),
         # Sessões do ADK em memória: os testes não gravam no banco de desenvolvimento.
         session_service_uri=None,
     )
+
+
+def redis_url_for_tests() -> str:
+    url = os.environ.get("TEST_REDIS_URL")
+    if not url:
+        raise RuntimeError("TEST_REDIS_URL é obrigatória")
+    return url
 
 
 async def _client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
@@ -125,15 +139,29 @@ async def clean_registry(engine: AsyncEngine) -> None:
 class FakeChatApi:
     """A API do chat falsa, num servidor temporário em 127.0.0.1: guarda cada requisição; responde
     201 com uma Mensagem qualquer às ações (F11-T03) e 200 com `conversation` à leitura do Recorte
-    (F11-T04)."""
+    (F11-T04). `failures` faz a rota cujo caminho termina com a chave responder, na ordem, os
+    status da lista, um por chamada (F11-T06)."""
 
     def __init__(self) -> None:
         self.requests: list[dict] = []
         # A leitura devolve estas Mensagens, no formato da rota, como estão.
         self.conversation: list[dict] = []
+        self.failures: dict[str, list[int]] = {}
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
+            def respond(self, path: str, status: int, payload: dict) -> None:
+                for suffix, statuses in fake.failures.items():
+                    if path.endswith(suffix) and statuses:
+                        status = statuses.pop(0)
+                        payload = {"code": "falha_do_teste"}
+                body = json.dumps(payload).encode()
+                self.send_response(status)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
             def do_GET(self) -> None:
                 url = urlparse(self.path)
                 fake.requests.append(
@@ -147,14 +175,11 @@ class FakeChatApi:
                         "authorization": self.headers.get("authorization"),
                     }
                 )
-                payload = json.dumps(
-                    {"messages": fake.conversation, "total": len(fake.conversation)}
-                ).encode()
-                self.send_response(200)
-                self.send_header("content-type", "application/json")
-                self.send_header("content-length", str(len(payload)))
-                self.end_headers()
-                self.wfile.write(payload)
+                self.respond(
+                    url.path,
+                    200,
+                    {"messages": fake.conversation, "total": len(fake.conversation)},
+                )
 
             def do_POST(self) -> None:
                 length = int(self.headers.get("content-length") or 0)
@@ -166,12 +191,7 @@ class FakeChatApi:
                         "body": json.loads(self.rfile.read(length) or b"null"),
                     }
                 )
-                payload = json.dumps({"message": {"id": str(uuid.uuid4())}}).encode()
-                self.send_response(201)
-                self.send_header("content-type", "application/json")
-                self.send_header("content-length", str(len(payload)))
-                self.end_headers()
-                self.wfile.write(payload)
+                self.respond(self.path, 201, {"message": {"id": str(uuid.uuid4())}})
 
             def log_message(self, format: str, *args: object) -> None:
                 pass
@@ -206,4 +226,37 @@ async def request_client(
             )
         )
     ):
+        yield client
+
+
+async def set_assistant_connected(client: httpx.AsyncClient, connected: bool) -> None:
+    """O `assistente` conectado ou não no registro do `agents_test` (F11-T06: a rota de Pedido
+    confere a conexão)."""
+    transport = client._transport
+    assert isinstance(transport, httpx.ASGITransport)
+    async with transport.app.state.engine.begin() as connection:
+        await connection.execute(
+            text("DELETE FROM connected_agents WHERE slug = 'assistente'")
+        )
+        if connected:
+            await connection.execute(
+                text(
+                    "INSERT INTO connected_agents (slug, connected_by)"
+                    " VALUES ('assistente', :person)"
+                ),
+                {"person": uuid.uuid4()},
+            )
+
+
+@pytest_asyncio.fixture
+async def connected_assistant(request_client: httpx.AsyncClient) -> None:
+    await set_assistant_connected(request_client, True)
+
+
+@asynccontextmanager
+async def app_client(settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
+    """Um app de produção com a configuração que o teste pede (F11-T06)."""
+    from app.fast_api_app import create_app
+
+    async for client in _client(create_app(settings)):
         yield client

@@ -67,3 +67,21 @@ renovação do modelo interfere. O teste não depende do `agentsLock`.
 2. **O aviso do Agente some quando a resposta chega:** com o bot digitando, ele grava a resposta
    (`botReply`); o aviso some na hora, antes da expiração, e a Mensagem do Agente aparece para o
    Bruno.
+
+## F11-T06 · Falhas e limite de pedidos (`agentes/erro-do-agente.spec.ts`)
+
+Os dois primeiros testes seguram o `agentsLock` e conectam o `assistente`, porque o BFF só cria o
+Pedido com o Agente conectado no registro. Parar o Serviço de agentes também derrubaria o registro, e
+a Menção viraria texto comum ("Disparo pelo BFF", passo 1); por isso o Serviço de agentes fica de pé
+e recusa só o `POST /v1/requests` da Ana, pelas chaves do limite dela no Redis (`support/redis.ts`).
+
+1. **O erro do Agente aparece só para quem pediu e o Pedido fica failed:** com a chave do limite da
+   Ana num valor que o Redis não conta (`breakAgentRequestLimit`), o Serviço de agentes responde
+   503; a Ana envia "@assistente resume hoje" e vê a Mensagem gravada com "O Assistente não recebeu o
+   pedido. Mencione de novo." ao lado; o Bruno vê a Mensagem sem o erro; o Pedido fica `failed`.
+2. **Passar do limite mostra o erro de limite a quem pediu:** com os 10 Pedidos do minuto feitos
+   (`fillAgentRequestLimit`), o 11º mostra "Muitos pedidos em pouco tempo. Tente de novo em um
+   minuto." e fica `failed`.
+3. **O não consegui do Agente aparece para as duas Pessoas:** como na F11-T05, o Pedido nasce pela
+   rota de envio da API do chat, e o bot do teste grava o texto fixo do "não consegui" pela `reply`;
+   a Mensagem do Agente aparece nas duas abas.

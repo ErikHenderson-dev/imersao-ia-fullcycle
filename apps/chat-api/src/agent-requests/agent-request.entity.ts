@@ -7,6 +7,9 @@ import { Person } from '../people/person.entity';
 
 export type AgentRequestKind = 'new' | 'continuation';
 export type AgentRequestStatus = 'open' | 'failed' | 'cancelled';
+// Os estados de encerramento, que só o BFF grava (LLD, "Pedido ao agente e Pergunta pendente").
+export const CLOSED_STATUSES = ['failed', 'cancelled'] as const;
+export type AgentRequestClosedStatus = (typeof CLOSED_STATUSES)[number];
 
 // O Pedido a um Agente (spec da F11, "Pedido e ações de bot"): o id é o identificador de pedido
 // que limita as ações do bot (ADR 0011). Os CHECK ficam também na migração AddAgentRequests.

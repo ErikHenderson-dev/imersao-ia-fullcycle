@@ -1,4 +1,5 @@
-"""Receber um Pedido e responder na Conversa: POST /v1/requests (F11-T03, CA4; o "digitando", F11-T05, CA4).
+"""Receber um Pedido e responder na Conversa: POST /v1/requests (F11-T03, CA4; o "digitando", F11-T05,
+CA4; a conexão, o limite e o log do Pedido, F11-T06, CA2 e CA6).
 
 Com o app real, o modelo real e a API do chat falsa do conftest.py.
 """
@@ -6,13 +7,21 @@ Com o app real, o modelo real e a API do chat falsa do conftest.py.
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from datetime import UTC, datetime
 
 import httpx
 import pytest
 
-from tests.integration.conftest import BOT_TOKEN, SERVICE_TOKEN, FakeChatApi
+from tests.integration.conftest import (
+    BOT_TOKEN,
+    SERVICE_TOKEN,
+    FakeChatApi,
+    app_client,
+    set_assistant_connected,
+    settings_for,
+)
 
 AUTH = {"Authorization": f"Bearer {SERVICE_TOKEN}"}
 
@@ -64,6 +73,24 @@ async def wait_for_reply(fake: FakeChatApi) -> list[dict]:
     raise AssertionError(f"A API do chat recebeu {fake.requests}")
 
 
+async def wait_for_end_log(
+    caplog: pytest.LogCaptureFixture, request_id: str
+) -> logging.LogRecord:
+    """O registro do fim do Pedido (F11-T06, CA6), que sai logo depois da gravação."""
+    for _ in range(REPLY_TIMEOUT_S * 10):
+        ends = [
+            record
+            for record in caplog.records
+            if getattr(record, "request_id", None) == request_id
+            and hasattr(record, "desfecho")
+        ]
+        if ends:
+            [end] = ends
+            return end
+        await asyncio.sleep(0.1)
+    raise AssertionError("O Pedido terminou sem o registro do fim")
+
+
 async def test_responde_401_sem_a_credencial(request_client: httpx.AsyncClient) -> None:
     response = await request_client.post("/v1/requests", json=pedido())
 
@@ -84,8 +111,12 @@ async def test_responde_404_fora_do_catalogo(
 
 
 async def test_aceita_o_pedido_e_grava_a_resposta_como_reply(
-    request_client: httpx.AsyncClient, fake_chat_api: FakeChatApi
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
+    caplog.set_level(logging.INFO, logger="app")
     body = pedido()
 
     response = await request_client.post("/v1/requests", json=body, headers=AUTH)
@@ -115,10 +146,21 @@ async def test_aceita_o_pedido_e_grava_a_resposta_como_reply(
     assert session.state["conversation_id"] == body["conversation_id"]
     assert session.state["requester_id"] == body["requester"]["id"]
     assert session.state["time_zone"] == "America/Sao_Paulo"
+    end = await wait_for_end_log(caplog, body["request_id"])
+    assert end.levelno == logging.INFO
+    assert end.desfecho == "reply"
+    assert end.tempo_ms > 0
+    assert end.tokens_entrada > 0
+    assert end.tokens_saida > 0
+    logged = "\n".join(record.getMessage() for record in caplog.records)
+    assert body["message"]["body"] not in logged
+    assert reply["body"]["body"] not in logged
 
 
 async def test_um_pedido_com_recorte_le_o_recorte_certo_e_grava_o_resumo(
-    request_client: httpx.AsyncClient, fake_chat_api: FakeChatApi
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
 ) -> None:
     # 03:30 de 11/11 em Tóquio (UTC+9): o "hoje" começa às 15:00 UTC de 10/11.
     asked_at = datetime(2026, 11, 10, 18, 30, tzinfo=UTC)
@@ -157,3 +199,72 @@ async def test_um_pedido_com_recorte_le_o_recorte_certo_e_grava_o_resumo(
     assert reply["path"] == f"/v1/bot/requests/{body['request_id']}/reply"
     assert reply["body"]["body"].strip()
     assert "@" not in reply["body"]["body"]
+
+
+async def test_responde_409_com_o_agente_desconectado(
+    request_client: httpx.AsyncClient, fake_chat_api: FakeChatApi
+) -> None:
+    await set_assistant_connected(request_client, False)
+
+    response = await request_client.post("/v1/requests", json=pedido(), headers=AUTH)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "agent_not_connected"
+    assert fake_chat_api.requests == []
+
+
+async def test_responde_429_acima_do_limite_de_pedidos_da_pessoa_no_minuto(
+    test_database_url: str,
+    fake_chat_api: FakeChatApi,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # Com o limite em 1, o segundo Pedido da mesma Pessoa no minuto é o que passa do limite; o
+    # padrão de 10 é o da configuração (tests/unit/test_config.py).
+    settings = settings_for(
+        test_database_url, adk_dev_routes=False, chat_api_url=fake_chat_api.url
+    )
+    settings.agent_requests_per_minute = 1
+    caplog.set_level(logging.INFO, logger="app")
+    async with app_client(settings) as client:
+        await set_assistant_connected(client, True)
+        first = pedido()
+        second = {**pedido(), "requester": first["requester"]}
+        accepted = await client.post("/v1/requests", json=first, headers=AUTH)
+        await wait_for_reply(fake_chat_api)
+
+        response = await client.post("/v1/requests", json=second, headers=AUTH)
+
+        assert accepted.status_code == 202
+        assert response.status_code == 429
+        assert response.json()["code"] == "rate_limited"
+        [warning] = [
+            record
+            for record in caplog.records
+            if getattr(record, "request_id", None) == second["request_id"]
+        ]
+        assert warning.levelno == logging.WARNING
+        assert second["message"]["body"] not in warning.getMessage()
+        assert not any(
+            call["path"].startswith(f"/v1/bot/requests/{second['request_id']}")
+            for call in fake_chat_api.requests
+        )
+
+
+async def test_responde_503_com_o_redis_fora(
+    test_database_url: str, fake_chat_api: FakeChatApi
+) -> None:
+    # Ninguém escuta nesta porta: o Redis do limite está fora.
+    settings = settings_for(
+        test_database_url,
+        adk_dev_routes=False,
+        chat_api_url=fake_chat_api.url,
+        redis_url="redis://127.0.0.1:9/0",
+    )
+    async with app_client(settings) as client:
+        await set_assistant_connected(client, True)
+
+        response = await client.post("/v1/requests", json=pedido(), headers=AUTH)
+
+        assert response.status_code == 503
+        assert response.json()["code"] == "agents_unavailable"
+        assert fake_chat_api.requests == []

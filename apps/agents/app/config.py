@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import StringConstraints, ValidationError
+from pydantic import PositiveInt, StringConstraints, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Provider = Literal["gemini", "openai", "anthropic"]
@@ -80,6 +80,10 @@ class Settings(ModelSettings):
     # "Execução do Pedido").
     chat_api_url: Required
     chat_bot_token: Required
+    # O Redis do limite de pedidos por Pessoa, e o limite por minuto (spec da F11, "Rota de
+    # Pedido"; LLD, "Valores e configuração").
+    redis_url: Required
+    agent_requests_per_minute: PositiveInt = 10
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False
     # Lidas também pelo código gerado (app_utils/services.py e fast_api_app.py).

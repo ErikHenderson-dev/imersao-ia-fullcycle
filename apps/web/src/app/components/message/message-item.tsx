@@ -11,7 +11,7 @@ import { PersonAvatar, PersonName } from "@/app/components/people/person-display
 import { UserStatus } from "@/app/components/people/user-status";
 import { buttonVariants } from "@/app/components/ui/button";
 import { cn } from "@/app/utils/cn";
-import type { Message } from "@/app/services/chat-api";
+import type { AgentError, Message } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
 import { UnreadDivider } from "./unread-divider";
@@ -48,6 +48,9 @@ type MessageItemProps = {
   // citada").
   onGoToQuote?: (messageId: string) => void;
   highlighted?: boolean;
+  // O Agente não recebeu o Pedido desta Mensagem: o aviso ao lado dela, só na aba de quem pediu
+  // (spec da F11, "Cliente").
+  agentError?: AgentError;
 };
 
 export type MessageEdit = {
@@ -76,6 +79,7 @@ export function MessageItem({
   failure,
   onGoToQuote,
   highlighted = false,
+  agentError,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -123,6 +127,7 @@ export function MessageItem({
         />
       )}
       {failed}
+      {agentError && <AgentRequestError error={agentError} />}
     </>
   );
   return (
@@ -193,6 +198,19 @@ function SendFailure({
         Descartar
       </button>
     </div>
+  );
+}
+
+// O erro do Agente ao lado da Mensagem enviada (Conversa / Mensagem / Erro do agente), sem ação: o
+// Pedido não volta, e quem pediu menciona de novo.
+function AgentRequestError({ error }: { error: AgentError }) {
+  return (
+    <p role="alert" className="flex items-center gap-2 pt-1 text-small text-danger-fg">
+      <CircleAlert size={16} aria-hidden />
+      {error.reason === "rate_limited"
+        ? "Muitos pedidos em pouco tempo. Tente de novo em um minuto."
+        : `O ${error.agentName} não recebeu o pedido. Mencione de novo.`}
+    </p>
   );
 }
 

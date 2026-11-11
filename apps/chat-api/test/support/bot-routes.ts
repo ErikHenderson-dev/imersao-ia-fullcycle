@@ -113,6 +113,32 @@ export const botRoutes = {
       );
   },
 
+  // O encerramento do Pedido pelo BFF, com a Sessão de quem chama, ou sem Sessão.
+  closeRequest(
+    app: INestApplication,
+    cookie: string | null,
+    requestId: string,
+    status: unknown,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .post(`/v1/agent-requests/${requestId}/close`)
+      .send({ status });
+    return cookie === null ? call : call.set('Cookie', cookie);
+  },
+
+  async requestStatus(
+    app: INestApplication,
+    requestId: string,
+  ): Promise<string> {
+    const [row] = await app
+      .get(DataSource)
+      .query<{ status: string }[]>(
+        'SELECT status FROM agent_requests WHERE id = $1',
+        [requestId],
+      );
+    return row.status;
+  },
+
   async requestRows(
     app: INestApplication,
     conversationId: string,

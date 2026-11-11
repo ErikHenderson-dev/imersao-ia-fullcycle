@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { sendMessage } from "@/app/actions/send-message";
-import type { Message, MessageAuthor, SendMessageResult } from "@/app/services/chat-api";
+import type { AgentError, Message, MessageAuthor, SendMessageResult } from "@/app/services/chat-api";
 import { newClientId } from "@/app/utils/client-id";
 import { withoutDelivered } from "@/app/utils/pending-messages";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
@@ -15,11 +15,12 @@ export type PendingMessage = Message & { status: PendingStatus; failure?: "quote
 // Mensagens ainda não gravadas (spec da F02, "Envio"): fora do cache do SWR, na ordem do envio,
 // sempre depois das gravadas. Uma fila, feita de uma cadeia de promessas, manda uma por vez, para
 // a ordem gravada ser a do envio; uma falha não trava as seguintes. Gravada, a Mensagem sai daqui
-// e entra no cache (`onSent`).
+// e entra no cache (`onSent`), com o erro do Agente quando ele não recebeu o Pedido dela (spec da F11,
+// "Cliente").
 export function usePendingMessages(
   conversationId: string,
   author: MessageAuthor,
-  onSent: (message: Message) => void,
+  onSent: (message: Message, agentError?: AgentError) => void,
 ) {
   const [pending, setPending] = useState<PendingMessage[]>([]);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -46,7 +47,7 @@ export function usePendingMessages(
           return update(clientId, { status: "failed", failure: "quote_deleted" });
         }
         if (result.kind !== "ok") return update(clientId, { status: "failed" });
-        onSent(result.message);
+        onSent(result.message, result.agentError);
         setPending((current) => current.filter((message) => message.clientId !== clientId));
       });
     },

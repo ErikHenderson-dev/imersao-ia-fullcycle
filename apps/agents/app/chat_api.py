@@ -15,7 +15,11 @@ TIMEOUT_S = 10.0
 
 
 class ChatApiError(Exception):
-    """A API do chat recusou a ação do bot ou não respondeu."""
+    """A API do chat recusou a ação do bot ou não respondeu; `status` é nulo sem resposta."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class ChatApiClient:
@@ -71,7 +75,10 @@ class ChatApiClient:
                 f"{method} {path} falhou: {type(error).__name__}"
             ) from error
         if not response.is_success:
-            raise ChatApiError(f"{method} {path} respondeu {response.status_code}")
+            raise ChatApiError(
+                f"{method} {path} respondeu {response.status_code}",
+                response.status_code,
+            )
         return response
 
 
