@@ -43,10 +43,16 @@ export function useMentionPicker({
   // Só o resultado da busca do texto atual: enquanto ela não responde, a lista some, para Enter não
   // escolher uma Pessoa que não corresponde ao que foi digitado. Os Agentes conectados vêm depois
   // dos Membros (spec da F10, "Menção a um Agente").
-  const isSettled = isWanted && search.kind === "ok" && search.query === query.query;
+  // Uma busca que falhou não traz Pessoas, mas não esconde os Agentes, que não dependem dela.
+  const isSettled =
+    isWanted &&
+    ((search.kind === "ok" && search.query === query.query) || search.kind === "failure");
   const options: MentionOption[] = isSettled
     ? [
-        ...search.people.map((person) => ({ kind: "person" as const, person })),
+        ...(search.kind === "ok" ? search.people : []).map((person) => ({
+          kind: "person" as const,
+          person,
+        })),
         ...agentMentionOptions(agents, query.query).map((agent) => ({ kind: "agent" as const, agent })),
       ]
     : [];
