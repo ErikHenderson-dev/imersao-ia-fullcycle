@@ -29,9 +29,15 @@ export function DisconnectAgentDialog({
   async function confirm(target: Agent) {
     setIsSending(true);
     const result = await disconnectAgent(target.slug).catch(() => ({ kind: "failure" }) as const);
-    if (result.kind === "ok") await onDisconnected(target);
-    setIsSending(false);
-    onClose();
+    try {
+      // A releitura depois de desconectar não pode prender a confirmação em "Enviando".
+      if (result.kind === "ok") await onDisconnected(target);
+    } catch {
+      // A lista fica como está até a próxima releitura.
+    } finally {
+      setIsSending(false);
+      onClose();
+    }
     if (result.kind === "unauthenticated") return redirectToExpiredSession();
     if (result.kind === "forbidden") toast.error("Só administradores desconectam agentes");
     else if (result.kind === "failure") toast.error("Não foi possível desconectar o agente");
