@@ -11,7 +11,7 @@ import logging
 import httpx
 import pytest
 from google.adk.agents.run_config import RunConfig
-from google.adk.sessions import InMemorySessionService
+from google.adk.sessions import InMemorySessionService, Session
 
 from app.agent_requests.execution import NAO_CONSEGUI, ExecutionDeps, run_request
 from app.agent_requests.models import AgentRequestBody
@@ -114,3 +114,29 @@ async def test_a_resposta_recusada_pelo_pedido_nao_tenta_de_novo(
     end = await wait_for_end_log(caplog, body["request_id"])
     assert end.desfecho == "discarded"
     assert len(replies(fake_chat_api)) == 1
+
+
+class BrokenSessions(InMemorySessionService):
+    """O banco das sessões fora: a criação da sessão falha."""
+
+    async def create_session(self, **kwargs: object) -> Session:
+        raise ConnectionError("banco das sessões fora")
+
+
+async def test_a_sessao_que_falha_grava_o_nao_consegui(
+    fake_chat_api: FakeChatApi, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO, logger="app")
+    body = pedido()
+    chat_api = ChatApiClient(fake_chat_api.url, BOT_TOKEN)
+    try:
+        await run_request(
+            AgentRequestBody.model_validate(body),
+            ExecutionDeps(session_service=BrokenSessions(), chat_api=chat_api),
+        )
+    finally:
+        await chat_api.close()
+
+    assert replies(fake_chat_api) == [NAO_CONSEGUI]
+    end = await wait_for_end_log(caplog, body["request_id"])
+    assert end.desfecho == "failed"

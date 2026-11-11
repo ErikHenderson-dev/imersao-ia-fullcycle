@@ -229,11 +229,12 @@ async def test_responde_429_acima_do_limite_de_pedidos_da_pessoa_no_minuto(
         await set_assistant_connected(client, True)
         first = pedido()
         second = {**pedido(), "requester": first["requester"]}
+        # O segundo logo depois do primeiro, na mesma janela de um minuto.
         accepted = await client.post("/v1/requests", json=first, headers=AUTH)
-        await wait_for_reply(fake_chat_api)
 
         response = await client.post("/v1/requests", json=second, headers=AUTH)
 
+        await wait_for_reply(fake_chat_api)
         assert accepted.status_code == 202
         assert response.status_code == 429
         assert response.json()["code"] == "rate_limited"
@@ -268,3 +269,29 @@ async def test_responde_503_com_o_redis_fora(
         assert response.status_code == 503
         assert response.json()["code"] == "agents_unavailable"
         assert fake_chat_api.requests == []
+
+
+async def test_reentregar_o_mesmo_pedido_responde_202_sem_rodar_de_novo(
+    test_database_url: str,
+    fake_chat_api: FakeChatApi,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # O reenvio do mesmo client_id dispara o mesmo Pedido de novo: ele é aceito sem gastar o
+    # limite (aqui, 1), e só a primeira entrega responde.
+    settings = settings_for(
+        test_database_url, adk_dev_routes=False, chat_api_url=fake_chat_api.url
+    )
+    settings.agent_requests_per_minute = 1
+    caplog.set_level(logging.INFO, logger="app")
+    async with app_client(settings) as client:
+        await set_assistant_connected(client, True)
+        body = pedido()
+        await client.post("/v1/requests", json=body, headers=AUTH)
+        await wait_for_end_log(caplog, body["request_id"])
+        calls_before = len(fake_chat_api.requests)
+
+        response = await client.post("/v1/requests", json=body, headers=AUTH)
+
+        assert response.status_code == 202
+        await asyncio.sleep(1)
+        assert len(fake_chat_api.requests) == calls_before

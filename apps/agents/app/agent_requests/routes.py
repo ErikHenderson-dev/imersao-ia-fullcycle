@@ -8,7 +8,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Request, Response
 
-from app.agent_requests.execution import ExecutionDeps, run_request
+from app.agent_requests.execution import ExecutionDeps, agent_app, run_request
 from app.agent_requests.models import AgentRequestBody
 from app.agent_requests.rate_limit import RequestRateLimiter
 from app.agent_requests.typing_notice import while_typing
@@ -38,6 +38,14 @@ def build_router(
             raise ProblemError(
                 409, "agent_not_connected", "O agente não está conectado."
             )
+        # O mesmo Pedido entregue de novo (o reenvio do mesmo client_id): aceito, sem gastar o limite
+        # nem rodar outra vez, porque a sessão do Pedido já existe e a primeira entrega responde.
+        if await deps.session_service.get_session(
+            app_name=agent_app(body.agent).name,
+            user_id=str(body.requester.id),
+            session_id=str(body.request_id),
+        ):
+            return Response(status_code=202)
         if not await limiter.allow(str(body.requester.id)):
             logger.warning(
                 "Pedido %s recusado pelo limite de pedidos",

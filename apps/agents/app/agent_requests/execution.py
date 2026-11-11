@@ -146,20 +146,19 @@ async def execute(
     CURRENT_CHAT_API.set(deps.chat_api)
     request_id = str(request.request_id)
     log = {"request_id": request_id}
+    text: str | None = None
     try:
         session = await deps.session_service.create_session(
             app_name=agent_app(request.agent).name,
             user_id=str(request.requester.id),
             session_id=request_id,
         )
+        text = await final_text(request, deps, session, usage)
     except AlreadyExistsError:
-        # O mesmo Pedido entregue de novo (o reenvio do mesmo client_id): a primeira entrega é que
-        # responde.
+        # Duas entregas simultâneas do mesmo Pedido, que passaram juntas pela conferência da rota:
+        # a primeira é que responde.
         logger.warning("Pedido %s entregue de novo; ignorado", request_id, extra=log)
         return "discarded"
-    text: str | None = None
-    try:
-        text = await final_text(request, deps, session, usage)
     except LlmCallsLimitExceededError:
         logger.warning(
             "Pedido %s atingiu o teto de chamadas ao modelo", request_id, extra=log
