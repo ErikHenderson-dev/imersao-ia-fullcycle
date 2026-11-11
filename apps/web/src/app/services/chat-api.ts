@@ -40,19 +40,27 @@ type ApiPerson = {
   presence_choice: Presence;
   // O tema escolhido (spec da F09, "Pessoas").
   theme: Theme;
+  // O papel de administrador (spec da F10, "Papel de administrador").
+  is_admin: boolean;
 };
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
 // (utils/initials.ts).
-export type Person = Omit<ApiPerson, "time_zone" | "presence_choice"> & {
+export type Person = Omit<ApiPerson, "time_zone" | "presence_choice" | "is_admin"> & {
   initials: string;
   timeZone: string | null;
   // A escolha de presença (spec da F09, "Pessoas").
   presenceChoice: Presence;
+  isAdmin: boolean;
 };
 
-function toPerson({ time_zone: timeZone, presence_choice: presenceChoice, ...person }: ApiPerson): Person {
-  return { ...withInitials(person), timeZone, presenceChoice };
+function toPerson({
+  time_zone: timeZone,
+  presence_choice: presenceChoice,
+  is_admin: isAdmin,
+  ...person
+}: ApiPerson): Person {
+  return { ...withInitials(person), timeZone, presenceChoice, isAdmin };
 }
 
 export type LoginResult =
@@ -514,12 +522,17 @@ export type Profile = {
   timeZone: string | null;
   status: Status | null;
   presence?: Presence;
+  // O selo de administrador no painel de perfil (spec da F10, "Selo de administrador").
+  isAdmin: boolean;
 };
 
-type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
+type ApiProfile = Omit<Profile, "initials" | "timeZone" | "isAdmin"> & {
+  time_zone: string | null;
+  is_admin: boolean;
+};
 
-function toProfile({ time_zone: timeZone, ...person }: ApiProfile): Profile {
-  return { ...withInitials(person), timeZone };
+function toProfile({ time_zone: timeZone, is_admin: isAdmin, ...person }: ApiProfile): Profile {
+  return { ...withInitials(person), timeZone, isAdmin };
 }
 
 export type GetProfileResult =

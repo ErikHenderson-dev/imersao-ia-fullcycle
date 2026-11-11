@@ -128,6 +128,7 @@ export class PeopleService {
       | 'statusText'
       | 'presenceChoice'
       | 'theme'
+      | 'isAdmin'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -142,6 +143,7 @@ export class PeopleService {
         'time_zone',
         'presence_choice',
         'theme',
+        'is_admin',
       ])
       .execute();
     const [row] = inserted.raw as {
@@ -150,6 +152,7 @@ export class PeopleService {
       time_zone: string | null;
       presence_choice: Presence;
       theme: Theme;
+      is_admin: boolean;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
@@ -158,6 +161,7 @@ export class PeopleService {
       timeZone: row.time_zone,
       presenceChoice: row.presence_choice,
       theme: row.theme,
+      isAdmin: row.is_admin,
     });
   }
 
@@ -293,6 +297,23 @@ export class PeopleService {
 
   findByEmail(email: string): Promise<Person | null> {
     return this.people.findOneBy({ email: normalizeEmail(email) });
+  }
+
+  // Pelo @usuário, sem o `@` do começo (spec da F10, "Comando de contas").
+  findByUsername(username: string): Promise<Person | null> {
+    return this.people.findOneBy({ username: username.trim().toLowerCase() });
+  }
+
+  // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Devolve se mudou: o
+  // valor que já estava não grava nada.
+  async setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
+    const result = await this.people
+      .createQueryBuilder()
+      .update()
+      .set({ isAdmin })
+      .where('id = :personId AND is_admin <> :isAdmin', { personId, isAdmin })
+      .execute();
+    return (result.affected ?? 0) > 0;
   }
 
   // O Perfil de qualquer Pessoa (spec da F05, "Busca e Perfil"); um id que não é UUID é uma Pessoa

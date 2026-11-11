@@ -48,9 +48,21 @@ describe('Perfil de uma Pessoa', () => {
         phone: '+55 11 98888-0001',
         time_zone: null,
         status: null,
+        is_admin: false,
         presence: 'away',
       },
     });
+  });
+
+  it('traz is_admin no Perfil de quem administra', async () => {
+    const { cookie } = await authRoutes.loggedIn(app);
+    const { person } = await authRoutes.createPerson(app);
+    await app.get(PeopleService).setAdmin(person.id, true);
+
+    const response = await profileOf(cookie, person.id);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ person: { is_admin: true } });
   });
 
   it('responde 200 com cargo, telefone e fuso nulos', async () => {
