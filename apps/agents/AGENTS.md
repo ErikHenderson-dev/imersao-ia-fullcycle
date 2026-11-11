@@ -56,7 +56,8 @@ As migrações não rodam na subida: rode-as à mão no contêiner, como as da A
 Os testes de integração do registro (`tests/integration/test_registry_routes.py`) usam o banco
 `agents_test`, que o `conftest.py` apaga, cria de novo e migra a cada execução, pelo
 `TEST_DATABASE_ADMIN_URL` (o superusuário local, porque o papel `agents` não tem `CREATEDB`) e pelo
-`TEST_DATABASE_URL`, os dois no `compose.yaml`. Os outros testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
+`TEST_DATABASE_URL`, os dois no `compose.yaml`. Os testes da rota de Pedido usam o banco lógico 2 do Redis
+(`TEST_REDIS_URL`, no `compose.yaml`) para o limite de pedidos. Os outros testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
 `apps/agents/.env` (copie do `.env.example`). Mudar o `.env` ou o `compose.yaml` pede
 `docker compose -f compose.yaml up -d agents` para as variáveis novas entrarem.
 

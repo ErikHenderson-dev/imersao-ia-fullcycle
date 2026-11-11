@@ -63,7 +63,6 @@ docs/             HLD, LLD, ADRs, brief
 | Leituras no cliente que o tempo real altera | SWR | O cache recebe os eventos do WebSocket direto, sem nova requisição, e a primeira página vem do servidor como `fallbackData` ("Cliente", "Leituras e tempo real") |
 | Tempo real, no servidor e no cliente | Socket.IO | [ADR 0019](adr/0019-socket-io-tempo-real.md) |
 | Cliente do Redis na API do chat | `redis` (node-redis) | Cliente oficial do Redis |
-| Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio` | Cliente oficial do Redis, assíncrono como o app HTTP; `planejado` (spec da F11, "Rota de Pedido") |
 | API do chat | NestJS | HLD, seção 5 |
 | ORM e migrações do Banco do chat | TypeORM | [ADR 0018](adr/0018-typeorm-api-do-chat.md) |
 | Transação entre módulos na API do chat | `@nestjs-cls/transactional`, com o adaptador do TypeORM | A transação passa de um service a outro pelo contexto, sem levar o `EntityManager` à mão nem importar o repositório de outro módulo |
@@ -80,7 +79,7 @@ docs/             HLD, LLD, ADRs, brief
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini`, sem barra, usa o Gemini nativo do ADK; `openai/<modelo>` e `anthropic/<modelo>` usam o `LiteLlm` (`litellm>=1.84`); outro valor faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `existe` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
-| Cliente do Redis no Serviço de agentes | A definir, `planejada` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa |
+| Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio`, `existe` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa; cliente oficial do Redis, assíncrono como o app HTTP |
 | Geração do PDF | A definir | — |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
@@ -110,7 +109,7 @@ modelo do `root_agent` de cada pasta vem do `build_model()` de `app/model.py`, f
 
 ### Integrações externas
 
-Situação: "Eventos por pessoa (Redis)" `existe`; as demais, `planejada`.
+Situação: "Eventos por pessoa (Redis)" e "Contadores (Redis)" `existem`; as demais, `planejada`.
 
 **Armazenamento de objetos (S3)** — usado pelo Worker (gravar) e pela API do chat (URL).
 
@@ -291,8 +290,8 @@ API do chat roda com uma instância só (HLD 6.2).
 - **Mensagem gravada, mas o Serviço de agentes não recebeu o pedido** (HLD 6.3): o BFF responde
   sucesso, com a mensagem gravada e um campo que diz que o agente não recebeu o pedido. A tela
   mostra a mensagem enviada e um aviso de erro do agente ao lado. O aviso é só da aba que enviou e
-  some ao recarregar: avisa quem acabou de pedir, e não é estado da mensagem. `planejado` (spec da
-  F11, seção "Cliente").
+  some ao recarregar: avisa quem acabou de pedir, e não é estado da mensagem (spec da F11, seção
+  "Cliente").
 
 ### Logs
 
@@ -393,7 +392,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/conversations/:id` | existe | Uma Conversa, pela conferência de participação ("Segurança"): spec da F02, seção "Rotas"; com a Última leitura e os números: spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id/messages` | existe | Página do histórico: spec da F02, seção "Rotas" |
 | API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas". `agent_username` e `agent_request`, com o Pedido `new`: spec da F11, seção "Envio e Pergunta pendente". Alteração `planejada`: o Pedido `continuation` e a Pergunta pendente ("Estados e regras", seção "Pedido ao agente e Pergunta pendente"): mesma seção |
-| API do chat: `POST /v1/agent-requests/:id/close` | planejada | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
+| API do chat: `POST /v1/agent-requests/:id/close` | existe | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
 | API do chat: `GET /v1/bot/requests/:id/messages` | existe | Leitura do Recorte pelo bot, com a credencial de bot ("Segurança") e o "Teto de Mensagens do resumo"; `until` exclusivo, e o Serviço de agentes passa o instante da Mensagem do Pedido: spec da F11, seção "Rotas do bot e credencial" |
 | API do chat: `GET /v1/bot/requests/:id/message-counts` | planejada | Contagem dos Recortes pelo bot, com a credencial de bot: mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção |
@@ -426,12 +425,12 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
-| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Orquestra o Pedido (registro, envio e `POST /v1/requests`): spec da F11, seção "Disparo pelo BFF". Alteração `planejada`: o encerramento do Pedido e o erro do Agente na falha: mesma seção |
+| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Orquestra o Pedido (registro, envio e `POST /v1/requests`): spec da F11, seção "Disparo pelo BFF". Na falha, encerra o Pedido (`failed` ou `cancelled`) e devolve o erro do Agente: mesma seção |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `DELETE /v1/agents/:slug/connection` | existe | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Alteração `planejada`: a conferência de conexão e do limite de pedidos antes do aceite: mesmas seções |
+| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Antes do aceite, confere a conexão (`agent_not_connected`) e o `limite de pedidos por pessoa` (`rate_limited`; `agents_unavailable` com o Redis fora): mesmas seções |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | existe | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
@@ -581,8 +580,8 @@ carência, os outros continuam vendo a Presença de "conectada".
 
 ### 6.5 Pedido ao agente e Pergunta pendente
 
-Situação: `existe` o Pedido `new` e a recusa das ações do bot; `planejados` o Pedido
-`continuation`, o encerramento pelo BFF e a Pergunta pendente
+Situação: `existem` o Pedido `new`, a recusa das ações do bot, o encerramento pelo BFF e o fim
+do Pedido no Serviço de agentes; `planejados` o Pedido `continuation` e a Pergunta pendente
 ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seções "Pedido e ações de
 bot" e "Envio e Pergunta pendente").
 
@@ -614,10 +613,12 @@ continua `open` no banco, mas recusa as ações do bot.
   API do chat por qualquer motivo que não seja o Pedido (o texto acima do `tamanho máximo da
   Mensagem`, por exemplo) gravam o "não consegui" fixo como `reply`. Com o Pedido recusado
   (`request_not_found`, `request_closed`, `request_expired`), não há o que gravar, e o fim vai só
-  para o log. `planejado` (spec da F11, seção "Execução do Pedido").
+  para o log (spec da F11, seção "Execução do Pedido").
 - Um Pedido entregue duas vezes ao Serviço de agentes (o reenvio do mesmo `client_id` dispara de
-  novo) roda uma vez só: a sessão do ADK, com o id do Pedido, já existe na segunda entrega, que
-  termina sem gravar nada. `planejado`.
+  novo) roda uma vez só: a sessão do ADK, com o id do Pedido, já existe na segunda entrega, que a
+  rota aceita sem rodar nem contar no `limite de pedidos por pessoa`; duas entregas simultâneas
+  esbarram na criação da sessão, e a segunda termina sem gravar nada. A continuação, que retoma a
+  sessão do Pedido pai, precisa da própria guarda (F11-T07).
 
 **Pergunta pendente**
 
@@ -650,7 +651,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | --- | --- | --- | --- | --- |
 | `/entrar` | Público | Sessão, quando há cookie | Entrar com e-mail e senha | existe |
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
-| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); a Mensagem do Agente, com o AgentAvatar, o AgentTag e o nome que abre o diálogo "Agentes" ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Cliente"), com o texto no AgentText a partir do subconjunto de Markdown, e o "digitando" do Agente, com o nome dele; as Respostas prontas e o erro do Agente `planejados` (spec da F11, seção "Cliente"); o resto a detalhar |
+| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); a Mensagem do Agente, com o AgentAvatar, o AgentTag e o nome que abre o diálogo "Agentes" ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Cliente"), com o texto no AgentText a partir do subconjunto de Markdown, e o "digitando" do Agente, com o nome dele, e o erro do Agente ao lado da Mensagem enviada; as Respostas prontas `planejadas` (spec da F11, seção "Cliente"); o resto a detalhar |
 | Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta (spec da F08, seção "Cliente") |
 | `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
@@ -810,10 +811,10 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | API do chat | `CHAT_BOT_TOKEN` | Credencial de bot que as rotas `/v1/bot` conferem ("Segurança"); segredo, o mesmo valor do Serviço de agentes |
 | Serviço de agentes | `CHAT_BOT_TOKEN` | Credencial de bot ("Segurança") |
 | Serviço de agentes | `CHAT_API_URL` | Endereço interno da API do chat, para as rotas `/v1/bot` |
-| Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa`; `planejada` |
+| Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa` |
 | Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); obrigatória, sem padrão no código |
-| Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa`; `planejada` |
-| Serviço de agentes | `TEST_REDIS_URL` | Banco lógico do Redis dos testes de integração; `planejada` |
+| Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa` |
+| Serviço de agentes | `TEST_REDIS_URL` | Banco lógico do Redis dos testes de integração |
 | Serviço de agentes | `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` | Chave do provedor, obrigatória só quando o `AGENT_MODEL` o escolhe; segredo |
 
 As demais variáveis estão a definir.
