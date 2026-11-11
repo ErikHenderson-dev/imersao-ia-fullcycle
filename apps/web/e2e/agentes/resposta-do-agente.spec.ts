@@ -3,7 +3,7 @@
 import { expect, logIn, test } from "../fixtures";
 import { isConnected, setConnected } from "../support/agents";
 import { botReply } from "../support/bot";
-import { composer, messageItem, messageList } from "../support/conversation-page";
+import { agentMessage, composer, messageItem } from "../support/conversation-page";
 import { insertBot, latestAgentRequestOf } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 
@@ -36,9 +36,7 @@ test.describe("Resposta do Agente", () => {
 
       // 3. A Mensagem do Agente chega às duas abas, com o AgentTag, pelo modelo real
       for (const tab of [page, otherPage]) {
-        const agentItem = messageList(tab, sharedChannel.name)
-          .getByRole("listitem")
-          .filter({ has: tab.getByRole("button", { name: "Assistente", exact: true }) });
+        const agentItem = agentMessage(tab, sharedChannel.name);
         await expect(agentItem).toHaveCount(1, { timeout: MODEL_TIMEOUT_MS });
         await expect(agentItem.getByText("AGENTE", { exact: true })).toBeVisible();
       }
@@ -46,10 +44,7 @@ test.describe("Resposta do Agente", () => {
       // 4. O bot do teste responde de novo ao mesmo Pedido: a mesma Mensagem, sem duplicar
       await expect.poll(() => latestAgentRequestOf(sharedChannel)).toMatchObject({ kind: "new", status: "open" });
       const request = (await latestAgentRequestOf(sharedChannel))!;
-      const shown = await messageList(otherPage, sharedChannel.name)
-        .getByRole("listitem")
-        .filter({ has: otherPage.getByRole("button", { name: "Assistente", exact: true }) })
-        .innerText();
+      const shown = await agentMessage(otherPage, sharedChannel.name).innerText();
       const repeated = await botReply(request.id, "Outro texto");
       expect(repeated.body).not.toBe("Outro texto");
       expect(shown).toContain(repeated.body.slice(0, 20));

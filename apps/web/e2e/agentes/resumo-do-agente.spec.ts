@@ -1,10 +1,9 @@
 // spec: e2e/plano-de-testes-f11.md
 // seed: e2e/seed.spec.ts
-import type { Page } from "@playwright/test";
 import { expect, logIn, test } from "../fixtures";
 import { isConnected, setConnected } from "../support/agents";
 import { botReply } from "../support/bot";
-import { composer, messageList } from "../support/conversation-page";
+import { agentMessage, composer } from "../support/conversation-page";
 import { insertBot, latestAgentRequestOf } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 
@@ -17,13 +16,6 @@ const SUMMARY = [
   "",
   "Nada mais foi **decidido** hoje.",
 ].join("\n");
-
-// A Mensagem do Agente na Conversa: o item da lista com o nome do Agente.
-function agentMessage(page: Page, channelName: string) {
-  return messageList(page, channelName)
-    .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Assistente", exact: true }) });
-}
 
 test.describe("Resumo do Agente", () => {
   test("o resumo chega às duas Pessoas em blocos do AgentText", async ({

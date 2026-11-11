@@ -4,7 +4,7 @@
 // fica na pasta da tarefa (medicao-p95.md).
 import { expect, logIn, test } from "../fixtures";
 import { isConnected, setConnected } from "../support/agents";
-import { composer, messageList, readyHistory } from "../support/conversation-page";
+import { agentMessage, composer, readyHistory } from "../support/conversation-page";
 import {
   insertBot,
   insertChannel,
@@ -46,6 +46,39 @@ const LINES = [
   "Fechei a lista de convidados da demo: 14 pessoas.",
 ];
 
+declare global {
+  interface Window {
+    __sentAt?: number;
+    __agentReplyAt?: number;
+  }
+}
+
+// Roda na página: marca o Enter e o primeiro item que entra na lista de Mensagens com o botão do nome
+// do Agente (o que agentMessage procura).
+function markSendAndAgentReply(listName: string): void {
+  window.__sentAt = undefined;
+  window.__agentReplyAt = undefined;
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key === "Enter") window.__sentAt ??= performance.now();
+    },
+    { capture: true },
+  );
+  const list = document.querySelector(`[aria-label="${listName}"]`) ?? document.body;
+  const observer = new MutationObserver((records) => {
+    const added = records.flatMap((record) => [...record.addedNodes]);
+    const isAgentItem = (node: Node) =>
+      node instanceof Element &&
+      [...node.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Assistente");
+    if (added.some(isAgentItem)) {
+      window.__agentReplyAt = performance.now();
+      observer.disconnect();
+    }
+  });
+  observer.observe(list, { childList: true, subtree: true });
+}
+
 test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agentsLock }) => {
   void agentsLock;
   test.setTimeout(SAMPLES * 120_000);
@@ -56,7 +89,7 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
     const others = await Promise.all(["Bruno Lima", "Carla Dias", "Diego Rocha"].map((name) => insertPerson(name)));
     const authors = [person, ...others];
     await logIn(page, person, { waitForRealtime: false });
-    const samples: { requestId: string; ms: number }[] = [];
+    const durations: number[] = [];
     let lastSend = 0;
 
     for (let sample = 1; sample <= SAMPLES; sample += 1) {
@@ -79,26 +112,28 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
       await page.goto(`/conversas/${channel.id}`);
       await readyHistory(page, channel.name);
 
-      // 2. A Ana pede o resumo de hoje, e o relógio corre do Enter até a Mensagem do Agente aparecer
+      // 2. A Ana pede o resumo de hoje, e o relógio corre do Enter até a Mensagem do Agente entrar na
+      // página, marcados na própria página: a espera do Playwright, que confere de tempos em tempos,
+      // não entra na amostra
       const box = composer(page, channel.name);
       await box.fill("@assistente resume hoje");
       await box.press("Escape");
       await page.waitForTimeout(Math.max(0, lastSend + MIN_GAP_MS - Date.now()));
+      await page.evaluate(markSendAndAgentReply, `Mensagens em #${channel.name}`);
       lastSend = Date.now();
       await box.press("Enter");
-      const agentItem = messageList(page, channel.name)
-        .getByRole("listitem")
-        .filter({ has: page.getByRole("button", { name: "Assistente", exact: true }) });
-      await expect(agentItem).toHaveCount(1, { timeout: MODEL_TIMEOUT_MS });
-      const ms = Date.now() - lastSend;
+      await expect(agentMessage(page, channel.name)).toHaveCount(1, { timeout: MODEL_TIMEOUT_MS });
+      const ms = Math.round(await page.evaluate(() => window.__agentReplyAt! - window.__sentAt!));
+      // Sem as duas marcas (a lista trocada no meio, por exemplo), a amostra não vale.
+      expect(Number.isFinite(ms), "o Enter e a resposta marcados na página").toBe(true);
 
       const request = await latestAgentRequestOf(channel);
-      samples.push({ requestId: request!.id, ms });
+      durations.push(ms);
       console.log(JSON.stringify({ sample, requestId: request!.id, ms }));
     }
 
     // 3. O p50 e o p95 pelo posto mais próximo
-    const sorted = samples.map((entry) => entry.ms).sort((a, b) => a - b);
+    const sorted = durations.sort((a, b) => a - b);
     const rank = (p: number) => sorted[Math.ceil(p * sorted.length) - 1];
     console.log(JSON.stringify({ p50: rank(0.5), p95: rank(0.95), max: sorted.at(-1), min: sorted[0] }));
   } finally {

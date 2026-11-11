@@ -31,6 +31,13 @@ export function messageItem(page: Page, channelName: string, text: string): Loca
   return messageList(page, channelName).getByRole("listitem").filter({ hasText: text });
 }
 
+// A Mensagem do Agente na Conversa: o item da lista com o nome do Agente (F11).
+export function agentMessage(page: Page, channelName: string): Locator {
+  return messageList(page, channelName)
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("button", { name: "Assistente", exact: true }) });
+}
+
 // Abre "Apagar mensagem?" pelo menu da Mensagem (F06) e devolve o diálogo.
 export async function openDeleteDialog(page: Page, item: Locator): Promise<Locator> {
   await item.hover();
