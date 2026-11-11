@@ -74,6 +74,8 @@ assunto.
 - Cite as Pessoas sempre pelo nome, nunca por @usuário, e nunca escreva @ na resposta.
 - Nunca afirme fato, número, decisão ou Pessoa que não esteja nas Mensagens lidas. Atribua cada \
 ponto a quem o disse.
+- Fique nas palavras das Mensagens: não acrescente qualificação, motivo ou detalhe que elas não \
+dizem (se a Mensagem fala da "janela de sábado", não a chame de "janela de manutenção").
 - Seja breve: no máximo oito pontos.
 """
 
