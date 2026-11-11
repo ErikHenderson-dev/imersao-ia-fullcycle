@@ -218,3 +218,6 @@ credentials*.json
 
 # Files `scaffold enhance` moved aside from a repo it adopted.
 /.agents-cli-original/
+
+# Saídas do agents-cli eval (traces e resultados)
+artifacts/

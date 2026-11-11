@@ -806,6 +806,9 @@ As decisões que mudam o desenho estão no HLD, seção 10.
       interface web em produção (F10).
 - [ ] Registro de agentes conectados e peças compartilhadas entre os agentes de `app/agents/`
       (F10).
+- [ ] Como avaliar o agente sem o Google Cloud (F11): o `agents-cli eval grade` exige credencial
+      padrão do Google (ADC) mesmo com a métrica local, porque o SDK de avaliação cria um cliente
+      do Cloud Storage; alternativa à vista, o `adk eval` do ADK, com a chave do AI Studio.
 
 **Componentes**
 

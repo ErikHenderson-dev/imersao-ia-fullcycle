@@ -52,6 +52,11 @@ O lint roda sem o codespell porque ele é um corretor em inglês e acusa os come
 português. O `agents-cli lint` e o `agents-cli eval` sincronizam o `.venv` com o extra que cada um
 usa (`lint` ou `eval`) e tiram o do outro; o comando seguinte o reinstala sozinho.
 
+O `agents-cli eval run` ainda não roda inteiro: o `eval generate` funciona com a chave do AI
+Studio, mas o `eval grade` exige credencial padrão do Google Cloud (ADC), porque o SDK de
+avaliação cria um cliente do Cloud Storage antes de avaliar, mesmo com a métrica local. O projeto
+não usa o Google Cloud, e a saída fica para a F11 (`docs/lld.md`, "Questões em aberto").
+
 Os testes de integração e o `eval` chamam o Gemini e precisam da `GEMINI_API_KEY` em
 `apps/agents/.env` (copie do `.env.example`). Mudar o `.env` ou o `compose.yaml` pede
 `docker compose -f compose.yaml up -d agents` para as variáveis novas entrarem.
