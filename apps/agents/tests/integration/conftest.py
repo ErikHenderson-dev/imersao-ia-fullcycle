@@ -141,13 +141,16 @@ class FakeChatApi:
     """A API do chat falsa, num servidor temporário em 127.0.0.1: guarda cada requisição; responde
     201 com uma Mensagem qualquer às ações (F11-T03) e 200 com `conversation` à leitura do Recorte
     (F11-T04). `failures` faz a rota cujo caminho termina com a chave responder, na ordem, os
-    status da lista, um por chamada (F11-T06)."""
+    status da lista, um por chamada (F11-T06). As contagens respondem `counts`, um número por `since`,
+    e `total` (F11-T07)."""
 
     def __init__(self) -> None:
         self.requests: list[dict] = []
         # A leitura devolve estas Mensagens, no formato da rota, como estão.
         self.conversation: list[dict] = []
         self.failures: dict[str, list[int]] = {}
+        self.counts: list[int] = [4, 6, 9]
+        self.total = 15
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -165,22 +168,31 @@ class FakeChatApi:
 
             def do_GET(self) -> None:
                 url = urlparse(self.path)
+                query = parse_qs(url.query)
                 fake.requests.append(
                     {
                         "method": "GET",
                         "path": url.path,
-                        "query": {
-                            key: values[0]
-                            for key, values in parse_qs(url.query).items()
-                        },
+                        "query": {key: values[0] for key, values in query.items()},
+                        "query_all": query,
                         "authorization": self.headers.get("authorization"),
                     }
                 )
-                self.respond(
-                    url.path,
-                    200,
-                    {"messages": fake.conversation, "total": len(fake.conversation)},
-                )
+                if url.path.endswith("/message-counts"):
+                    sinces = query.get("since", [])
+                    payload = {
+                        "counts": [
+                            {"since": since, "count": count}
+                            for since, count in zip(sinces, fake.counts, strict=False)
+                        ],
+                        "total": fake.total,
+                    }
+                else:
+                    payload = {
+                        "messages": fake.conversation,
+                        "total": len(fake.conversation),
+                    }
+                self.respond(url.path, 200, payload)
 
             def do_POST(self) -> None:
                 length = int(self.headers.get("content-length") or 0)

@@ -25,6 +25,29 @@ describe("messageFromEvent", () => {
       editedAt: null,
       mentions: [],
       quote: null,
+      quickReplies: null,
+    });
+  });
+
+  it("converte as Respostas prontas da pergunta do Agente", () => {
+    const message = messageFromEvent({
+      id: "m1",
+      conversation_id: "c1",
+      client_id: "k1",
+      author: { kind: "bot", id: "b1", name: "Assistente", username: "assistente" },
+      body: "De que período você quer o resumo?",
+      created_at: "2026-11-09T12:00:00.000Z",
+      edited_at: null,
+      mentions: [],
+      quote: null,
+      quick_replies: { options: ["Hoje (3)"], owner_id: "p1", expires_at: "2026-11-09T13:00:00.000Z", closed: false },
+    });
+
+    expect(message.quickReplies).toEqual({
+      options: ["Hoje (3)"],
+      ownerId: "p1",
+      expiresAt: "2026-11-09T13:00:00.000Z",
+      closed: false,
     });
   });
 

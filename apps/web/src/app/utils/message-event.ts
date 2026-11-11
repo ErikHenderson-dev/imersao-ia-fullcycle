@@ -22,5 +22,14 @@ export function messageFromEvent(payload: MessagePayload): Message {
     editedAt: payload.edited_at ?? null,
     mentions: payload.mentions ?? [],
     quote: payload.quote ?? null,
+    // O evento guardado antes da F11-T07 não traz as Respostas prontas.
+    quickReplies: payload.quick_replies
+      ? {
+          options: payload.quick_replies.options,
+          ownerId: payload.quick_replies.owner_id,
+          expiresAt: payload.quick_replies.expires_at,
+          closed: payload.quick_replies.closed,
+        }
+      : null,
   };
 }

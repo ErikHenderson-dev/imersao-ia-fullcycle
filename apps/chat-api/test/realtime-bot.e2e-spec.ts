@@ -113,6 +113,65 @@ describe('Resposta e digitando do bot em tempo real', () => {
     expect(await waitForCount(stopped, 1)).toEqual([expected]);
   });
 
+  // A pergunta e o encerramento dela (F11-T07, CA2 e CA4).
+  it('a pergunta do bot chega com as Respostas prontas e encerra o digitando', async () => {
+    const { author, requestId, socket, expected } =
+      await botRequestWithReader();
+    await botRoutes.typing(app, requestId).expect(204);
+    const created = collectEvents(socket, 'message.created');
+    const stopped = collectEvents(socket, 'typing.stop');
+
+    await botRoutes.question(app, requestId).expect(201);
+
+    const [event] = await waitForCount(created, 1);
+    expect(event.message).toMatchObject({
+      author: { kind: 'bot' },
+      quick_replies: {
+        options: ['Hoje (1)', 'Desde ontem (1)', 'A semana (1)', 'Tudo (1)'],
+        owner_id: author.person.id,
+        closed: false,
+      },
+    });
+    expect(await waitForCount(stopped, 1)).toEqual([expected]);
+  });
+
+  it('encerrar a pergunta publica message.updated com closed', async () => {
+    const author = await authRoutes.loggedIn(app);
+    const reader = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const bot = await conversationRoutes.createBot(app, 'Assistente');
+    const { questionId } = await botRoutes.openQuestion(
+      app,
+      author.cookie,
+      channel.id,
+      bot.username,
+    );
+    const listeners = await Promise.all(
+      [author, reader].map(async ({ token }) => {
+        const socket = await realtimeRoutes.connected(url, { token });
+        sockets.push(socket);
+        return collectEvents(socket, 'message.updated');
+      }),
+    );
+
+    await conversationRoutes
+      .sendMessage(app, author.cookie, channel.id, { body: 'Hoje (1)' })
+      .expect(201);
+
+    for (const updated of listeners) {
+      const [event] = await waitForCount(updated, 1);
+      expect(event.message).toMatchObject({
+        id: questionId,
+        edited_at: null,
+        quick_replies: {
+          options: ['Hoje (1)', 'Desde ontem (1)', 'A semana (1)', 'Tudo (1)'],
+          owner_id: author.person.id,
+          closed: true,
+        },
+      });
+    }
+  });
+
   it('o digitando depois da resposta não é emitido', async () => {
     const { requestId, socket } = await botRequestWithReader();
     await botRoutes.reply(app, requestId, 'Resumo de hoje').expect(201);

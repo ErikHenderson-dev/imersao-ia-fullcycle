@@ -20,6 +20,18 @@ export interface AgentRequestRow {
   created_at: Date;
 }
 
+export interface PendingQuestionRow {
+  id: string;
+  request_id: string;
+  conversation_id: string;
+  person_id: string;
+  bot_id: string;
+  question_message_id: string;
+  expires_at: Date;
+  closed_at: Date | null;
+  created_at: Date;
+}
+
 // Atalhos da base de testes para o Pedido e as rotas do bot (spec da F11), no Arrange, sem asserção.
 export const botRoutes = {
   // Pelo REST, como o BFF: a Mensagem com o `agent_username` do Agente mencionado.
@@ -101,6 +113,109 @@ export const botRoutes = {
       .get(`/v1/bot/requests/${requestId}/messages`)
       .query(query);
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // As contagens dos Recortes pelo bot: `since` repetido na query, na ordem dada.
+  messageCounts(
+    app: INestApplication,
+    requestId: string,
+    { since = [], until }: { since?: string[]; until?: string } = {},
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const query = [
+      ...since.map((value) => `since=${encodeURIComponent(value)}`),
+      ...(until ? [`until=${encodeURIComponent(until)}`] : []),
+    ].join('&');
+    const call = request(app.getHttpServer() as App).get(
+      `/v1/bot/requests/${requestId}/message-counts${query ? `?${query}` : ''}`,
+    );
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // A pergunta do bot com as Respostas prontas, com a credencial de bot.
+  question(
+    app: INestApplication,
+    requestId: string,
+    payload: unknown = {
+      body: 'De que período você quer o resumo?',
+      quick_replies: [
+        'Hoje (1)',
+        'Desde ontem (1)',
+        'A semana (1)',
+        'Tudo (1)',
+      ],
+    },
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .post(`/v1/bot/requests/${requestId}/question`)
+      .set('Authorization', `Bearer ${TEST_BOT_TOKEN}`)
+      .send(payload as object);
+  },
+
+  // Envia a Menção e grava a pergunta do bot no Pedido: a Pergunta pendente aberta de quem enviou.
+  async openQuestion(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+    agentUsername: string,
+  ): Promise<{ requestId: string; questionId: string }> {
+    const requestId = await botRoutes.openedRequestId(
+      app,
+      cookie,
+      conversationId,
+      agentUsername,
+    );
+    const response = await botRoutes.question(app, requestId).expect(201);
+    return {
+      requestId,
+      questionId: (response.body as { message: { id: string } }).message.id,
+    };
+  },
+
+  // Direto no banco: um Pedido `new` aberto de quem pediu, com uma Mensagem dele, sem passar pelo
+  // envio. Devolve o id do Pedido.
+  async insertRequest(
+    app: INestApplication,
+    options: { conversationId: string; requesterId: string; botId: string },
+  ): Promise<string> {
+    const [messageId] = await conversationRoutes.insertMessages(app, {
+      conversationId: options.conversationId,
+      authorId: options.requesterId,
+      count: 1,
+      startAt: new Date(),
+    });
+    const [row] = await app.get(DataSource).query<{ id: string }[]>(
+      `INSERT INTO agent_requests (id, conversation_id, requester_id, bot_id, trigger_message_id, kind, expires_at)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, 'new', now() + interval '2 minutes') RETURNING id`,
+      [options.conversationId, options.requesterId, options.botId, messageId],
+    );
+    return row.id;
+  },
+
+  // As Perguntas pendentes da Conversa, da mais antiga para a mais nova.
+  async pendingQuestionRows(
+    app: INestApplication,
+    conversationId: string,
+  ): Promise<PendingQuestionRow[]> {
+    return app
+      .get(DataSource)
+      .query<PendingQuestionRow[]>(
+        'SELECT * FROM pending_questions WHERE conversation_id = $1 ORDER BY id',
+        [conversationId],
+      );
+  },
+
+  // Direto no banco: vence a pergunta da Mensagem.
+  async expireQuestion(
+    app: INestApplication,
+    questionMessageId: string,
+  ): Promise<void> {
+    await app
+      .get(DataSource)
+      .query(
+        "UPDATE pending_questions SET expires_at = now() - interval '1 second' WHERE question_message_id = $1",
+        [questionMessageId],
+      );
   },
 
   // Direto no banco: apaga a Mensagem como a exclusão da F06 (sem texto e com `deleted_at`).

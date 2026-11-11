@@ -8,7 +8,7 @@ import {
 
 // O instante tem de trazer o fuso (`Z` ou `±hh:mm`): sem ele, o `Date` leria a hora no fuso do
 // servidor, e a API só recebe UTC (spec da F11, "Rotas do bot e credencial").
-const WITH_OFFSET = /(Z|[+-]\d{2}:\d{2})$/;
+export const WITH_OFFSET = /(Z|[+-]\d{2}:\d{2})$/;
 
 // O Recorte que o bot lê: instantes UTC, `since` inclusivo e `until` exclusivo, e o @usuário de
 // uma Pessoa, sem o `@`.

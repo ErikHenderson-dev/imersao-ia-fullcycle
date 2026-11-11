@@ -130,6 +130,17 @@ export const conversationRoutes = {
       });
   },
 
+  // Pelo REST, como a web: a página mais recente do histórico.
+  listMessages(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .get(`/v1/conversations/${conversationId}/messages`)
+      .set('Cookie', cookie);
+  },
+
   // Pelo REST, como a web: envia e devolve o id da Mensagem gravada.
   async sentId(
     app: INestApplication,

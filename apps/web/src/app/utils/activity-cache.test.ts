@@ -15,6 +15,7 @@ function message(id: string, overrides: Partial<Message> = {}): Message {
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
     ...overrides,
   };
 }

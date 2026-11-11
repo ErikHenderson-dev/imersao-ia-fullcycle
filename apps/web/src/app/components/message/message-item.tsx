@@ -6,6 +6,7 @@ import { AgentAvatar } from "@/app/components/agent/agent-avatar";
 import { AgentTag } from "@/app/components/agent/agent-tag";
 import { AgentText } from "@/app/components/agent/agent-text";
 import { OpenAgentsButton } from "@/app/components/agent/open-agents-button";
+import { QuickReplies } from "@/app/components/agent/quick-replies";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { UserStatus } from "@/app/components/people/user-status";
@@ -51,6 +52,9 @@ type MessageItemProps = {
   // O Agente não recebeu o Pedido desta Mensagem: o aviso ao lado dela, só na aba de quem pediu
   // (spec da F11, "Cliente").
   agentError?: AgentError;
+  // O clique numa Resposta pronta da pergunta do Agente: envia o rótulo como Mensagem de quem pediu
+  // (spec da F11, "Cliente").
+  onQuickReply?: (label: string) => void;
 };
 
 export type MessageEdit = {
@@ -80,6 +84,7 @@ export function MessageItem({
   onGoToQuote,
   highlighted = false,
   agentError,
+  onQuickReply,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -115,8 +120,18 @@ export function MessageItem({
         />
       )}
       {message.author.kind === "bot" ? (
-        // O texto do Agente em blocos, sem Menção nem link (spec da F11, "Cliente").
-        <AgentText text={message.body} />
+        // O texto do Agente em blocos, sem Menção nem link, e as Respostas prontas da pergunta (spec
+        // da F11, "Cliente").
+        <>
+          <AgentText text={message.body} />
+          {message.quickReplies && (
+            <QuickReplies
+              quickReplies={message.quickReplies}
+              currentPersonId={currentPersonId ?? ""}
+              onSelect={(label) => onQuickReply?.(label)}
+            />
+          )}
+        </>
       ) : (
         <MessageBody
           text={message.body}

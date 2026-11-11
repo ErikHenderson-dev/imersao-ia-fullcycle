@@ -53,6 +53,28 @@ class ChatApiClient:
         )
         return response.json()
 
+    async def message_counts(
+        self, request_id: str, *, sinces: list[str], until: str
+    ) -> dict[str, Any]:
+        """As contagens que a leitura traria desde cada `since` até `until`, e o `total` sem
+        início (F11-T07)."""
+        params = [("since", since) for since in sinces] + [("until", until)]
+        response = await self._request(
+            "GET", f"/v1/bot/requests/{request_id}/message-counts", params=params
+        )
+        return response.json()
+
+    async def question(
+        self, request_id: str, body: str, quick_replies: list[str]
+    ) -> None:
+        """Grava a pergunta do bot com as Respostas prontas; a repetição devolve a mesma
+        Mensagem (F11-T07)."""
+        await self._request(
+            "POST",
+            f"/v1/bot/requests/{request_id}/question",
+            json={"body": body, "quick_replies": quick_replies},
+        )
+
     async def typing(self, request_id: str) -> None:
         """Avisa que o bot está digitando na Conversa do Pedido."""
         await self._request("POST", f"/v1/bot/requests/{request_id}/typing")

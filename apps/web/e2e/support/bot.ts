@@ -42,3 +42,13 @@ export async function requestByApi(page: Page, conversationId: string, agentUser
   });
   return agent_request.id;
 }
+
+// A pergunta do bot com as Respostas prontas, que abre a Pergunta pendente de quem pediu (F11-T07).
+// Devolve o id da Mensagem da pergunta.
+export async function botQuestion(requestId: string, body: string, quickReplies: string[]): Promise<string> {
+  const result = await botPost<{ message: { id: string } }>(requestId, "question", {
+    body,
+    quick_replies: quickReplies,
+  });
+  return result!.message.id;
+}

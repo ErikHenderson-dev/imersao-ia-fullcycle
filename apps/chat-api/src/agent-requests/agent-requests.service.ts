@@ -53,6 +53,21 @@ export class AgentRequestsService {
     );
   }
 
+  // A continuação: a resposta de quem pediu à Pergunta pendente, apontando para o Pedido que
+  // perguntou, com a mesma validade do Pedido new.
+  openContinuation(
+    request: NewAgentRequest & { parentRequestId: string },
+  ): Promise<AgentRequest> {
+    return this.requests.save(
+      this.requests.create({
+        ...request,
+        kind: 'continuation',
+        status: 'open',
+        expiresAt: new Date(Date.now() + AGENT_REQUEST_TTL_MS),
+      }),
+    );
+  }
+
   // Encerra o Pedido de quem pediu (spec da F11, "Pedido e ações de bot"). Um UPDATE só, condicionado
   // ao `open`: o `lockForAction` de uma ação concorrente vê o encerramento depois do commit, e o
   // Pedido já encerrado fica como está. O de outra Pessoa é desconhecido para quem chama.

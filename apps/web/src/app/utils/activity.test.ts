@@ -26,6 +26,7 @@ function item(kind: ActivityItem["kind"]): Pick<ActivityItem, "kind" | "message"
       editedAt: null,
       mentions: [],
       quote: null,
+      quickReplies: null,
     },
     conversation: { name: "geral" },
   };

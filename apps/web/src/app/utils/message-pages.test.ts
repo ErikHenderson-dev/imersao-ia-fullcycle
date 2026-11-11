@@ -20,6 +20,7 @@ function message(id: string): Message {
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
   };
 }
 
@@ -130,6 +131,22 @@ describe("replaceEdited", () => {
     expect(next).toBe(pages);
   });
 
+  // A pergunta do Agente se encerra sem editedAt (F11-T07).
+  const question = (closed: boolean): Message => ({
+    ...message("q"),
+    author: { kind: "bot", id: "b1", name: "Assistente", username: "assistente", initials: "AS" },
+    quickReplies: { options: ["Hoje (3)"], ownerId: "p1", expiresAt: "2026-11-09T13:00:00.000Z", closed },
+  });
+
+  it("aceita a pergunta encerrada, sem editedAt, e não a reabre", () => {
+    const pages = [{ messages: [question(false)], hasMore: false }];
+
+    const closed = replaceEdited(pages, question(true));
+
+    expect(closed[0].messages[0].quickReplies?.closed).toBe(true);
+    expect(replaceEdited(closed, question(false))).toBe(closed);
+  });
+
   it("não insere Mensagem fora do cache", () => {
     const pages = [{ messages: [message("a")], hasMore: false }];
 
@@ -203,5 +220,16 @@ describe("recordEdit", () => {
     expect(recordEdit(versions, newer)).toBe(true);
     expect(recordEdit(versions, older)).toBe(false);
     expect(recordEdit(versions, newer)).toBe(false);
+  });
+
+  it("aceita o encerramento das Respostas prontas uma vez", () => {
+    const versions = new Map<string, string>();
+    const closed: Message = {
+      ...message("q"),
+      quickReplies: { options: ["Hoje (3)"], ownerId: "p1", expiresAt: "2026-11-09T13:00:00.000Z", closed: true },
+    };
+
+    expect(recordEdit(versions, closed)).toBe(true);
+    expect(recordEdit(versions, closed)).toBe(false);
   });
 });

@@ -85,3 +85,25 @@ e recusa só o `POST /v1/requests` da Ana, pelas chaves do limite dela no Redis 
 3. **O não consegui do Agente aparece para as duas Pessoas:** como na F11-T05, o Pedido nasce pela
    rota de envio da API do chat, e o bot do teste grava o texto fixo do "não consegui" pela `reply`;
    a Mensagem do Agente aparece nas duas abas.
+
+## F11-T07 · Respostas prontas (`agentes/respostas-prontas.spec.ts`)
+
+Os testes seguram o `agentsLock` e deixam o `assistente` desconectado (devolvendo o estado no fim):
+o Pedido nasce pela rota de envio da API do chat (`requestByApi`, com `agent_username`
+`assistente`), e o bot do teste grava a pergunta (`botQuestion`, em `support/bot.ts`). O clique de
+quem pediu passa pelo BFF como um envio comum, vira a continuação, e o Serviço de agentes a recusa
+com 409: o BFF a encerra como `cancelled`, sem erro na tela e sem o modelo.
+
+1. **Os botões valem só para quem pediu e o clique vira Mensagem:** com a Ana e o Bruno no Canal, o
+   bot pergunta com "Hoje (3)", "Desde ontem (5)", "A semana (12)" e "Tudo (24)". A Ana vê os quatro
+   ativos e "Aguardando sua resposta"; o Bruno, desativados, com o rótulo acessível "<rótulo>, só quem
+   pediu pode responder" e "Só quem pediu pode responder". A Ana foca "Hoje (3)" e aperta Enter: a
+   Mensagem "Hoje (3)" dela aparece nas duas abas, os botões ficam desativados com "Encerrada" nas
+   duas, sem recarregar, e o Pedido mais novo é a continuação `cancelled`, sem erro ao lado da
+   Mensagem.
+2. **A pergunta vencida desativa os botões:** a pergunta vence em 6 s (`setQuestionExpiry`, em
+   `support/database.ts`); a Ana abre a Conversa com "Hoje (3)" ativo, e no vencimento os botões se
+   desativam com "Encerrada", sem recarregar.
+
+Acessibilidade (`acessibilidade/respostas-prontas-sem-violacoes.spec.ts`): a Conversa com a pergunta
+ativa para quem pediu, com um bot de `@usuário` aleatório, nos dois temas, sem violações do axe.

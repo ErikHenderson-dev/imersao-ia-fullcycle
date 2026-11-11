@@ -7,6 +7,7 @@ import {
   appendToLatestPage,
   flattenPages,
   patchQuotes,
+  isUpdated,
   recordEdit,
   removeDeleted,
   replaceEdited,
@@ -184,7 +185,7 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
     // As Citações também: a edição e a exclusão vistas valem para as respostas da página lida.
     const edited = saved.current.reduce<MessagePage[]>(
       (pages, message) =>
-        message.editedAt
+        isUpdated(message)
           ? patchQuotes(replaceEdited(pages, message), { id: message.id, edited: message })
           : pages,
       [page],

@@ -82,6 +82,7 @@ export function usePendingMessages(
                 body: quoted.body,
               }
             : null,
+          quickReplies: null,
           status: "sending",
         },
       ]);

@@ -2,7 +2,7 @@
 
 Um InstructionProvider: o texto fixo e, no fim, as Pessoas mencionadas no pedido, lidas do estado.
 Por ser uma função, o ADK não injeta `{chave}` do estado no texto, e o modelo não vê o resto do
-contexto do Pedido. A F11-T07 acrescenta aqui a pergunta pelo Recorte e a continuação.
+contexto do Pedido. A pergunta pelo Recorte e a resposta a ela são da F11-T07.
 """
 
 from __future__ import annotations
@@ -17,6 +17,12 @@ MAX_NAME_LENGTH = 80
 RECUSA = (
     "Por enquanto eu só resumo esta Conversa. Peça, por exemplo, o resumo de hoje ou da "
     "semana."
+)
+
+# A continuação que não responde à pergunta (spec da F11, "O Agente `assistente`").
+NAO_ENTENDI = (
+    "Não entendi qual período resumir. Para pedir um resumo, mencione o Agente de novo com o "
+    "período, como hoje ou a semana."
 )
 
 INSTRUCTIONS = f"""\
@@ -40,8 +46,18 @@ sem @, chame só com o `recorte`, sem o argumento `pessoa` (nem vazio, nem nulo)
 com as Mensagens daquele autor. Sem Pessoa, nunca inclua o argumento `pessoa`.
 - Por assunto: leia o Recorte e fique só com as Mensagens sobre o assunto.
 - Por Pessoa ou por assunto sem período, use "tudo".
-- Um pedido de resumo sem período, Pessoa nem assunto: pergunte, numa frase, qual período \
-resumir (hoje, desde ontem, a semana ou tudo), sem ler Mensagens.
+- Um pedido de resumo sem período, Pessoa nem assunto: chame `perguntar_recorte`, sem ler \
+Mensagens, e não escreva nada: a pergunta, com um botão por período, já vai para a Conversa.
+
+## Resposta à sua pergunta
+- Quando a sua última ação nesta conversa foi chamar `perguntar_recorte`, a Mensagem atual é a \
+resposta de quem pediu, sem Menção. Ela pode ser o texto de um botão, que começa com o período e \
+traz um número entre parênteses (ignore o número): "Hoje" é "hoje", "Desde ontem" é \
+"desde_ontem", "A semana" é "semana" e "Tudo" é "tudo". Ou pode dizer o período, a Pessoa ou o \
+assunto com outras palavras ("só de hoje", "o que a Ana disse"). Leia e resuma como acima.
+- Se essa Mensagem não diz período, Pessoa nem assunto (fala de outra coisa, como "@ana você viu \
+o deploy?"), responda só com esta frase, sem ler Mensagens e sem chamar `perguntar_recorte` de \
+novo: "{NAO_ENTENDI}"
 
 ## Como responder
 - Use só `# ` para o cabeçalho, `- ` para itens de lista e `**` para negrito. Nada de links, \

@@ -563,6 +563,7 @@ function History({
                 onDiscard={message.status ? () => discard(message.clientId) : undefined}
                 failure={message.status ? (message as PendingMessage).failure : undefined}
                 agentError={agentErrors[message.id]}
+                onQuickReply={(label) => send(label)}
                 edit={
                   message.author.id === currentPerson.id && !message.status
                     ? {

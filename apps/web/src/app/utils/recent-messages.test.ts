@@ -13,6 +13,7 @@ function message(id: string): Message {
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
   };
 }
 

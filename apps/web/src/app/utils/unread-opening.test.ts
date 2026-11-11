@@ -15,6 +15,7 @@ function message(n: number, authorId = "outra"): Message {
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
   };
 }
 

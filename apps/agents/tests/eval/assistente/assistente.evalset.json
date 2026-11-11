@@ -1,7 +1,7 @@
 {
   "eval_set_id": "assistente",
   "name": "assistente",
-  "description": "Resumo com Recorte (F11-T04): os seis Recortes, o Recorte vazio, o teto e os pedidos fora de escopo, com as Conversas das fixtures.",
+  "description": "Resumo com Recorte (F11-T04) e a pergunta pelo Recorte com a resposta em vários turnos (F11-T07), com as Conversas das fixtures.",
   "eval_cases": [
     {
       "eval_id": "hoje",
@@ -740,6 +740,250 @@
           "time_zone": "America/Sao_Paulo",
           "requested_at": "2026-11-10T18:00:00.000Z",
           "request_id": "0198f000-0000-7000-8000-000000000011",
+          "mentions": []
+        }
+      }
+    },
+    {
+      "eval_id": "pergunta_e_botao",
+      "conversation": [
+        {
+          "invocation_id": "pergunta_e_botao-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente faz um resumo"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_recorte",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        },
+        {
+          "invocation_id": "pergunta_e_botao-2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Desde ontem (7)"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "# Resumo desde ontem · 09/11, 00:00 a 10/11, 15:00 · 7 Mensagens\n- **Carla Dias:** o deploy falhou por falta de memória; achou um bug com acento.\n- **Bruno Lima:** aumentou a memória para 4 GB, o deploy passou; login em staging.\n- **Ana Souza:** revisou o roteiro da demo."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "ler_mensagens",
+                "args": {
+                  "recorte": "desde_ontem"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          },
+          "rubrics": [
+            {
+              "rubric_id": "abre_com_recorte",
+              "rubric_content": {
+                "text_property": "A resposta abre com um cabeçalho que diz o Recorte (o período resumido) e a quantidade de Mensagens cobertas."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            },
+            {
+              "rubric_id": "cobre_ontem",
+              "rubric_content": {
+                "text_property": "O resumo inclui o deploy que falhou por falta de memória e o aumento de memória para 4 GB."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            }
+          ]
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000020",
+          "mentions": []
+        }
+      }
+    },
+    {
+      "eval_id": "pergunta_e_resposta_escrita",
+      "conversation": [
+        {
+          "invocation_id": "pergunta_e_resposta_escrita-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me dá um resumo da conversa?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_recorte",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        },
+        {
+          "invocation_id": "pergunta_e_resposta_escrita-2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "só de hoje"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "# Resumo de hoje · 10/11, 00:00 a 10/11, 15:00 · 4 Mensagens\n- **Bruno Lima:** terminou a tela de login e a publicou em staging.\n- **Carla Dias:** encontrou um bug no envio de Mensagens com acento e abriu um chamado.\n- **Ana Souza:** revisou o roteiro: login, canal, menção e resumo."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "ler_mensagens",
+                "args": {
+                  "recorte": "hoje"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          },
+          "rubrics": [
+            {
+              "rubric_id": "abre_com_recorte",
+              "rubric_content": {
+                "text_property": "A resposta abre com um cabeçalho que diz o Recorte (o período resumido) e a quantidade de Mensagens cobertas."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            },
+            {
+              "rubric_id": "so_hoje",
+              "rubric_content": {
+                "text_property": "O resumo não menciona o deploy que falhou nem a memória do servidor, que são de ontem."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            }
+          ]
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000021",
+          "mentions": []
+        }
+      }
+    },
+    {
+      "eval_id": "resposta_que_nao_responde",
+      "conversation": [
+        {
+          "invocation_id": "resposta_que_nao_responde-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente resume pra mim"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_recorte",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        },
+        {
+          "invocation_id": "resposta_que_nao_responde-2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@ana você viu o deploy?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Não entendi qual período resumir. Para pedir um resumo, mencione o Agente de novo com o período, como hoje ou a semana."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          },
+          "rubrics": [
+            {
+              "rubric_id": "nao_entendeu",
+              "rubric_content": {
+                "text_property": "A resposta diz, numa frase curta, que não entendeu qual período resumir, sem resumir Mensagens e sem fazer uma nova pergunta com opções."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            }
+          ]
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000022",
           "mentions": []
         }
       }

@@ -262,3 +262,11 @@ export async function themeOf(personId: string): Promise<string> {
 export async function setAdminOf(personId: string, isAdmin: boolean): Promise<void> {
   await pool.query("UPDATE people SET is_admin = $2 WHERE id = $1", [personId, isAdmin]);
 }
+
+// Muda o vencimento da Pergunta pendente da Mensagem da pergunta (F11-T07).
+export async function setQuestionExpiry(questionMessageId: string, expiresAt: Date): Promise<void> {
+  await pool.query("UPDATE pending_questions SET expires_at = $2 WHERE question_message_id = $1", [
+    questionMessageId,
+    expiresAt,
+  ]);
+}

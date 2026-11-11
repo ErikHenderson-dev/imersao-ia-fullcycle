@@ -27,6 +27,19 @@ export interface MessagePayload {
   mentions: MentionPayload[];
   /** A Citação, ou nula (spec da F06, "A Mensagem no REST e nos eventos"). */
   quote: QuotePayload | null;
+  /**
+   * As Respostas prontas da pergunta do bot, ou nulas (spec da F11, "Envio e Pergunta pendente").
+   * Ausente no evento guardado antes da F11-T07.
+   */
+  quick_replies?: QuickRepliesPayload | null;
+}
+
+/** Os botões da pergunta do bot: os rótulos, quem pode responder, até quando e se já se encerrou. */
+export interface QuickRepliesPayload {
+  options: string[];
+  owner_id: string;
+  expires_at: string;
+  closed: boolean;
 }
 
 /** A Mensagem citada: o autor e o texto atual, ou só a marca de apagada. */

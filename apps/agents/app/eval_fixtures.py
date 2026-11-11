@@ -7,7 +7,8 @@ modelo não grava estado. Com ela, responde a `ler_mensagens` pela mesma `read_r
 produção, com a Conversa de `tests/eval/<agente>/fixtures/<nome>.json` no lugar da API do chat.
 
 Formato da fixture: `{"mensagens": [{"autor", "usuario", "texto", "quando"}]}`, só Mensagens de
-Pessoas, com `quando` em ISO UTC. A F11-T07 acrescenta a resposta da `perguntar_recorte`.
+Pessoas, com `quando` em ISO UTC. A `perguntar_recorte` (F11-T07) recebe as contagens da mesma
+Conversa, e a pergunta não é gravada: o estado e o fim do turno ficam como na produção.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from typing import Any
 
 from google.adk.tools import BaseTool, ToolContext
 
+from app.agent_requests.question import question_asked, recorte_options
 from app.agent_requests.reading import read_recorte
 
 FIXTURE_KEY = "eval_fixture"
@@ -51,6 +53,19 @@ class FixtureSource:
             ),
             key=lambda pair: pair[0],
         )
+
+    async def count(self, sinces: list[datetime], until: datetime) -> dict[str, Any]:
+        """As contagens como a rota de contagens do bot, pela mesma filtragem da leitura."""
+        totals = [
+            (await self.read(since, until, None))["total"] for since in [*sinces, None]
+        ]
+        return {
+            "counts": [
+                {"since": since.isoformat(), "count": count}
+                for since, count in zip(sinces, totals, strict=False)
+            ],
+            "total": totals[-1],
+        }
 
     async def read(
         self, since: datetime | None, until: datetime, author_username: str | None
@@ -84,9 +99,12 @@ async def fixture_tool_callback(
 ) -> dict[str, Any] | None:
     """Responde à ferramenta com a fixture do caso; fora da avaliação, deixa a ferramenta rodar."""
     name = tool_context.state.get(FIXTURE_KEY)
-    if not name or tool.name != "ler_mensagens":
+    if not name or tool.name not in ("ler_mensagens", "perguntar_recorte"):
         return None
     source = fixture_source(tool_context.agent_name, name)
+    if tool.name == "perguntar_recorte":
+        options = await recorte_options(source, tool_context.state)
+        return question_asked(tool_context, options)
     return await read_recorte(
         source, tool_context.state, args.get("recorte", ""), args.get("pessoa")
     )

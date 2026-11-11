@@ -237,6 +237,16 @@ export type Message = {
   mentions: Mention[];
   // A Citação, com o autor e o texto atual da original, ou a marca de apagada (spec da F06).
   quote: Quote | null;
+  // As Respostas prontas da pergunta do Agente, ou nulas (spec da F11, "Envio e Pergunta pendente").
+  quickReplies: QuickReplies | null;
+};
+
+// Os botões da pergunta do Agente: os rótulos, quem pode responder, até quando e se já se encerrou.
+export type QuickReplies = {
+  options: string[];
+  ownerId: string;
+  expiresAt: string;
+  closed: boolean;
 };
 
 export type Mention = MentionPayload;

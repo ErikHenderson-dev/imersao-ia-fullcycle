@@ -1,4 +1,8 @@
-import type { MessageAuthorPayload, QuotePayload } from 'chat-events';
+import type {
+  MessageAuthorPayload,
+  QuickRepliesPayload,
+  QuotePayload,
+} from 'chat-events';
 import { MessageView } from './messages.service';
 
 export interface MessageResponse {
@@ -11,9 +15,11 @@ export interface MessageResponse {
   edited_at: string | null;
   mentions: { id: string; username: string }[];
   quote: QuotePayload | null;
+  quick_replies: QuickRepliesPayload | null;
 }
 
 export function toMessageResponse(message: MessageView): MessageResponse {
+  const { quickReplies } = message;
   return {
     id: message.id,
     conversation_id: message.conversationId,
@@ -24,5 +30,11 @@ export function toMessageResponse(message: MessageView): MessageResponse {
     edited_at: message.editedAt?.toISOString() ?? null,
     mentions: message.mentions,
     quote: message.quote,
+    quick_replies: quickReplies && {
+      options: quickReplies.options,
+      owner_id: quickReplies.ownerId,
+      expires_at: quickReplies.expiresAt.toISOString(),
+      closed: quickReplies.closed,
+    },
   };
 }

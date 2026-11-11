@@ -73,6 +73,11 @@ export class Message extends BaseEntity {
   @JoinColumn({ name: 'quoted_message_id' })
   quotedMessage?: Message;
 
+  // Os rótulos das Respostas prontas da pergunta do bot, ou nulo (spec da F11, "Envio e Pergunta
+  // pendente"); quem pode responder e até quando vêm da Pergunta pendente da Mensagem.
+  @Column({ type: 'jsonb', nullable: true })
+  quickReplies!: string[] | null;
+
   // A hora da exclusão; a linha fica só para as Citações (spec da F06, "Apagar").
   @Column({ type: 'timestamptz', nullable: true })
   deletedAt!: Date | null;

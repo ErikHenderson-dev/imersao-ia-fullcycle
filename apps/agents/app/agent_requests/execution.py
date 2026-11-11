@@ -40,8 +40,9 @@ MAX_LLM_CALLS = 4
 # A API do chat recusa o Pedido em si (inexistente, encerrado ou vencido): não há o que gravar.
 REQUEST_GONE = frozenset({404, 409, 410})
 
-# reply: gravou o texto do modelo; failed: gravou o "não consegui"; discarded: nada foi gravado.
-Outcome = Literal["reply", "failed", "discarded"]
+# reply: gravou o texto do modelo; question: a ferramenta gravou a pergunta (F11-T07); failed: gravou
+# o "não consegui"; discarded: nada foi gravado.
+Outcome = Literal["reply", "question", "failed", "discarded"]
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,7 @@ def request_state(request: AgentRequestBody) -> dict[str, object]:
         context.TIME_ZONE: request.time_zone,
         context.REQUESTED_AT: to_api_instant(requested_at(request)),
         context.MENTIONS: [mention.model_dump() for mention in request.mentions],
+        context.KIND: request.kind,
     }
 
 
@@ -95,7 +97,7 @@ def requested_at(request: AgentRequestBody) -> datetime:
 async def final_text(
     request: AgentRequestBody, deps: ExecutionDeps, session: Session, usage: Usage
 ) -> str | None:
-    """Roda o agente na sessão do Pedido e devolve o texto final do modelo."""
+    """Roda o agente na sessão dada e devolve o texto final do modelo."""
     runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
     text: str | None = None
     async for event in runner.run_async(
@@ -117,8 +119,8 @@ async def final_text(
 async def run_request(request: AgentRequestBody, deps: ExecutionDeps) -> None:
     """Executa o Pedido, grava o desfecho na Conversa e registra o fim no log.
 
-    É aqui que o texto final vira `reply` (F11-T03); a F11-T07 acrescenta o desvio da `question` e a
-    retomada da sessão da continuação.
+    É aqui que o texto final vira `reply` (F11-T03), salvo quando a ferramenta já gravou a pergunta,
+    e que a continuação retoma a sessão do Pedido que perguntou (F11-T07).
     """
     started = time.monotonic()
     usage = Usage()
@@ -148,12 +150,10 @@ async def execute(
     log = {"request_id": request_id}
     text: str | None = None
     try:
-        session = await deps.session_service.create_session(
-            app_name=agent_app(request.agent).name,
-            user_id=str(request.requester.id),
-            session_id=request_id,
-        )
+        session = await request_session(request, deps)
         text = await final_text(request, deps, session, usage)
+        if await asked_question(request, deps, session):
+            return "question"
     except AlreadyExistsError:
         # Duas entregas simultâneas do mesmo Pedido, que passaram juntas pela conferência da rota:
         # a primeira é que responde.
@@ -181,6 +181,40 @@ async def execute(
     if written == "refused":
         logger.error("Pedido %s terminou sem nada na Conversa", request_id, extra=log)
     return "discarded"
+
+
+async def request_session(request: AgentRequestBody, deps: ExecutionDeps) -> Session:
+    """A sessão em que o Pedido roda. A sessão com o id do Pedido é criada sempre, e é ela que
+    barra a segunda entrega (`AlreadyExistsError`). O Pedido new roda nela; a continuação roda na
+    sessão do Pedido que perguntou, com o contexto da pergunta, ou na própria, se a do pai sumiu."""
+    app_name = agent_app(request.agent).name
+    user_id = str(request.requester.id)
+    parent_id = request.parent_request_id
+    is_continuation = request.kind == "continuation" and parent_id is not None
+    own = await deps.session_service.create_session(
+        app_name=app_name,
+        user_id=user_id,
+        session_id=str(request.request_id),
+        state={context.CONTINUATION_OF: str(parent_id)} if is_continuation else None,
+    )
+    if not is_continuation:
+        return own
+    parent = await deps.session_service.get_session(
+        app_name=app_name, user_id=user_id, session_id=str(parent_id)
+    )
+    return parent or own
+
+
+async def asked_question(
+    request: AgentRequestBody, deps: ExecutionDeps, session: Session
+) -> bool:
+    """Se a ferramenta gravou a pergunta neste Pedido: ele termina sem `reply`."""
+    current = await deps.session_service.get_session(
+        app_name=session.app_name, user_id=session.user_id, session_id=session.id
+    )
+    return bool(current) and current.state.get(context.QUESTION_FOR) == str(
+        request.request_id
+    )
 
 
 async def write_reply(

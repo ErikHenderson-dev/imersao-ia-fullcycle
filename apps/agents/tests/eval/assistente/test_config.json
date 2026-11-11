@@ -20,7 +20,7 @@
         {
           "rubric_id": "portugues",
           "rubric_content": {
-            "text_property": "A resposta está em português do Brasil."
+            "text_property": "O texto da resposta, quando há, está em português do Brasil. Uma resposta sem texto, quando o Agente só fez a pergunta pela ferramenta perguntar_recorte, atende."
           }
         }
       ]

@@ -15,3 +15,9 @@ TIME_ZONE = "time_zone"
 REQUESTED_AT = "requested_at"
 # As Pessoas mencionadas no pedido, `[{username, name}]`, para o modelo citar pelo nome.
 MENTIONS = "mentions"
+# `new` ou `continuation`: a continuação não pergunta de novo (F11-T07).
+KIND = "kind"
+# O Pedido que gravou a pergunta com as Respostas prontas: ele termina sem `reply` (F11-T07).
+QUESTION_FOR = "pergunta_do_pedido"
+# Na sessão marcadora da continuação, o Pedido que perguntou (F11-T07).
+CONTINUATION_OF = "continuacao_de"

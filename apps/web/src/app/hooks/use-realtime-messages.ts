@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import { type MessageDeleted, useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Message, MessagePage } from "@/app/services/chat-api";
+import { isUpdated } from "@/app/utils/message-pages";
 import { newerThan } from "@/app/utils/recent-messages";
 
 type Handlers = {
@@ -50,7 +51,7 @@ export function useRealtimeMessages(
     newerThan(recent, newest).forEach(receive);
     // As edições recebidas enquanto a Conversa não estava aberta valem também para as Mensagens da
     // primeira página; a troca só acontece se a edição for mais nova.
-    recent.filter((message) => message.editedAt).forEach(receiveEdit);
+    recent.filter(isUpdated).forEach(receiveEdit);
   });
 
   useEffect(() => {
