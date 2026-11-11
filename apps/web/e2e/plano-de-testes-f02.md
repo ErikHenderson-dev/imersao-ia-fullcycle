@@ -207,6 +207,15 @@ banco, com nome de prefixo `e2e-` e só as participações que o teste passa (`m
   3. Avançar no navegador
     - expect: o segundo Canal
 
+#### 4.4. reabrir-canal-pela-barra-lateral
+
+**File:** `e2e/conversa/reabrir-canal-pela-barra-lateral.spec.ts`
+
+**Steps:**
+  1. Abrir o primeiro Canal e alternar com o segundo pela barra lateral, duas vezes
+    - expect: a cada troca, a URL, o título e a caixa de mensagem são os do Canal aberto
+    - expect: nenhum erro na página
+
 ### 5. Histórico até a primeira Mensagem
 
 Os testes desta seção esperam o histórico hidratado (`readyHistory`, que espera o `data-ready`)

@@ -12,7 +12,6 @@ import {
 import { useKnownPerson } from "@/app/components/people/people-provider";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { toast } from "sonner";
-import { SWRConfig } from "swr";
 import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
@@ -68,16 +67,6 @@ const LOAD_OLDER_MARGIN_PX = 300;
 // Distância do fim da lista até a qual a Pessoa está "no fim" (LLD, "Valores e configuração").
 const END_OF_LIST_PX = 100;
 
-// Lista de Mensagens e caixa de mensagem de uma Conversa. O cache do SWR é desta montagem: abrir
-// a Conversa de novo começa da página que o servidor acabou de ler.
-export function MessageHistory(props: MessageHistoryProps) {
-  return (
-    <SWRConfig value={{ provider: () => new Map() }}>
-      <History {...props} />
-    </SWRConfig>
-  );
-}
-
 
 // Tira o `?mensagem=` da URL sem navegar: o roteador do Next acompanha o replaceState.
 function dropMessageParam() {
@@ -90,7 +79,9 @@ function dropMessageParam() {
 // Quanto tempo a Mensagem citada fica destacada ao chegar (spec da F06, "Ir até a Mensagem citada").
 const HIGHLIGHT_MS = 2_000;
 
-function History({
+// Lista de Mensagens e caixa de mensagem de uma Conversa. O cache do SWR é desta montagem: abrir
+// a Conversa de novo começa da página que o servidor acabou de ler (`useMessageHistory`).
+export function MessageHistory({
   conversation,
   initialPage,
   timeZone,

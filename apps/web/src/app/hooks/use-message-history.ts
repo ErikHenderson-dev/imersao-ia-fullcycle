@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import type { Message, MessagePage } from "@/app/services/chat-api";
 import {
@@ -17,7 +17,16 @@ import { forgetMessage, rememberEdit, rememberMessage } from "@/app/utils/recent
 const SAVED_LIMIT = 100;
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 
-type PageKey = readonly ["messages", string, string | null];
+// A chave de uma página: a montagem do histórico, a Conversa e a Mensagem `before` (nula na mais
+// recente).
+type PageKey = readonly ["messages", number, string, string | null];
+
+// Cada montagem do histórico tem as próprias chaves no cache global do SWR: abrir a Conversa de
+// novo começa da página que o servidor acabou de ler. Não é um `SWRConfig` com `provider` próprio
+// porque, com Cache Components, o Next esconde a página que sai num <Activity>: a limpeza do efeito
+// do `SWRConfig` apaga o cache do estado global do SWR, e a página escondida que renderiza de novo
+// (ou reaparece, antes dos efeitos) quebra lendo esse estado.
+let lastMount = 0;
 
 // Uma página do histórico pela rota do BFF: a mais recente sem `before`, ou a anterior a ele. A
 // Sessão recusada leva a "Entrar"; numa página anterior, a Conversa que deixou de existir para a
@@ -55,22 +64,24 @@ export function useMessageHistory(conversationId: string, initialPage: MessagePa
   const latestPage = useRef(initialPage);
   // O tamanho da próxima página anterior: o padrão, ou o maior da ida até a Mensagem citada.
   const olderPageSize = useRef<number | undefined>(undefined);
+  // O estado sobrevive à página escondida no <Activity>, que volta com o mesmo cache.
+  const [mount] = useState(() => ++lastMount);
   const { data, mutate, size, setSize, error, isValidating } = useSWRInfinite<
     MessagePage,
     Error,
     (index: number, previous: MessagePage | null) => PageKey | null
   >(
     (index, previous) => {
-      if (index === 0) return ["messages", conversationId, null];
+      if (index === 0) return ["messages", mount, conversationId, null];
       const oldest = previous?.messages[0];
-      return previous?.hasMore && oldest ? ["messages", conversationId, oldest.id] : null;
+      return previous?.hasMore && oldest ? ["messages", mount, conversationId, oldest.id] : null;
     },
-    (key) => {
-      if (key[2] === null) return Promise.resolve(latestPage.current);
+    ([, , id, before]) => {
+      if (before === null) return Promise.resolve(latestPage.current);
       // O tamanho maior vale só para a carga que o pediu, e não para uma releitura depois.
       const limit = olderPageSize.current;
       olderPageSize.current = undefined;
-      return fetchPage(key[1], key[2], limit);
+      return fetchPage(id, before, limit);
     },
     {
       fallbackData: [initialPage],
