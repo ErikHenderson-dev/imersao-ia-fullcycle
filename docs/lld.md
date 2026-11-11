@@ -44,6 +44,9 @@ apps/
       agents/     um agente por pasta (seção "Componentes e           existe
                   dependências")
       registry/   catálogo e registro de agentes conectados           existe
+      agent_requests/
+                  rota de Pedido e execução do Pedido (spec da F11)   existe
+      chat_api.py cliente da API do chat, com a credencial de bot     existe
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 planejada
@@ -176,7 +179,7 @@ novas tentativas e idempotência").
   `Authorization: Bearer` e a API do chat confere com comparação de tempo constante em toda rota
   `/v1/bot`. O alcance de cada ação vem do identificador de pedido
   ([ADR 0011](adr/0011-identificador-de-pedido.md)): a Conversa e a Pessoa são as do Pedido. Uma
-  credencial por Agente fica para quando houver mais de um processo ou de um Agente. `planejada`
+  credencial por Agente fica para quando houver mais de um processo ou de um Agente. `existe`
   ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Rotas do bot e
   credencial").
 - **Dados de negócio no tempo real:** uma mensagem marcada "dados de negócio" é emitida pelo
@@ -230,7 +233,7 @@ novas tentativas e idempotência").
 - **Ação de bot:** unicidade em (identificador de pedido, tipo de ação). Tipos: resposta (`reply`),
   pergunta ao usuário (`question`), aviso de início, entrega do PDF, criação de tarefa. A repetição
   devolve o que já foi gravado, sem nova mensagem, tarefa ou notificação. O "digitando" do bot não é
-  ação e não entra na unicidade. `reply` e `question` `planejadas` (spec da F11, seção "Pedido e
+  ação e não entra na unicidade. `reply` existe e `question` `planejada` (spec da F11, seção "Pedido e
   ações de bot").
 - **Pergunta pendente no envio:** resolvida na mesma transação que grava a Mensagem, com a linha da
   Pergunta pendente travada, e no máximo uma pergunta aberta por Pessoa e Conversa. Dois envios
@@ -344,7 +347,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
 | Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem") |
 | Chat | Tarefas | a detalhar |
-| Chat | Pedidos aos agentes e ações de bot | planejada (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
+| Chat | Pedidos aos agentes e ações de bot | existe (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
 | Chat | Perguntas pendentes | planejada (`pending_questions`): spec da F11, seção "Envio e Pergunta pendente" |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
@@ -386,10 +389,11 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/conversations/:id/read` | existe | Avançar a Última leitura ("Concorrência e idempotência"): spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id` | existe | Uma Conversa, pela conferência de participação ("Segurança"): spec da F02, seção "Rotas"; com a Última leitura e os números: spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id/messages` | existe | Página do histórico: spec da F02, seção "Rotas" |
-| API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas". Alteração `planejada`: `agent_username` e `agent_request`, com a Pergunta pendente ("Estados e regras", seção "Pedido ao agente e Pergunta pendente"): spec da F11, seção "Envio e Pergunta pendente" |
+| API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas". `agent_username` e `agent_request`, com o Pedido `new`: spec da F11, seção "Envio e Pergunta pendente". Alteração `planejada`: o Pedido `continuation` e a Pergunta pendente ("Estados e regras", seção "Pedido ao agente e Pergunta pendente"): mesma seção |
 | API do chat: `POST /v1/agent-requests/:id/close` | planejada | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
 | API do chat: `GET /v1/bot/requests/:id/messages` e `GET /v1/bot/requests/:id/message-counts` | planejada | Leitura e contagem do Recorte pelo bot, com a credencial de bot ("Segurança"): spec da F11, seção "Rotas do bot e credencial" |
-| API do chat: `POST /v1/bot/requests/:id/typing`, `/reply` e `/question` | planejada | "Digitando", resposta e pergunta do bot, com a credencial de bot: mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/typing` e `/question` | planejada | "Digitando" e pergunta do bot, com a credencial de bot: mesma seção |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `POST /v1/conversations` | existe | Criar Canal sem duplicar ("Concorrência e idempotência"): [spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Rotas"; abrir Conversa direta: [spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Rotas" |
@@ -417,12 +421,12 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
-| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Alteração `planejada`: orquestra o Pedido (registro, envio, `POST /v1/requests`, encerramento na falha): spec da F11, seção "Disparo pelo BFF" |
+| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Orquestra o Pedido (registro, envio e `POST /v1/requests`): spec da F11, seção "Disparo pelo BFF". Alteração `planejada`: o encerramento do Pedido e o erro do Agente na falha: mesma seção |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `DELETE /v1/agents/:slug/connection` | existe | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `POST /v1/requests` | planejada | Recebe o Pedido, confere conexão e limite de pedidos, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido" |
+| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Alteração `planejada`: a conferência de conexão e do limite de pedidos antes do aceite: mesmas seções |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | existe | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
@@ -566,8 +570,10 @@ carência, os outros continuam vendo a Presença de "conectada".
 
 ### 6.5 Pedido ao agente e Pergunta pendente
 
-Situação: `planejada` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md),
-seções "Pedido e ações de bot" e "Envio e Pergunta pendente").
+Situação: `existe` o Pedido `new` e a recusa das ações do bot; `planejados` o Pedido
+`continuation`, o encerramento pelo BFF e a Pergunta pendente
+([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seções "Pedido e ações de
+bot" e "Envio e Pergunta pendente").
 
 **Estados do Pedido**
 
@@ -755,7 +761,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 **Variáveis de ambiente**
 
 O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos". As já decididas
-(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` da API do chat, as sete da Web e as do Serviço de agentes já existem; as demais são `planejadas`):
+(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` e `CHAT_BOT_TOKEN` da API do chat, as sete da Web e as do Serviço de agentes já existem; as demais são `planejadas`):
 
 | Projeto | Variável | Para quê |
 | --- | --- | --- |
@@ -781,9 +787,9 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Serviço de agentes | `GEMINI_API_KEY` | Chave do Gemini pelo Google AI Studio; segredo, no `apps/agents/.env` |
 | Serviço de agentes | `GOOGLE_GENAI_USE_ENTERPRISE` | `false`: o SDK do Gemini usa o AI Studio, e não o Vertex AI |
 | Serviço de agentes | `AGENTS_CLI_TELEMETRY` | `0`: desliga a telemetria do `agents-cli` |
-| API do chat | `CHAT_BOT_TOKEN` | Credencial de bot que as rotas `/v1/bot` conferem ("Segurança"); segredo, o mesmo valor do Serviço de agentes; `planejada` |
-| Serviço de agentes | `CHAT_BOT_TOKEN` | Credencial de bot ("Segurança"); `planejada` |
-| Serviço de agentes | `CHAT_API_URL` | Endereço interno da API do chat, para as rotas `/v1/bot`; `planejada` |
+| API do chat | `CHAT_BOT_TOKEN` | Credencial de bot que as rotas `/v1/bot` conferem ("Segurança"); segredo, o mesmo valor do Serviço de agentes |
+| Serviço de agentes | `CHAT_BOT_TOKEN` | Credencial de bot ("Segurança") |
+| Serviço de agentes | `CHAT_API_URL` | Endereço interno da API do chat, para as rotas `/v1/bot` |
 | Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa`; `planejada` |
 | Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); obrigatória, sem padrão no código |
 | Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa`; `planejada` |
