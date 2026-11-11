@@ -37,3 +37,17 @@ usa o fixture `makeAdmin`, que o tira no fim.
 
 Acessibilidade (`acessibilidade/agentes-sem-violacoes.spec.ts`): o diálogo de quem não administra,
 com um administrador, nos dois temas, sem violações do axe.
+
+## F10-T06 · Conectar um Agente (`agentes/conectar-agente.spec.ts`)
+
+1. **O administrador conecta o assistente pelo teclado:** "Conectar agentes, 1 desconectado" abre
+   o diálogo com o aviso de "Admin sem conectados"; Enter em "Conectar" o desabilita (Conectando,
+   com a Server Action atrasada) e termina com "Desconectar"; a seção passa a "Gerenciar agentes",
+   com a linha; a outra Pessoa vê a linha ao recarregar.
+2. **Quem perdeu o papel recebe o erro:** o papel sai do banco com o diálogo aberto; "Conectar"
+   mostra "Só administradores conectam agentes", e o Agente continua desconectado.
+3. **A falha mostra o erro e não muda nada:** a Server Action responde 500; "Não foi possível
+   conectar o agente", e o Agente continua desconectado.
+
+Acessibilidade (`acessibilidade/agentes-admin-sem-violacoes.spec.ts`): o diálogo do administrador,
+nos dois temas, sem violações do axe.

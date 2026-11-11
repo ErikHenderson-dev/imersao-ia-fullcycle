@@ -40,4 +40,42 @@ describe("agentsSectionView", () => {
       count: 0,
     });
   });
+
+  it("mostra ao administrador Conectar agentes com o número de desconectados quando nenhum está conectado", () => {
+    const agents = [agent("alfa", false), agent("beta", false)];
+
+    expect(agentsSectionView({ isAdmin: true, agents })).toEqual({
+      rows: [],
+      action: "connect",
+      count: 2,
+    });
+  });
+
+  it("mostra ao administrador os conectados e Adicionar agente quando parte está conectada", () => {
+    const agents = [agent("alfa", true), agent("beta", false)];
+
+    expect(agentsSectionView({ isAdmin: true, agents })).toEqual({
+      rows: [agents[0]],
+      action: "add",
+      count: 0,
+    });
+  });
+
+  it("mostra ao administrador os conectados e Gerenciar agentes quando todos estão conectados", () => {
+    const agents = [agent("alfa", true), agent("beta", true)];
+
+    expect(agentsSectionView({ isAdmin: true, agents })).toEqual({
+      rows: agents,
+      action: "manage",
+      count: 0,
+    });
+  });
+
+  it("mostra ao administrador Gerenciar agentes com o catálogo vazio", () => {
+    expect(agentsSectionView({ isAdmin: true, agents: [] })).toEqual({
+      rows: [],
+      action: "manage",
+      count: 0,
+    });
+  });
 });

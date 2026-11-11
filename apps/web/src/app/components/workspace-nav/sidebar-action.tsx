@@ -26,7 +26,7 @@ const SIDEBAR_ACTIONS: Record<SidebarActionVariant, SidebarActionContent> = {
 type SidebarActionProps = Omit<React.ComponentProps<"button">, "children"> & {
   variant: SidebarActionVariant;
   // O CountBadge no fim da linha, que some em zero, e o que ele conta para o leitor de tela: o
-  // contador é aria-hidden, e o texto vai dentro do botão, depois do rótulo.
+  // contador é aria-hidden, e o texto entra no nome acessível do botão, depois do rótulo.
   count?: number;
   countLabel?: string;
 };
@@ -37,9 +37,12 @@ type SidebarActionProps = Omit<React.ComponentProps<"button">, "children"> & {
 export function SidebarAction({ variant, count = 0, countLabel, className, ...props }: SidebarActionProps) {
   const { label, icon: Icon, tile } = SIDEBAR_ACTIONS[variant];
   const isStrong = variant === "connect";
+  const hasCount = count > 0 && Boolean(countLabel);
   return (
     <button
       type="button"
+      // Com o contador, o nome acessível o inclui: o CountBadge é aria-hidden.
+      aria-label={hasCount ? `${label}, ${countLabel}` : undefined}
       className={cn(
         "flex h-11 w-full items-center gap-2 rounded-item px-2 text-body hover:bg-sidebar-hover md:h-7",
         isStrong ? "font-black text-sidebar-fg-strong" : "text-sidebar-fg",
@@ -57,7 +60,6 @@ export function SidebarAction({ variant, count = 0, countLabel, className, ...pr
         <Icon size={12} />
       </span>
       {label}
-      {count > 0 && countLabel && <span className="sr-only">, {countLabel}</span>}
       <CountBadge count={count} className="ml-auto" />
     </button>
   );

@@ -49,7 +49,12 @@ export function AgentsSection({ personId, isAdmin }: AgentsSectionProps) {
                 </li>
               ))}
               <li>
-                <SidebarAction variant={view.action} count={view.count} onClick={open} />
+                <SidebarAction
+                  variant={view.action}
+                  count={view.count}
+                  countLabel={`${view.count} ${view.count === 1 ? "desconectado" : "desconectados"}`}
+                  onClick={open}
+                />
               </li>
             </>
           )
@@ -59,6 +64,7 @@ export function AgentsSection({ personId, isAdmin }: AgentsSectionProps) {
         {isOpen && (
           <AgentsDialog
             personId={personId}
+            isAdmin={isAdmin}
             onCloseAutoFocus={(event) => {
               profile.onCloseAutoFocus(event);
               if (event.defaultPrevented) return;

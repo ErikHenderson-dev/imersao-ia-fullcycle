@@ -48,3 +48,21 @@ async function fetchAgents(): Promise<ListAgentsResult> {
     return { kind: "failure" };
   }
 }
+
+export type SetConnectionResult = { kind: "ok" } | { kind: "failure" };
+
+// Conecta ou desconecta um Agente em nome de quem pede, com o papel dela (ADR 0015; spec da F10,
+// "BFF"). Qualquer resposta que não seja 204 é falha: o forbidden e o agent_not_found do Serviço
+// de agentes não chegam à tela de outro jeito.
+export async function setConnection(
+  slug: string,
+  connected: boolean,
+  person: { id: string; isAdmin: boolean },
+): Promise<SetConnectionResult> {
+  const response = await request(`/v1/agents/${encodeURIComponent(slug)}/connection`, {
+    method: connected ? "PUT" : "DELETE",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ person_id: person.id, is_admin: person.isAdmin }),
+  });
+  return response?.status === 204 ? { kind: "ok" } : { kind: "failure" };
+}

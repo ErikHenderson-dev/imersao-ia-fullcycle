@@ -71,14 +71,19 @@ export const test = base.extend<Fixtures>({
     for (const id of admins) await setAdminOf(id, false);
   },
 
-  agentsLock: async ({}, use) => {
-    const release = await lockAgents();
-    try {
-      await use();
-    } finally {
-      await release();
-    }
-  },
+  // A espera pela trava tem tempo próprio, fora do tempo do teste: os testes que a usam correm em
+  // fila.
+  agentsLock: [
+    async ({}, use) => {
+      const release = await lockAgents();
+      try {
+        await use();
+      } finally {
+        await release();
+      }
+    },
+    { timeout: 180_000 },
+  ],
 });
 
 // Entra pelo formulário da tela Entrar.

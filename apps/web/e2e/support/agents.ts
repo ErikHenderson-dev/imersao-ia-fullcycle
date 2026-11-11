@@ -1,4 +1,4 @@
-import { Pool, type PoolClient } from "pg";
+import { Client, Pool } from "pg";
 
 // O estado de conexão dos Agentes, direto no Banco dos agentes do ambiente de desenvolvimento
 // (spec da F10, "Registro de Agentes"): existir a linha é estar conectado. Ele é global, então os
@@ -27,15 +27,13 @@ export async function isConnected(slug: string): Promise<boolean> {
 // A chave da trava dos testes que dependem do estado de conexão.
 const LOCK_KEY = 4210;
 
-// Segura a trava numa conexão própria até `release`.
+// Segura a trava numa conexão própria, fora do pool, até `release`: quem espera a trava não ocupa
+// as conexões do pool de que quem a segura precisa para mudar o estado.
 export async function lockAgents(): Promise<() => Promise<void>> {
-  const client: PoolClient = await pool.connect();
+  const client = new Client({ connectionString: process.env.AGENTS_DATABASE_URL });
+  await client.connect();
   await client.query("SELECT pg_advisory_lock($1)", [LOCK_KEY]);
   return async () => {
-    try {
-      await client.query("SELECT pg_advisory_unlock($1)", [LOCK_KEY]);
-    } finally {
-      client.release();
-    }
+    await client.end();
   };
 }

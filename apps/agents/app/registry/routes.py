@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
+import uuid
 
+from fastapi import APIRouter, Depends, Request, Response
+from pydantic import BaseModel, StrictBool
+
+from app.problems import ProblemError
 from app.registry.auth import require_service_token
 from app.registry.catalog import AgentCard
-from app.registry.store import connected_slugs
+from app.registry.store import connect, connected_slugs
 
 
 class AgentResponse(BaseModel):
@@ -20,6 +23,25 @@ class AgentResponse(BaseModel):
 
 class AgentsResponse(BaseModel):
     agents: list[AgentResponse]
+
+
+class ConnectionRequest(BaseModel):
+    """Quem pede e o papel dela, enviados pelo BFF (ADR 0015)."""
+
+    person_id: uuid.UUID
+    is_admin: StrictBool
+
+
+def _require_admin_and_agent(
+    body: ConnectionRequest, slug: str, catalog: list[AgentCard]
+) -> None:
+    # O papel antes do catálogo: quem não administra não descobre o catálogo pela resposta.
+    if not body.is_admin:
+        raise ProblemError(
+            403, "forbidden", "Só administradores conectam ou desconectam agentes."
+        )
+    if all(card.slug != slug for card in catalog):
+        raise ProblemError(404, "agent_not_found", "Agente não encontrado.")
 
 
 def build_router(catalog: list[AgentCard]) -> APIRouter:
@@ -42,5 +64,13 @@ def build_router(catalog: list[AgentCard]) -> APIRouter:
                 for card in catalog
             ]
         )
+
+    @router.put("/agents/{slug}/connection", status_code=204)
+    async def connect_agent(
+        slug: str, body: ConnectionRequest, request: Request
+    ) -> Response:
+        _require_admin_and_agent(body, slug, catalog)
+        await connect(request.app.state.engine, slug, body.person_id)
+        return Response(status_code=204)
 
     return router

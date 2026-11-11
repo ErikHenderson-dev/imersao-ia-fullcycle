@@ -2,7 +2,9 @@
 
 import { Bot } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
+import { connectAgent } from "@/app/actions/agent-connection";
 import { Button } from "@/app/components/ui/button";
 import { DialogBody, DialogContent } from "@/app/components/ui/dialog";
 import { EmptyState } from "@/app/components/ui/empty-state";
@@ -15,6 +17,8 @@ import { AgentAvatar } from "./agent-avatar";
 import { useAgents } from "./agents-provider";
 
 const ADMINS_KEY = "/api/people?admin=true";
+
+const ADMIN_DESCRIPTION = "Conecte um agente ao workspace e mencione-o com @ em qualquer conversa.";
 
 const MEMBER_DESCRIPTION =
   "Mencione um agente conectado com @ em qualquer conversa. Só administradores conectam ou desconectam agentes.";
@@ -29,6 +33,8 @@ async function fetchAdmins(url: string): Promise<PersonEntry[]> {
 type AgentsDialogProps = {
   // A Pessoa da Sessão: "(você)" na lista de administradores.
   personId: string;
+  // O administrador conecta e desconecta; quem não administra vê o estado e os administradores.
+  isAdmin: boolean;
   onPersonSelect: (personId: string) => void;
   onCloseAutoFocus: (event: Event) => void;
 };
@@ -37,7 +43,12 @@ type AgentsDialogProps = {
 // abrir, mostrando o cache enquanto lê. Sem dados, Carregando; na falha da releitura, Erro com
 // "Tentar de novo"; com o catálogo vazio, Vazio. Quem não administra vê cada Agente com o estado,
 // sem botões, e a lista de administradores, que abre o perfil.
-export function AgentsDialog({ personId, onPersonSelect, onCloseAutoFocus }: AgentsDialogProps) {
+export function AgentsDialog({
+  personId,
+  isAdmin,
+  onPersonSelect,
+  onCloseAutoFocus,
+}: AgentsDialogProps) {
   const { agents, error, reload } = useAgents();
   const [isRevalidated, setIsRevalidated] = useState(false);
 
@@ -60,7 +71,11 @@ export function AgentsDialog({ personId, onPersonSelect, onCloseAutoFocus }: Age
   }
 
   return (
-    <DialogContent title="Agentes" description={MEMBER_DESCRIPTION} onCloseAutoFocus={onCloseAutoFocus}>
+    <DialogContent
+      title="Agentes"
+      description={isAdmin ? ADMIN_DESCRIPTION : MEMBER_DESCRIPTION}
+      onCloseAutoFocus={onCloseAutoFocus}
+    >
       <DialogBody>
         {isRevalidated && error ? (
           <EmptyState
@@ -84,11 +99,69 @@ export function AgentsDialog({ personId, onPersonSelect, onCloseAutoFocus }: Age
             title="Nenhum agente disponível"
             description="Quando o administrador publicar agentes, eles aparecem aqui para conectar."
           />
+        ) : isAdmin ? (
+          <AdminView agents={agents} onConnected={finishReload} />
         ) : (
           <MemberView agents={agents} personId={personId} onPersonSelect={onPersonSelect} />
         )}
       </DialogBody>
     </DialogContent>
+  );
+}
+
+// A visão do administrador: cada Agente com "Conectar" ou "Desconectar". Conectar passa a linha a
+// "Conectando", sem aceitar outro clique, e relê a lista no sucesso.
+function AdminView({ agents, onConnected }: { agents: Agent[]; onConnected: () => Promise<unknown> }) {
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const hasConnected = agents.some((agent) => agent.connected);
+
+  async function connect(agent: Agent) {
+    setConnecting(agent.slug);
+    try {
+      const result = await connectAgent(agent.slug);
+      if (result.kind === "ok") await onConnected();
+      else if (result.kind === "unauthenticated") redirectToExpiredSession();
+      else if (result.kind === "forbidden") toast.error("Só administradores conectam agentes");
+      else toast.error("Não foi possível conectar o agente");
+    } catch {
+      toast.error("Não foi possível conectar o agente");
+    } finally {
+      setConnecting(null);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {!hasConnected && (
+        <p className="rounded-item bg-surface-inset px-3 py-2 text-small text-fg">
+          Nenhum agente conectado ainda. Conecte um para todo mundo poder mencioná-lo nas conversas.
+        </p>
+      )}
+      <ul aria-label="Agentes" className="flex flex-col">
+        {agents.map((agent) => (
+          <li key={agent.slug}>
+            <AgentRow agent={agent}>
+              {agent.connected ? (
+                <Button type="button" variant="secondary" size="sm" className="shrink-0">
+                  Desconectar
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="shrink-0"
+                  loading={connecting === agent.slug}
+                  disabled={connecting !== null}
+                  onClick={() => void connect(agent)}
+                >
+                  Conectar
+                </Button>
+              )}
+            </AgentRow>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

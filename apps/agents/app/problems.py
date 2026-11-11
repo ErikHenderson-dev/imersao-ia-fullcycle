@@ -5,6 +5,7 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 PROBLEM_JSON = "application/problem+json"
@@ -39,4 +40,11 @@ def install_problem_handler(app: FastAPI) -> None:
         assert isinstance(error, ProblemError)
         return problem_response(error.status, error.code, error.detail)
 
+    async def handle_validation(_request: Request, _error: Exception) -> JSONResponse:
+        # A entrada fora do contrato, com o mesmo código da API do chat.
+        return problem_response(
+            400, "validation_failed", "Os dados enviados são inválidos."
+        )
+
     app.add_exception_handler(ProblemError, handle)
+    app.add_exception_handler(RequestValidationError, handle_validation)

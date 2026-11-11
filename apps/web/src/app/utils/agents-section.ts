@@ -20,5 +20,9 @@ export function agentsSectionView({
 }): AgentsSectionView {
   if (agents === null) return { rows: [], action: isAdmin ? "manage" : "view", count: 0 };
   const rows = agents.filter((agent) => agent.connected);
-  return { rows, action: "view", count: 0 };
+  if (!isAdmin) return { rows, action: "view", count: 0 };
+  const disconnected = agents.length - rows.length;
+  if (agents.length === 0 || disconnected === 0) return { rows, action: "manage", count: 0 };
+  if (rows.length === 0) return { rows, action: "connect", count: disconnected };
+  return { rows, action: "add", count: 0 };
 }

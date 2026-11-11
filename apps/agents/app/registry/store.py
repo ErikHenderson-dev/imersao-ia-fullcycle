@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import uuid
+
 from sqlalchemy import Column, DateTime, MetaData, Table, Text, func, select
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 # Os metadados das tabelas do projeto: o Alembic gera e aplica só estas, e nunca as de sessão do
@@ -39,3 +41,14 @@ async def connected_slugs(engine: AsyncEngine) -> set[str]:
     async with engine.connect() as connection:
         result = await connection.execute(select(connected_agents.c.slug))
         return {row.slug for row in result}
+
+
+async def connect(engine: AsyncEngine, slug: str, person_id: uuid.UUID) -> None:
+    """Conecta o Agente; o que já está conectado fica como está, com o `connected_by` da primeira
+    conexão (spec da F10, "Registro de Agentes")."""
+    async with engine.begin() as connection:
+        await connection.execute(
+            insert(connected_agents)
+            .values(slug=slug, connected_by=person_id)
+            .on_conflict_do_nothing(index_elements=["slug"])
+        )
