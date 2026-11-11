@@ -1,6 +1,6 @@
 # 02: Trocar o modelo do Agente por configuração
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem opera a instalação escolhe o provedor e o modelo de IA do Agente por uma
 variável de ambiente, sem mudar código, e o Serviço de agentes não sobe se faltar a chave do

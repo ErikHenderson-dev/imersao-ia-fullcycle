@@ -75,7 +75,7 @@ docs/             HLD, LLD, ADRs, brief
 | Avaliação dos agentes | `adk eval` do ADK, com um evalset e um `test_config.json` por agente em `tests/eval/<agente>/`, e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
-| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini` usa o Gemini nativo do ADK; `openai/…` e `anthropic/…` usam o `LiteLlm` (`litellm>=1.84`), `planejada` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
+| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini` usa o Gemini nativo do ADK; `openai/…` e `anthropic/…` usam o `LiteLlm` (`litellm>=1.84`); outro prefixo faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `planejada` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
 | Cliente do Redis no Serviço de agentes | A definir, `planejada` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa |
 | Geração do PDF | A definir | — |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
@@ -100,7 +100,10 @@ dele, como `tools.py`. O nome do `App` é o da pasta, porque o ADK serve o agent
 módulo de topo. O app HTTP (`app/fast_api_app.py`) serve todas as pastas de `app/agents/`. Cada
 pasta tem também o `card.py`, com o nome e a descrição da tela, e o módulo compartilhado
 `app/registry/` monta o catálogo e guarda o registro de agentes conectados
-([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes").
+([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes"). O
+modelo do `root_agent` de cada pasta vem do `build_model()` de `app/model.py`, fora de
+`app/agents/` porque o ADK trata cada entrada dali como agente (seção 1, "Acesso ao modelo");
+`planejada`.
 
 ### Integrações externas
 
@@ -783,7 +786,7 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Serviço de agentes | `CHAT_BOT_TOKEN` | Credencial de bot ("Segurança"); `planejada` |
 | Serviço de agentes | `CHAT_API_URL` | Endereço interno da API do chat, para as rotas `/v1/bot`; `planejada` |
 | Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa`; `planejada` |
-| Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); `planejada` |
+| Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); obrigatória, sem padrão no código; `planejada` |
 | Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa`; `planejada` |
 | Serviço de agentes | `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` | Chave do provedor, obrigatória só quando o `AGENT_MODEL` o escolhe; segredo; `planejada` |
 
@@ -845,6 +848,10 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
   (path-style).
 - **Chave do modelo no Serviço de agentes:** a `GEMINI_API_KEY` chega pelo `env_file` opcional
   `apps/agents/.env`. Sem ela, o contêiner sobe e o agente falha só ao chamar o modelo.
+  `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` chegam pelo mesmo arquivo. O `AGENT_MODEL` vem do
+  `environment` do compose, com o Gemini padrão, e se troca pela variável de mesmo nome no
+  ambiente de quem roda o `docker compose up`: o `environment` tem precedência sobre o `env_file`,
+  e uma linha no `.env` seria ignorada. `planejada`.
 - **Banco dos testes da API do chat:** `chat_test`, do mesmo dono que o `chat`, para os testes
   não misturarem dados com o desenvolvimento. O `globalSetup` dos testes o apaga e o cria de novo
   a cada execução, conectado como o superusuário local, porque o papel `chat` não tem `CREATEDB`,
