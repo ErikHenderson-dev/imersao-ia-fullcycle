@@ -160,6 +160,15 @@ Skills usadas no projeto (ficam em `.claude/skills/`):
 | `next-best-practices` | Boas práticas de Next.js | [vercel-labs/openreview](https://github.com/vercel-labs/openreview) |
 | `vercel-react-best-practices` | Performance em React e Next.js | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) |
 
+## 🎨 Design no Figma
+
+O design completo do Full Cycle Chat está no arquivo [`slack.fig`](slack.fig), na raiz do repositório.
+Para abrir, baixe o arquivo e importe no Figma: arraste o `.fig` para a tela inicial do Figma ou use a
+opção de importar arquivo.
+
+Os tokens, os componentes e as regras que o código segue a partir desse design estão no
+[`docs/design-system.md`](docs/design-system.md).
+
 ## 📚 Onde ler o quê
 
 | Documento | O que tem |
@@ -170,6 +179,7 @@ Skills usadas no projeto (ficam em `.claude/skills/`):
 | [`docs/adr/`](docs/adr/) | As decisões de arquitetura, uma por arquivo |
 | [`docs/roadmap.md`](docs/roadmap.md) | As funcionalidades a desenvolver, as dependências e o status de cada uma |
 | [`GLOSSARY.md`](GLOSSARY.md) | O vocabulário do domínio |
+| [`slack.fig`](slack.fig) | O design do Full Cycle Chat no Figma |
 | [`AGENTS.md`](AGENTS.md) | Como rodar o projeto e as convenções para agentes de código |
 
 ## ⭐ Gostou?
