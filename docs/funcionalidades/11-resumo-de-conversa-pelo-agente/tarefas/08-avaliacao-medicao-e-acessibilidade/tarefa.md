@@ -16,10 +16,10 @@ Acessibilidade do Lighthouse nos dois temas. Referências:
 **Bloqueada por:** 04 (Resumo com Recorte), 05 (O Agente aparece digitando), 06 (Falhas, limite de
 pedidos e teto de custo) e 07 (Escolher o Recorte por Resposta pronta ou responder sem Menção)
 
-- [ ] **CA1** · O evalset chega a cerca de 24 casos, com as duas Conversas com instruções
+- [x] **CA1** · O evalset chega a cerca de 24 casos, com as duas Conversas com instruções
   injetadas, a Pessoa citada pelo nome e por Menção, Mensagens de Agentes e apagadas no Recorte, e
   aprova ≥ 98% dos casos; o resultado e o `token_usage_v1` ficam nesta pasta.
-- [ ] **CA2** · A medição do p95, da Mensagem enviada até a resposta aparecer, numa Conversa de 500
+- [x] **CA2** · A medição do p95, da Mensagem enviada até a resposta aparecer, numa Conversa de 500
   Mensagens com o modelo padrão, e o custo por Pedido calculado dos tokens ficam nesta pasta.
 - [ ] **CA3** · O roteiro manual do Lighthouse, feito por uma pessoa com uma Conversa que tem um
   resumo e uma pergunta com Respostas prontas, registra 100 nos dois temas nesta pasta.
