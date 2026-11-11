@@ -1,6 +1,6 @@
 # 05: Ver os Agentes e os administradores
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** quem não administra vê a seção Agentes na barra lateral, com "Ver agentes", e
 abre o diálogo "Agentes". O diálogo mostra cada Agente com o estado, explica que só
@@ -30,24 +30,24 @@ Referências:
 **Bloqueada por:** 01 (Ação da barra lateral compartilhada), 02 (Papel de administrador e selo no
 perfil), 04 (Catálogo do Serviço de agentes com credencial)
 
-- [ ] **CA1** · Antes do código, o Figma ganha a seção Agentes com a lista indisponível e o frame do
+- [x] **CA1** · Antes do código, o Figma ganha a seção Agentes com a lista indisponível e o frame do
   selo alinhado aos frames "Casca / Agentes" na linha do Agente e na ação da seção, nos dois temas.
-- [ ] **CA2** · `GET /v1/people?admin=true` traz só os administradores, com e sem `q`, em ordem de
+- [x] **CA2** · `GET /v1/people?admin=true` traz só os administradores, com e sem `q`, em ordem de
   nome, até o limite da busca de Pessoas.
-- [ ] **CA3** · O BFF lê o Serviço de agentes com `AGENTS_SERVICE_URL` e `AGENTS_SERVICE_TOKEN`, do
+- [x] **CA3** · O BFF lê o Serviço de agentes com `AGENTS_SERVICE_URL` e `AGENTS_SERVICE_TOKEN`, do
   schema de variáveis da web e do `compose.yaml`; `GET /api/agents` exige Sessão e responde 502
   com `agents_unavailable` quando o Serviço de agentes falha.
-- [ ] **CA4** · O layout logado lê a lista no servidor e carrega mesmo com o Serviço de agentes
+- [x] **CA4** · O layout logado lê a lista no servidor e carrega mesmo com o Serviço de agentes
   fora; a seção Agentes mostra os conectados e "Ver agentes", ou só "Ver agentes" com a lista
   indisponível.
-- [ ] **CA5** · O diálogo revalida ao abrir e mostra Carregando, Erro com "Tentar de novo", Vazio e
+- [x] **CA5** · O diálogo revalida ao abrir e mostra Carregando, Erro com "Tentar de novo", Vazio e
   a lista com o estado, sem botões; os administradores vêm de `GET /api/people?admin=true`, com
   avatar, Presença, nome, `@usuário` e cargo, e abrem o painel de perfil fechando o diálogo; sem
   administradores, mostra o texto de "Membro sem administradores".
-- [ ] **CA6** · O e2e passa a exigir o Serviço de agentes de pé, e o Playwright prova o diálogo de
+- [x] **CA6** · O e2e passa a exigir o Serviço de agentes de pé, e o Playwright prova o diálogo de
   quem não administra com a lista de administradores e a abertura do perfil, tudo pelo teclado, e
   o axe no diálogo, nos dois temas, sem violações.
-- [ ] **CA7** · O Vitest cobre a escolha da variante da seção para quem não administra e para a
+- [x] **CA7** · O Vitest cobre a escolha da variante da seção para quem não administra e para a
   lista indisponível.
-- [ ] **CA8** · A validação visual dos frames de quem não administra, nos dois temas, fica nesta
+- [x] **CA8** · A validação visual dos frames de quem não administra, nos dois temas, fica nesta
   pasta.

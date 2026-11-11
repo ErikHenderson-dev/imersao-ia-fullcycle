@@ -406,8 +406,9 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | planejada | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
-| API do chat: `GET /v1/people?admin=true` | planejada (mudança) | O filtro de administradores: spec da F10, seção "Papel de administrador" |
-| BFF: `GET /api/agents` e Server Actions `connectAgent` e `disconnectAgent` | planejada | Leitura do catálogo e conectar e desconectar em nome do administrador: spec da F10, seção "BFF" |
+| API do chat: `GET /v1/people?admin=true` | existe | O filtro de administradores: spec da F10, seção "Papel de administrador" |
+| BFF: `GET /api/agents` | existe | Leitura do catálogo, com Sessão, e `agents_unavailable` (502) na falha do Serviço de agentes: spec da F10, seção "BFF" |
+| BFF: Server Actions `connectAgent` e `disconnectAgent` | planejada | Conectar e desconectar em nome do administrador: spec da F10, seção "BFF" |
 
 ## 6. Estados e regras
 
