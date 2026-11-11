@@ -63,8 +63,8 @@ class ChatApiSource:
 
 
 def username_of(pessoa: str | None) -> str | None:
-    """O @usuário sem o `@`, ou nenhum."""
-    username = (pessoa or "").strip().lstrip("@").strip()
+    """O @usuário sem o `@` e em minúsculas, como a API guarda, ou nenhum."""
+    username = (pessoa or "").strip().lstrip("@").strip().lower()
     return username or None
 
 

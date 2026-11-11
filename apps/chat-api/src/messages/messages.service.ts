@@ -216,12 +216,8 @@ export class MessagesService {
       params.push(authorUsername);
       conditions.push(`p.username = $${params.length}`);
     }
-    const from = `FROM messages m JOIN people p ON p.id = m.author_person_id WHERE ${conditions.join(' AND ')}`;
-    // Em sequência: as duas consultas usam a conexão da transação de quem chama.
-    const [{ total }] = await this.txHost.tx.query<{ total: number }[]>(
-      `SELECT count(*)::int AS total ${from}`,
-      params,
-    );
+    // Numa consulta só: a contagem da janela é a do Recorte inteiro, antes do LIMIT, e sai do mesmo
+    // retrato que a página. Sem linhas, o Recorte está vazio.
     const newestFirst = await this.txHost.tx.query<
       {
         id: string;
@@ -229,14 +225,17 @@ export class MessagesService {
         username: string;
         body: string;
         created_at: Date;
+        total: number;
       }[]
     >(
-      `SELECT m.id, p.name, p.username, m.body, m.created_at ${from}
-          ORDER BY m.id DESC LIMIT $${params.length + 1}`,
+      `SELECT m.id, p.name, p.username, m.body, m.created_at, count(*) OVER ()::int AS total
+         FROM messages m JOIN people p ON p.id = m.author_person_id
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY m.id DESC LIMIT $${params.length + 1}`,
       [...params, limit],
     );
     return {
-      total,
+      total: newestFirst[0]?.total ?? 0,
       messages: newestFirst.reverse().map((row) => ({
         id: row.id,
         author: { name: row.name, username: row.username },

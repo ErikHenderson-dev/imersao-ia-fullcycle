@@ -44,6 +44,10 @@ export async function sendMessage(
   }
   if (result.kind === "ok" && result.agentRequest) {
     const { message: sent, agentRequest } = result;
+    const [mentions, timeZone] = await Promise.all([
+      requestMentions(token, conversationId, sent.mentions),
+      readTimeZone(),
+    ]);
     // Só o aceite. A falha (encerrar o Pedido e o erro do Agente) é da F11-T06.
     await startAgentRequest({
       requestId: agentRequest.id,
@@ -53,8 +57,8 @@ export async function sendMessage(
       conversationId,
       message: { id: sent.id, body: sent.body },
       requester: { id: sent.author.id, name: sent.author.name, username: sent.author.username },
-      mentions: await requestMentions(token, conversationId, sent.mentions),
-      timeZone: await readTimeZone(),
+      mentions,
+      timeZone,
     });
   }
   return result;

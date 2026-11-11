@@ -211,12 +211,13 @@ describe('GET /v1/bot/requests/:id/messages', () => {
     expect((response.body as { code: string }).code).toBe('request_expired');
   });
 
-  it('responde 400 validation_failed com since inválido', async () => {
+  it.each([
+    ['que não é um instante', 'ontem'],
+    ['sem o fuso', '2026-11-10T03:00:00'],
+  ])('responde 400 validation_failed com since %s', async (_case, since) => {
     const { requestId } = await openRequest();
 
-    const response = await botRoutes.readMessages(app, requestId, {
-      since: 'ontem',
-    });
+    const response = await botRoutes.readMessages(app, requestId, { since });
 
     expect(response.status).toBe(400);
     expect((response.body as { code: string }).code).toBe('validation_failed');
