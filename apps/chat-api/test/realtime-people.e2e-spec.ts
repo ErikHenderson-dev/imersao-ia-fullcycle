@@ -149,6 +149,11 @@ describe('Perfil em tempo real', () => {
     typistSocket.emit('typing.start', { conversation_id: channel.id });
 
     const [event] = await waitForCount(typing, 1);
-    expect(event.person).toEqual({ id: typist.person.id, name: 'Ana Lima' });
+    expect(event.author).toEqual({
+      kind: 'person',
+      id: typist.person.id,
+      name: 'Ana Lima',
+      username: typist.person.username,
+    });
   });
 });

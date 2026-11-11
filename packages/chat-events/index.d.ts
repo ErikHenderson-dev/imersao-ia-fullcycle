@@ -40,12 +40,6 @@ export interface MentionPayload {
   username: string;
 }
 
-/** Pessoa que está digitando. */
-export interface TypingPersonPayload {
-  id: string;
-  name: string;
-}
-
 export interface MessageCreatedEvent {
   /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
   event_id?: string;
@@ -198,9 +192,13 @@ export interface ConversationRef {
   conversation_id: string;
 }
 
+/**
+ * Quem está digitando, ou parou, numa Conversa: uma Pessoa ou o bot de um Agente, no formato do autor
+ * da Mensagem (spec da F11, ""Digitando" do bot").
+ */
 export interface TypingEvent {
   conversation_id: string;
-  person: TypingPersonPayload;
+  author: MessageAuthorPayload;
 }
 
 export type ConversationOpenResult =

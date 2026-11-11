@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -38,6 +39,12 @@ export class BotController {
       authorUsername: query.author_username,
     });
     return toBotMessagesResponse(page);
+  }
+
+  @Post('typing')
+  @HttpCode(204)
+  async typing(@Param('requestId') requestId: string): Promise<void> {
+    await this.actions.typing(requestId);
   }
 
   @Post('reply')

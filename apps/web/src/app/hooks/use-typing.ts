@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { TypingEvent } from "chat-events";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import {
   addTyper,
@@ -72,9 +73,9 @@ export function useTypingAnnouncer(conversationId: string) {
   return { onTextChange };
 }
 
-// Quem está digitando na Conversa, em ordem de chegada. Cada aviso (re)arma o prazo da
-// `expiração do digitando`; o aviso de que parou, o prazo vencido ou a queda da própria conexão
-// tiram a Pessoa.
+// Quem está digitando na Conversa, Pessoa ou Agente (spec da F11, "Cliente"), em ordem de chegada.
+// Cada aviso (re)arma o prazo da `expiração do digitando`; o aviso de que parou, o prazo vencido ou
+// a queda da própria conexão tiram quem digitava.
 export function useTypingPeople(conversationId: string): readonly Typer[] {
   const { socket } = useRealtime();
   const [typers, setTypers] = useState<readonly Typer[]>([]);
@@ -82,19 +83,19 @@ export function useTypingPeople(conversationId: string): readonly Typer[] {
   useEffect(() => {
     if (!socket) return;
     const pending = new Map<string, ReturnType<typeof setTimeout>>();
-    const remove = (personId: string) => {
-      clearTimeout(pending.get(personId));
-      pending.delete(personId);
-      setTypers((current) => removeTyper(current, personId));
+    const remove = (typerId: string) => {
+      clearTimeout(pending.get(typerId));
+      pending.delete(typerId);
+      setTypers((current) => removeTyper(current, typerId));
     };
-    const onStart = ({ conversation_id, person }: { conversation_id: string; person: Typer }) => {
+    const onStart = ({ conversation_id, author }: TypingEvent) => {
       if (conversation_id !== conversationId) return;
-      clearTimeout(pending.get(person.id));
-      pending.set(person.id, setTimeout(() => remove(person.id), TYPING_EXPIRY_MS));
-      setTypers((current) => addTyper(current, person));
+      clearTimeout(pending.get(author.id));
+      pending.set(author.id, setTimeout(() => remove(author.id), TYPING_EXPIRY_MS));
+      setTypers((current) => addTyper(current, { id: author.id, name: author.name }));
     };
-    const onStop = ({ conversation_id, person }: { conversation_id: string; person: Typer }) => {
-      if (conversation_id === conversationId) remove(person.id);
+    const onStop = ({ conversation_id, author }: TypingEvent) => {
+      if (conversation_id === conversationId) remove(author.id);
     };
     // A queda da própria conexão esvazia a lista: os avisos que faltarem não chegam.
     const clear = () => {

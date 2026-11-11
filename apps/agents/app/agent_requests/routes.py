@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Response
 
 from app.agent_requests.execution import ExecutionDeps, run_request
 from app.agent_requests.models import AgentRequestBody
+from app.agent_requests.typing_notice import while_typing
 from app.problems import ProblemError
 from app.registry.auth import require_service_token
 from app.registry.catalog import AgentCard
@@ -26,7 +27,10 @@ def build_router(catalog: list[AgentCard], deps: ExecutionDeps) -> APIRouter:
         if body.agent not in slugs:
             raise ProblemError(404, "agent_not_found", "Agente não encontrado.")
         # A conexão e o limite de pedidos entram aqui, antes do aceite, na F11-T06.
-        task = asyncio.create_task(run_request(body, deps))
+        # O Pedido roda com o "digitando" do bot em volta (F11-T05).
+        task = asyncio.create_task(
+            while_typing(deps.chat_api, str(body.request_id), run_request(body, deps))
+        )
         tasks.add(task)
         task.add_done_callback(tasks.discard)
         return Response(status_code=202)

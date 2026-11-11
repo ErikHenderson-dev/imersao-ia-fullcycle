@@ -1,4 +1,4 @@
-"""Receber um Pedido e responder na Conversa: POST /v1/requests (F11-T03, CA4).
+"""Receber um Pedido e responder na Conversa: POST /v1/requests (F11-T03, CA4; o "digitando", F11-T05, CA4).
 
 Com o app real, o modelo real e a API do chat falsa do conftest.py.
 """
@@ -51,10 +51,14 @@ def pedido(
     }
 
 
+def is_reply(call: dict) -> bool:
+    return call["method"] == "POST" and call["path"].endswith("/reply")
+
+
 async def wait_for_reply(fake: FakeChatApi) -> list[dict]:
     """As chamadas à API falsa até a `reply`, que fecha o Pedido."""
     for _ in range(REPLY_TIMEOUT_S * 10):
-        if any(request["method"] == "POST" for request in fake.requests):
+        if any(is_reply(request) for request in fake.requests):
             return fake.requests
         await asyncio.sleep(0.1)
     raise AssertionError(f"A API do chat recebeu {fake.requests}")
@@ -87,7 +91,12 @@ async def test_aceita_o_pedido_e_grava_a_resposta_como_reply(
     response = await request_client.post("/v1/requests", json=body, headers=AUTH)
 
     assert response.status_code == 202
-    *_, reply = await wait_for_reply(fake_chat_api)
+    calls = await wait_for_reply(fake_chat_api)
+    typing, *_ = calls
+    assert typing["method"] == "POST"
+    assert typing["path"] == f"/v1/bot/requests/{body['request_id']}/typing"
+    assert typing["authorization"] == f"Bearer {BOT_TOKEN}"
+    [reply] = [call for call in calls if is_reply(call)]
     assert reply["path"] == f"/v1/bot/requests/{body['request_id']}/reply"
     assert reply["authorization"] == f"Bearer {BOT_TOKEN}"
     assert reply["body"]["body"].strip()
@@ -141,7 +150,7 @@ async def test_um_pedido_com_recorte_le_o_recorte_certo_e_grava_o_resumo(
         "since": "2026-11-10T15:00:00.000Z",
         "until": "2026-11-10T18:30:00.000Z",
     }
-    reply = calls[-1]
+    [reply] = [call for call in calls if is_reply(call)]
     assert reply["path"] == f"/v1/bot/requests/{body['request_id']}/reply"
     assert reply["body"]["body"].strip()
     assert "@" not in reply["body"]["body"]

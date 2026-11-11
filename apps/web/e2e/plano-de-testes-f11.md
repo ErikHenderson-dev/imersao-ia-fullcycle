@@ -53,3 +53,17 @@ envio, e a resposta do modelo, depois, é a repetição, sem nova Mensagem.
 Acessibilidade (`acessibilidade/resumo-do-agente-sem-violacoes.spec.ts`): a Conversa com um resumo
 com aviso de teto (cabeçalho, parágrafo e lista) e uma recusa, gravados direto no banco, nos dois
 temas, sem violações do axe.
+
+## F11-T05 · O Agente aparece digitando (`agentes/agente-digitando.spec.ts`)
+
+O bot de cada teste é criado com `@usuário` aleatório (`insertBot("Assistente")`), e o Pedido nasce
+pela rota de envio da API do chat, como a Ana, com o `agent_username` do bot (`requestByApi`, em
+`support/bot.ts`): sem passar pelo BFF, o Serviço de agentes não recebe o Pedido, e nenhuma
+renovação do modelo interfere. O teste não depende do `agentsLock`.
+
+1. **O Agente aparece digitando e some sem renovação:** com a Ana e o Bruno no Canal, o bot avisa
+   que digita (`botTyping`); o Bruno vê "Assistente está digitando…", e o aviso some depois da
+   expiração do digitando, sem novo aviso.
+2. **O aviso do Agente some quando a resposta chega:** com o bot digitando, ele grava a resposta
+   (`botReply`); o aviso some na hora, antes da expiração, e a Mensagem do Agente aparece para o
+   Bruno.

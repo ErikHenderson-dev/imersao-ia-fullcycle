@@ -2,13 +2,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import type {
   ConversationPayload,
   PersonUpdatedEvent,
+  MessageAuthorPayload,
   MessagePayload,
   StoredEventName,
   StoredEventPayloads,
 } from 'chat-events';
 import { EventsStore } from './events.store';
 import { RealtimeGateway } from './realtime.gateway';
-import { emitStoredEvent, personRoom, WORKSPACE_ROOM } from './realtime-socket';
+import {
+  conversationRoom,
+  emitStoredEvent,
+  personRoom,
+  WORKSPACE_ROOM,
+} from './realtime-socket';
 
 // Emite os eventos guardados por Pessoa para as abas dela (spec da F03, "Eventos por Pessoa e
 // reconexão"). Quem chama publica depois da gravação. Cada evento entra antes no stream de cada
@@ -95,6 +101,23 @@ export class RealtimePublisher {
       this.gateway.server.to(WORKSPACE_ROOM).emit('agents.changed');
     } catch (error) {
       this.logger.error('Falha ao publicar a mudança de Agentes', error);
+    }
+  }
+
+  // O "digitando" do bot, para as abas com a Conversa aberta, sem guardar nem reenviar, como o de
+  // Pessoa (spec da F11, ""Digitando" do bot"). O bot não tem aba, então ninguém fica de fora.
+  botTyping(
+    name: 'typing.start' | 'typing.stop',
+    conversationId: string,
+    author: MessageAuthorPayload,
+  ): void {
+    try {
+      this.to(conversationRoom(conversationId)).emit(name, {
+        conversation_id: conversationId,
+        author,
+      });
+    } catch (error) {
+      this.logger.error('Falha ao publicar o digitando do bot', error);
     }
   }
 

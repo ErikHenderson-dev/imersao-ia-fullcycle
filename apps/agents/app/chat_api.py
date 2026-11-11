@@ -49,6 +49,10 @@ class ChatApiClient:
         )
         return response.json()
 
+    async def typing(self, request_id: str) -> None:
+        """Avisa que o bot está digitando na Conversa do Pedido."""
+        await self._request("POST", f"/v1/bot/requests/{request_id}/typing")
+
     async def reply(self, request_id: str, body: str) -> None:
         """Grava a resposta do bot ao Pedido; a repetição devolve a mesma Mensagem."""
         await self._request(

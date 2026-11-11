@@ -1,12 +1,15 @@
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
+import { BotsService } from '../bots/bots.service';
 import { MessagesService } from '../messages/messages.service';
 import type {
   BotReadFilter,
   BotReadPage,
+  MessageAuthor,
   MessageView,
 } from '../messages/messages.service';
+import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
 
 // As ações do bot na Conversa, sempre dentro de um Pedido real (ADR 0011; spec da F11, "Rotas do bot
@@ -16,6 +19,8 @@ export class BotActionsService {
   constructor(
     private readonly requests: AgentRequestsService,
     private readonly messages: MessagesService,
+    private readonly bots: BotsService,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -33,12 +38,53 @@ export class BotActionsService {
     );
   }
 
-  // Grava a resposta do bot ao Pedido. Repetida, devolve a Mensagem já gravada, sem gravar nem
-  // publicar (LLD, "Concorrência e idempotência", "Ação de bot").
+  // O "digitando" do bot na Conversa do Pedido (LLD, "Digitando"). Não é ação: nada é gravado. Com a
+  // resposta ou a pergunta já gravada, não emite, para um aviso atrasado não pôr o bot de volta na
+  // lista depois da resposta.
+  async typing(requestId: string): Promise<void> {
+    const typing = await this.typingAuthor(requestId);
+    if (typing) {
+      this.realtime.botTyping(
+        'typing.start',
+        typing.conversationId,
+        typing.author,
+      );
+    }
+  }
+
+  // Grava a resposta do bot ao Pedido e emite o fim do "digitando". Repetida, devolve a Mensagem já
+  // gravada, sem gravar nem publicar (LLD, "Concorrência e idempotência", "Ação de bot").
   async reply(requestId: string, body: string): Promise<MessageView> {
     const { message, created } = await this.recordReply(requestId, body);
-    if (created) this.messages.publishBotMessage(message);
+    if (created) {
+      this.messages.publishBotMessage(message);
+      this.realtime.botTyping(
+        'typing.stop',
+        message.conversationId,
+        message.author,
+      );
+    }
     return message;
+  }
+
+  // A trava do Pedido põe o aviso em fila com a gravação da resposta: o que trava depois dela a
+  // encontra.
+  @Transactional()
+  private async typingAuthor(
+    requestId: string,
+  ): Promise<{ conversationId: string; author: MessageAuthor } | null> {
+    const request = await this.requests.lockForAction(requestId);
+    if (await this.requests.hasAnswer(request.id)) return null;
+    const [bot] = await this.bots.findByIds([request.botId]);
+    return {
+      conversationId: request.conversationId,
+      author: {
+        kind: 'bot',
+        id: bot.id,
+        name: bot.name,
+        username: bot.username,
+      },
+    };
   }
 
   @Transactional()

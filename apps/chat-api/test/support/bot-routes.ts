@@ -64,6 +64,32 @@ export const botRoutes = {
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
   },
 
+  // O "digitando" do bot no Pedido, com a credencial de bot, ou com a que o teste passar.
+  typing(
+    app: INestApplication,
+    requestId: string,
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App).post(
+      `/v1/bot/requests/${requestId}/typing`,
+    );
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // As ações de bot gravadas no Pedido.
+  async countActions(
+    app: INestApplication,
+    requestId: string,
+  ): Promise<number> {
+    const [row] = await app
+      .get(DataSource)
+      .query<{ count: string }[]>(
+        'SELECT count(*) FROM bot_actions WHERE request_id = $1',
+        [requestId],
+      );
+    return Number(row.count);
+  },
+
   // A leitura do Recorte pelo bot, com a credencial de bot, ou com a que o teste passar.
   readMessages(
     app: INestApplication,
