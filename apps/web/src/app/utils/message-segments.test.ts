@@ -22,4 +22,30 @@ describe("splitMessageBody", () => {
   it("sem Menções, só divide os links", () => {
     expect(splitMessageBody("@ana oi", [])).toEqual([{ kind: "text", text: "@ana oi" }]);
   });
+
+  it("reconhece o @usuário de um Agente conectado", () => {
+    expect(splitMessageBody("Oi @assistente, resuma", [], ["assistente"])).toEqual([
+      { kind: "text", text: "Oi " },
+      { kind: "agent", text: "@assistente", username: "assistente" },
+      { kind: "text", text: ", resuma" },
+    ]);
+  });
+
+  it("segue o limite de palavra das Menções gravadas com o @usuário de um Agente", () => {
+    expect(
+      splitMessageBody("@assistente2 x@assistente @assistente.com", [], ["assistente"]),
+    ).toEqual([{ kind: "text", text: "@assistente2 x@assistente @assistente.com" }]);
+  });
+
+  it("dá a Menção à Pessoa quando ela e um Agente têm o mesmo @usuário", () => {
+    const pessoa = { id: "p2", username: "assistente" };
+
+    expect(splitMessageBody("@assistente", [pessoa], ["assistente"])).toEqual([
+      { kind: "mention", text: "@assistente", mention: pessoa },
+    ]);
+  });
+
+  it("sem a lista de Agentes, o @usuário de um Agente é texto", () => {
+    expect(splitMessageBody("@assistente", [])).toEqual([{ kind: "text", text: "@assistente" }]);
+  });
 });

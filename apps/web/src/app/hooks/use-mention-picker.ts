@@ -1,9 +1,15 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useContext, useId, useState } from "react";
+import { AgentsContextForPicker } from "@/app/components/agent/agents-provider";
 import { usePeopleSearch } from "@/app/hooks/use-people-search";
+import type { Agent } from "@/app/services/agents-service";
 import type { PersonEntry } from "@/app/services/chat-api";
+import { agentMentionOptions } from "@/app/utils/agent-mentions";
 import { applyMention, findMentionQuery } from "@/app/utils/mention-query";
+
+// Uma opção da lista de menções: uma Pessoa, Membro da Conversa, ou um Agente conectado (F10).
+export type MentionOption = { kind: "person"; person: PersonEntry } | { kind: "agent"; agent: Agent };
 
 type MentionPickerOptions = {
   // A Conversa cujos Membros a lista mostra; sem ela, a lista não existe.
@@ -33,12 +39,19 @@ export function useMentionPicker({
   if (dismissedAt !== null && query?.start !== dismissedAt) setDismissedAt(null);
   const isWanted = query !== null && query.start !== dismissedAt;
   const search = usePeopleSearch(query?.query ?? "", { memberOf: conversationId }, isWanted);
+  const agents = useContext(AgentsContextForPicker)?.agents ?? null;
   // Só o resultado da busca do texto atual: enquanto ela não responde, a lista some, para Enter não
-  // escolher uma Pessoa que não corresponde ao que foi digitado.
-  const people: PersonEntry[] =
-    isWanted && search.kind === "ok" && search.query === query.query ? search.people : [];
-  const isOpen = people.length > 0;
-  const activeIndex = Math.min(active, Math.max(people.length - 1, 0));
+  // escolher uma Pessoa que não corresponde ao que foi digitado. Os Agentes conectados vêm depois
+  // dos Membros (spec da F10, "Menção a um Agente").
+  const isSettled = isWanted && search.kind === "ok" && search.query === query.query;
+  const options: MentionOption[] = isSettled
+    ? [
+        ...search.people.map((person) => ({ kind: "person" as const, person })),
+        ...agentMentionOptions(agents, query.query).map((agent) => ({ kind: "agent" as const, agent })),
+      ]
+    : [];
+  const isOpen = options.length > 0;
+  const activeIndex = Math.min(active, Math.max(options.length - 1, 0));
   const optionId = (index: number) => `${listId}-${index}`;
 
   function moveCaret(position: number) {
@@ -56,9 +69,10 @@ export function useMentionPicker({
     });
   }
 
-  function pick(person: PersonEntry) {
+  function pick(option: MentionOption) {
     if (!query || caret === null) return;
-    const next = applyMention(text, query, caret, person.username);
+    const username = option.kind === "person" ? option.person.username : option.agent.username;
+    const next = applyMention(text, query, caret, username);
     replaceText(next.text, next.caret);
   }
 
@@ -69,12 +83,12 @@ export function useMentionPicker({
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((activeIndex + step + people.length) % people.length);
+      setActive((activeIndex + step + options.length) % options.length);
       return true;
     }
     if ((event.key === "Enter" && !event.shiftKey) || event.key === "Tab") {
       event.preventDefault();
-      pick(people[activeIndex]);
+      pick(options[activeIndex]);
       return true;
     }
     if (event.key === "Escape") {
@@ -102,6 +116,6 @@ export function useMentionPicker({
             moveCaret(event.currentTarget.selectionStart),
         }
       : {},
-    list: isOpen ? { id: listId, people, activeIndex, optionId, pick } : null,
+    list: isOpen ? { id: listId, options, activeIndex, optionId, pick } : null,
   };
 }

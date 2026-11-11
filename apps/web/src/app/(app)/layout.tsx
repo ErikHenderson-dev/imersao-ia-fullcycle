@@ -65,7 +65,11 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       <ThemeProvider personTheme={result.person.theme}>
       <ProfilePanelProvider>
       <PeopleProvider sessionPerson={{ id: result.person.id, name: result.person.name }}>
-      <AgentsProvider initialAgents={agentsResult?.kind === "ok" ? agentsResult.agents : null}>
+      <AgentsProvider
+        initialAgents={agentsResult?.kind === "ok" ? agentsResult.agents : null}
+        personId={result.person.id}
+        isAdmin={result.person.isAdmin}
+      >
         <EditProfileProvider sessionPersonId={result.person.id}>
         <div className="flex h-screen flex-col">
           <ConnectionBanner />

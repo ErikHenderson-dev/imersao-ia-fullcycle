@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
+import { AgentsContextForPicker } from "@/app/components/agent/agents-provider";
 import type { Mention } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { splitMessageBody } from "@/app/utils/message-segments";
+import { AgentMentionChip } from "./agent-mention-chip";
 import { MentionChip } from "./mention-chip";
 
 // Texto da Mensagem como foi escrito, com as quebras de linha. Os endereços http(s) viram links,
@@ -21,12 +23,26 @@ export function MessageBody({
   edited?: string | null;
   timeZone?: string;
 }) {
-  // A divisão só muda com o texto e as Menções, e não a cada renderização do histórico.
-  const segments = useMemo(() => splitMessageBody(text, mentions), [text, mentions]);
+  // Os Agentes conectados (spec da F10, "Menção a um Agente"); nenhum fora do AgentsProvider e com a
+  // lista indisponível.
+  const agents = useContext(AgentsContextForPicker)?.agents;
+  const connected = useMemo(() => (agents ?? []).filter((agent) => agent.connected), [agents]);
+  // A divisão só muda com o texto, as Menções e os Agentes, e não a cada renderização do histórico.
+  const segments = useMemo(
+    () => splitMessageBody(text, mentions, connected.map((agent) => agent.username)),
+    [text, mentions, connected],
+  );
   return (
     <p className="whitespace-pre-wrap break-words text-body text-fg">
       {segments.map((segment, index) =>
-        segment.kind === "mention" ? (
+        segment.kind === "agent" ? (
+          <AgentMentionChip
+            key={index}
+            text={segment.text}
+            username={segment.username}
+            name={connected.find((agent) => agent.username === segment.username)?.name ?? segment.username}
+          />
+        ) : segment.kind === "mention" ? (
           <MentionChip
             key={index}
             mention={segment.mention}

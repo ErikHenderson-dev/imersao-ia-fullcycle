@@ -22,7 +22,7 @@ export function Sidebar({ personId, isAdmin }: { personId: string; isAdmin: bool
         <Suspense fallback={<SidebarSkeleton />}>
           <Channels personId={personId} />
         </Suspense>
-        <AgentsSection personId={personId} isAdmin={isAdmin} />
+        <AgentsSection isAdmin={isAdmin} />
       </nav>
     </aside>
   );

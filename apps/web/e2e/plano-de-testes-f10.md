@@ -78,3 +78,18 @@ troca de tema antes de medir o contraste.
 
 O chip do Agente virando texto comum sem recarregar fica com a F10-T09 (CA7 dela), porque a 09
 ainda não estava concluída.
+
+## F10-T09 · Mencionar um Agente conectado (`agentes/mencionar-agente.spec.ts`)
+
+1. **O Agente aparece no autocompletar e a Menção vira chip para todos:** `@ass` mostra o Agente,
+   depois dos Membros e ativo; Enter insere `@assistente`; a Mensagem enviada mostra o chip para as
+   duas Pessoas; Enter no chip abre o diálogo "Agentes"; desconectado, ao recarregar, o chip vira
+   texto comum e o Agente sai do autocompletar.
+2. **O chip vira texto comum sem recarregar depois de desconectar** (a 08 já estava concluída).
+
+Acessibilidade (`acessibilidade/mencionar-agente-sem-violacoes.spec.ts`): o autocompletar com o
+Agente, nos dois temas, sem violações do axe.
+
+O teste "Tab escolhe e as setas mudam a Pessoa destacada" (`conversa/mencionar.spec.ts`, F06) conta
+as opções com o `@` vazio, e os Agentes conectados entram nela: ele passou a segurar a trava, com o
+`assistente` desconectado.

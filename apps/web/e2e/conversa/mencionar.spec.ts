@@ -2,6 +2,7 @@
 // seed: e2e/seed.spec.ts
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../fixtures";
+import { setConnected } from "../support/agents";
 import { composer, messageItem, readyHistory } from "../support/conversation-page";
 import { insertMessages } from "../support/database";
 
@@ -43,7 +44,12 @@ test.describe("Mencionar um Membro", () => {
     sharedChannel,
     person,
     otherPerson,
+    agentsLock,
   }) => {
+    // Com o `@` vazio, os Agentes conectados entram depois dos Membros (F10): nenhum conectado.
+    void agentsLock;
+    await setConnected("assistente", false);
+    await page.reload();
     const caixa = composer(page, sharedChannel.name);
     await caixa.fill("");
     await caixa.pressSequentially("@");

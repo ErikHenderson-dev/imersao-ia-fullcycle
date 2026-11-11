@@ -95,6 +95,28 @@ describe('Menções', () => {
     expect(await storedMentions(message.id)).toEqual([]);
   });
 
+  it('não grava Menção a um bot, nem a Notificação que viria dela', async () => {
+    const { author, member, channelId } = await privateChannelWithMember();
+    const username = `assistente-${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+    await app
+      .get(DataSource)
+      .query('INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)', [
+        randomUUID(),
+        username,
+        'Assistente',
+      ]);
+
+    const message = await send(author.cookie, channelId, `Oi @${username}`);
+
+    expect(message.mentions).toEqual([]);
+    expect(await storedMentions(message.id)).toEqual([]);
+    const activity = await request(server)
+      .get('/v1/activity/unread')
+      .set('Cookie', member.cookie)
+      .expect(200);
+    expect(activity.body).toMatchObject({ total_count: 0, mention_count: 0 });
+  });
+
   it('a edição grava a diferença das Menções', async () => {
     const { author, member, channelId } = await privateChannelWithMember();
     const message = await send(
