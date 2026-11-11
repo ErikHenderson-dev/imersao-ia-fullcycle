@@ -1,0 +1,13 @@
+{
+  "mensagens": [
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Abri este canal para combinarmos a demo do dia 13.", "quando": "2026-11-01T13:00:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Escolhi o tema escuro como padrão para a demo.", "quando": "2026-11-05T14:00:00Z" },
+    { "autor": "Carla Dias", "usuario": "carla", "texto": "O deploy de ontem falhou por falta de memória no servidor.", "quando": "2026-11-09T13:00:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Aumentei a memória do servidor para 4 GB e o deploy passou.", "quando": "2026-11-09T15:00:00Z" },
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Vou revisar o roteiro da demo amanhã cedo.", "quando": "2026-11-10T02:30:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Bom dia! Hoje vou terminar a tela de login.", "quando": "2026-11-10T12:00:00Z" },
+    { "autor": "Carla Dias", "usuario": "carla", "texto": "Encontrei um bug no envio de Mensagens com acento e abri um chamado.", "quando": "2026-11-10T12:30:00Z" },
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Roteiro revisado: login, canal, menção e resumo.", "quando": "2026-11-10T13:15:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Login pronto e publicado em staging.", "quando": "2026-11-10T14:00:00Z" }
+  ]
+}

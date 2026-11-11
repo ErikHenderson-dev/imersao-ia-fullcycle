@@ -64,6 +64,29 @@ export const botRoutes = {
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
   },
 
+  // A leitura do Recorte pelo bot, com a credencial de bot, ou com a que o teste passar.
+  readMessages(
+    app: INestApplication,
+    requestId: string,
+    query: Record<string, string> = {},
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .get(`/v1/bot/requests/${requestId}/messages`)
+      .query(query);
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // Direto no banco: apaga a Mensagem como a exclusão da F06 (sem texto e com `deleted_at`).
+  async softDeleteMessage(app: INestApplication, id: string): Promise<void> {
+    await app
+      .get(DataSource)
+      .query(
+        'UPDATE messages SET deleted_at = now(), body = NULL WHERE id = $1',
+        [id],
+      );
+  },
+
   async requestRows(
     app: INestApplication,
     conversationId: string,

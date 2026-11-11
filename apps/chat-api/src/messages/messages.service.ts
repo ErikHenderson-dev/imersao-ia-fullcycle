@@ -94,6 +94,27 @@ export interface SentMessage extends SendResult {
   joinedId: string | null;
 }
 
+// O Recorte que o bot lê: `since` inclusivo e `until` exclusivo, e o @usuário de uma Pessoa.
+export interface BotReadFilter {
+  since?: Date;
+  until?: Date;
+  authorUsername?: string;
+}
+
+// Uma Mensagem de Pessoa como o bot a lê (spec da F11, "Rotas do bot e credencial").
+export interface BotReadMessage {
+  id: string;
+  author: { name: string; username: string };
+  body: string;
+  createdAt: Date;
+}
+
+export interface BotReadPage {
+  messages: BotReadMessage[];
+  // A contagem do Recorte inteiro, mesmo acima do teto.
+  total: number;
+}
+
 interface PublicationSlot {
   fill: (publish: (() => Promise<void>) | null) => void;
 }
@@ -167,6 +188,62 @@ export class MessagesService {
     const message = await this.messages.findOneByOrFail({ id });
     const [view] = await this.withDetails([message]);
     return view;
+  }
+
+  // As Mensagens de Pessoas, não apagadas, do Recorte, da mais antiga para a mais nova: as `limit`
+  // mais recentes, e o `total` do Recorte (spec da F11, "Rotas do bot e credencial"). Os limites
+  // viram UUIDs v7 de limite, para a consulta usar o índice (conversation_id, id).
+  async listForBot(
+    conversationId: string,
+    { since, until, authorUsername }: BotReadFilter,
+    limit: number,
+  ): Promise<BotReadPage> {
+    const params: unknown[] = [conversationId];
+    const conditions = [
+      'm.conversation_id = $1',
+      'm.author_person_id IS NOT NULL',
+      'm.deleted_at IS NULL',
+    ];
+    if (since) {
+      params.push(uuidV7LowerBound(since));
+      conditions.push(`m.id >= $${params.length}`);
+    }
+    if (until) {
+      params.push(uuidV7LowerBound(until));
+      conditions.push(`m.id < $${params.length}`);
+    }
+    if (authorUsername !== undefined) {
+      params.push(authorUsername);
+      conditions.push(`p.username = $${params.length}`);
+    }
+    const from = `FROM messages m JOIN people p ON p.id = m.author_person_id WHERE ${conditions.join(' AND ')}`;
+    // Em sequência: as duas consultas usam a conexão da transação de quem chama.
+    const [{ total }] = await this.txHost.tx.query<{ total: number }[]>(
+      `SELECT count(*)::int AS total ${from}`,
+      params,
+    );
+    const newestFirst = await this.txHost.tx.query<
+      {
+        id: string;
+        name: string;
+        username: string;
+        body: string;
+        created_at: Date;
+      }[]
+    >(
+      `SELECT m.id, p.name, p.username, m.body, m.created_at ${from}
+          ORDER BY m.id DESC LIMIT $${params.length + 1}`,
+      [...params, limit],
+    );
+    return {
+      total,
+      messages: newestFirst.reverse().map((row) => ({
+        id: row.id,
+        author: { name: row.name, username: row.username },
+        body: row.body,
+        createdAt: row.created_at,
+      })),
+    };
   }
 
   // Grava a Mensagem de um bot na Conversa de um Pedido (spec da F11, "Rotas do bot e
@@ -855,6 +932,13 @@ export class MessagesService {
       ),
     );
   }
+}
+
+// O menor UUID v7 do instante: os 48 bits do tempo e o resto zerado. Um id é desse instante em
+// diante quando é maior ou igual a ele (o banco compara UUIDs byte a byte).
+function uuidV7LowerBound(instant: Date): string {
+  const hex = instant.getTime().toString(16).padStart(12, '0');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-0000-0000-000000000000`;
 }
 
 // O autor no formato da Mensagem.

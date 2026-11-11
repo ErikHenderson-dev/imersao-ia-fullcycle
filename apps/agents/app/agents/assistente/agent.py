@@ -16,9 +16,11 @@
 from google.adk.agents import Agent
 from google.adk.apps import App
 
+from app.eval_fixtures import fixture_tool_callback
 from app.model import build_model
 
-from .tools import get_current_time, get_weather
+from .instructions import build_instruction
+from .tools import ler_mensagens
 
 
 root_agent = Agent(
@@ -29,13 +31,11 @@ root_agent = Agent(
     name="assistente",
     # Provedor e modelo por AGENT_MODEL (spec da F11, "Modelo de IA").
     model=build_model(),
-    # Instrução mínima da F11-T03; as instruções do resumo e as ferramentas dele são da F11-T04.
-    instruction=(
-        "Você é o Assistente, um agente que responde na Conversa de um chat de equipe. "
-        "Responda em português do Brasil, em poucas frases, ao pedido de quem o mencionou. "
-        "Nunca escreva @usuário de ninguém."
-    ),
-    tools=[get_weather, get_current_time],
+    # Instruções do resumo (spec da F11, "O Agente `assistente`").
+    instruction=build_instruction,
+    tools=[ler_mensagens],
+    # Só age na avaliação, com a Conversa da fixture do caso (app/eval_fixtures.py).
+    before_tool_callback=fixture_tool_callback,
 )
 
 # O ADK serve o agente em /apps/<nome da pasta>: o nome do App é o da pasta.

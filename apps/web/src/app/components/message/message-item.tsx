@@ -4,6 +4,7 @@ import { CircleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { AgentAvatar } from "@/app/components/agent/agent-avatar";
 import { AgentTag } from "@/app/components/agent/agent-tag";
+import { AgentText } from "@/app/components/agent/agent-text";
 import { OpenAgentsButton } from "@/app/components/agent/open-agents-button";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
@@ -109,13 +110,18 @@ export function MessageItem({
           onGoTo={() => onGoToQuote?.(message.quote!.id)}
         />
       )}
-      <MessageBody
-        text={message.body}
-        mentions={message.mentions}
-        currentPersonId={currentPersonId}
-        edited={message.editedAt}
-        timeZone={timeZone}
-      />
+      {message.author.kind === "bot" ? (
+        // O texto do Agente em blocos, sem Menção nem link (spec da F11, "Cliente").
+        <AgentText text={message.body} />
+      ) : (
+        <MessageBody
+          text={message.body}
+          mentions={message.mentions}
+          currentPersonId={currentPersonId}
+          edited={message.editedAt}
+          timeZone={timeZone}
+        />
+      )}
       {failed}
     </>
   );

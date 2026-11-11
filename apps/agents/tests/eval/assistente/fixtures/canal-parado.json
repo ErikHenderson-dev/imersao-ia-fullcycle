@@ -1,0 +1,6 @@
+{
+  "mensagens": [
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Fechamos o planejamento do trimestre.", "quando": "2026-10-20T13:00:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Combinado, sigo com a migração do banco.", "quando": "2026-10-20T13:30:00Z" }
+  ]
+}

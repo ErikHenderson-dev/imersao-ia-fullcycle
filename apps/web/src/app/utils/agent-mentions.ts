@@ -33,3 +33,14 @@ export function mentionedAgentUsername(text: string, agents: readonly Agent[] | 
   const segment = splitMessageBody(text, [], connected).find((part) => part.kind === "agent");
   return segment?.kind === "agent" ? segment.username : null;
 }
+
+// As Menções do Pedido ao Agente (spec da F11, "Rota de Pedido"): as Pessoas que a API do chat
+// resolveu na Mensagem, com o nome de cada uma pelos Membros da Conversa, para o modelo citar pelo
+// nome. Sem a lista de Membros, o @usuário vai como nome, e o Pedido segue.
+export function agentRequestMentions(
+  mentions: readonly { id: string; username: string }[],
+  members: readonly { id: string; name: string }[] | null,
+): { username: string; name: string }[] {
+  const names = new Map((members ?? []).map((member) => [member.id, member.name]));
+  return mentions.map(({ id, username }) => ({ username, name: names.get(id) ?? username }));
+}

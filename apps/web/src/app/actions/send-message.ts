@@ -3,12 +3,14 @@
 import isUUID from "validator/lib/isUUID";
 import { listAgents, startAgentRequest } from "@/app/services/agents-service";
 import {
+  listMembers,
+  type Mention,
   sendMessage as sendMessageToChat,
   type SendMessageResult,
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { readTimeZone } from "@/app/services/time-zone-cookie";
-import { mentionedAgentUsername, needsAgentRegistry } from "@/app/utils/agent-mentions";
+import { agentRequestMentions, mentionedAgentUsername, needsAgentRegistry } from "@/app/utils/agent-mentions";
 import { messageBodyToSave } from "@/app/utils/message-text";
 
 // Envio de Mensagem (spec da F02, "Envio"): valida o texto como a API e grava pelo service. Com a
@@ -51,8 +53,7 @@ export async function sendMessage(
       conversationId,
       message: { id: sent.id, body: sent.body },
       requester: { id: sent.author.id, name: sent.author.name, username: sent.author.username },
-      // As Menções com o nome de cada Pessoa entram na F11-T04.
-      mentions: [],
+      mentions: await requestMentions(token, conversationId, sent.mentions),
       timeZone: await readTimeZone(),
     });
   }
@@ -64,4 +65,16 @@ async function mentionedAgent(text: string): Promise<string | undefined> {
   if (!needsAgentRegistry(text)) return undefined;
   const agents = await listAgents();
   return mentionedAgentUsername(text, agents.kind === "ok" ? agents.agents : null) ?? undefined;
+}
+
+// As Menções do Pedido, com o nome de cada Pessoa pelos Membros da Conversa; sem Menção, nenhuma
+// leitura a mais.
+async function requestMentions(
+  token: string,
+  conversationId: string,
+  mentions: readonly Mention[],
+): Promise<{ username: string; name: string }[]> {
+  if (mentions.length === 0) return [];
+  const members = await listMembers(token, conversationId);
+  return agentRequestMentions(mentions, members.kind === "ok" ? members.members : null);
 }

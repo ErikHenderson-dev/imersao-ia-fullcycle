@@ -15,7 +15,7 @@ import uuid
 from collections.abc import AsyncIterator, Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import asyncpg
 import httpx
@@ -123,18 +123,44 @@ async def clean_registry(engine: AsyncEngine) -> None:
 
 
 class FakeChatApi:
-    """A API do chat falsa, num servidor temporário em 127.0.0.1: guarda cada requisição e
-    responde 201 com uma Mensagem qualquer (F11-T03)."""
+    """A API do chat falsa, num servidor temporário em 127.0.0.1: guarda cada requisição; responde
+    201 com uma Mensagem qualquer às ações (F11-T03) e 200 com `conversation` à leitura do Recorte
+    (F11-T04)."""
 
     def __init__(self) -> None:
         self.requests: list[dict] = []
+        # A leitura devolve estas Mensagens, no formato da rota, como estão.
+        self.conversation: list[dict] = []
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                url = urlparse(self.path)
+                fake.requests.append(
+                    {
+                        "method": "GET",
+                        "path": url.path,
+                        "query": {
+                            key: values[0]
+                            for key, values in parse_qs(url.query).items()
+                        },
+                        "authorization": self.headers.get("authorization"),
+                    }
+                )
+                payload = json.dumps(
+                    {"messages": fake.conversation, "total": len(fake.conversation)}
+                ).encode()
+                self.send_response(200)
+                self.send_header("content-type", "application/json")
+                self.send_header("content-length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
             def do_POST(self) -> None:
                 length = int(self.headers.get("content-length") or 0)
                 fake.requests.append(
                     {
+                        "method": "POST",
                         "path": self.path,
                         "authorization": self.headers.get("authorization"),
                         "body": json.loads(self.rfile.read(length) or b"null"),

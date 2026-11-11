@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Agent } from "@/app/services/agents-service";
-import { agentMentionOptions, mentionedAgentUsername, needsAgentRegistry } from "./agent-mentions";
+import {
+  agentMentionOptions,
+  agentRequestMentions,
+  mentionedAgentUsername,
+  needsAgentRegistry,
+} from "./agent-mentions";
 
 function agent(slug: string, name: string, connected = true): Agent {
   return { slug, name, username: slug, description: "", connected };
@@ -63,5 +68,35 @@ describe("needsAgentRegistry", () => {
   it("só pede o registro quando o texto tem @", () => {
     expect(needsAgentRegistry("@assistente resume")).toBe(true);
     expect(needsAgentRegistry("resume a conversa")).toBe(false);
+  });
+});
+
+describe("agentRequestMentions", () => {
+  const mentions = [
+    { id: "p1", username: "bruno" },
+    { id: "p2", username: "carla" },
+  ];
+
+  it("leva o nome de cada Pessoa mencionada pelos Membros", () => {
+    const members = [
+      { id: "p2", name: "Carla Dias" },
+      { id: "p1", name: "Bruno Lima" },
+    ];
+
+    expect(agentRequestMentions(mentions, members)).toEqual([
+      { username: "bruno", name: "Bruno Lima" },
+      { username: "carla", name: "Carla Dias" },
+    ]);
+  });
+
+  it("sem a lista de Membros, usa o @usuário como nome", () => {
+    expect(agentRequestMentions(mentions, null)).toEqual([
+      { username: "bruno", name: "bruno" },
+      { username: "carla", name: "carla" },
+    ]);
+  });
+
+  it("sem Menção, não leva nenhuma", () => {
+    expect(agentRequestMentions([], null)).toEqual([]);
   });
 });

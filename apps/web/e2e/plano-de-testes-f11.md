@@ -37,3 +37,19 @@ real, com tempo limite próprio.
 Pedido que o envio criou, e `botReply` (`support/bot.ts`) age pelas rotas `/v1/bot` em `localhost:3001`, com o
 `CHAT_BOT_TOKEN` do serviço `e2e`. Num teste sem o modelo, o bot do teste age antes do Serviço de
 agentes, e a ação dele depois é a repetição, sem nova Mensagem.
+
+## F11-T04 · Resumo com Recorte (`agentes/resumo-do-agente.spec.ts`)
+
+Como na F11-T03, o teste segura o `agentsLock`, cria o bot `assistente` se ele não existe e conecta o
+`assistente`, mas não depende do modelo: o bot do teste responde ao Pedido pelas rotas logo depois do
+envio, e a resposta do modelo, depois, é a repetição, sem nova Mensagem.
+
+1. **O resumo chega às duas Pessoas em blocos do AgentText:** com a Ana e o Bruno no Canal, a Ana
+   envia "@assistente resume hoje"; o apoio de bot lê o Pedido e grava como `reply` um resumo em
+   Markdown (cabeçalho, lista com nomes em negrito, um endereço `https://` e um parágrafo com
+   negrito). Nas duas abas, a Mensagem do Agente mostra o cabeçalho em negrito, a lista com um item
+   por ponto e o nome em `strong`, o endereço como texto, sem link, e nenhum `**` à vista.
+
+Acessibilidade (`acessibilidade/resumo-do-agente-sem-violacoes.spec.ts`): a Conversa com um resumo
+com aviso de teto (cabeçalho, parágrafo e lista) e uma recusa, gravados direto no banco, nos dois
+temas, sem violações do axe.

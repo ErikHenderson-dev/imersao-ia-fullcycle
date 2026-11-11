@@ -1,9 +1,22 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   MessageResponse,
   toMessageResponse,
 } from '../messages/message.response';
 import { BotActionsService } from './bot-actions.service';
+import { BotMessagesQuery } from './bot-messages.query';
+import {
+  BotMessagesResponse,
+  toBotMessagesResponse,
+} from './bot-messages.response';
 import { BotTokenGuard } from './bot-token.guard';
 import { ReplyDto } from './reply.dto';
 
@@ -13,6 +26,19 @@ import { ReplyDto } from './reply.dto';
 @UseGuards(BotTokenGuard)
 export class BotController {
   constructor(private readonly actions: BotActionsService) {}
+
+  @Get('messages')
+  async messages(
+    @Param('requestId') requestId: string,
+    @Query() query: BotMessagesQuery,
+  ): Promise<BotMessagesResponse> {
+    const page = await this.actions.readMessages(requestId, {
+      since: query.since ? new Date(query.since) : undefined,
+      until: query.until ? new Date(query.until) : undefined,
+      authorUsername: query.author_username,
+    });
+    return toBotMessagesResponse(page);
+  }
 
   @Post('reply')
   async reply(

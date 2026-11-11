@@ -80,8 +80,17 @@ Cada agente tem uma pasta em `tests/eval/<agente>/`, com:
 
 - `<agente>.evalset.json`: os casos, no formato de evalset do ADK (pergunta, ferramentas
   esperadas e resposta de referência);
-- `test_config.json`: os critérios e os limiares, como `tool_trajectory_avg_score` e
-  `final_response_match_v2`.
+- `test_config.json`: os critérios e os limiares. O do `assistente` usa `tool_trajectory_avg_score`
+  (IN_ORDER, 1.0), `rubric_based_final_response_quality_v1` (rubricas gerais no config e as de cada
+  caso no `rubrics` dele, com `type` `FINAL_RESPONSE_QUALITY`) e `hallucinations_v1`;
+- `fixtures/<conversa>.json`: as Conversas que as ferramentas leem na avaliação. O caso aponta a
+  dele em `session_input.state.eval_fixture`, junto do contexto do Pedido (`time_zone`,
+  `requested_at`, `request_id`, `mentions`), e o `before_tool_callback` do agente
+  (`app/eval_fixtures.py`) responde à ferramenta com a fixture no lugar da API do chat. Sem
+  `eval_fixture` no estado, o callback não faz nada.
+
+A avaliação chama o modelo e o juiz de verdade: ao iterar, rode só os casos que mudaram, com
+`<evalset>:<eval_id>,<eval_id>` no lugar do caminho do evalset.
 
 Por que o `adk eval`, e não o `agents-cli eval`, e quais critérios ficam de fora: `docs/lld.md`,
 seção "Estrutura do código", linha "Avaliação dos agentes". O histórico de cada execução vai para
