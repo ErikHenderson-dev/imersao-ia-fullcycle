@@ -145,7 +145,16 @@ A pasta da tarefa só recebe, além da tarefa e do plano, registros da própria 
 
 ## Consulta à documentação de bibliotecas
 
-Quando precisar consultar a documentação de uma biblioteca, use o context7 para buscar informações atualizadas e precisas.
+Quando precisar consultar a documentação de uma biblioteca, use o context7 para buscar informações atualizadas e precisas. A exceção é o Google ADK, na seção abaixo.
+
+## Agentes e Google ADK
+
+Sempre que a tarefa envolver agentes de IA ou o Google ADK, seja no código, no planejamento ou numa dúvida:
+
+- **Carregue as skills** `google-agents-cli-workflow`, com o ciclo de desenvolvimento de agentes e as regras de código, e `google-agents-cli-adk-code`, com a API do ADK e as receitas de referência.
+- **Consulte a documentação do ADK só pelo MCP `adk-docs`**: primeiro `list_doc_sources`, depois `fetch_docs` no `llms.txt` e nas páginas que ele lista. Nunca consulte de outra forma: nada de context7, busca na web, outro site ou memória do modelo.
+
+As particularidades do projeto de agentes (o que dessas skills não se aplica, a avaliação e os comandos) estão no `apps/agents/AGENTS.md`.
 
 ## Agent Skill Usage
 

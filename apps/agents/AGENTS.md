@@ -4,13 +4,10 @@ Projeto Python com o Google ADK, gerado pelo `agents-cli` e gerenciado pelo uv. 
 pastas, as bibliotecas e o porquê estão no `docs/lld.md`, seções "Estrutura do código" e
 "Componentes e dependências".
 
-## Skills
+## Skills e documentação do ADK
 
-Carregue antes de mexer no projeto:
-
-- `google-agents-cli-workflow`: o ciclo de desenvolvimento de agentes e as regras de código.
-- `google-agents-cli-adk-code`: a API do ADK (agentes, ferramentas, callbacks, estado) e as
-  receitas de referência.
+As skills a carregar e a única forma de consultar a documentação do ADK, o MCP `adk-docs`, estão
+no `AGENTS.md` da raiz, seção "Agentes e Google ADK".
 
 As partes dessas skills sobre implantação, Terraform, CI/CD e Google Cloud não se aplicam: a
 implantação é numa PaaS (ADR 0004). A avaliação é pelo `adk eval`, e não pelo `agents-cli eval`
