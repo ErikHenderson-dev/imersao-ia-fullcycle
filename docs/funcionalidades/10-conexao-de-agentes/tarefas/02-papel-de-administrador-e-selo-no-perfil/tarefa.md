@@ -1,6 +1,6 @@
 # 02: Papel de administrador e selo no perfil
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem opera a instalação dá e tira o papel de administrador de uma Pessoa pelo
 comando de contas. O papel vale na próxima ação, sem sair e entrar, e o painel de perfil de um
