@@ -78,7 +78,7 @@ docs/             HLD, LLD, ADRs, brief
 | Avaliação dos agentes | `adk eval` do ADK, com um evalset e um `test_config.json` por agente em `tests/eval/<agente>/`, e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
-| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini`, sem barra, usa o Gemini nativo do ADK e precisa ser um modelo que aceita o nível de raciocínio do `teto de custo por pedido` (a família Gemini 3 em diante, ou um apelido que aponte para ela; um anterior recusa todo Pedido); `openai/<modelo>` e `anthropic/<modelo>` usam o `LiteLlm` (`litellm>=1.84`); outro valor faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `existe` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
+| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini`, sem barra, usa o Gemini nativo do ADK e precisa ser um modelo que aceita o nível de raciocínio mínimo do `teto de custo por pedido` (o `gemini-3.6-flash`, padrão do ambiente, aceita; o `gemini-3.8-flash` e os anteriores ao Gemini 3 o recusam, e com eles todo Pedido falha); `openai/<modelo>` e `anthropic/<modelo>` usam o `LiteLlm` (`litellm>=1.84`); outro valor faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `existe` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
 | Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio`, `existe` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa; cliente oficial do Redis, assíncrono como o app HTTP |
 | Geração do PDF | A definir | — |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
@@ -750,7 +750,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Nome | Valor | Onde vale | Constante ou variável |
 | --- | --- | --- | --- |
 | Limite de pedidos por pessoa | 10 por minuto, em janela fixa, somando todas as Conversas (brief, RNF "Custo") | Serviço de agentes | Variável `AGENT_REQUESTS_PER_MINUTE`, padrão 10 |
-| Teto de custo por pedido | 4 chamadas ao modelo por Pedido e 1024 tokens de saída por chamada, contando o raciocínio, que fica no nível baixo (`ThinkingLevel.LOW`; sem ele, o raciocínio cortava a resposta, avaliação da F11-T08; o nível é parâmetro do Gemini 3 em diante, e no `LiteLlm` vira o esforço de raciocínio do provedor), mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação e na medição, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
+| Teto de custo por pedido | 4 chamadas ao modelo por Pedido e 1024 tokens de saída por chamada, contando o raciocínio, que fica no nível mínimo (`ThinkingLevel.MINIMAL`; sem nível, o raciocínio cortava a resposta na avaliação da F11-T08, e no nível baixo ainda cortava 11 de 20 resumos de 500 Mensagens na medição dela; o modelo precisa aceitar o nível, "Acesso ao modelo", e no `LiteLlm` ele vira o esforço de raciocínio do provedor), mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação e na medição, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
 | Teto de Mensagens do resumo | 500: as mais recentes do Recorte (PRD da F11) | API do chat (rotas do bot) | Constante |
 | Tentativas do Worker | A definir | Worker | A definir |
 | Validade da URL do PDF | A definir | API do chat | A definir |
@@ -885,7 +885,8 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
 - **Chave do modelo no Serviço de agentes:** a `GEMINI_API_KEY` chega pelo `env_file` opcional
   `apps/agents/.env`. Sem ela, o contêiner sobe e o agente falha só ao chamar o modelo.
   `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` chegam pelo mesmo arquivo. O `AGENT_MODEL` vem do
-  `environment` do compose, com o Gemini padrão, e se troca pela variável de mesmo nome no
+  `environment` do compose, com o Gemini padrão (`gemini-3.6-flash`, que aceita o nível de
+  raciocínio mínimo; "Acesso ao modelo"), e se troca pela variável de mesmo nome no
   ambiente de quem roda o `docker compose up`: o `environment` tem precedência sobre o `env_file`,
   e uma linha no `.env` seria ignorada.
 - **Banco dos testes da API do chat:** `chat_test`, do mesmo dono que o `chat`, para os testes
