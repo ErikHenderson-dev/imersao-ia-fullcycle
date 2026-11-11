@@ -118,7 +118,7 @@ services:
       TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@postgres:5432/postgres
       # Modelo dos Agentes (spec da F11, "Modelo de IA"). Este environment vence o env_file: para
       # trocar, AGENT_MODEL=openai/<modelo> docker compose -f compose.yaml up -d agents.
-      AGENT_MODEL: ${AGENT_MODEL:-gemini-3.8-flash}
+      AGENT_MODEL: ${AGENT_MODEL:-gemini-3.6-flash}
       # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
       GOOGLE_GENAI_USE_ENTERPRISE: "false"
       AGENTS_CLI_TELEMETRY: "0"

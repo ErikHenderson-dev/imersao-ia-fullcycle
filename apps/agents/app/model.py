@@ -20,9 +20,10 @@ GEMINI_ATTEMPTS = 3
 # rodar com o mesmo teto da produção.
 MAX_OUTPUT_TOKENS = 1024
 # O raciocínio do modelo conta nos tokens de saída: sem limite, ele chegou a gastar 984 dos 1024 e
-# cortou o resumo (avaliação da F11-T08). O LiteLlm traduz o nível no esforço de raciocínio do
-# provedor que o aceita.
-THINKING_LEVEL = types.ThinkingLevel.LOW
+# cortou o resumo (avaliação da F11-T08); no nível baixo, ainda cortava 11 de 20 resumos de 500
+# Mensagens (medição da F11-T08). O modelo Gemini precisa aceitar o nível mínimo (LLD, "Acesso ao
+# modelo"); o LiteLlm o traduz no esforço de raciocínio do provedor que o aceita.
+THINKING_LEVEL = types.ThinkingLevel.MINIMAL
 
 
 def generation_config() -> types.GenerateContentConfig:

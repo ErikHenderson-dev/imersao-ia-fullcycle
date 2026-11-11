@@ -25,8 +25,9 @@ def test_o_assistente_escreve_no_maximo_1024_tokens_por_chamada() -> None:
     assert root_agent.generate_content_config.max_output_tokens == 1024
 
 
-def test_o_assistente_raciocina_no_nivel_baixo() -> None:
-    # O raciocínio conta nos 1024 tokens de saída: sem limite, ele cortava a resposta (F11-T08).
+def test_o_assistente_raciocina_no_nivel_minimo() -> None:
+    # O raciocínio conta nos 1024 tokens de saída: no nível baixo, ainda cortava 11 de 20 resumos de
+    # 500 Mensagens (medição da F11-T08).
     config = root_agent.generate_content_config
     assert config is not None and config.thinking_config is not None
-    assert config.thinking_config.thinking_level == types.ThinkingLevel.LOW
+    assert config.thinking_config.thinking_level == types.ThinkingLevel.MINIMAL
