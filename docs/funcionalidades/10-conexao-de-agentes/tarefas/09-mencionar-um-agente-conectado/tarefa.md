@@ -1,6 +1,6 @@
 # 09: Mencionar um Agente conectado
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** ao digitar `@` no composer, a Pessoa encontra os Agentes conectados no
 autocompletar, depois dos Membros e com o avatar de Agente. A Menção a um Agente conectado fica
@@ -18,20 +18,20 @@ comum. Na F10, mencionar não gera resposta nem Notificação. Referências:
 
 **Bloqueada por:** 06 (Conectar um Agente)
 
-- [ ] **CA1** · Antes do código, o Figma ganha o autocompletar com um Agente e o `AgentMentionChip`
+- [x] **CA1** · Antes do código, o Figma ganha o autocompletar com um Agente e o `AgentMentionChip`
   numa Mensagem, nos dois temas.
-- [ ] **CA2** · O autocompletar junta, depois dos Membros, os Agentes conectados cujo nome ou
+- [x] **CA2** · O autocompletar junta, depois dos Membros, os Agentes conectados cujo nome ou
   `@usuário` começa pelo que se digita, e escolher um insere `@<username>`; com a lista
   indisponível, nenhum Agente aparece.
-- [ ] **CA3** · O `splitMessageBody` reconhece o `@usuário` dos Agentes conectados com o limite de
+- [x] **CA3** · O `splitMessageBody` reconhece o `@usuário` dos Agentes conectados com o limite de
   palavra das Menções gravadas, e a Menção a uma Pessoa ganha da de um Agente com o mesmo
   `@usuário`; o Vitest cobre esses casos e o filtro do autocompletar.
-- [ ] **CA4** · O `AgentMentionChip`, no tom de Menção a outra Pessoa, abre o diálogo "Agentes" ao
+- [x] **CA4** · O `AgentMentionChip`, no tom de Menção a outra Pessoa, abre o diálogo "Agentes" ao
   clicar ou com Enter, e tem nome acessível.
-- [ ] **CA5** · Mencionar um Agente não grava Menção, não gera Notificação nem muda as não lidas.
-- [ ] **CA6** · O Playwright prova `@ass` mostrando o Agente, a Mensagem enviada com o chip vista
+- [x] **CA5** · Mencionar um Agente não grava Menção, não gera Notificação nem muda as não lidas.
+- [x] **CA6** · O Playwright prova `@ass` mostrando o Agente, a Mensagem enviada com o chip vista
   pela outra Pessoa, o chip abrindo o diálogo pelo teclado e, depois de desconectar, o chip como
   texto comum ao recarregar; o axe no autocompletar, nos dois temas, sem violações.
-- [ ] **CA7** · Se a 08 já estiver concluída, o Playwright prova também o chip virando texto comum
+- [x] **CA7** · Se a 08 já estiver concluída, o Playwright prova também o chip virando texto comum
   para a outra Pessoa sem recarregar depois de desconectar; senão, esse cenário fica com a 08.
-- [ ] **CA8** · A validação visual do autocompletar e do chip, nos dois temas, fica nesta pasta.
+- [x] **CA8** · A validação visual do autocompletar e do chip, nos dois temas, fica nesta pasta.

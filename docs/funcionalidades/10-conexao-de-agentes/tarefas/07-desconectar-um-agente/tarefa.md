@@ -1,6 +1,6 @@
 # 07: Desconectar um Agente
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** o administrador desconecta um Agente pelo diálogo. A confirmação "Desconectar
 <nome>?" explica que ninguém mais vai conseguir mencioná-lo, que as Mensagens dele continuam e que
@@ -34,6 +34,6 @@ Referências:
   dois temas, sem violações.
 - [x] **CA6** · A validação visual dos frames "Diálogos / Desconectar agente", nos dois temas, fica
   nesta pasta.
-- [ ] **CA7** · O roteiro manual, feito por uma pessoa e registrado nesta pasta, tem a nota 100 de
+- [x] **CA7** · O roteiro manual, feito por uma pessoa e registrado nesta pasta, tem a nota 100 de
   Acessibilidade do Lighthouse nos dois temas, com o diálogo "Agentes" aberto como administrador e
   como quem não administra.

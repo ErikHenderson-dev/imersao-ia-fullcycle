@@ -565,7 +565,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
-| Seção Agentes da barra lateral e diálogo "Agentes" (sobre as telas logadas) | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão; administradores | Conectar e desconectar agente; abrir o perfil de um administrador | planejada: as variantes por papel, o diálogo, a Menção a Agente no autocompletar e no destaque, e o selo de administrador no painel de perfil ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Cliente") |
+| Seção Agentes da barra lateral e diálogo "Agentes" (sobre as telas logadas) | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão; administradores | Conectar e desconectar agente; abrir o perfil de um administrador | existe: as variantes por papel, o diálogo, a Menção a Agente no autocompletar e no destaque, e o selo de administrador no painel de perfil ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Cliente") |
 
 **Leituras e tempo real.** A página carrega pelos Server Components. No cliente, o SWR guarda as
 leituras que o tempo real altera (mensagens, lista de Conversas, não lidas, notificações), e cada evento do WebSocket
@@ -689,7 +689,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 **Variáveis de ambiente**
 
 O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos". As já decididas
-(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` da API do chat, as cinco da Web e as do Serviço de agentes já existem; as demais são `planejadas`):
+(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` da API do chat, as sete da Web e as do Serviço de agentes já existem; as demais são `planejadas`):
 
 | Projeto | Variável | Para quê |
 | --- | --- | --- |
