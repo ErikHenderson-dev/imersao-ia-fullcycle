@@ -63,6 +63,12 @@ describe('Mensagens em tempo real', () => {
       message: (response.body as { message: MessageCreatedEvent['message'] })
         .message,
     });
+    expect(event.message.author).toEqual({
+      kind: 'person',
+      id: author.person.id,
+      name: 'Ana Souza',
+      username: author.person.username,
+    });
   });
 
   it('o evento chega à outra aba do autor', async () => {

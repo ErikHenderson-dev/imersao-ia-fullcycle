@@ -80,6 +80,25 @@ describe('Não lidas e Menções', () => {
     });
   });
 
+  it('a Mensagem de bot conta como Não lida para os Membros, sem Menção', async () => {
+    const { author, reader, channelId } = await channelWithReader();
+    await send(author.cookie, channelId, 'Uma');
+    const bot = await conversationRoutes.createBot(app);
+    await conversationRoutes.insertBotMessage(app, {
+      conversationId: channelId,
+      botId: bot.id,
+      body: `Resumo para @${reader.person.username}`,
+    });
+
+    const [forAuthor, forReader] = await Promise.all([
+      listed(author.cookie, channelId),
+      listed(reader.cookie, channelId),
+    ]);
+
+    expect(numbers(forAuthor)).toEqual({ unread: 1, mentions: 0 });
+    expect(numbers(forReader)).toEqual({ unread: 2, mentions: 0 });
+  });
+
   it('a Menção conta uma vez por Mensagem', async () => {
     const { author, reader, channelId } = await channelWithReader();
     const username = reader.person.username;

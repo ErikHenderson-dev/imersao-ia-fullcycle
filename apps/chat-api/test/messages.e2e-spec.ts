@@ -16,7 +16,7 @@ type MessageBody = {
   id: string;
   conversation_id: string;
   client_id: string;
-  author: { id: string; name: string };
+  author: { kind: string; id: string; name: string; username: string };
   body: string;
   created_at: string;
 };
@@ -76,9 +76,44 @@ describe('mensagens', () => {
       expect(body.messages.map((message) => message.id)).toEqual(ids.slice(1));
       expect(body.messages[0]).toMatchObject({
         conversation_id: channel.id,
-        author: { id: person.id, name: 'Bruno Lima' },
+        author: {
+          kind: 'person',
+          id: person.id,
+          name: 'Bruno Lima',
+          username: person.username,
+        },
         body: 'Mensagem 2',
       });
+    });
+
+    it('traz o autor bot na Mensagem de bot e o autor Pessoa nas outras', async () => {
+      const { person, channel, cookie } = await memberOfNewChannel('Bia Reis');
+      const bot = await conversationRoutes.createBot(app, 'Assistente');
+      await conversationRoutes.insertMessages(app, {
+        conversationId: channel.id,
+        authorId: person.id,
+        count: 1,
+      });
+      await conversationRoutes.insertBotMessage(app, {
+        conversationId: channel.id,
+        botId: bot.id,
+      });
+
+      const response = await request(server)
+        .get(`/v1/conversations/${channel.id}/messages`)
+        .set('Cookie', cookie);
+
+      expect(response.status).toBe(200);
+      const { messages } = response.body as { messages: MessageBody[] };
+      expect(messages.map((message) => message.author)).toEqual([
+        {
+          kind: 'person',
+          id: person.id,
+          name: 'Bia Reis',
+          username: person.username,
+        },
+        { kind: 'bot', id: bot.id, name: 'Assistente', username: bot.username },
+      ]);
     });
 
     it('responde has_more falso quando a página tem o histórico inteiro', async () => {
@@ -233,17 +268,22 @@ describe('mensagens', () => {
       expect(message).toMatchObject({
         conversation_id: channel.id,
         client_id: clientId,
-        author: { id: person.id, name: 'Carla Dias' },
+        author: {
+          kind: 'person',
+          id: person.id,
+          name: 'Carla Dias',
+          username: person.username,
+        },
         body: 'Bom dia!\nTudo certo?',
       });
       const rows = await app
         .get(DataSource)
-        .query<{ author_id: string; body: string }[]>(
-          'SELECT author_id, body FROM messages WHERE id = $1',
+        .query<{ author_person_id: string; body: string }[]>(
+          'SELECT author_person_id, body FROM messages WHERE id = $1',
           [message.id],
         );
       expect(rows).toEqual([
-        { author_id: person.id, body: 'Bom dia!\nTudo certo?' },
+        { author_person_id: person.id, body: 'Bom dia!\nTudo certo?' },
       ]);
     });
 

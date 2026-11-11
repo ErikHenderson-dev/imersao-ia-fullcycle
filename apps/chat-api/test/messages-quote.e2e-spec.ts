@@ -10,7 +10,7 @@ type Quote =
   | {
       id: string;
       deleted: false;
-      author: { id: string; name: string };
+      author: { kind: string; id: string; name: string; username: string };
       body: string;
     }
   | { id: string; deleted: true };
@@ -72,8 +72,39 @@ describe('Citação', () => {
     expect((response.body as { message: MessageBody }).message.quote).toEqual({
       id: original.id,
       deleted: false,
-      author: { id: author.person.id, name: 'Ana Souza' },
+      author: {
+        kind: 'person',
+        id: author.person.id,
+        name: 'Ana Souza',
+        username: author.person.username,
+      },
       body: 'A original',
+    });
+  });
+
+  it('cita uma Mensagem de bot, com o autor bot', async () => {
+    const author = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const bot = await conversationRoutes.createBot(app, 'Assistente');
+    const botMessageId = await conversationRoutes.insertBotMessage(app, {
+      conversationId: channel.id,
+      botId: bot.id,
+      body: 'Resumo de hoje',
+    });
+
+    const response = await sendQuoting(author.cookie, channel.id, botMessageId);
+
+    expect(response.status).toBe(201);
+    expect((response.body as { message: MessageBody }).message.quote).toEqual({
+      id: botMessageId,
+      deleted: false,
+      author: {
+        kind: 'bot',
+        id: bot.id,
+        name: 'Assistente',
+        username: bot.username,
+      },
+      body: 'Resumo de hoje',
     });
   });
 

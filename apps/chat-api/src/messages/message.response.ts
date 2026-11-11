@@ -1,11 +1,11 @@
-import type { QuotePayload } from 'chat-events';
+import type { MessageAuthorPayload, QuotePayload } from 'chat-events';
 import { MessageView } from './messages.service';
 
 export interface MessageResponse {
   id: string;
   conversation_id: string;
   client_id: string;
-  author: { id: string; name: string };
+  author: MessageAuthorPayload;
   body: string;
   created_at: string;
   edited_at: string | null;

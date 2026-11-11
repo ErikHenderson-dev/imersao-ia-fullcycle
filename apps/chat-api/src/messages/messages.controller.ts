@@ -44,7 +44,7 @@ export class MessagesController {
     @Body() body: SendMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.messages.sendMessage(
-      { id: person.id, name: person.name },
+      { id: person.id, name: person.name, username: person.username },
       conversationId,
       {
         clientId: body.client_id,
@@ -64,7 +64,7 @@ export class MessagesController {
     @Body() body: EditMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.messages.editMessage(
-      { id: person.id, name: person.name },
+      { id: person.id, name: person.name, username: person.username },
       conversationId,
       id,
       body.body,

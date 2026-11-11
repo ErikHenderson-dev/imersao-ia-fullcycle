@@ -1,10 +1,15 @@
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
-import type { MentionPayload, QuotePayload } from 'chat-events';
+import type {
+  MentionPayload,
+  MessageAuthorPayload,
+  QuotePayload,
+} from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
+import { BotsService } from '../bots/bots.service';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -22,9 +27,14 @@ import { UnreadPublisher } from './unread.publisher';
 import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
 import { toMessageResponse } from './message.response';
 
-export interface MessageAuthor {
+// Quem escreveu a Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem").
+export type MessageAuthor = MessageAuthorPayload;
+
+// A Pessoa da Sessão que envia ou edita: a gravação como bot é da ação de bot.
+export interface PersonAuthor {
   id: string;
   name: string;
+  username: string;
 }
 
 // Uma Pessoa mencionada (spec da F06, "A Mensagem no REST e nos eventos").
@@ -86,6 +96,7 @@ export class MessagesService {
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
+    private readonly bots: BotsService,
     private readonly publisher: RealtimePublisher,
     private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
@@ -140,7 +151,7 @@ export class MessagesService {
   // gravada quando a publicação falha: o envio responde sucesso e a falha vai para o log, porque um
   // reenvio da Pessoa não publicaria de novo.
   async sendMessage(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     newMessage: NewMessage,
   ): Promise<MessageView> {
@@ -250,7 +261,7 @@ export class MessagesService {
   // mudou, publica o message.updated para os Membros depois do commit. Como no envio, a falha da
   // publicação só vai para o log.
   async editMessage(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     messageId: string,
     body: string,
@@ -381,7 +392,7 @@ export class MessagesService {
   // idempotência", "Editar e apagar mensagem"): a que chega depois lê a linha já gravada.
   @Transactional()
   private async edit(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     messageId: string,
     body: string,
@@ -419,7 +430,12 @@ export class MessagesService {
       : previousMentions;
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return {
-      message: toView(message, author, mentions, await this.quoteOf(message)),
+      message: toView(
+        message,
+        personAuthor(author),
+        mentions,
+        await this.quoteOf(message),
+      ),
       changed,
       mentionChangedIds: rewritesMentions
         ? symmetricDifference(
@@ -462,7 +478,7 @@ export class MessagesService {
       .getOne();
     // A apagada responde como a que não existe: editar ou apagar de novo dá 404.
     if (!message || message.deletedAt) throw new MessageNotFoundError();
-    if (message.authorId !== personId) throw new MessageNotOwnedError();
+    if (message.authorPersonId !== personId) throw new MessageNotOwnedError();
     return message;
   }
 
@@ -495,7 +511,7 @@ export class MessagesService {
   // Mensagem, gravam juntas (spec da F05, "Conversa direta", "Primeira Mensagem").
   @Transactional()
   private async send(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     { clientId, body, quotedMessageId }: NewMessage,
     onBarrier: (barrier: Barrier) => void,
@@ -508,7 +524,7 @@ export class MessagesService {
     // F06, "Enviar com Citação"); só o envio novo confere a Citação.
     if (
       quotedMessageId !== undefined &&
-      !(await this.messages.existsBy({ authorId: author.id, clientId }))
+      !(await this.messages.existsBy({ authorPersonId: author.id, clientId }))
     ) {
       await this.assertQuotable(conversationId, quotedMessageId);
     }
@@ -518,7 +534,7 @@ export class MessagesService {
       .values({
         id: randomUUIDv7(),
         conversationId,
-        authorId: author.id,
+        authorPersonId: author.id,
         clientId,
         body,
         quotedMessageId: quotedMessageId ?? null,
@@ -532,13 +548,16 @@ export class MessagesService {
       ? this.messages.create({
           id: row.id,
           conversationId,
-          authorId: author.id,
+          authorPersonId: author.id,
           clientId,
           body,
           quotedMessageId: quotedMessageId ?? null,
           createdAt: row.created_at,
         })
-      : await this.messages.findOneByOrFail({ authorId: author.id, clientId });
+      : await this.messages.findOneByOrFail({
+          authorPersonId: author.id,
+          clientId,
+        });
     // O mesmo client_id usado em outra Conversa não é reenvio desta.
     if (message.conversationId !== conversationId) {
       throw new ClientIdConflictError();
@@ -563,7 +582,12 @@ export class MessagesService {
       ? await this.saveMentions(message, body, false)
       : await this.mentionsOf(message.id);
     return {
-      message: toView(message, author, mentions, await this.quoteOf(message)),
+      message: toView(
+        message,
+        personAuthor(author),
+        mentions,
+        await this.quoteOf(message),
+      ),
       created: Boolean(row),
       joinedId,
     };
@@ -656,18 +680,12 @@ export class MessagesService {
   }
 
   // As Mensagens citadas, com o autor e o texto atual, ou só a marca de apagada, numa consulta para
-  // as Mensagens e outra para os autores.
+  // as Mensagens e as dos autores.
   private async quotesById(ids: string[]): Promise<Map<string, QuoteView>> {
     const quotes = new Map<string, QuoteView>();
     if (ids.length === 0) return quotes;
     const quoted = await this.messages.findBy({ id: In(ids) });
-    const authors = new Map(
-      (
-        await this.people.findByIds([
-          ...new Set(quoted.map((message) => message.authorId)),
-        ])
-      ).map((person) => [person.id, { id: person.id, name: person.name }]),
-    );
+    const authorOf = await this.authorsOf(quoted);
     for (const message of quoted) {
       quotes.set(
         message.id,
@@ -676,7 +694,7 @@ export class MessagesService {
           : {
               id: message.id,
               deleted: false,
-              author: authors.get(message.authorId)!,
+              author: authorOf(message),
               body: message.body ?? '',
             },
       );
@@ -684,9 +702,34 @@ export class MessagesService {
     return quotes;
   }
 
+  // O autor de cada Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem"), com uma consulta
+  // para as Pessoas e outra para os bots.
+  private async authorsOf(
+    messages: Message[],
+  ): Promise<(message: Message) => MessageAuthor> {
+    const idsOf = (pick: (message: Message) => string | null) => [
+      ...new Set(messages.flatMap((message) => pick(message) ?? [])),
+    ];
+    const [people, bots] = await Promise.all([
+      this.people.findByIds(idsOf((message) => message.authorPersonId)),
+      this.bots.findByIds(idsOf((message) => message.authorBotId)),
+    ]);
+    const authors = new Map<string, MessageAuthor>([
+      ...people.map((person) => [person.id, personAuthor(person)] as const),
+      ...bots.map(
+        (bot) =>
+          [
+            bot.id,
+            { kind: 'bot', id: bot.id, name: bot.name, username: bot.username },
+          ] as const,
+      ),
+    ]);
+    return (message) =>
+      authors.get((message.authorPersonId ?? message.authorBotId)!)!;
+  }
+
   // Os autores, as Menções e as Citações de uma página, numa consulta para cada.
   private async withDetails(messages: Message[]): Promise<MessageView[]> {
-    const authorIds = [...new Set(messages.map((message) => message.authorId))];
     const quotedIds = [
       ...new Set(
         messages.flatMap((message) =>
@@ -694,18 +737,15 @@ export class MessagesService {
         ),
       ),
     ];
-    const [people, mentions, quotes] = await Promise.all([
-      this.people.findByIds(authorIds),
+    const [authorOf, mentions, quotes] = await Promise.all([
+      this.authorsOf(messages),
       this.mentionsByMessage(messages.map((message) => message.id)),
       this.quotesById(quotedIds),
     ]);
-    const authors = new Map(
-      people.map((person) => [person.id, { id: person.id, name: person.name }]),
-    );
     return messages.map((message) =>
       toView(
         message,
-        authors.get(message.authorId)!,
+        authorOf(message),
         mentions.get(message.id) ?? [],
         message.quotedMessageId
           ? (quotes.get(message.quotedMessageId) ?? null)
@@ -713,6 +753,11 @@ export class MessagesService {
       ),
     );
   }
+}
+
+// O autor Pessoa, no formato da Mensagem.
+function personAuthor({ id, name, username }: PersonAuthor): MessageAuthor {
+  return { kind: 'person', id, name, username };
 }
 
 function sameUsernames(before: string, after: string): boolean {

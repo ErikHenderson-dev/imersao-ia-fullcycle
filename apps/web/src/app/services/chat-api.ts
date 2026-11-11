@@ -1,6 +1,7 @@
 import type {
   ConversationPayload,
   MentionPayload,
+  MessageAuthorPayload,
   MessagePayload,
   QuotePayload,
   Presence,
@@ -218,7 +219,9 @@ function withInitials<T extends { name: string }>(person: T): T & { initials: st
   return { ...person, initials: initials(person.name) };
 }
 
-export type MessageAuthor = PersonSummary;
+// Quem escreveu a Mensagem, Pessoa ou bot de um Agente, com as iniciais para o avatar da Pessoa
+// (spec da F11, "Autor da Mensagem").
+export type MessageAuthor = MessageAuthorPayload & { initials: string };
 
 export type Message = {
   id: string;

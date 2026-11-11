@@ -114,6 +114,22 @@ describe('apagar Mensagem', () => {
     expect((await storedRow(message.id)).deleted_at).toBeNull();
   });
 
+  it('responde 403 ao apagar a Mensagem de um bot', async () => {
+    const member = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const bot = await conversationRoutes.createBot(app);
+    const messageId = await conversationRoutes.insertBotMessage(app, {
+      conversationId: channel.id,
+      botId: bot.id,
+    });
+
+    const response = await remove(member.cookie, channel.id, messageId);
+
+    expect(response.status).toBe(403);
+    expect((response.body as { code: string }).code).toBe('message_not_owned');
+    expect((await storedRow(messageId)).deleted_at).toBeNull();
+  });
+
   it('responde 404 para Mensagem inexistente, de outra Conversa ou de quem não é Membro', async () => {
     const outsider = await authRoutes.loggedIn(app, { name: 'Carla Dias' });
     const author = await authRoutes.loggedIn(app, { name: 'Ana Souza' });

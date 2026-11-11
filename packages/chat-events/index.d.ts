@@ -2,10 +2,15 @@
 // execução: o pacote é o contrato do tempo real, consumido pela chat-api e pela web. Campos em
 // snake_case, como no REST.
 
+/** Quem escreveu a Mensagem: uma Pessoa ou o bot de um Agente (spec da F11, "Autor da Mensagem"). */
+export type MessageAuthorKind = "person" | "bot";
+
 /** Autor de uma Mensagem, como no REST. */
 export interface MessageAuthorPayload {
+  kind: MessageAuthorKind;
   id: string;
   name: string;
+  username: string;
 }
 
 /** Uma Mensagem, no mesmo formato da resposta REST (spec da F02, "Rotas"). */

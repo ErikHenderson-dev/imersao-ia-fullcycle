@@ -95,7 +95,7 @@ export async function insertMessages(
     createdAt: message.at,
   }));
   await pool.query(
-    `INSERT INTO messages (id, conversation_id, author_id, client_id, body, created_at, updated_at, quoted_message_id)
+    `INSERT INTO messages (id, conversation_id, author_person_id, client_id, body, created_at, updated_at, quoted_message_id)
      SELECT id, $1, author_id, client_id, body, at, at, quoted
      FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::text[], $6::timestamptz[], $7::uuid[])
        AS rows(id, author_id, client_id, body, at, quoted)`,
@@ -128,6 +128,43 @@ export function insertHistory(
       at: new Date(start + index * 60_000),
     })),
   );
+}
+
+export type TestBot = { id: string; name: string; username: string };
+
+// O bot de um Agente direto no banco, com @usuário aleatório: o teste não depende do bot `assistente`
+// nem do estado de conexão dos Agentes (spec da F11, "Autor da Mensagem").
+export async function insertBot(name = "Assistente"): Promise<TestBot> {
+  const id = randomUUIDv7();
+  const username = `e2e-bot-${randomUUID().replaceAll("-", "").slice(0, 20)}`;
+  await pool.query("INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)", [id, username, name]);
+  return { id, name, username };
+}
+
+// Mensagens do bot direto no banco, como a resposta do Agente, em datas conhecidas.
+export async function insertBotMessages(
+  channel: TestChannel,
+  bot: TestBot,
+  messages: { body: string; at: Date }[],
+): Promise<TestMessage[]> {
+  const inserted = messages.map((message) => ({
+    id: uuidV7At(message.at.getTime()),
+    body: message.body,
+    createdAt: message.at,
+  }));
+  await pool.query(
+    `INSERT INTO messages (id, conversation_id, author_bot_id, client_id, body, created_at, updated_at)
+     SELECT id, $1, $2, gen_random_uuid(), body, at, at
+     FROM unnest($3::uuid[], $4::text[], $5::timestamptz[]) AS rows(id, body, at)`,
+    [
+      channel.id,
+      bot.id,
+      inserted.map((message) => message.id),
+      inserted.map((message) => message.body),
+      inserted.map((message) => message.createdAt),
+    ],
+  );
+  return inserted;
 }
 
 export async function countMessagesWithBody(channel: TestChannel, body: string): Promise<number> {

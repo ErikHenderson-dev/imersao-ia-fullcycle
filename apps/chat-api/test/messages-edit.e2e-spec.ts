@@ -140,6 +140,23 @@ describe('editar Mensagem', () => {
     expect((await storedRow(message.id)).body).toBe('Texto original');
   });
 
+  it('responde 403 ao editar a Mensagem de um bot', async () => {
+    const member = await authRoutes.loggedIn(app);
+    const channel = await conversationRoutes.createChannel(app);
+    const bot = await conversationRoutes.createBot(app);
+    const messageId = await conversationRoutes.insertBotMessage(app, {
+      conversationId: channel.id,
+      botId: bot.id,
+      body: 'Resumo de hoje',
+    });
+
+    const response = await edit(member.cookie, channel.id, messageId, 'Outro');
+
+    expect(response.status).toBe(403);
+    expect((response.body as { code: string }).code).toBe('message_not_owned');
+    expect((await storedRow(messageId)).body).toBe('Resumo de hoje');
+  });
+
   it('responde 404 para Mensagem inexistente ou de id malformado', async () => {
     const { author, channel } = await sentMessage();
 

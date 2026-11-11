@@ -72,7 +72,12 @@ export function usePendingMessages(
             ? {
                 id: quoted.id,
                 deleted: false,
-                author: { id: quoted.author.id, name: quoted.author.name },
+                author: {
+                  kind: quoted.author.kind,
+                  id: quoted.author.id,
+                  name: quoted.author.name,
+                  username: quoted.author.username,
+                },
                 body: quoted.body,
               }
             : null,

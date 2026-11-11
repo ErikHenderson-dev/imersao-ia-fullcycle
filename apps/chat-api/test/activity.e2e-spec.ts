@@ -237,6 +237,33 @@ describe('Atividade', () => {
     ]);
   });
 
+  it('a Mensagem de bot não vira Notificação, nem na Conversa direta', async () => {
+    const { author, reader, channelId, directId } = await scene();
+    await conversationRoutes
+      .openDirect(app, reader.cookie, author.person.id)
+      .expect(200);
+    const bot = await conversationRoutes.createBot(app);
+    for (const conversationId of [channelId, directId]) {
+      await conversationRoutes.insertBotMessage(app, {
+        conversationId,
+        botId: bot.id,
+        body: `Resumo para @${reader.person.username}`,
+      });
+    }
+
+    const [result, numbers] = await Promise.all([
+      page(reader.cookie),
+      unread(reader.cookie),
+    ]);
+
+    expect(result.items).toEqual([]);
+    expect(numbers).toEqual({
+      total_count: 0,
+      mention_count: 0,
+      direct_count: 0,
+    });
+  });
+
   it('a Menção acrescentada na edição cria o item', async () => {
     const { author, reader, channelId } = await scene();
     const plain = await send(author.cookie, channelId, 'Sem Menção');

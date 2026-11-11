@@ -2,6 +2,9 @@
 
 import { CircleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { AgentAvatar } from "@/app/components/agent/agent-avatar";
+import { AgentTag } from "@/app/components/agent/agent-tag";
+import { OpenAgentsButton } from "@/app/components/agent/open-agents-button";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { UserStatus } from "@/app/components/people/user-status";
@@ -188,11 +191,16 @@ function SendFailure({
 }
 
 function CompactRow({ message, timeZone, content }: RowProps) {
+  const isBot = message.author.kind === "bot";
   return (
     <div className="group flex gap-2 px-5 py-1">
       {/* Sem o nome à vista, como no Figma; o leitor de tela ainda ouve de quem é. */}
       <span className="sr-only">
-        <PersonName id={message.author.id} name={message.author.name} />
+        {isBot ? (
+          `${message.author.name}, Agente`
+        ) : (
+          <PersonName id={message.author.id} name={message.author.name} />
+        )}
       </span>
       <div className="flex w-9 shrink-0 justify-end pt-1">
         <MessageTime
@@ -207,6 +215,9 @@ function CompactRow({ message, timeZone, content }: RowProps) {
 }
 
 function FullRow({ message, timeZone, content }: RowProps) {
+  if (message.author.kind === "bot") {
+    return <AgentFullRow message={message} timeZone={timeZone} content={content} />;
+  }
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
       <div className="flex w-9 shrink-0 justify-end">
@@ -224,6 +235,31 @@ function FullRow({ message, timeZone, content }: RowProps) {
             <PersonName id={message.author.id} name={message.author.name} />
           </OpenProfileButton>
           <UserStatus personId={message.author.id} />
+          <MessageTime message={message} timeZone={timeZone} />
+        </p>
+        {content}
+      </div>
+    </div>
+  );
+}
+
+// A Mensagem do Agente (spec da F11, "MessageItem de bot"): o AgentAvatar e o nome, que abrem o
+// diálogo "Agentes", e o AgentTag no lugar do Status.
+function AgentFullRow({ message, timeZone, content }: RowProps) {
+  return (
+    <div className="mt-2 flex gap-2 px-5 py-1">
+      <div className="flex w-9 shrink-0 justify-end">
+        {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo diálogo. */}
+        <OpenAgentsButton decorative className="self-start">
+          <AgentAvatar />
+        </OpenAgentsButton>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p className="flex items-baseline gap-2">
+          <OpenAgentsButton className="text-body font-black text-fg hover:underline">
+            {message.author.name}
+          </OpenAgentsButton>
+          <AgentTag className="self-center" />
           <MessageTime message={message} timeZone={timeZone} />
         </p>
         {content}

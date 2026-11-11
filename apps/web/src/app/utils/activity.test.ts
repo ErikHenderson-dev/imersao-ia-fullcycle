@@ -20,7 +20,7 @@ function item(kind: ActivityItem["kind"]): Pick<ActivityItem, "kind" | "message"
       id: "m",
       conversationId: "c",
       clientId: "x",
-      author: { id: "a", name: "Rafael Trevisani", initials: "RT" },
+      author: { kind: "person", id: "a", name: "Rafael Trevisani", username: "pessoa", initials: "RT" },
       body: "Oi",
       createdAt: "2026-11-10T12:00:00.000Z",
       editedAt: null,

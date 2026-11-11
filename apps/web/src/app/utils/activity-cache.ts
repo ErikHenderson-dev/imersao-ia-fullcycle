@@ -25,7 +25,8 @@ export function notificationKindFor(
   conversation: Pick<Conversation, "kind"> | undefined,
   personId: string,
 ): NotificationKind | null {
-  if (!conversation || message.author.id === personId) return null;
+  // A Mensagem de bot nunca é Notificação (spec da F11, "Autor da Mensagem").
+  if (!conversation || message.author.kind === "bot" || message.author.id === personId) return null;
   if (conversation.kind === "direct") return "direct";
   return message.mentions.some((mention) => mention.id === personId) ? "mention" : null;
 }

@@ -7,6 +7,7 @@ import {
   ManyToOne,
   Unique,
 } from 'typeorm';
+import { Bot } from '../bots/bot.entity';
 import { Conversation } from '../conversations/conversation.entity';
 import { BaseEntity } from '../database/base.entity';
 import { Person } from '../people/person.entity';
@@ -15,7 +16,13 @@ import { MESSAGE_MAX_LENGTH } from './message-values';
 // O id (UUID v7) dá a ordem da Conversa; created_at é a hora mostrada na tela.
 @Entity('messages')
 @Index('messages_conversation_id_id_idx', ['conversationId', 'id'])
-@Unique('messages_author_client_key', ['authorId', 'clientId'])
+@Unique('messages_author_client_key', ['authorPersonId', 'clientId'])
+// O autor é uma Pessoa ou o bot de um Agente, exatamente um (spec da F11, "Autor da Mensagem"); a
+// migração AddMessageBotAuthor escreve o mesmo CHECK.
+@Check(
+  'messages_author_check',
+  'num_nonnulls("author_person_id", "author_bot_id") = 1',
+)
 // Só a Mensagem apagada fica sem texto (spec da F06, "Apagar"); a migração escreve o mesmo CHECK.
 @Check(
   'messages_body_check',
@@ -29,12 +36,21 @@ export class Message extends BaseEntity {
   @JoinColumn({ name: 'conversation_id' })
   conversation?: Conversation;
 
-  @Column({ type: 'uuid' })
-  authorId!: string;
+  // Nulo na Mensagem de bot (ADR 0028).
+  @Column({ type: 'uuid', nullable: true })
+  authorPersonId!: string | null;
 
   @ManyToOne(() => Person)
-  @JoinColumn({ name: 'author_id' })
-  author?: Person;
+  @JoinColumn({ name: 'author_person_id' })
+  authorPerson?: Person;
+
+  // O bot do Agente que gravou a Mensagem, ou nulo na Mensagem de Pessoa.
+  @Column({ type: 'uuid', nullable: true })
+  authorBotId!: string | null;
+
+  @ManyToOne(() => Bot)
+  @JoinColumn({ name: 'author_bot_id' })
+  authorBot?: Bot;
 
   // Identificador gerado no cliente: o reenvio do mesmo autor não duplica (F02-T05).
   @Column({ type: 'uuid' })
