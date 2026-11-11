@@ -1,6 +1,6 @@
 # 04: Resumo com Recorte de tempo, por Pessoa e por assunto
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa pede o resumo de hoje, de desde ontem, da semana, de tudo, do que uma
 Pessoa disse ou de um assunto, e o Agente responde na Conversa com o Recorte, a quantidade de
