@@ -1,5 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import request from 'supertest';
+import { App } from 'supertest/types';
 import { authRoutes } from './support/auth-routes';
 import { botRoutes } from './support/bot-routes';
 import { conversationRoutes } from './support/conversation-routes';
@@ -113,6 +115,19 @@ describe('Pedido no envio da Mensagem', () => {
       expect(await botRoutes.requestRows(app, channel.id)).toHaveLength(0);
     },
   );
+
+  it('responde 400 com agent_username nulo', async () => {
+    const { member, channel } = await memberWithBot();
+
+    const response = await request(app.getHttpServer() as App)
+      .post(`/v1/conversations/${channel.id}/messages`)
+      .set('Cookie', member.cookie)
+      .send({ client_id: randomUUID(), body: 'Oi', agent_username: null });
+
+    expect(response.status).toBe(400);
+    expect((response.body as { code: string }).code).toBe('validation_failed');
+    expect(await botRoutes.countMessages(app, channel.id)).toBe(0);
+  });
 
   it('sem agent_username, agent_request é nulo', async () => {
     const { member, channel } = await memberWithBot();
