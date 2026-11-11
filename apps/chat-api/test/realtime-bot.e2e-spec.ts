@@ -49,9 +49,13 @@ describe('Resposta e digitando do bot em tempo real', () => {
 
     await botRoutes.reply(app, requestId, 'De novo').expect(201);
 
-    const [event] = await waitForCount(received, 1);
+    // Só os eventos do bot: o da Mensagem do Pedido sai depois do commit e, sob carga, pode
+    // chegar a este socket já conectado.
+    await waitForCount(received, 1);
     await settle();
-    expect(received).toHaveLength(1);
+    const fromBot = received.filter((e) => e.message.author.kind === 'bot');
+    expect(fromBot).toHaveLength(1);
+    const [event] = fromBot;
     expect(event.message).toMatchObject({
       conversation_id: channel.id,
       body: 'Resumo de hoje',
