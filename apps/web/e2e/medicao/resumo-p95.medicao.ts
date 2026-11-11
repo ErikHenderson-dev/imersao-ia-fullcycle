@@ -15,6 +15,7 @@ import {
 
 const SAMPLES = 20;
 const MESSAGES = 500;
+const REQUEST = "@assistente resume hoje";
 // Folga do modelo por amostra; um Pedido que não responde nela falha a medição em vez de sumir dela.
 const MODEL_TIMEOUT_MS = 60_000;
 // Espaço mínimo entre dois Pedidos da Ana, abaixo do limite de pedidos por Pessoa (10 por minuto).
@@ -53,28 +54,23 @@ declare global {
   }
 }
 
-// Roda na página: marca o Enter na caixa de mensagem e o primeiro nó que entra na lista de Mensagens
-// com o botão do nome do Agente (o que agentMessage procura). Sem a caixa ou a lista, falha.
-function markSendAndAgentReply({ listName, composerName }: { listName: string; composerName: string }): void {
-  const box = document.querySelector(`[aria-label="${composerName}"]`);
+// Roda na página e marca dois instantes na lista de Mensagens: o envio, quando a Mensagem do pedido
+// entra nela (o Enter que não envia não conta), e a resposta, quando entra o primeiro nó com o botão
+// do nome do Agente (o que agentMessage procura). Sem a lista, falha.
+function markSendAndAgentReply({ listName, requestText }: { listName: string; requestText: string }): void {
   const list = document.querySelector(`[aria-label="${listName}"]`);
-  if (!box || !list) throw new Error("caixa de mensagem ou lista de Mensagens não encontrada");
+  if (!list) throw new Error("lista de Mensagens não encontrada");
   window.__sentAt = undefined;
   window.__agentReplyAt = undefined;
-  box.addEventListener(
-    "keydown",
-    (event) => {
-      if ((event as KeyboardEvent).key === "Enter") window.__sentAt ??= performance.now();
-    },
-    { once: true },
-  );
+  const isAgentButton = (element: Element) =>
+    element.matches("button") && element.textContent?.trim() === "Assistente";
+  const isAgentItem = (node: Node) =>
+    node instanceof Element && [node, ...node.querySelectorAll("button")].some(isAgentButton);
+  const isRequest = (node: Node) => node instanceof Element && !!node.textContent?.includes(requestText);
   const observer = new MutationObserver((records) => {
     const added = records.flatMap((record) => [...record.addedNodes]);
-    const isAgentButton = (element: Element) =>
-      element.matches("button") && element.textContent?.trim() === "Assistente";
-    const isAgentItem = (node: Node) =>
-      node instanceof Element && [node, ...node.querySelectorAll("button")].some(isAgentButton);
-    if (added.some(isAgentItem)) {
+    if (window.__sentAt === undefined && added.some(isRequest)) window.__sentAt = performance.now();
+    if (window.__sentAt !== undefined && added.some(isAgentItem)) {
       window.__agentReplyAt = performance.now();
       observer.disconnect();
     }
@@ -104,7 +100,7 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
         Math.floor((now - DEFAULT_ZONE_OFFSET_MS) / DAY_MS) * DAY_MS + DEFAULT_ZONE_OFFSET_MS;
       // Perto da meia-noite, as 500 Mensagens não cabem no "hoje" de quem pede.
       expect(now - startOfToday, "longe da meia-noite do fuso padrão").toBeGreaterThan(30 * 60_000);
-      expect(startOfToday + DAY_MS - now, "longe da meia-noite do fuso padrão").toBeGreaterThan(5 * 60_000);
+      expect(startOfToday + DAY_MS - now, "longe da meia-noite do fuso padrão").toBeGreaterThan(10 * 60_000);
       const start = Math.max(startOfToday + 60_000, now - 6 * 3_600_000);
       const step = (now - 60_000 - start) / MESSAGES;
       await insertMessages(
@@ -118,16 +114,16 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
       await page.goto(`/conversas/${channel.id}`);
       await readyHistory(page, channel.name);
 
-      // 2. A Ana pede o resumo de hoje, e o relógio corre do Enter até a Mensagem do Agente entrar na
-      // página, marcados na própria página: a espera do Playwright, que confere de tempos em tempos,
-      // não entra na amostra
+      // 2. A Ana pede o resumo de hoje, e o relógio corre da Mensagem dela entrar na lista até a do
+      // Agente entrar, marcados na própria página: a espera do Playwright, que confere de tempos em
+      // tempos, não entra na amostra
       const box = composer(page, channel.name);
-      await box.fill("@assistente resume hoje");
+      await box.fill(REQUEST);
       await box.press("Escape");
       await page.waitForTimeout(Math.max(0, lastSend + MIN_GAP_MS - Date.now()));
       await page.evaluate(markSendAndAgentReply, {
         listName: `Mensagens em #${channel.name}`,
-        composerName: `Mensagem para #${channel.name}`,
+        requestText: REQUEST,
       });
       lastSend = Date.now();
       await box.press("Enter");
@@ -138,7 +134,7 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
       await expect(reply, "a resposta é o resumo").toContainText("Resumo");
       const ms = Math.round(await page.evaluate(() => window.__agentReplyAt! - window.__sentAt!));
       // Sem as duas marcas (a lista trocada no meio, por exemplo), a amostra não vale.
-      expect(Number.isFinite(ms), "o Enter e a resposta marcados na página").toBe(true);
+      expect(Number.isFinite(ms), "o envio e a resposta marcados na página").toBe(true);
 
       const request = await latestAgentRequestOf(channel);
       durations.push(ms);
