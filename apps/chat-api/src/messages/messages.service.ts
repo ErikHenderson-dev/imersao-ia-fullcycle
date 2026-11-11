@@ -432,7 +432,7 @@ export class MessagesService {
     return {
       message: toView(
         message,
-        personAuthor(author),
+        toAuthor('person', author),
         mentions,
         await this.quoteOf(message),
       ),
@@ -584,7 +584,7 @@ export class MessagesService {
     return {
       message: toView(
         message,
-        personAuthor(author),
+        toAuthor('person', author),
         mentions,
         await this.quoteOf(message),
       ),
@@ -715,14 +715,10 @@ export class MessagesService {
       this.bots.findByIds(idsOf((message) => message.authorBotId)),
     ]);
     const authors = new Map<string, MessageAuthor>([
-      ...people.map((person) => [person.id, personAuthor(person)] as const),
-      ...bots.map(
-        (bot) =>
-          [
-            bot.id,
-            { kind: 'bot', id: bot.id, name: bot.name, username: bot.username },
-          ] as const,
+      ...people.map(
+        (person) => [person.id, toAuthor('person', person)] as const,
       ),
+      ...bots.map((bot) => [bot.id, toAuthor('bot', bot)] as const),
     ]);
     return (message) =>
       authors.get((message.authorPersonId ?? message.authorBotId)!)!;
@@ -755,9 +751,12 @@ export class MessagesService {
   }
 }
 
-// O autor Pessoa, no formato da Mensagem.
-function personAuthor({ id, name, username }: PersonAuthor): MessageAuthor {
-  return { kind: 'person', id, name, username };
+// O autor no formato da Mensagem.
+function toAuthor(
+  kind: MessageAuthor['kind'],
+  { id, name, username }: PersonAuthor,
+): MessageAuthor {
+  return { kind, id, name, username };
 }
 
 function sameUsernames(before: string, after: string): boolean {

@@ -4,7 +4,7 @@ import type { MessagePayload } from "chat-events";
 import { expect, logIn, test } from "../fixtures";
 import { agentsDialog } from "../support/agents-dialog";
 import { messageItem, readyHistory } from "../support/conversation-page";
-import { insertBot, insertBotMessages } from "../support/database";
+import { insertBot, insertMessages } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 
 const API = "http://localhost:3001/v1";
@@ -13,7 +13,7 @@ test.describe("Mensagem do Agente", () => {
   test("a Mensagem do Agente no histórico abre o diálogo Agentes", async ({ loggedInPage: page, memberChannel }) => {
     // 1. Uma Mensagem de bot no Canal
     const bot = await insertBot("Assistente");
-    await insertBotMessages(memberChannel, bot, [{ body: "Resumo de hoje: nada novo.", at: new Date() }]);
+    await insertMessages(memberChannel, [{ author: bot, body: "Resumo de hoje: nada novo.", at: new Date() }]);
     await page.goto(`/conversas/${memberChannel.id}`);
     await readyHistory(page, memberChannel.name);
 
@@ -58,8 +58,8 @@ test.describe("Mensagem do Agente", () => {
 
     // 2. A Mensagem de bot gravada aparece para a Ana no histórico
     const bot = await insertBot("Assistente");
-    const [inserted] = await insertBotMessages(sharedChannel, bot, [
-      { body: "Resumo para as duas Pessoas.", at: new Date() },
+    const [inserted] = await insertMessages(sharedChannel, [
+      { author: bot, body: "Resumo para as duas Pessoas.", at: new Date() },
     ]);
     await page.reload();
     await readyHistory(page, sharedChannel.name);

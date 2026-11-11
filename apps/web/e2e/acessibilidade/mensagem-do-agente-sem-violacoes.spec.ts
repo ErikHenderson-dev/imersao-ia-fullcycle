@@ -3,16 +3,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "../fixtures";
 import { messageItem, readyHistory } from "../support/conversation-page";
-import { insertBot, insertBotMessages } from "../support/database";
+import { insertBot, insertMessages } from "../support/database";
 
 test.describe("Acessibilidade", () => {
   test("mensagem-do-agente-sem-violacoes", async ({ loggedInPage: page, memberChannel }) => {
     // 1. Duas Mensagens seguidas do bot: a completa e a compacta
     const bot = await insertBot("Assistente");
     const now = Date.now();
-    await insertBotMessages(memberChannel, bot, [
-      { body: "Por ora eu só resumo a Conversa.", at: new Date(now - 60_000) },
-      { body: "Também consigo resumir a semana.", at: new Date(now - 30_000) },
+    await insertMessages(memberChannel, [
+      { author: bot, body: "Por ora eu só resumo a Conversa.", at: new Date(now - 60_000) },
+      { author: bot, body: "Também consigo resumir a semana.", at: new Date(now - 30_000) },
     ]);
     await page.goto(`/conversas/${memberChannel.id}`);
     await readyHistory(page, memberChannel.name);

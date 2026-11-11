@@ -7,12 +7,12 @@ export class AddMessageBotAuthor1794450000000 implements MigrationInterface {
     name = 'AddMessageBotAuthor1794450000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "messages" DROP CONSTRAINT "FK_05535bc695e9f7ee104616459d3"`);
         await queryRunner.query(`ALTER TABLE "messages" RENAME COLUMN "author_id" TO "author_person_id"`);
+        // Só o nome que o TypeORM dá à chave da coluna nova: renomear não confere as linhas de novo.
+        await queryRunner.query(`ALTER TABLE "messages" RENAME CONSTRAINT "FK_05535bc695e9f7ee104616459d3" TO "FK_52054398c3c386fff9273ae2004"`);
         await queryRunner.query(`ALTER TABLE "messages" ALTER COLUMN "author_person_id" DROP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "messages" ADD "author_bot_id" uuid`);
         await queryRunner.query(`ALTER TABLE "messages" ADD CONSTRAINT "messages_author_check" CHECK (num_nonnulls("author_person_id", "author_bot_id") = 1)`);
-        await queryRunner.query(`ALTER TABLE "messages" ADD CONSTRAINT "FK_52054398c3c386fff9273ae2004" FOREIGN KEY ("author_person_id") REFERENCES "people"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
         await queryRunner.query(`ALTER TABLE "messages" ADD CONSTRAINT "FK_17534effbedd46ffdcd7a17c468" FOREIGN KEY ("author_bot_id") REFERENCES "bots"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
     }
 
@@ -24,12 +24,11 @@ export class AddMessageBotAuthor1794450000000 implements MigrationInterface {
             throw new Error(`Há ${count} Mensagens de bot: a volta desta migração as perderia.`);
         }
         await queryRunner.query(`ALTER TABLE "messages" DROP CONSTRAINT "FK_17534effbedd46ffdcd7a17c468"`);
-        await queryRunner.query(`ALTER TABLE "messages" DROP CONSTRAINT "FK_52054398c3c386fff9273ae2004"`);
         await queryRunner.query(`ALTER TABLE "messages" DROP CONSTRAINT "messages_author_check"`);
         await queryRunner.query(`ALTER TABLE "messages" DROP COLUMN "author_bot_id"`);
         await queryRunner.query(`ALTER TABLE "messages" ALTER COLUMN "author_person_id" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "messages" RENAME COLUMN "author_person_id" TO "author_id"`);
-        await queryRunner.query(`ALTER TABLE "messages" ADD CONSTRAINT "FK_05535bc695e9f7ee104616459d3" FOREIGN KEY ("author_id") REFERENCES "people"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "messages" RENAME CONSTRAINT "FK_52054398c3c386fff9273ae2004" TO "FK_05535bc695e9f7ee104616459d3"`);
     }
 
 }

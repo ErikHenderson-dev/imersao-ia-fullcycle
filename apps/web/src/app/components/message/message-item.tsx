@@ -214,52 +214,39 @@ function CompactRow({ message, timeZone, content }: RowProps) {
   );
 }
 
+// A linha completa: o avatar e o nome abrem o Perfil da Pessoa, ou o diálogo "Agentes" na Mensagem do
+// Agente, que troca o Status pelo AgentTag (spec da F11, "MessageItem de bot"). O avatar fica fora
+// da ordem do teclado: o nome, logo ao lado, abre o mesmo.
 function FullRow({ message, timeZone, content }: RowProps) {
-  if (message.author.kind === "bot") {
-    return <AgentFullRow message={message} timeZone={timeZone} content={content} />;
-  }
+  const { author } = message;
+  const nameClass = "text-body font-black text-fg hover:underline";
+  const [avatar, name, badge] =
+    author.kind === "bot"
+      ? [
+          <OpenAgentsButton key="avatar" decorative className="self-start">
+            <AgentAvatar />
+          </OpenAgentsButton>,
+          <OpenAgentsButton key="name" className={nameClass}>
+            {author.name}
+          </OpenAgentsButton>,
+          <AgentTag key="badge" className="self-center" />,
+        ]
+      : [
+          <OpenProfileButton key="avatar" personId={author.id} decorative className="self-start">
+            <PersonAvatar person={author} presenceBackdrop="surface" />
+          </OpenProfileButton>,
+          <OpenProfileButton key="name" personId={author.id} className={nameClass}>
+            <PersonName id={author.id} name={author.name} />
+          </OpenProfileButton>,
+          <UserStatus key="badge" personId={author.id} />,
+        ];
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
-      <div className="flex w-9 shrink-0 justify-end">
-        {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
-        <OpenProfileButton personId={message.author.id} decorative className="self-start">
-          <PersonAvatar person={message.author} presenceBackdrop="surface" />
-        </OpenProfileButton>
-      </div>
+      <div className="flex w-9 shrink-0 justify-end">{avatar}</div>
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="flex items-baseline gap-2">
-          <OpenProfileButton
-            personId={message.author.id}
-            className="text-body font-black text-fg hover:underline"
-          >
-            <PersonName id={message.author.id} name={message.author.name} />
-          </OpenProfileButton>
-          <UserStatus personId={message.author.id} />
-          <MessageTime message={message} timeZone={timeZone} />
-        </p>
-        {content}
-      </div>
-    </div>
-  );
-}
-
-// A Mensagem do Agente (spec da F11, "MessageItem de bot"): o AgentAvatar e o nome, que abrem o
-// diálogo "Agentes", e o AgentTag no lugar do Status.
-function AgentFullRow({ message, timeZone, content }: RowProps) {
-  return (
-    <div className="mt-2 flex gap-2 px-5 py-1">
-      <div className="flex w-9 shrink-0 justify-end">
-        {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo diálogo. */}
-        <OpenAgentsButton decorative className="self-start">
-          <AgentAvatar />
-        </OpenAgentsButton>
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p className="flex items-baseline gap-2">
-          <OpenAgentsButton className="text-body font-black text-fg hover:underline">
-            {message.author.name}
-          </OpenAgentsButton>
-          <AgentTag className="self-center" />
+          {name}
+          {badge}
           <MessageTime message={message} timeZone={timeZone} />
         </p>
         {content}

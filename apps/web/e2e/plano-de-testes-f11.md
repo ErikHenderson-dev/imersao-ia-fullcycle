@@ -6,7 +6,7 @@ Pessoas, os Canais, os bots e as Mensagens são criados direto no banco (`suppor
 ## F11-T01 · A Mensagem pode ter um bot como autor (`agentes/mensagem-do-agente.spec.ts`)
 
 O bot de cada teste é criado com `@usuário` aleatório (`insertBot`), e a Mensagem dele é gravada
-direto no banco (`insertBotMessages`), como a resposta do Agente: o teste não depende do
+direto no banco (`insertMessages`, com o bot como autor), como a resposta do Agente: o teste não depende do
 `assistente` nem do estado de conexão dos Agentes.
 
 1. **A Mensagem do Agente no histórico abre o diálogo "Agentes":** a Ana abre o Canal com uma

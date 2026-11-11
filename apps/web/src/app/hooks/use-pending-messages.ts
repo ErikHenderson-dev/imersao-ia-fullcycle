@@ -15,6 +15,13 @@ export type PendingMessage = Message & { status: PendingStatus; failure?: "quote
 // Mensagens ainda não gravadas (spec da F02, "Envio"): fora do cache do SWR, na ordem do envio,
 // sempre depois das gravadas. Uma fila, feita de uma cadeia de promessas, manda uma por vez, para
 // a ordem gravada ser a do envio; uma falha não trava as seguintes. Gravada, a Mensagem sai daqui
+// O autor como a Citação o traz, sem as iniciais do avatar.
+function withoutInitials(author: Message["author"]) {
+  const { initials, ...quoted } = author;
+  void initials;
+  return quoted;
+}
+
 // e entra no cache (`onSent`).
 export function usePendingMessages(
   conversationId: string,
@@ -72,12 +79,7 @@ export function usePendingMessages(
             ? {
                 id: quoted.id,
                 deleted: false,
-                author: {
-                  kind: quoted.author.kind,
-                  id: quoted.author.id,
-                  name: quoted.author.name,
-                  username: quoted.author.username,
-                },
+                author: withoutInitials(quoted.author),
                 body: quoted.body,
               }
             : null,
