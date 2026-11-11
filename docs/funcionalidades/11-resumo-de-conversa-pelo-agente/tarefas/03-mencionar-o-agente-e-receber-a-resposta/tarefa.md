@@ -1,6 +1,6 @@
 # 03: Mencionar o Agente e receber a resposta na Conversa
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa menciona o `@assistente` conectado numa Conversa, e a resposta dele
 aparece ali para todos os Membros, sem recarregar. É o caminho inteiro do Pedido (BFF, API do chat,
