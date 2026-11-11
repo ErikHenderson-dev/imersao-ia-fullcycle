@@ -1,6 +1,6 @@
 # 09: Mencionar um Agente conectado
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** ao digitar `@` no composer, a Pessoa encontra os Agentes conectados no
 autocompletar, depois dos Membros e com o avatar de Agente. A Menção a um Agente conectado fica
