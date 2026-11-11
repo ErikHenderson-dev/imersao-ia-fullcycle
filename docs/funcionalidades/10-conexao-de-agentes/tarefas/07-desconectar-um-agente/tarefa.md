@@ -21,18 +21,18 @@ Referências:
 
 **Bloqueada por:** 06 (Conectar um Agente)
 
-- [ ] **CA1** · Antes do código, o Figma ganha o erro ao desconectar, nos dois temas.
-- [ ] **CA2** · `DELETE /v1/agents/:slug/connection` responde 204, inclusive repetido, com os
+- [x] **CA1** · Antes do código, o Figma ganha o erro ao desconectar, nos dois temas.
+- [x] **CA2** · `DELETE /v1/agents/:slug/connection` responde 204, inclusive repetido, com os
   mesmos erros e a mesma ordem do `PUT`; os testes de integração cobrem os casos.
-- [ ] **CA3** · `disconnectAgent` segue a `connectAgent`: Pessoa sem cache, `forbidden` sem chamar o
+- [x] **CA3** · `disconnectAgent` segue a `connectAgent`: Pessoa sem cache, `forbidden` sem chamar o
   Serviço de agentes e `failure` para qualquer falha dele.
-- [ ] **CA4** · "Desconectar" abre o ConfirmDialog com o foco em "Cancelar"; Esc ou "Cancelar"
+- [x] **CA4** · "Desconectar" abre o ConfirmDialog com o foco em "Cancelar"; Esc ou "Cancelar"
   fecham sem mudar nada; confirmar mostra "Enviando", fecha e mostra o Agente desconectado no
   diálogo e fora da barra lateral; a falha fecha a confirmação e mostra o toast de erro.
-- [ ] **CA5** · O Playwright prova o administrador desconectando pelo teclado, as Mensagens antigas
+- [x] **CA5** · O Playwright prova o administrador desconectando pelo teclado, as Mensagens antigas
   do Agente ainda visíveis, e a outra Pessoa sem a linha ao recarregar; o axe na confirmação, nos
   dois temas, sem violações.
-- [ ] **CA6** · A validação visual dos frames "Diálogos / Desconectar agente", nos dois temas, fica
+- [x] **CA6** · A validação visual dos frames "Diálogos / Desconectar agente", nos dois temas, fica
   nesta pasta.
 - [ ] **CA7** · O roteiro manual, feito por uma pessoa e registrado nesta pasta, tem a nota 100 de
   Acessibilidade do Lighthouse nos dois temas, com o diálogo "Agentes" aberto como administrador e
