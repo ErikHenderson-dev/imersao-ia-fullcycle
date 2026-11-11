@@ -43,13 +43,20 @@ Subir o Serviço de agentes está no `AGENTS.md` da raiz, seção "Subir e derru
 | `uv run pytest tests/unit` | Testes de unidade |
 | `uv run pytest tests/integration` | Testes de integração, com o modelo real |
 | `uv run --extra eval adk eval app/agents/<agente> tests/eval/<agente>/<agente>.evalset.json --config_file_path tests/eval/<agente>/test_config.json` | Avaliação de um agente (seção "Avaliação") |
+| `uv run alembic upgrade head` | Roda as migrações pendentes do Banco dos agentes (`DATABASE_URL`) |
+| `uv run alembic revision --autogenerate -m "<nome>"` | Gera uma migração das tabelas do registro; as de sessão do ADK ficam de fora |
 | `uv add <pacote>` | Acrescenta uma dependência ao `pyproject.toml` e ao `uv.lock` |
 
 O lint roda sem o codespell porque ele é um corretor em inglês e acusa os comentários em
 português. O `agents-cli lint` sincroniza o `.venv` só com o extra `lint` e tira o `eval`; por
 isso o `adk eval` roda com `uv run --extra eval`, que o reinstala.
 
-Os testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
+As migrações não rodam na subida: rode-as à mão no contêiner, como as da API do chat.
+
+Os testes de integração do registro (`tests/integration/test_registry_routes.py`) usam o banco
+`agents_test`, que o `conftest.py` apaga, cria de novo e migra a cada execução, pelo
+`TEST_DATABASE_ADMIN_URL` (o superusuário local, porque o papel `agents` não tem `CREATEDB`) e pelo
+`TEST_DATABASE_URL`, os dois no `compose.yaml`. Os outros testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
 `apps/agents/.env` (copie do `.env.example`). Mudar o `.env` ou o `compose.yaml` pede
 `docker compose -f compose.yaml up -d agents` para as variáveis novas entrarem.
 
@@ -64,7 +71,7 @@ Os testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_
 | Nível | Onde fica | O que exercita |
 | --- | --- | --- |
 | Unidade | `tests/unit/` | Funções puras e peças isoladas, sem o modelo |
-| Integração | `tests/integration/` | O agente com o modelo real e o app HTTP de pé, num processo próprio e numa porta livre |
+| Integração | `tests/integration/` | O agente com o modelo real e o app HTTP de pé, num processo próprio e numa porta livre; as rotas `/v1` pelo `httpx`, com o app real e o banco `agents_test` |
 | Avaliação | `tests/eval/<agente>/` | O comportamento do agente, pelo `adk eval` (seção "Avaliação") |
 
 ## Avaliação

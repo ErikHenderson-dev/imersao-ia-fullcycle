@@ -10,6 +10,8 @@ dependencies = [
     # Sessões do ADK no Banco dos agentes (SESSION_SERVICE_URI postgresql+asyncpg://).
     "asyncpg",
     "sqlalchemy[asyncio]",
+    "pydantic-settings>=2.16.2",
+    "alembic>=1.20.1",
 ]
 requires-python = ">=3.13,<3.14"
 

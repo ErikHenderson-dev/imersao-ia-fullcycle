@@ -90,6 +90,15 @@ services:
     environment:
       # Sessões do ADK no Banco dos agentes.
       SESSION_SERVICE_URI: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # Registro de Agentes e Alembic, no mesmo banco (spec da F10, "Registro de Agentes").
+      DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # Credencial de serviço do BFF; segredo fixo, só de desenvolvimento, igual ao da web.
+      AGENTS_SERVICE_TOKEN: dev-agents-service-token
+      # Rotas genéricas e interface web do ADK, só no desenvolvimento.
+      ADK_DEV_ROUTES: "true"
+      # Banco dos testes de integração, recriado a cada execução pelo superusuário local.
+      TEST_DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents_test
+      TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@postgres:5432/postgres
       # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
       GOOGLE_GENAI_USE_ENTERPRISE: "false"
       AGENTS_CLI_TELEMETRY: "0"
