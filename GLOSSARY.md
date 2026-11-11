@@ -57,7 +57,12 @@ A frase que descreve um Canal, mostrada no cabeçalho dele.
 _Avoid_: descrição
 
 **Mensagem**:
-Texto que uma Pessoa ou um agente envia numa Conversa.
+Texto que uma Pessoa ou um Agente envia numa Conversa.
+
+**Agente**:
+Participante de IA que atende pedidos feitos por Menção numa Conversa e responde nela. Um
+administrador o conecta ou desconecta do workspace. O MVP tem um, o @assistente.
+_Avoid_: bot (é como ele grava na Conversa, não o que ele é), plugin (metáfora do brief)
 
 **Menção**:
 O `@usuário` de um Membro escrito numa Mensagem, que chama a atenção dele para ela.
@@ -96,7 +101,7 @@ vencer por falta de uso ou ser revogada. Vale para todas as abas daquele navegad
 _Avoid_: login (como substantivo), token
 
 **Tarefa**:
-Um trabalho que um agente delega a uma pessoa mencionada, a pedido de quem o mencionou; fica com
+Um trabalho que um Agente delega a uma pessoa mencionada, a pedido de quem o mencionou; fica com
 essa pessoa como responsável até ela concluí-lo, e pode ser reaberto. Não é a tarefa do
 planejamento (`F01-T02`), definida no `AGENTS.md`.
 _Avoid_: to-do, pendência

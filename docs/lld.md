@@ -1,6 +1,6 @@
 # LLD — Full Cycle Chat
 
-2026-11-10 · Luiz Carlos · Status: rascunho · HLD: [hld.md](hld.md)
+2026-11-11 · Luiz Carlos · Status: rascunho · HLD: [hld.md](hld.md)
 
 **Onde mora cada fato**
 
@@ -19,7 +19,7 @@
 | Schema do Banco dos agentes | A definir |
 | Schema do Banco de negócio | Script de carga em `apps/agents/scripts/` (planejado) |
 | Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, a definir |
-| Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz (planejado) |
+| Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz |
 
 Os snapshots OpenAPI ficam gravados no repositório, e a CI falha quando o código muda o contrato
 sem atualizar o snapshot.
@@ -38,8 +38,12 @@ apps/
   chat-api/       API do chat (NestJS): REST, WebSocket e o comando   existe
                   de contas e permissões (HLD, seção 2)
     migrations/   migrações do Banco do chat                          existe
-  agents/         Serviço de agentes e Worker (Python + ADK),         planejada
-                  dois processos do mesmo projeto
+  agents/         Serviço de agentes e Worker (Python + ADK),         existe (Worker
+                  dois processos do mesmo projeto                     planejado)
+    app/          o Serviço de agentes: o app HTTP (fast_api_app)     existe
+      agents/     um agente por pasta (seção "Componentes e           existe
+                  dependências")
+    tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 planejada
 packages/
   chat-events/    tipos dos eventos do WebSocket, usados por          existe
@@ -63,8 +67,10 @@ docs/             HLD, LLD, ADRs, brief
 | Testes de unidade do `web` | Vitest, em ambiente Node, só para funções puras com muitos casos | Provar dezenas de casos de data e de texto (agrupamento, divisor de dia, links, contagem de caracteres) pelo navegador seria lento; o Playwright continua provando os fluxos |
 | Gerenciador dos projetos TypeScript | pnpm, um projeto por pasta, sem workspace | [ADR 0017](adr/0017-projetos-pnpm-independentes.md) |
 | Agentes | Python + Google ADK | [ADR 0003](adr/0003-agentes-python-google-adk.md) |
-| HTTP do Serviço de agentes | FastAPI próprio, com as rotas chamando o `Runner` do ADK | A definir |
-| Gerenciador do projeto Python | uv | A definir |
+| Projeto do Serviço de agentes | Gerado pelo `agents-cli` 1.13 (modelo `adk_python`, protótipo, sem alvo de implantação), que fica como dependência de desenvolvimento | Traz o app HTTP, os testes e a avaliação no padrão do ADK; sem Terraform nem CI/CD do Google Cloud, porque a implantação é numa PaaS ([ADR 0004](adr/0004-paas-banco-gerenciado.md)) |
+| HTTP do Serviço de agentes | O app FastAPI do `get_fast_api_app` do ADK, que serve cada agente de `app/agents/` com as rotas genéricas do ADK e a interface web de desenvolvimento; as rotas próprias `/v1`, chamando o `Runner`, entram nele | O app gerado pelo `agents-cli`; as rotas `/v1` e o destino das rotas genéricas em produção ficam para a F10 |
+| Gerenciador do projeto Python | uv | O `agents-cli` gera e opera o projeto com uv (install, lint, eval) |
+| Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A definir | — |
 | Geração do PDF | A definir | — |
@@ -81,6 +87,14 @@ permitidas estão a definir, assim como os módulos de domínio da API do chat, 
 e do projeto `web`. O que já vale vem do HLD: o BFF dispara o agente
 ([ADR 0009](adr/0009-bff-dispara-agente.md)), o agente grava pela API do chat como bot
 ([ADR 0010](adr/0010-agente-grava-como-bot.md)) e o Worker nunca chama o modelo (HLD, seção 5).
+
+**Agentes no projeto `agents`** (Situação: `existe`, com o `assistente` de exemplo). Cada agente é
+um módulo ([ADR 0008](adr/0008-agentes-como-modulos.md)) numa pasta própria em
+`app/agents/<agente>/`, com `agent.py`, que define o `root_agent` e o `App`, e os arquivos só
+dele, como `tools.py`. O nome do `App` é o da pasta, porque o ADK serve o agente em
+`/apps/<pasta>`; dentro da pasta, os imports são relativos, porque o ADK carrega a pasta como
+módulo de topo. O app HTTP (`app/fast_api_app.py`) serve todas as pastas de `app/agents/`. O
+registro de agentes conectados e as peças compartilhadas entre agentes estão a definir (F10).
 
 ### Integrações externas
 
@@ -307,7 +321,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Perguntas pendentes | a detalhar |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
 | Agentes | Registro de agentes conectados | a detalhar |
-| Agentes | Sessões do ADK | criadas pelo ADK |
+| Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
 | Negócio | Dados de vendas | dono: script de carga |
 
 ## 5. Interfaces
@@ -374,6 +388,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
+| Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; o destino delas em produção fica para a F10 |
 
 ## 6. Estados e regras
 
@@ -652,7 +667,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 **Variáveis de ambiente**
 
 O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos". As já decididas
-(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` da API do chat e as cinco da Web já existem; as demais são `planejadas`):
+(`DATABASE_URL`, `PORT`, `SESSION_COOKIE_NAME`, `SESSION_TTL_DAYS`, `WEB_ORIGIN`, `REDIS_URL`, `TEST_REDIS_URL` e `PRESENCE_GRACE_MS` da API do chat, as cinco da Web e as do Serviço de agentes já existem; as demais são `planejadas`):
 
 | Projeto | Variável | Para quê |
 | --- | --- | --- |
@@ -669,6 +684,10 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Web | `SESSION_COOKIE_DOMAIN` | `Domain` do cookie; vazio no local |
 | Web | `SESSION_COOKIE_SECURE` | `Secure` do cookie; `false` no local |
 | Web | `CHAT_API_PUBLIC_URL` | Endereço público da API do chat, em que o navegador abre o WebSocket; lido no servidor e passado ao cliente, para a mesma imagem servir a todos os ambientes |
+| Serviço de agentes | `SESSION_SERVICE_URI` | Conexão do ADK com o Banco dos agentes, para as sessões (`postgresql+asyncpg://`) |
+| Serviço de agentes | `GEMINI_API_KEY` | Chave do Gemini pelo Google AI Studio; segredo, no `apps/agents/.env` |
+| Serviço de agentes | `GOOGLE_GENAI_USE_ENTERPRISE` | `false`: o SDK do Gemini usa o AI Studio, e não o Vertex AI |
+| Serviço de agentes | `AGENTS_CLI_TELEMETRY` | `0`: desliga a telemetria do `agents-cli` |
 
 As demais variáveis estão a definir.
 
@@ -684,9 +703,10 @@ substitui cada serviço de produção segue o HLD, seção 9, "Implantação e a
 | `postgres` | `postgres:18` | 5432 | Banco do chat, dos agentes e de negócio |
 | `s3` | `chrislusf/seaweedfs:4.52` (`weed mini`) | 8333 | Substituto do armazenamento compatível com S3, com o bucket `reports` |
 | `redis` | `redis:8` | 6379 | Eventos por Pessoa para a reconexão; o banco lógico 1 (`TEST_REDIS_URL`) é dos testes da API do chat |
+| `agents` | `apps/agents/Dockerfile.dev` (Python 3.13, uv) | 3002 (8000 no contêiner) | Serviço de agentes |
 | `e2e` | Imagem oficial do Playwright, na mesma versão do `@playwright/test` do `web` | — | Roda os testes de ponta a ponta do `web` contra `http://localhost:3000`, encaminhado para a web, e o `playwright-cli`; sobe só pelo `profile` e fica parado, como `web` e `chat-api` |
 
-Entram depois os serviços `agents` e `worker`, quando `apps/agents` existir.
+Entra depois o serviço `worker`, com o Worker de agentes (F14).
 
 **Contêineres dos apps**
 
@@ -701,6 +721,11 @@ Entram depois os serviços `agents` e `worker`, quando `apps/agents` existir.
   apps. A versão do pnpm é a do `packageManager` de cada projeto, igual nos dois.
 - Bindings nativos são compilados no contêiner: o Node do host precisa ser o mesmo major (26)
   para rodar ferramentas pelo host sobre o mesmo `node_modules`.
+- O contêiner `agents` segue o mesmo modelo com uv: o `CMD` roda `uv sync --frozen --all-extras`
+  (os comandos do `agents-cli` usam os extras `lint` e `eval`) e o mantém de pé. O repositório é
+  montado em `/home/app/repo`, o `.venv` fica no disco do host, o usuário `app` tem uid 1000 e o
+  cache do uv fica em `.uv-cache/` na raiz, ignorado pelo git. O Python é o 3.13 da imagem, o
+  mesmo do `.python-version`.
 
 **Postgres.** O script `docker/postgres/init/01-create-databases.sh` roda só com o volume vazio
 e cria os bancos `chat`, `agents` e `business`, cada um com um usuário dono de mesmo nome, e o
@@ -720,6 +745,8 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
   (`http://localhost:8333`), porque a assinatura inclui o host; o Worker grava pelo endereço
   interno (`http://s3:8333`). São dois endereços configurados, com acesso por caminho
   (path-style).
+- **Chave do modelo no Serviço de agentes:** a `GEMINI_API_KEY` chega pelo `env_file` opcional
+  `apps/agents/.env`. Sem ela, o contêiner sobe e o agente falha só ao chamar o modelo.
 - **Banco dos testes da API do chat:** `chat_test`, do mesmo dono que o `chat`, para os testes
   não misturarem dados com o desenvolvimento. O `globalSetup` dos testes o apaga e o cria de novo
   a cada execução, conectado como o superusuário local, porque o papel `chat` não tem `CREATEDB`,
@@ -770,11 +797,15 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [ ] Acesso ao Banco dos agentes e migrações (SQLAlchemy com Alembic, ou SQL cru); com ela, o
       dono do schema desse banco.
 - [x] Biblioteca de validação das variáveis nos projetos TypeScript: zod. No projeto `agents`,
-      segue em aberto.
+      segue em aberto; até o módulo de configuração existir, o código gerado pelo `agents-cli` lê
+      `os.environ` direto (`app/app_utils/services.py`, `app/fast_api_app.py`).
 - [ ] Parser da conferência de somente leitura (pglast ou sqlglot).
 - [ ] Biblioteca de log estruturado (pino e structlog, ou o logger de cada framework).
-- [ ] Porquê das escolhas sem motivo registrado: App Router, SWR, FastAPI próprio, uv; ADRs 0017,
-      0018, 0019 e 0022.
+- [ ] Porquê das escolhas sem motivo registrado: App Router, SWR; ADRs 0017, 0018, 0019 e 0022.
+- [ ] Rotas próprias `/v1` do Serviço de agentes e o destino das rotas genéricas do ADK e da
+      interface web em produção (F10).
+- [ ] Registro de agentes conectados e peças compartilhadas entre os agentes de `app/agents/`
+      (F10).
 
 **Componentes**
 

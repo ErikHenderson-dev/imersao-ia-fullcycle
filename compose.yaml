@@ -75,6 +75,30 @@ services:
       redis:
         condition: service_started
 
+  # Serviço de agentes (Python + Google ADK). Fica parado, como web e chat-api.
+  agents:
+    build:
+      context: ./apps/agents
+      dockerfile: Dockerfile.dev
+    init: true
+    volumes:
+      - .:/home/app/repo
+    # GEMINI_API_KEY, fora do git. Sem o arquivo, o contêiner sobe e o agente não chama o modelo.
+    env_file:
+      - path: ./apps/agents/.env
+        required: false
+    environment:
+      # Sessões do ADK no Banco dos agentes.
+      SESSION_SERVICE_URI: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
+      GOOGLE_GENAI_USE_ENTERPRISE: "false"
+      AGENTS_CLI_TELEMETRY: "0"
+    ports:
+      - "3002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:18
     environment:

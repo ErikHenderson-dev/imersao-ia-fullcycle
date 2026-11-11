@@ -1,0 +1,20 @@
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim
+
+# Mesmo uid do usuário do host no WSL (1000), como o node dos outros apps.
+RUN useradd --create-home --uid 1000 app
+
+# Cache do uv dentro do repositório montado (ignorado pelo git): sobrevive à recriação do
+# contêiner e fica no mesmo sistema de arquivos do .venv, como o .pnpm-store dos outros apps.
+ENV UV_CACHE_DIR=/home/app/repo/.uv-cache
+
+# Usa o Python 3.13 da imagem, o mesmo do .python-version, sem baixar outro.
+ENV UV_PYTHON_DOWNLOADS=never
+
+USER app
+
+WORKDIR /home/app/repo/apps/agents
+
+# Nenhuma dependência na imagem: o sync roda na subida, sobre o código montado do host.
+# Se o sync falhar, o contêiner continua de pé para correção via `docker compose exec`.
+# --all-extras: os comandos do agents-cli usam os extras lint e eval.
+CMD ["sh", "-c", "uv sync --frozen --all-extras; tail -f /dev/null"]

@@ -98,7 +98,8 @@ ao fim de uma aula, faça checkout da tag ou da branch dela.
 ## ▶️ Como executar
 
 **Pré-requisito:** [Docker](https://docs.docker.com/get-docker/) com Docker Compose. Tudo roda
-dentro dos contêineres, então você não precisa de Node.js nem pnpm instalados na máquina.
+dentro dos contêineres, então você não precisa de Node.js, pnpm, Python nem uv instalados na
+máquina.
 
 ```bash
 git clone https://github.com/devfullcycle/imersao-ia1.git
@@ -109,26 +110,31 @@ docker compose -f compose.yaml up -d --build --wait
 ```
 
 Na primeira subida, a instalação das dependências continua dentro dos contêineres por alguns
-minutos. Acompanhe com `docker compose -f compose.yaml logs -f web chat-api` e, quando terminar,
-rode a web e a API (cada uma num terminal):
+minutos. Acompanhe com `docker compose -f compose.yaml logs -f web chat-api agents` e, quando terminar,
+rode a web, a API e o Serviço de agentes (cada um num terminal):
 
 ```bash
 docker compose -f compose.yaml exec web pnpm dev --hostname 0.0.0.0
 docker compose -f compose.yaml exec chat-api pnpm start:dev
+docker compose -f compose.yaml exec agents uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000
 ```
+
+O agente de exemplo chama o Gemini: copie `apps/agents/.env.example` para `apps/agents/.env` e
+preencha a `GEMINI_API_KEY`.
 
 | Serviço | Endereço |
 | --- | --- |
 | Web (Next.js) | <http://localhost:3000> |
 | API do chat (NestJS) | <http://localhost:3001> |
+| Serviço de agentes (Google ADK) | <http://localhost:3002> |
 | PostgreSQL | `localhost:5432` |
 | S3 (SeaweedFS) | <http://localhost:8333> |
 
 Para derrubar: `docker compose -f compose.yaml down`.
 
 Recomeçar do zero, resolver falha na instalação e os comandos de teste e lint de cada aplicação
-estão no [`AGENTS.md`](AGENTS.md), em [`apps/chat-api/AGENTS.md`](apps/chat-api/AGENTS.md) e em
-[`apps/web/AGENTS.md`](apps/web/AGENTS.md).
+estão no [`AGENTS.md`](AGENTS.md), em [`apps/chat-api/AGENTS.md`](apps/chat-api/AGENTS.md), em
+[`apps/web/AGENTS.md`](apps/web/AGENTS.md) e em [`apps/agents/AGENTS.md`](apps/agents/AGENTS.md).
 
 ## 🤖 Como este projeto foi construído com IA
 
