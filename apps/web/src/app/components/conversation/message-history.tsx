@@ -12,6 +12,8 @@ import {
 import { useKnownPerson } from "@/app/components/people/people-provider";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { toast } from "sonner";
+import { SWRConfig } from "swr";
+import { initCache, noop } from "swr/_internal";
 import { MessageItem } from "@/app/components/message/message-item";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Spinner } from "@/app/components/ui/spinner";
@@ -67,6 +69,28 @@ const LOAD_OLDER_MARGIN_PX = 300;
 // Distância do fim da lista até a qual a Pessoa está "no fim" (LLD, "Valores e configuração").
 const END_OF_LIST_PX = 100;
 
+// Lista de Mensagens e caixa de mensagem de uma Conversa. O cache do SWR é desta montagem: abrir
+// a Conversa de novo começa da página que o servidor acabou de ler.
+export function MessageHistory(props: MessageHistoryProps) {
+  const [config] = useState(privateCache);
+  return (
+    <SWRConfig value={config}>
+      <History {...props} />
+    </SWRConfig>
+  );
+}
+
+// O cache desta montagem, guardado no estado e registrado no SWR antes de chegar ao `SWRConfig`.
+// Com Cache Components, o Next esconde a página que sai num <Activity>; se o `SWRConfig` registrasse
+// o cache, a limpeza do efeito dele o tiraria do estado global do SWR, e a página escondida que
+// renderiza de novo, ou reaparece antes dos efeitos, quebraria lendo esse estado. Já registrado, ele
+// não sai, e vai embora com a montagem (o estado global é um WeakMap). Sem os eventos de foco e de
+// reconexão, que o histórico não usa e que ninguém soltaria.
+function privateCache() {
+  const cache = new Map();
+  initCache(cache, { initFocus: noop, initReconnect: noop });
+  return { provider: () => cache };
+}
 
 // Tira o `?mensagem=` da URL sem navegar: o roteador do Next acompanha o replaceState.
 function dropMessageParam() {
@@ -79,9 +103,7 @@ function dropMessageParam() {
 // Quanto tempo a Mensagem citada fica destacada ao chegar (spec da F06, "Ir até a Mensagem citada").
 const HIGHLIGHT_MS = 2_000;
 
-// Lista de Mensagens e caixa de mensagem de uma Conversa. O cache do SWR é desta montagem: abrir
-// a Conversa de novo começa da página que o servidor acabou de ler (`useMessageHistory`).
-export function MessageHistory({
+function History({
   conversation,
   initialPage,
   timeZone,

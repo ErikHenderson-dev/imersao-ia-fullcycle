@@ -125,12 +125,17 @@ async function ConversationHistory({
   }
 
   const { id: authorId, name, initials } = personResult.person;
+  const renderedAt = new Date().toISOString();
   return (
+    // Cada renderização do servidor monta o histórico de novo: com Cache Components, a Conversa que
+    // a Pessoa deixou fica escondida num <Activity>, e reabri-la pela barra lateral começa da página
+    // que o servidor acabou de ler, sem a Citação ou a edição que estavam abertas.
     <MessageHistory
+      key={renderedAt}
       conversation={conversation}
       initialPage={pageResult.page}
       timeZone={timeZone}
-      renderedAt={new Date().toISOString()}
+      renderedAt={renderedAt}
       currentPerson={{ id: authorId, name, initials }}
       messageParam={messageParam}
     />
