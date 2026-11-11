@@ -16,9 +16,9 @@
 | Catálogo de códigos de erro | Os snapshots OpenAPI, como enum na resposta de erro de cada rota (planejado) |
 | Eventos do WebSocket | Tipos TypeScript em `packages/chat-events/` |
 | Schema do Banco do chat | `apps/chat-api/migrations/`, migrações do TypeORM |
-| Schema do Banco dos agentes | `apps/agents/migrations/`, migrações do Alembic (planejado); as tabelas de sessão são do ADK |
+| Schema do Banco dos agentes | `apps/agents/migrations/`, migrações do Alembic; as tabelas de sessão são do ADK |
 | Schema do Banco de negócio | Script de carga em `apps/agents/scripts/` (planejado) |
-| Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, `apps/agents/app/config.py` (planejado) |
+| Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, `apps/agents/app/config.py` (existe) |
 | Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz |
 
 Os snapshots OpenAPI ficam gravados no repositório, e a CI falha quando o código muda o contrato
@@ -43,8 +43,8 @@ apps/
     app/          o Serviço de agentes: o app HTTP (fast_api_app)     existe
       agents/     um agente por pasta (seção "Componentes e           existe
                   dependências")
-      registry/   catálogo e registro de agentes conectados           planejada
-    migrations/   migrações do Banco dos agentes (Alembic)            planejada
+      registry/   catálogo e registro de agentes conectados           existe
+    migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 planejada
 packages/
@@ -98,7 +98,7 @@ dele, como `tools.py`. O nome do `App` é o da pasta, porque o ADK serve o agent
 `/apps/<pasta>`; dentro da pasta, os imports são relativos, porque o ADK carrega a pasta como
 módulo de topo. O app HTTP (`app/fast_api_app.py`) serve todas as pastas de `app/agents/`. Cada
 pasta tem também o `card.py`, com o nome e a descrição da tela, e o módulo compartilhado
-`app/registry/` monta o catálogo e guarda o registro de agentes conectados, `planejados`
+`app/registry/` monta o catálogo e guarda o registro de agentes conectados
 ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes").
 
 ### Integrações externas
@@ -166,7 +166,7 @@ novas tentativas e idempotência").
   existe.
 - **Credencial de serviço:** um segredo único, `AGENTS_SERVICE_TOKEN`, que o BFF envia em
   `Authorization: Bearer` e o Serviço de agentes confere com comparação de tempo constante em toda
-  rota `/v1`, `planejada` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção
+  rota `/v1` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção
   "Rotas e credencial").
 - **Credenciais de bot:** a forma (um segredo por processo ou por agente) está a definir. Toda ação
   de bot leva o identificador de pedido
@@ -332,7 +332,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Pedidos aos agentes e ações de bot | a detalhar |
 | Chat | Perguntas pendentes | a detalhar |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
-| Agentes | Registro de agentes conectados | planejada (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
+| Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
 | Negócio | Dados de vendas | dono: script de carga |
 
@@ -400,9 +400,10 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
-| Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção, `planejado` ("Estrutura do código", "HTTP do Serviço de agentes") |
-| Serviço de agentes: `GET /v1/agents`, `PUT` e `DELETE /v1/agents/:slug/connection` | planejada | Catálogo com o estado de conexão, conectar e desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `GET /health` | planejada | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
+| Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
+| Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `PUT` e `DELETE /v1/agents/:slug/connection` | planejada | Conectar e desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | planejada | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
 | API do chat: `GET /v1/people?admin=true` | planejada (mudança) | O filtro de administradores: spec da F10, seção "Papel de administrador" |
@@ -789,8 +790,8 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
   `chat`. Cada teste cria a própria Pessoa, com e-mail de prefixo `e2e-` no domínio `teste.local`,
   e as Pessoas de teste ficam no banco até serem apagadas pelo prefixo ou por um `down -v`.
 - **Banco dos testes do Serviço de agentes:** `agents_test`, apagado, criado de novo e migrado a
-  cada execução dos testes de integração, pelo mesmo motivo e pelo mesmo caminho do `chat_test`,
-  `planejado` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Decisões de
+  cada execução dos testes de integração, pelo mesmo motivo e pelo mesmo caminho do `chat_test`
+  ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Decisões de
   teste").
 - **Serviço de agentes no e2e:** os testes da web passam a exigir o `agents` de pé, com o Uvicorn
   rodando, além da web e da API do chat (spec da F10, seção "Ambiente de desenvolvimento").
