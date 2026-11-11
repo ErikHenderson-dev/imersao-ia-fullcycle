@@ -1,6 +1,6 @@
 # HLD — Full Cycle Chat
 
-2026-11-10 · Luiz Carlos · Status: rascunho · LLD: A definir
+2026-11-11 · Luiz Carlos · Status: rascunho · LLD: A definir
 
 ## 1. Contexto e objetivos
 
@@ -158,7 +158,7 @@ flowchart LR
   bff -->|"chat, canais, tarefas, perfil · REST"| api
   bff -->|"pedido ao agente, registro de agentes · REST + credencial de serviço"| agentes
   agentes -->|"lê mensagens, grava respostas, cria tarefas · REST + credencial de bot"| api
-  agentes -->|"pedido demorado, contadores de limite e custo · Redis"| redis
+  agentes -->|"pedido demorado, contadores do limite de pedidos · Redis"| redis
   worker -->|"consome pedido demorado · Redis"| redis
   worker -->|"grava o PDF · API S3"| s3
   worker -->|"entrega o resultado · REST + credencial de bot"| api
@@ -181,7 +181,7 @@ negócio são três bancos na mesma instância de Postgres gerenciado.
 | API do chat | Pessoas, sessões, canais, conversas, mensagens, tarefas, notificações e permissões; WebSocket de tempo real; entrega bloqueada de conteúdo de negócio; URL assinada do PDF; identificador de pedido | NestJS |
 | Serviço de agentes | Registro dos agentes conectados; roda os agentes em pedidos comuns; limite de pedidos e teto de custo; monta e confere consultas; põe pedidos demorados na fila | Python + Google ADK |
 | Worker de agentes | Executa pedidos demorados da fila: roda a consulta já conferida, confere o lastro, monta o PDF e o entrega na conversa; não chama o modelo | Python + Google ADK (mesmo projeto do Serviço de agentes, outro processo) |
-| Redis | Fila de pedidos demorados, eventos recentes por pessoa para a reconexão, contadores de limite e custo | Redis gerenciado |
+| Redis | Fila de pedidos demorados, eventos recentes por pessoa para a reconexão, contadores do limite de pedidos | Redis gerenciado |
 | Banco do chat | Dados do chat (seção 7) | Postgres gerenciado |
 | Banco dos agentes | Registro de agentes e sessões do ADK | Postgres gerenciado, mesma instância |
 | Armazenamento de objetos | PDFs gerados | Compatível com S3 |
@@ -275,7 +275,7 @@ chat avisa quem delegou.
 | Banco do chat (Postgres) | Pessoas, com perfil, papel de administrador e permissão de dados; sessões; canais e membros; conversas diretas; mensagens, com autor pessoa ou bot, citação e a marca "dados de negócio"; menções; última leitura por pessoa e conversa (de onde saem as não lidas, as menções por conversa e as notificações); a marca de Atividade lida por pessoa; tarefas; pedidos aos agentes, com o identificador; perguntas pendentes; referência ao PDF de uma mensagem |
 | Banco dos agentes (Postgres, mesma instância) | Registro de agentes conectados; sessões do ADK |
 | Banco de negócio (Postgres, mesma instância) | Dados de vendas (pedidos, clientes, vendedores), carregados por script; o sistema só lê |
-| Redis | Fila de pedidos demorados; eventos recentes por pessoa para a reconexão; contadores de limite de pedidos e de custo |
+| Redis | Fila de pedidos demorados; eventos recentes por pessoa para a reconexão; contadores do limite de pedidos. O teto de custo é por pedido, dentro do Serviço de agentes (LLD, "Valores e configuração") |
 | Armazenamento de objetos | PDFs gerados |
 
 Regras que pesam no desenho:

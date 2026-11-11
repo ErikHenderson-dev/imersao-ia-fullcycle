@@ -65,9 +65,30 @@ _Avoid_: descrição
 Texto que uma Pessoa ou um Agente envia numa Conversa.
 
 **Agente**:
-Participante de IA que atende pedidos feitos por Menção numa Conversa e responde nela. Um
-administrador o conecta ou desconecta do workspace. O MVP tem um, o @assistente.
+Participante de IA que atende Pedidos feitos por Menção numa Conversa, e as respostas às
+Perguntas pendentes dele, e responde nela. Um administrador o conecta ou desconecta do workspace. O
+MVP tem um, o @assistente.
 _Avoid_: bot (é como ele grava na Conversa, não o que ele é), plugin (metáfora do brief)
+
+**Pedido**:
+A Mensagem de uma Pessoa que chama um Agente, por Menção ou como resposta a uma Pergunta pendente,
+e o atendimento dela pelo Agente.
+_Avoid_: comando, prompt, requisição
+
+**Recorte**:
+O subconjunto de Mensagens de uma Conversa que um resumo cobre: por período (hoje, desde ontem, a
+semana, tudo), por Pessoa ou por assunto.
+_Avoid_: filtro, intervalo
+
+**Pergunta pendente**:
+A pergunta de um Agente a quem fez o Pedido, que, enquanto vale, faz a próxima Mensagem dessa
+Pessoa naquela Conversa chegar ao Agente sem Menção.
+_Avoid_: follow-up
+
+**Resposta pronta**:
+O botão de uma Pergunta pendente que, clicado por quem fez o Pedido, vira uma Mensagem dela com o
+texto do botão.
+_Avoid_: quick reply, sugestão
 
 **Menção**:
 O `@usuário` de um Membro escrito numa Mensagem, que chama a atenção dele para ela.

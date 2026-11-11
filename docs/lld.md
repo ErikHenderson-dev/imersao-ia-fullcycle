@@ -75,7 +75,8 @@ docs/             HLD, LLD, ADRs, brief
 | Avaliação dos agentes | `adk eval` do ADK, com um evalset e um `test_config.json` por agente em `tests/eval/<agente>/`, e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
-| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A definir | — |
+| Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini` usa o Gemini nativo do ADK; `openai/…` e `anthropic/…` usam o `LiteLlm` (`litellm>=1.84`), `planejada` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
+| Cliente do Redis no Serviço de agentes | A definir, `planejada` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa |
 | Geração do PDF | A definir | — |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
@@ -128,12 +129,13 @@ Situação: "Eventos por pessoa (Redis)" `existe`; as demais, `planejada`.
 
 Um stream por Pessoa, com a época que denuncia a perda dos dados. O mecanismo e a ordem da conexão estão na [spec da F03](funcionalidades/03-tempo-real/spec.md), seção "Eventos por Pessoa e reconexão".
 
-**Contadores (Redis)** — usados pelo Serviço de agentes (HLD 6.3).
+**Contadores (Redis)** — usados pelo Serviço de agentes (HLD 6.3), para o limite de pedidos. O
+teto de custo é por Pedido, dentro do processo, e não passa pelo Redis ("Valores e configuração",
+"Teto de custo por pedido").
 
 | Operação | Recebe | Devolve | Garante |
 | --- | --- | --- | --- |
-| Conferir e contar pedido | Pessoa | Permitido ou negado | Nega acima do `limite de pedidos por pessoa` |
-| Somar custo | Pedido e custo | Se o teto foi atingido | Compara com o `teto de custo por pedido` |
+| Conferir e contar pedido | Pessoa | Permitido ou negado | Nega acima do `limite de pedidos por pessoa`, numa janela fixa por minuto ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Rota de Pedido") |
 
 Com o Redis fora, as operações de contadores falham e o pedido é recusado (HLD, seção 8, "Erros,
 novas tentativas e idempotência").
@@ -168,9 +170,13 @@ novas tentativas e idempotência").
   `Authorization: Bearer` e o Serviço de agentes confere com comparação de tempo constante em toda
   rota `/v1` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção
   "Rotas e credencial").
-- **Credenciais de bot:** a forma (um segredo por processo ou por agente) está a definir. Toda ação
-  de bot leva o identificador de pedido
-  ([ADR 0011](adr/0011-identificador-de-pedido.md)).
+- **Credencial de bot:** um segredo único, `CHAT_BOT_TOKEN`, que o Serviço de agentes envia em
+  `Authorization: Bearer` e a API do chat confere com comparação de tempo constante em toda rota
+  `/v1/bot`. O alcance de cada ação vem do identificador de pedido
+  ([ADR 0011](adr/0011-identificador-de-pedido.md)): a Conversa e a Pessoa são as do Pedido. Uma
+  credencial por Agente fica para quando houver mais de um processo ou de um Agente. `planejada`
+  ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Rotas do bot e
+  credencial").
 - **Dados de negócio no tempo real:** uma mensagem marcada "dados de negócio" é emitida pelo
   WebSocket pessoa a pessoa. Quem tem permissão de dados recebe o evento com o conteúdo; os outros
   membros recebem o evento com a versão bloqueada. O evento guardado nos eventos de reconexão
@@ -219,9 +225,15 @@ novas tentativas e idempotência").
   chega depois da exclusão. A
   edição, a exclusão e as menções existem (spec da F06, seções "Mensagens", "Tempo
   real" e "Cliente").
-- **Ação de bot:** unicidade em (identificador de pedido, tipo de ação). Tipos: resposta, pergunta
-  ao usuário, aviso de início, entrega do PDF, criação de tarefa. A repetição devolve o que já foi
-  gravado, sem nova mensagem, tarefa ou notificação.
+- **Ação de bot:** unicidade em (identificador de pedido, tipo de ação). Tipos: resposta (`reply`),
+  pergunta ao usuário (`question`), aviso de início, entrega do PDF, criação de tarefa. A repetição
+  devolve o que já foi gravado, sem nova mensagem, tarefa ou notificação. O "digitando" do bot não é
+  ação e não entra na unicidade. `reply` e `question` `planejadas` (spec da F11, seção "Pedido e
+  ações de bot").
+- **Pergunta pendente no envio:** resolvida na mesma transação que grava a Mensagem, com a linha da
+  Pergunta pendente travada, e no máximo uma pergunta aberta por Pessoa e Conversa. Dois envios
+  simultâneos da mesma Pessoa criam um Pedido só, porque o segundo encontra a pergunta encerrada.
+  `planejada` (spec da F11, seção "Envio e Pergunta pendente").
 - **Não lidas e menções:** calculadas a partir da Última leitura, e não gravadas: as Mensagens da
   Conversa posteriores a ela, de outro autor e não apagadas, e as menções à Pessoa entre elas, com
   a contagem parando no "Teto da contagem de não lidas" ("Valores e configuração"). A exclusão e a
@@ -308,7 +320,8 @@ ADK seguem o ADK):
   estratégia de nomes que converte os nomes do código.
 - Id em UUID v7, gerado na aplicação ([ADR 0022](adr/0022-uuid-v7.md)).
 - Datas em `timestamptz`, sempre em UTC, com `created_at` e `updated_at` em toda tabela. A
-  conversão para o fuso de quem pediu acontece só na borda: na tela e no recorte "hoje" do agente.
+  conversão para o fuso de quem pediu acontece só na borda: na tela e no Recorte de tempo do resumo,
+  calculado pelo Serviço de agentes.
 - Exclusão física. A exceção é a mensagem: apagar zera o conteúdo e grava `deleted_at`, e a linha
   fica só para as citações a ela mostrarem "mensagem apagada" (HLD, seção 7); o histórico não a
   traz.
@@ -319,18 +332,18 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
 | Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); o papel de administrador (`is_admin`) ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Papel de administrador"); permissão de dados a detalhar |
-| Chat | Bots, um por Agente, numa tabela própria ([ADR 0028](adr/0028-bots-numa-tabela-propria.md)) | existe (`bots`), com o `@usuário` reservado pelo comando de contas (spec da F10, seção "Bots"); autor de Mensagem a detalhar (F11) |
+| Chat | Bots, um por Agente, numa tabela própria ([ADR 0028](adr/0028-bots-numa-tabela-propria.md)) | existe (`bots`), com o `@usuário` reservado pelo comando de contas (spec da F10, seção "Bots"); autor de Mensagem `planejado` (spec da F11, seção "Autor da Mensagem") |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
 | Chat | Conversas diretas | existe: tipo de Conversa (ADR 0024), com o par de Pessoas único (`conversations`) e a outra Pessoa Membro na primeira Mensagem (ADR 0025) (spec da F05, seção "Conversa direta") |
-| Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: autor pessoa, texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor bot e marca a detalhar |
+| Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: autor pessoa, texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor bot e Respostas prontas `planejados` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Autor da Mensagem"); marca a detalhar |
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
 | Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem") |
 | Chat | Tarefas | a detalhar |
-| Chat | Pedidos aos agentes e ações de bot | a detalhar |
-| Chat | Perguntas pendentes | a detalhar |
+| Chat | Pedidos aos agentes e ações de bot | planejada (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
+| Chat | Perguntas pendentes | planejada (`pending_questions`): spec da F11, seção "Envio e Pergunta pendente" |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
@@ -371,7 +384,10 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/conversations/:id/read` | existe | Avançar a Última leitura ("Concorrência e idempotência"): spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id` | existe | Uma Conversa, pela conferência de participação ("Segurança"): spec da F02, seção "Rotas"; com a Última leitura e os números: spec da F07, seção "Rotas" |
 | API do chat: `GET /v1/conversations/:id/messages` | existe | Página do histórico: spec da F02, seção "Rotas" |
-| API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas" |
+| API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas". Alteração `planejada`: `agent_username` e `agent_request`, com a Pergunta pendente ("Estados e regras", seção "Pedido ao agente e Pergunta pendente"): spec da F11, seção "Envio e Pergunta pendente" |
+| API do chat: `POST /v1/agent-requests/:id/close` | planejada | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
+| API do chat: `GET /v1/bot/requests/:id/messages` e `GET /v1/bot/requests/:id/message-counts` | planejada | Leitura e contagem do Recorte pelo bot, com a credencial de bot ("Segurança"): spec da F11, seção "Rotas do bot e credencial" |
+| API do chat: `POST /v1/bot/requests/:id/typing`, `/reply` e `/question` | planejada | "Digitando", resposta e pergunta do bot, com a credencial de bot: mesma seção |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `POST /v1/conversations` | existe | Criar Canal sem duplicar ("Concorrência e idempotência"): [spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Rotas"; abrir Conversa direta: [spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Rotas" |
@@ -399,11 +415,12 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
-| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
+| Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Alteração `planejada`: orquestra o Pedido (registro, envio, `POST /v1/requests`, encerramento na falha): spec da F11, seção "Disparo pelo BFF" |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `DELETE /v1/agents/:slug/connection` | existe | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `POST /v1/requests` | planejada | Recebe o Pedido, confere conexão e limite de pedidos, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido" |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | existe | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
@@ -510,6 +527,10 @@ Situação: `existe`.
   novo aviso; a queda da própria conexão esvazia a lista.
 - A aba que sai da sala (fecha a Conversa ou abre outra) conta como aviso de que parou: a API o
   repassa aos outros da sala.
+- Alteração `planejada`: o evento traz `author`, Pessoa ou bot, no lugar de `person`. O bot avisa
+  pelo Serviço de agentes a cada `intervalo do aviso de digitando` enquanto o Pedido roda; a
+  gravação da resposta ou da pergunta conta como aviso de que parou, e a `expiração do digitando`
+  tira o bot da lista se o Serviço de agentes cair (spec da F11, seção ""Digitando" do bot").
 
 ### 6.4 Presença
 
@@ -541,14 +562,55 @@ carência, os outros continuam vendo a Presença de "conectada".
   até as abas reconectarem, e só vale com uma instância da API (HLD, seção 11, "Riscos e dívida
   técnica").
 
+### 6.5 Pedido ao agente e Pergunta pendente
+
+Situação: `planejada` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md),
+seções "Pedido e ações de bot" e "Envio e Pergunta pendente").
+
+**Estados do Pedido**
+
+```mermaid
+stateDiagram-v2
+  [*] --> open: envio com Menção a Agente conectado ou com Pergunta pendente aberta
+  open --> failed: BFF encerra (Serviço de agentes fora, tempo esgotado ou limite)
+  open --> cancelled: BFF encerra (Agente desconectado)
+  open --> [*]: validade do identificador de pedido vencida
+  failed --> [*]: fim
+  cancelled --> [*]: fim
+```
+
+O Pedido nasce `open` e só o BFF o encerra. Vencida a `validade do identificador de pedido`, ele
+continua `open` no banco, mas recusa as ações do bot.
+
+- Um Pedido é `new` quando a Mensagem menciona um Agente conectado, e `continuation` quando não
+  menciona e há Pergunta pendente aberta e não vencida de quem enviou naquela Conversa; a
+  continuação aponta para o Pedido que perguntou, e o Serviço de agentes retoma a sessão do ADK
+  dele.
+- Uma ação de bot só é aceita com o Pedido `open`, não vencido e na Conversa dele:
+  `request_expired` depois da validade, `request_closed` depois de `failed` ou `cancelled`.
+- Encerrar um Pedido já encerrado não muda nada. Só quem pediu o encerra.
+- Editar ou apagar a Mensagem do Pedido não muda o Pedido (PRD da F11).
+
+**Pergunta pendente**
+
+- Abre quando o bot grava uma pergunta e dura a `validade da Pergunta pendente`. Uma pergunta nova
+  do bot para a mesma Pessoa e Conversa encerra a anterior.
+- Encerra na primeira Mensagem de quem pediu naquela Conversa, seja qual for, e numa Mensagem dela
+  que menciona um Agente, que vira Pedido `new`. Mensagens de outros Membros não a encerram.
+- Vencida, é reconhecida pelo `expires_at` na leitura, sem rotina. Ao encerrar, a Mensagem da
+  pergunta sai em `message.updated` com as Respostas prontas fechadas; ao vencer, o cliente as
+  desativa pelo `expires_at`.
+- Um Pedido que falha não reabre a pergunta que encerrou.
+
 ## 7. Processos de segundo plano
 
 | Job | Disparo | O que faz | Na falha | Situação |
 | --- | --- | --- | --- | --- |
 | Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | HLD 6.5 | Nova tentativa até `tentativas do Worker`; esgotadas, grava "não consegui" (HLD 6.5) | a detalhar |
 
-A idempotência do job (chave no S3 e entrega única) e outras rotinas (retenção dos PDFs,
-perguntas pendentes vencidas) estão a definir. Sessões vencidas não têm rotina: são apagadas
+A idempotência do job (chave no S3 e entrega única) e a retenção dos PDFs estão a definir.
+Perguntas pendentes vencidas não têm rotina: o `expires_at` é conferido na leitura ("Estados e
+regras", seção "Pedido ao agente e Pergunta pendente"). Sessões vencidas não têm rotina: são apagadas
 quando apresentadas ("Estados e regras", seção "Sessão e login") e pela operação
 `purge-expired-sessions` do comando de contas.
 
@@ -560,7 +622,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | --- | --- | --- | --- | --- |
 | `/entrar` | Público | Sessão, quando há cookie | Entrar com e-mail e senha | existe |
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
-| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); o resto a detalhar |
+| `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); a Mensagem do Agente, o AgentText a partir do subconjunto de Markdown, as Respostas prontas, o "digitando" do Agente e o erro do Agente `planejados` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Cliente"); o resto a detalhar |
 | Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta (spec da F08, seção "Cliente") |
 | `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
@@ -649,8 +711,9 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 
 | Nome | Valor | Onde vale | Constante ou variável |
 | --- | --- | --- | --- |
-| Limite de pedidos por pessoa | 10 por minuto (brief, RNF "Custo") | Serviço de agentes | A definir |
-| Teto de custo por pedido | A definir | Serviço de agentes | A definir |
+| Limite de pedidos por pessoa | 10 por minuto, em janela fixa, somando todas as Conversas (brief, RNF "Custo") | Serviço de agentes | Variável `AGENT_REQUESTS_PER_MINUTE`, padrão 10 |
+| Teto de custo por pedido | 4 chamadas ao modelo e 1024 tokens de saída por Pedido, mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
+| Teto de Mensagens do resumo | 500: as mais recentes do Recorte (PRD da F11) | API do chat (rotas do bot) | Constante |
 | Tentativas do Worker | A definir | Worker | A definir |
 | Validade da URL do PDF | A definir | API do chat | A definir |
 | Duração da Sessão | 30 dias sem uso (PRD da F01, história 3) | API do chat | Variável `SESSION_TTL_DAYS`, padrão 30 |
@@ -659,7 +722,8 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Tentativas de login | 5 (PRD da F01, história 2) | API do chat | Constante |
 | Janela de tentativas de login | 15 min (PRD da F01, história 2) | API do chat | Constante |
 | Bloqueio do login | 15 min (PRD da F01, história 2) | API do chat | Constante |
-| Validade do identificador de pedido | A definir | API do chat | A definir |
+| Validade do identificador de pedido | 2 min no Pedido comum (spec da F11); a do Pedido demorado, a definir na F14 | API do chat | Constante |
+| Validade da Pergunta pendente | 1 h (PRD da F11) | API do chat e web | Constante |
 | Retenção dos eventos de reconexão | 5 min (PRD da F03, história 5) | API do chat (Redis) | Constante |
 | Intervalo de reconferência da Sessão no WebSocket | 60 s (spec da F03) | API do chat | Constante |
 | Ping do WebSocket | Intervalo de 10 s e espera de 5 s | API do chat | Constante |
@@ -715,6 +779,13 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Serviço de agentes | `GEMINI_API_KEY` | Chave do Gemini pelo Google AI Studio; segredo, no `apps/agents/.env` |
 | Serviço de agentes | `GOOGLE_GENAI_USE_ENTERPRISE` | `false`: o SDK do Gemini usa o AI Studio, e não o Vertex AI |
 | Serviço de agentes | `AGENTS_CLI_TELEMETRY` | `0`: desliga a telemetria do `agents-cli` |
+| API do chat | `CHAT_BOT_TOKEN` | Credencial de bot que as rotas `/v1/bot` conferem ("Segurança"); segredo, o mesmo valor do Serviço de agentes; `planejada` |
+| Serviço de agentes | `CHAT_BOT_TOKEN` | Credencial de bot ("Segurança"); `planejada` |
+| Serviço de agentes | `CHAT_API_URL` | Endereço interno da API do chat, para as rotas `/v1/bot`; `planejada` |
+| Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa`; `planejada` |
+| Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); `planejada` |
+| Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa`; `planejada` |
+| Serviço de agentes | `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` | Chave do provedor, obrigatória só quando o `AGENT_MODEL` o escolhe; segredo; `planejada` |
 
 As demais variáveis estão a definir.
 
@@ -825,8 +896,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 **Estrutura e bibliotecas**
 
 - [ ] Biblioteca da fila no Redis (arq, Celery ou RQ).
-- [ ] Acesso ao modelo: `LiteLlm` do ADK para os três provedores, ou Gemini nativo e `LiteLlm`
-      para OpenAI e Anthropic.
+- [x] Acesso ao modelo: Gemini nativo e `LiteLlm` para OpenAI e Anthropic (spec da F11).
 - [ ] Biblioteca do PDF (WeasyPrint, ReportLab ou fpdf2).
 - [x] Acesso ao Banco dos agentes e migrações: SQLAlchemy assíncrono com Alembic, dono do schema
       desse banco (spec da F10).
@@ -851,8 +921,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 - [x] `SameSite` do cookie e defesa contra CSRF.
 - [x] Formato do identificador de sessão e forma de guardá-lo.
-- [ ] Credenciais de bot (por processo ou por agente). A credencial de serviço está decidida
-      ("Segurança").
+- [x] Credenciais de bot: um segredo único, com o alcance pelo Pedido (spec da F11).
 - [x] Chave do limite de tentativas de login: só o e-mail (ADR 0023).
 - [x] Origem do IP atrás do proxy: deixou de ser necessária, porque o limite não usa o IP.
 - [x] Lugar da conferência de participação: no service de Conversas.
@@ -878,16 +947,16 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 **Estados, regras e processos**
 
-- [ ] Subseções de "Estados e regras": pedido ao agente (estados; resposta a uma pergunta como
-      pedido novo ou continuação), pergunta pendente (quando termina), consulta
-      a dados de negócio (comparação do lastro), limite de pedidos e teto de custo.
+- [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
+      custo em "Valores e configuração" (spec da F11).
+- [ ] Subseção de "Estados e regras": consulta a dados de negócio (comparação do lastro).
 - [ ] Tarefa: concluir uma já concluída, ou reabrir uma aberta.
-- [ ] Idempotência do job do PDF (chave no S3, entrega única) e outras rotinas (retenção dos
-      PDFs, perguntas pendentes vencidas).
+- [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
+      pendentes vencidas não têm rotina (spec da F11).
 
 **Valores, configuração e ambiente**
 
-- [ ] Valores de regra marcados "A definir" em "Valores e configuração", e se o limite de pedidos
-      é constante ou variável.
+- [ ] Valores de regra marcados "A definir" em "Valores e configuração". O limite de pedidos é
+      variável (spec da F11).
 - [ ] Nomes, projetos e origem das demais variáveis de ambiente (as da sessão estão decididas).
 - [x] Diferenças do ambiente local que mudam o código ou os testes (seção 10).
