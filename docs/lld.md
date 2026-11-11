@@ -266,8 +266,10 @@ API do chat roda com uma instância só (HLD 6.2).
   O `detail` é para pessoas e não traz detalhes internos.
 - O catálogo de códigos fica nos snapshots OpenAPI, como enum na resposta de erro de cada rota.
 - Na API do chat, o service e o guard lançam erro de domínio, e só o filter global o traduz em
-  resposta HTTP: `.claude/rules/nest-api-errors.md`. No BFF e no Serviço de agentes, quem traduz
-  está a definir.
+  resposta HTTP: `.claude/rules/nest-api-errors.md`. No Serviço de agentes, as rotas e as
+  dependências lançam `ProblemError` (`app/problems.py`), e um handler do FastAPI o traduz
+  ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial"). No
+  BFF, quem traduz está a definir.
 - **Mensagem gravada, mas o Serviço de agentes não recebeu o pedido** (HLD 6.3): o BFF responde
   sucesso, com a mensagem gravada e um campo que diz que o agente não recebeu o pedido. A tela
   mostra a mensagem enviada e um aviso de erro do agente ao lado.

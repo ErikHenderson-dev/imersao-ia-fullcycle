@@ -1,6 +1,6 @@
 # 04: Catálogo do Serviço de agentes com credencial
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o Serviço de agentes passa a responder, com a credencial de serviço, quais
 Agentes a instalação traz e quais estão conectados, e deixa de expor as rotas genéricas do ADK
