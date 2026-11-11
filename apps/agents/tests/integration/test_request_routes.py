@@ -11,9 +11,9 @@ import uuid
 import httpx
 import pytest
 
-from tests.integration.conftest import BOT_TOKEN, FakeChatApi
+from tests.integration.conftest import BOT_TOKEN, SERVICE_TOKEN, FakeChatApi
 
-AUTH = {"Authorization": "Bearer segredo-dos-testes"}
+AUTH = {"Authorization": f"Bearer {SERVICE_TOKEN}"}
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 

@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.agent_requests.execution import ExecutionDeps
 from app.agent_requests.routes import build_router as build_requests_router
 from app.app_utils import services
 from app.chat_api import ChatApiClient
@@ -74,15 +75,17 @@ def create_app(settings: Settings) -> FastAPI:
     app.description = "API do Serviço de agentes"
     app.state.engine = engine
     app.state.service_token = settings.agents_service_token
-    app.state.chat_api = chat_api
-    # As sessões dos Pedidos, no Banco dos agentes com SESSION_SERVICE_URI.
-    app.state.session_service = services.build_session_service(
-        settings.session_service_uri
-    )
-    app.state.request_tasks = set()
+    # As sessões dos Pedidos, no Banco dos agentes com SESSION_SERVICE_URI; a mesma instância das
+    # rotas genéricas do ADK.
+    session_service = services.build_session_service(settings.session_service_uri)
+    app.state.session_service = session_service
     install_problem_handler(app)
     app.include_router(build_router(catalog))
-    app.include_router(build_requests_router(catalog))
+    app.include_router(
+        build_requests_router(
+            catalog, ExecutionDeps(session_service=session_service, chat_api=chat_api)
+        )
+    )
     return app
 
 

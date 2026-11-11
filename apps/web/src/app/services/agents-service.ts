@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
+import type { AgentRequest } from "@/app/services/chat-api";
 
 // Service HTTP do Serviço de agentes, usado só no servidor (spec da F10, "BFF"): o BFF é o único
 // que o chama, com a credencial de serviço. Devolve uniões de resultado em vez de lançar.
@@ -70,7 +71,7 @@ export async function setConnection(
 // O Pedido entregue ao Serviço de agentes (spec da F11, "Rota de Pedido").
 export type AgentRequestPayload = {
   requestId: string;
-  kind: "new" | "continuation";
+  kind: AgentRequest["kind"];
   parentRequestId: string | null;
   agent: string;
   conversationId: string;

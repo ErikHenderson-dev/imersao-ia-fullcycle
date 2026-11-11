@@ -270,7 +270,7 @@ export type CreateChannelResult =
 
 type ApiAgentRequest = {
   id: string;
-  kind: "new" | "continuation";
+  kind: AgentRequest["kind"];
   bot_username: string;
   parent_request_id: string | null;
 };

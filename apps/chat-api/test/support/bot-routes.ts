@@ -1,11 +1,11 @@
 import { INestApplication } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
+import { conversationRoutes } from './conversation-routes';
 
 // A credencial de bot dos testes, fixada em test/support/test-env.ts.
-export const TEST_BOT_TOKEN = 'credencial-de-bot-dos-testes';
+export const TEST_BOT_TOKEN = process.env.CHAT_BOT_TOKEN!;
 
 export interface AgentRequestRow {
   id: string;
@@ -30,14 +30,11 @@ export const botRoutes = {
     agentUsername: string,
     options: { clientId?: string; body?: string } = {},
   ): request.Test {
-    return request(app.getHttpServer() as App)
-      .post(`/v1/conversations/${conversationId}/messages`)
-      .set('Cookie', cookie)
-      .send({
-        client_id: options.clientId ?? randomUUID(),
-        body: options.body ?? `@${agentUsername} resume hoje`,
-        agent_username: agentUsername,
-      });
+    return conversationRoutes.sendMessage(app, cookie, conversationId, {
+      clientId: options.clientId,
+      body: options.body ?? `@${agentUsername} resume hoje`,
+      agentUsername,
+    });
   },
 
   // Envia a Menção e devolve o id do Pedido que ela criou.

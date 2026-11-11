@@ -23,17 +23,17 @@ Mensagem do Agente nas formas completa e compacta, nos dois temas, sem violaçõ
 
 ## F11-T03 · Mencionar o Agente e receber a resposta (`agentes/resposta-do-agente.spec.ts`)
 
-O teste segura o `agentsLock`, cria o bot `assistente` se ele não existe (`ensureAssistantBot`),
+O teste segura o `agentsLock`, cria o bot `assistente` se ele não existe (`insertBot` com o `@usuário` fixo),
 conecta o `assistente` e, no fim, devolve o estado que achou. É o único teste da F11 com o modelo
 real, com tempo limite próprio.
 
 1. **A resposta do @assistente chega às duas Pessoas sem recarregar:** com a Ana e o Bruno no
    Canal, a Ana envia "@assistente responda só com a palavra olá"; a Mensagem do Agente, com o nome
    e o AgentTag, aparece nas duas abas. Depois, o apoio de bot lê o Pedido que o envio criou
-   (`agentRequestOf`, `new` e `open`) e chama a `reply` de novo com outro texto (`botReply`): recebe
+   (`latestAgentRequestOf`, `new` e `open`) e chama a `reply` de novo com outro texto (`botReply`): recebe
    a Mensagem já gravada, e a tela não ganha outra.
 
-**Apoio para agir como bot** (`support/bot.ts`), para as próximas tarefas: `agentRequestOf` lê o
-Pedido que o envio criou, e `botReply` age pelas rotas `/v1/bot` em `localhost:3001`, com o
+**Apoio para agir como bot**, para as próximas tarefas: `latestAgentRequestOf` (`support/database.ts`) lê o
+Pedido que o envio criou, e `botReply` (`support/bot.ts`) age pelas rotas `/v1/bot` em `localhost:3001`, com o
 `CHAT_BOT_TOKEN` do serviço `e2e`. Num teste sem o modelo, o bot do teste age antes do Serviço de
 agentes, e a ação dele depois é a repetição, sem nova Mensagem.

@@ -137,11 +137,27 @@ export type TestBot = { id: string; name: string; username: string };
 
 // O bot de um Agente direto no banco, com @usuário aleatório: o teste não depende do bot `assistente`
 // nem do estado de conexão dos Agentes (spec da F11, "Autor da Mensagem").
-export async function insertBot(name = "Assistente"): Promise<TestBot> {
-  const id = randomUUIDv7();
-  const username = `e2e-bot-${randomUUID().replaceAll("-", "").slice(0, 20)}`;
-  await pool.query("INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)", [id, username, name]);
-  return { id, name, username };
+// Com `username`, o bot fixo de um Agente do catálogo, como o comando de contas o cria (o `assistente`
+// do AGENTS.md da raiz), mantido se já existe.
+export async function insertBot(name = "Assistente", username?: string): Promise<TestBot> {
+  const handle = username ?? `e2e-bot-${randomUUID().replaceAll("-", "").slice(0, 20)}`;
+  const result = await pool.query<{ id: string }>(
+    `INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)
+     ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username RETURNING id`,
+    [randomUUIDv7(), handle, name],
+  );
+  return { id: result.rows[0].id, name, username: handle };
+}
+
+export type TestAgentRequest = { id: string; kind: string; status: string };
+
+// O Pedido mais recente da Conversa, que o envio com a Menção criou, ou null (F11).
+export async function latestAgentRequestOf(channel: TestChannel): Promise<TestAgentRequest | null> {
+  const result = await pool.query<TestAgentRequest>(
+    "SELECT id, kind, status FROM agent_requests WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 1",
+    [channel.id],
+  );
+  return result.rows[0] ?? null;
 }
 
 export async function countMessagesWithBody(channel: TestChannel, body: string): Promise<number> {

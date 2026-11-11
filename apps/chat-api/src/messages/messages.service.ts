@@ -15,6 +15,7 @@ import {
   toAgentRequestView,
 } from '../agent-requests/agent-requests.service';
 import { BotNotFoundError } from '../bots/bot-not-found.error';
+import type { Bot } from '../bots/bot.entity';
 import { BotsService } from '../bots/bots.service';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -87,7 +88,6 @@ export interface SendResult {
 }
 
 export interface SentMessage extends SendResult {
-  message: MessageView;
   // Falso quando o client_id já tinha sido gravado: o reenvio não gera evento.
   created: boolean;
   // A Pessoa que virou Membro da Conversa direta com esta Mensagem (a primeira), ou null.
@@ -187,7 +187,9 @@ export class MessagesService {
         quotedMessageId: null,
       }),
     );
-    return this.viewById(message.id);
+    const [bot] = await this.bots.findByIds([botId]);
+    // Montada sem reler a linha: a Mensagem de bot não tem Menção nem Citação.
+    return toView(message, toAuthor('bot', bot), [], null);
   }
 
   // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos
@@ -200,11 +202,7 @@ export class MessagesService {
       this.toMembers(
         conversationId,
         async (memberIds) => {
-          await this.publisher.messageCreated(
-            memberIds,
-            toMessageResponse(message),
-          );
-          void this.unreadPublisher.publish(conversationId, memberIds);
+          await this.announceCreated(message, memberIds);
         },
         'Falha ao publicar a Mensagem do bot',
       ),
@@ -256,13 +254,7 @@ export class MessagesService {
               ),
             );
         }
-        await this.publisher.messageCreated(
-          memberIds,
-          toMessageResponse(message),
-        );
-        // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
-        // própria, por Conversa: a fila da Mensagem não espera por eles.
-        const unread = this.unreadPublisher.publish(conversationId, memberIds);
+        const { unread } = await this.announceCreated(message, memberIds);
         // Os números de Atividade (spec da F08, "Tempo real"): numa Conversa direta, as duas
         // Pessoas; num Canal, o autor, que leu até aqui, e as Pessoas mencionadas.
         this.activityPublisher.publish(
@@ -281,6 +273,19 @@ export class MessagesService {
     // real", "Ordem"): a fila dela nasce aqui, antes de o envio responder.
     this.queueForMessage(message.id, () => publication);
     return { message, agentRequest };
+  }
+
+  // O message.created aos Membros e, depois dele, os números de Não lidas deles (spec da F07,
+  // "Tempo real"), no envio e na Mensagem de bot. Os números têm fila própria, por Conversa: a fila
+  // da Mensagem não espera por eles, e quem chama recebe a publicação deles.
+  private async announceCreated(
+    message: MessageView,
+    memberIds: string[],
+  ): Promise<{ unread: Promise<void> }> {
+    await this.publisher.messageCreated(memberIds, toMessageResponse(message));
+    return {
+      unread: this.unreadPublisher.publish(message.conversationId, memberIds),
+    };
   }
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
@@ -586,10 +591,11 @@ export class MessagesService {
       conversationId,
     );
     // O bot do Agente mencionado, antes de gravar: sem ele, nada é gravado.
-    const bot = agentUsername
-      ? await this.bots.findByUsername(agentUsername)
-      : null;
-    if (agentUsername !== undefined && !bot) throw new BotNotFoundError();
+    let bot: Bot | null = null;
+    if (agentUsername !== undefined) {
+      bot = await this.bots.findByUsername(agentUsername);
+      if (!bot) throw new BotNotFoundError();
+    }
     // O reenvio do mesmo client_id devolve a Mensagem já gravada, sem olhar a Citação nova (spec da
     // F06, "Enviar com Citação"); só o envio novo confere a Citação.
     if (
@@ -651,6 +657,11 @@ export class MessagesService {
     const mentions = row
       ? await this.saveMentions(message, body, false)
       : await this.mentionsOf(message.id);
+    // A Mensagem nova com a Menção vira Pedido; o reenvio devolve o que ela já criou.
+    let agentRequest: AgentRequestView | null = null;
+    if (!row) agentRequest = await this.requestOf(message.id);
+    else if (bot)
+      agentRequest = await this.openRequest(message, author.id, bot);
     return {
       message: toView(
         message,
@@ -658,9 +669,7 @@ export class MessagesService {
         mentions,
         await this.quoteOf(message),
       ),
-      agentRequest: row
-        ? bot && (await this.openRequest(message, author.id, bot))
-        : await this.requestOf(message.id),
+      agentRequest,
       created: Boolean(row),
       joinedId,
     };
@@ -671,7 +680,7 @@ export class MessagesService {
   private async openRequest(
     message: Message,
     requesterId: string,
-    bot: { id: string; username: string },
+    bot: Bot,
   ): Promise<AgentRequestView> {
     const request = await this.agentRequests.openNew({
       conversationId: message.conversationId,

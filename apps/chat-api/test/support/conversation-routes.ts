@@ -117,7 +117,7 @@ export const conversationRoutes = {
     app: INestApplication,
     cookie: string,
     conversationId: string,
-    options: { clientId?: string; body?: string } = {},
+    options: { clientId?: string; body?: string; agentUsername?: string } = {},
   ): request.Test {
     return request(app.getHttpServer() as App)
       .post(`/v1/conversations/${conversationId}/messages`)
@@ -125,6 +125,8 @@ export const conversationRoutes = {
       .send({
         client_id: options.clientId ?? randomUUID(),
         body: options.body ?? 'Chegou na hora',
+        // O Agente mencionado, como o BFF o manda (spec da F11).
+        agent_username: options.agentUsername,
       });
   },
 

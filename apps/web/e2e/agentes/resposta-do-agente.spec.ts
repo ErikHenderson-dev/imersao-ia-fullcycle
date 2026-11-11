@@ -2,8 +2,9 @@
 // seed: e2e/seed.spec.ts
 import { expect, logIn, test } from "../fixtures";
 import { isConnected, setConnected } from "../support/agents";
-import { agentRequestOf, botReply, ensureAssistantBot } from "../support/bot";
-import { composer, messageList } from "../support/conversation-page";
+import { botReply } from "../support/bot";
+import { composer, messageItem, messageList } from "../support/conversation-page";
+import { insertBot, latestAgentRequestOf } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 
 // O modelo real responde em alguns segundos; a folga cobre a latência e as novas tentativas dele.
@@ -21,7 +22,7 @@ test.describe("Resposta do Agente", () => {
     test.setTimeout(120_000);
     // 1. O assistente conectado, com o bot criado; as duas Pessoas no Canal
     const wasConnected = await isConnected("assistente");
-    await ensureAssistantBot();
+    await insertBot("Assistente", "assistente");
     await setConnected("assistente", true);
     try {
       await logIn(page, person);
@@ -43,8 +44,8 @@ test.describe("Resposta do Agente", () => {
       }
 
       // 4. O bot do teste responde de novo ao mesmo Pedido: a mesma Mensagem, sem duplicar
-      const request = await agentRequestOf(sharedChannel);
-      expect(request).toMatchObject({ kind: "new", status: "open" });
+      await expect.poll(() => latestAgentRequestOf(sharedChannel)).toMatchObject({ kind: "new", status: "open" });
+      const request = (await latestAgentRequestOf(sharedChannel))!;
       const shown = await messageList(otherPage, sharedChannel.name)
         .getByRole("listitem")
         .filter({ has: otherPage.getByRole("button", { name: "Assistente", exact: true }) })
@@ -52,9 +53,7 @@ test.describe("Resposta do Agente", () => {
       const repeated = await botReply(request.id, "Outro texto");
       expect(repeated.body).not.toBe("Outro texto");
       expect(shown).toContain(repeated.body.slice(0, 20));
-      await expect(
-        messageList(page, sharedChannel.name).getByRole("listitem").filter({ hasText: "Outro texto" }),
-      ).toHaveCount(0);
+      await expect(messageItem(page, sharedChannel.name, "Outro texto")).toHaveCount(0);
     } finally {
       await setConnected("assistente", wasConnected);
     }

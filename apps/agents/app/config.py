@@ -6,9 +6,9 @@ faz a subida falhar com o nome dela.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import ValidationError
+from pydantic import StringConstraints, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Provider = Literal["gemini", "openai", "anthropic"]
@@ -19,6 +19,10 @@ PROVIDER_KEYS: dict[Provider, str] = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
 }
+
+
+# Um segredo ou endereço obrigatório: só espaços conta como ausente.
+Required = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class ConfigError(Exception):
@@ -71,11 +75,11 @@ class Settings(ModelSettings):
     # Conexão do registro e do Alembic com o Banco dos agentes (postgresql+asyncpg://).
     database_url: str
     # Credencial de serviço que as rotas /v1 conferem.
-    agents_service_token: str
+    agents_service_token: Required
     # A API do chat pela rede interna e a credencial de bot das rotas /v1/bot (spec da F11,
     # "Execução do Pedido").
-    chat_api_url: str
-    chat_bot_token: str
+    chat_api_url: Required
+    chat_bot_token: Required
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False
     # Lidas também pelo código gerado (app_utils/services.py e fast_api_app.py).
@@ -111,8 +115,4 @@ def load_model_settings() -> ModelSettings:
 
 def load_settings() -> Settings:
     """A configuração inteira, conferida na subida do app HTTP."""
-    settings = _read(Settings)
-    for name in ("agents_service_token", "chat_api_url", "chat_bot_token"):
-        if not getattr(settings, name).strip():
-            raise _missing(name.upper())
-    return settings
+    return _read(Settings)
