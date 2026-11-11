@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useState } from "react";
 import { DialogBody, DialogContent, Dialog, DialogTrigger } from "@/app/components/ui/dialog";
 import { EmptyState } from "@/app/components/ui/empty-state";
@@ -8,6 +8,7 @@ import { Spinner } from "@/app/components/ui/spinner";
 import { PeoplePicker } from "@/app/components/user/people-picker";
 import { usePeopleSearch } from "@/app/hooks/use-people-search";
 import { useOpenDirectConversation } from "@/app/hooks/use-open-direct-conversation";
+import { SidebarAction } from "./sidebar-action";
 
 // SidebarAction "Nova conversa", no fim de "Mensagens diretas" (spec da F05, "Busca de Pessoas"):
 // abre o diálogo, com a busca de todas as Pessoas, inclusive a própria. Escolher uma abre a Conversa
@@ -18,15 +19,7 @@ export function NewConversationAction({ personId }: { personId: string }) {
     <li>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <button
-            type="button"
-            className="flex h-11 w-full items-center gap-2 rounded-item px-2 text-body text-sidebar-fg hover:bg-sidebar-hover md:h-7"
-          >
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-control bg-sidebar-field">
-              <Plus size={12} aria-hidden />
-            </span>
-            Nova conversa
-          </button>
+          <SidebarAction variant="new_dm" />
         </DialogTrigger>
         {isOpen && <NewConversationDialog personId={personId} onOpened={() => setIsOpen(false)} />}
       </Dialog>
