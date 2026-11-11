@@ -27,6 +27,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.config import Settings
+from app.registry.store import connect, disconnect
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 SERVICE_TOKEN = "segredo-dos-testes"
@@ -234,18 +235,11 @@ async def set_assistant_connected(client: httpx.AsyncClient, connected: bool) ->
     confere a conexão)."""
     transport = client._transport
     assert isinstance(transport, httpx.ASGITransport)
-    async with transport.app.state.engine.begin() as connection:
-        await connection.execute(
-            text("DELETE FROM connected_agents WHERE slug = 'assistente'")
-        )
-        if connected:
-            await connection.execute(
-                text(
-                    "INSERT INTO connected_agents (slug, connected_by)"
-                    " VALUES ('assistente', :person)"
-                ),
-                {"person": uuid.uuid4()},
-            )
+    engine = transport.app.state.engine
+    if connected:
+        await connect(engine, "assistente", uuid.uuid4())
+    else:
+        await disconnect(engine, "assistente")
 
 
 @pytest_asyncio.fixture

@@ -18,7 +18,7 @@ import {
   unreadFromPayload,
   type UnreadPayload,
 } from "@/app/utils/conversation-event";
-import type { AgentErrorReason } from "@/app/utils/agent-request-failure";
+import type { AgentErrorReason, AgentRequestFailure } from "@/app/utils/agent-request-failure";
 import { initials } from "@/app/utils/initials";
 import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -440,7 +440,7 @@ export async function sendMessage(
 export async function closeAgentRequest(
   token: string,
   requestId: string,
-  status: "failed" | "cancelled",
+  status: AgentRequestFailure["close"],
 ): Promise<void> {
   const response = await request(`/v1/agent-requests/${encodeURIComponent(requestId)}/close`, {
     method: "POST",

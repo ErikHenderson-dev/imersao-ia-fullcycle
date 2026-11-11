@@ -25,17 +25,17 @@ function limitKeys(personId: string): string[] {
   return [minute, minute + 1].map((window) => `agent_requests:${personId}:${window}`);
 }
 
+function setLimit(personId: string, value: string): Promise<void> {
+  return withRedis((client) => Promise.all(limitKeys(personId).map((key) => client.set(key, value, { EX: 120 }))));
+}
+
 // A Pessoa já fez os 10 Pedidos do minuto: o próximo recebe 429.
-export async function fillAgentRequestLimit(personId: string, count = 10): Promise<void> {
-  await withRedis((client) =>
-    Promise.all(limitKeys(personId).map((key) => client.set(key, String(count), { EX: 120 }))),
-  );
+export function fillAgentRequestLimit(personId: string, count = 10): Promise<void> {
+  return setLimit(personId, String(count));
 }
 
 // Um valor que o INCR recusa: o Serviço de agentes de pé não consegue contar o Pedido e o recusa com
 // 503, como faz com o Redis fora, e o BFF trata como o Serviço de agentes fora.
-export async function breakAgentRequestLimit(personId: string): Promise<void> {
-  await withRedis((client) =>
-    Promise.all(limitKeys(personId).map((key) => client.set(key, "fora", { EX: 120 }))),
-  );
+export function breakAgentRequestLimit(personId: string): Promise<void> {
+  return setLimit(personId, "fora");
 }

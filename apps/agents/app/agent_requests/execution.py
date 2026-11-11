@@ -125,22 +125,18 @@ async def run_request(request: AgentRequestBody, deps: ExecutionDeps) -> None:
     request_id = str(request.request_id)
     outcome = await execute(request, deps, usage)
     tempo_ms = round((time.monotonic() - started) * 1000)
-    # Um registro por Pedido, sem texto de Mensagem (LLD, "Logs").
+    # Um registro por Pedido, sem texto de Mensagem (LLD, "Logs"): os campos no texto e em `extra`.
+    fields = {
+        "request_id": request_id,
+        "desfecho": outcome,
+        "tempo_ms": tempo_ms,
+        "tokens_entrada": usage.input_tokens,
+        "tokens_saida": usage.output_tokens,
+    }
     logger.info(
-        "pedido_concluido request_id=%s desfecho=%s tempo_ms=%d tokens_entrada=%d"
-        " tokens_saida=%d",
-        request_id,
-        outcome,
-        tempo_ms,
-        usage.input_tokens,
-        usage.output_tokens,
-        extra={
-            "request_id": request_id,
-            "desfecho": outcome,
-            "tempo_ms": tempo_ms,
-            "tokens_entrada": usage.input_tokens,
-            "tokens_saida": usage.output_tokens,
-        },
+        "pedido_concluido %s",
+        " ".join(f"{key}={value}" for key, value in fields.items()),
+        extra=fields,
     )
 
 
@@ -173,14 +169,19 @@ async def execute(
         logger.error(
             "Falha no Pedido %s: %s", request_id, type(error).__name__, extra=log
         )
+    # O texto do modelo recusado por outro motivo que não o Pedido vira o "não consegui".
     if text:
         written = await write_reply(deps.chat_api, request_id, text)
-        if written != "refused":
-            return "reply" if written == "ok" else "discarded"
+        if written == "ok":
+            return "reply"
+        if written == "gone":
+            return "discarded"
     written = await write_reply(deps.chat_api, request_id, NAO_CONSEGUI)
+    if written == "ok":
+        return "failed"
     if written == "refused":
         logger.error("Pedido %s terminou sem nada na Conversa", request_id, extra=log)
-    return "failed" if written == "ok" else "discarded"
+    return "discarded"
 
 
 async def write_reply(

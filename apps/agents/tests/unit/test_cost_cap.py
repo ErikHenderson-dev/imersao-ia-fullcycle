@@ -10,12 +10,13 @@ from app.chat_api import ChatApiClient
 
 @pytest.mark.asyncio
 async def test_o_pedido_roda_com_no_maximo_4_chamadas_ao_modelo() -> None:
-    chat_api = ChatApiClient("http://127.0.0.1:9", "credencial")
-
-    deps = ExecutionDeps(session_service=InMemorySessionService(), chat_api=chat_api)
+    deps = ExecutionDeps(
+        session_service=InMemorySessionService(),
+        chat_api=ChatApiClient("http://127.0.0.1:9", "credencial"),
+    )
 
     assert deps.run_config.max_llm_calls == 4
-    await chat_api.close()
+    await deps.chat_api.close()
 
 
 def test_o_assistente_escreve_no_maximo_1024_tokens_por_chamada() -> None:

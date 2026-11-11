@@ -15,7 +15,7 @@ from app.agent_requests.typing_notice import while_typing
 from app.problems import ProblemError
 from app.registry.auth import require_service_token
 from app.registry.catalog import AgentCard
-from app.registry.store import connected_slugs
+from app.registry.store import is_connected
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def build_router(
         # Nesta ordem: o Pedido a um Agente desconectado não gasta o limite da Pessoa.
         if body.agent not in slugs:
             raise ProblemError(404, "agent_not_found", "Agente não encontrado.")
-        if body.agent not in await connected_slugs(request.app.state.engine):
+        if not await is_connected(request.app.state.engine, body.agent):
             raise ProblemError(
                 409, "agent_not_connected", "O agente não está conectado."
             )
