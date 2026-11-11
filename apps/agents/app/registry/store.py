@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import Column, DateTime, MetaData, Table, Text, func, select
+from sqlalchemy import Column, DateTime, MetaData, Table, Text, delete, func, select
 from sqlalchemy.dialects.postgresql import UUID, insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -51,4 +51,12 @@ async def connect(engine: AsyncEngine, slug: str, person_id: uuid.UUID) -> None:
             insert(connected_agents)
             .values(slug=slug, connected_by=person_id)
             .on_conflict_do_nothing(index_elements=["slug"])
+        )
+
+
+async def disconnect(engine: AsyncEngine, slug: str) -> None:
+    """Desconecta o Agente; o que já está desconectado fica como está."""
+    async with engine.begin() as connection:
+        await connection.execute(
+            delete(connected_agents).where(connected_agents.c.slug == slug)
         )

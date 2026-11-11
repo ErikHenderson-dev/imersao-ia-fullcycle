@@ -17,6 +17,11 @@ export async function connectAgent(slug: unknown): Promise<ConnectionResult> {
   return changeConnection(slug, true);
 }
 
+// Desconecta um Agente, pelos mesmos passos de conectar.
+export async function disconnectAgent(slug: unknown): Promise<ConnectionResult> {
+  return changeConnection(slug, false);
+}
+
 async function changeConnection(slug: unknown, connected: boolean): Promise<ConnectionResult> {
   if (typeof slug !== "string" || slug === "") return { kind: "failure" };
   const token = await readSessionToken();

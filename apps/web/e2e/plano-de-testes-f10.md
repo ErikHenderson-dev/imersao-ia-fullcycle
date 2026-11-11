@@ -51,3 +51,19 @@ com um administrador, nos dois temas, sem violações do axe.
 
 Acessibilidade (`acessibilidade/agentes-admin-sem-violacoes.spec.ts`): o diálogo do administrador,
 nos dois temas, sem violações do axe.
+
+## F10-T07 · Desconectar um Agente (`agentes/desconectar-agente.spec.ts`)
+
+1. **O administrador desconecta pelo teclado:** com uma Mensagem antiga que menciona o Agente,
+   "Desconectar" abre a confirmação com o foco em "Cancelar"; Esc e "Cancelar" fecham sem mudar
+   nada; confirmar mostra "Enviando" (Server Action atrasada), fecha, e o foco vai para o
+   "Conectar" da linha; a linha some da barra lateral, a Mensagem antiga continua, e a outra
+   Pessoa não vê a linha ao recarregar.
+2. **A falha mantém o Agente conectado:** a Server Action responde 500; a confirmação fecha e o
+   toast "Não foi possível desconectar o agente" aparece.
+3. **Quem perdeu o papel recebe o erro:** "Só administradores desconectam agentes", e o Agente
+   continua conectado.
+
+Acessibilidade (`acessibilidade/desconectar-agente-sem-violacoes.spec.ts`): a confirmação, nos dois
+temas, sem violações do axe. Os testes de acessibilidade da F10 esperam as transições de cor da
+troca de tema antes de medir o contraste.

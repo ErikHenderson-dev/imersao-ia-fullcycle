@@ -15,6 +15,7 @@ import type { PersonEntry } from "@/app/services/chat-api";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 import { AgentAvatar } from "./agent-avatar";
 import { useAgents } from "./agents-provider";
+import { DisconnectAgentDialog } from "./disconnect-agent-dialog";
 
 const ADMINS_KEY = "/api/people?admin=true";
 
@@ -100,7 +101,7 @@ export function AgentsDialog({
             description="Quando o administrador publicar agentes, eles aparecem aqui para conectar."
           />
         ) : isAdmin ? (
-          <AdminView agents={agents} onConnected={finishReload} />
+          <AdminView agents={agents} onChanged={finishReload} />
         ) : (
           <MemberView agents={agents} personId={personId} onPersonSelect={onPersonSelect} />
         )}
@@ -110,16 +111,20 @@ export function AgentsDialog({
 }
 
 // A visão do administrador: cada Agente com "Conectar" ou "Desconectar". Conectar passa a linha a
-// "Conectando", sem aceitar outro clique, e relê a lista no sucesso.
-function AdminView({ agents, onConnected }: { agents: Agent[]; onConnected: () => Promise<unknown> }) {
+// "Conectando", sem aceitar outro clique, e relê a lista no sucesso; Desconectar pede confirmação.
+function AdminView({ agents, onChanged }: { agents: Agent[]; onChanged: () => Promise<unknown> }) {
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<Agent | null>(null);
+  // O Agente desconectado agora: o botão que abriu a confirmação sumiu, e o foco vai para o
+  // "Conectar" da mesma linha.
+  const [disconnected, setDisconnected] = useState<string | null>(null);
   const hasConnected = agents.some((agent) => agent.connected);
 
   async function connect(agent: Agent) {
     setConnecting(agent.slug);
     try {
       const result = await connectAgent(agent.slug);
-      if (result.kind === "ok") await onConnected();
+      if (result.kind === "ok") await onChanged();
       else if (result.kind === "unauthenticated") redirectToExpiredSession();
       else if (result.kind === "forbidden") toast.error("Só administradores conectam agentes");
       else toast.error("Não foi possível conectar o agente");
@@ -142,7 +147,14 @@ function AdminView({ agents, onConnected }: { agents: Agent[]; onConnected: () =
           <li key={agent.slug}>
             <AgentRow agent={agent}>
               {agent.connected ? (
-                <Button type="button" variant="secondary" size="sm" className="shrink-0">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  data-agent-action={agent.slug}
+                  onClick={() => setDisconnecting(agent)}
+                >
                   Desconectar
                 </Button>
               ) : (
@@ -150,6 +162,7 @@ function AdminView({ agents, onConnected }: { agents: Agent[]; onConnected: () =
                   type="button"
                   size="sm"
                   className="shrink-0"
+                  data-agent-action={agent.slug}
                   loading={connecting === agent.slug}
                   disabled={connecting !== null}
                   onClick={() => void connect(agent)}
@@ -161,6 +174,20 @@ function AdminView({ agents, onConnected }: { agents: Agent[]; onConnected: () =
           </li>
         ))}
       </ul>
+      <DisconnectAgentDialog
+        agent={disconnecting}
+        onClose={() => setDisconnecting(null)}
+        onDisconnected={async (agent) => {
+          setDisconnected(agent.slug);
+          await onChanged();
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!disconnected) return;
+          event.preventDefault();
+          document.querySelector<HTMLElement>(`[data-agent-action="${disconnected}"]`)?.focus();
+          setDisconnected(null);
+        }}
+      />
     </div>
   );
 }

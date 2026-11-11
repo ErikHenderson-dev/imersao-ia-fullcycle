@@ -16,6 +16,8 @@ test.describe("Acessibilidade", () => {
 
     for (const theme of ["light", "dark"]) {
       await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+      // A troca de tema anima as cores (transition-colors): o axe mede o contraste depois.
+      await page.waitForFunction(() => document.getAnimations().every((a) => !(a instanceof CSSTransition) || a.playState !== "running"));
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     }
   });

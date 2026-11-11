@@ -10,7 +10,7 @@ from pydantic import BaseModel, StrictBool
 from app.problems import ProblemError
 from app.registry.auth import require_service_token
 from app.registry.catalog import AgentCard
-from app.registry.store import connect, connected_slugs
+from app.registry.store import connect, connected_slugs, disconnect
 
 
 class AgentResponse(BaseModel):
@@ -71,6 +71,14 @@ def build_router(catalog: list[AgentCard]) -> APIRouter:
     ) -> Response:
         _require_admin_and_agent(body, slug, catalog)
         await connect(request.app.state.engine, slug, body.person_id)
+        return Response(status_code=204)
+
+    @router.delete("/agents/{slug}/connection", status_code=204)
+    async def disconnect_agent(
+        slug: str, body: ConnectionRequest, request: Request
+    ) -> Response:
+        _require_admin_and_agent(body, slug, catalog)
+        await disconnect(request.app.state.engine, slug)
         return Response(status_code=204)
 
     return router

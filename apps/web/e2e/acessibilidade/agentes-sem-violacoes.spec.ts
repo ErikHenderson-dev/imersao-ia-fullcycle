@@ -15,6 +15,8 @@ test.describe("Acessibilidade", () => {
     // Só o diálogo: aberto, o Radix esconde o resto da página com aria-hidden.
     for (const theme of ["light", "dark"]) {
       await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+      // A troca de tema anima as cores (transition-colors): o axe mede o contraste depois.
+      await page.waitForFunction(() => document.getAnimations().every((a) => !(a instanceof CSSTransition) || a.playState !== "running"));
       const results = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
       expect(results.violations).toEqual([]);
     }
