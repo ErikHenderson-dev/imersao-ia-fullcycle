@@ -10,6 +10,11 @@ vocabulário do produto; os termos do processo de desenvolvimento ficam no `AGEN
 Quem tem conta no workspace, criada pela empresa, e entra no chat com o próprio e-mail e senha.
 _Avoid_: usuário, conta, membro
 
+**Administrador**:
+Pessoa com o papel de conectar e desconectar Agentes do workspace. Quem opera a instalação dá e
+tira o papel.
+_Avoid_: admin, dono
+
 **@usuário**:
 O nome único de uma Pessoa no workspace, que não muda, usado para encontrá-la e mencioná-la.
 _Avoid_: handle, apelido, login

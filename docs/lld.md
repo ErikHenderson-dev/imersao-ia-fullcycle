@@ -16,9 +16,9 @@
 | Catálogo de códigos de erro | Os snapshots OpenAPI, como enum na resposta de erro de cada rota (planejado) |
 | Eventos do WebSocket | Tipos TypeScript em `packages/chat-events/` |
 | Schema do Banco do chat | `apps/chat-api/migrations/`, migrações do TypeORM |
-| Schema do Banco dos agentes | A definir |
+| Schema do Banco dos agentes | `apps/agents/migrations/`, migrações do Alembic (planejado); as tabelas de sessão são do ADK |
 | Schema do Banco de negócio | Script de carga em `apps/agents/scripts/` (planejado) |
-| Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, a definir |
+| Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, `apps/agents/app/config.py` (planejado) |
 | Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz |
 
 Os snapshots OpenAPI ficam gravados no repositório, e a CI falha quando o código muda o contrato
@@ -43,6 +43,8 @@ apps/
     app/          o Serviço de agentes: o app HTTP (fast_api_app)     existe
       agents/     um agente por pasta (seção "Componentes e           existe
                   dependências")
+      registry/   catálogo e registro de agentes conectados           planejada
+    migrations/   migrações do Banco dos agentes (Alembic)            planejada
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 planejada
 packages/
@@ -68,15 +70,15 @@ docs/             HLD, LLD, ADRs, brief
 | Gerenciador dos projetos TypeScript | pnpm, um projeto por pasta, sem workspace | [ADR 0017](adr/0017-projetos-pnpm-independentes.md) |
 | Agentes | Python + Google ADK | [ADR 0003](adr/0003-agentes-python-google-adk.md) |
 | Projeto do Serviço de agentes | Gerado pelo `agents-cli` 1.13 (modelo `adk_python`, protótipo, sem alvo de implantação), que fica como dependência de desenvolvimento | Traz o app HTTP, os testes e a avaliação no padrão do ADK; sem Terraform nem CI/CD do Google Cloud, porque a implantação é numa PaaS ([ADR 0004](adr/0004-paas-banco-gerenciado.md)) |
-| HTTP do Serviço de agentes | O app FastAPI do `get_fast_api_app` do ADK, que serve cada agente de `app/agents/` com as rotas genéricas do ADK e a interface web de desenvolvimento; as rotas próprias `/v1`, chamando o `Runner`, entram nele | O app gerado pelo `agents-cli`; as rotas `/v1` e o destino das rotas genéricas em produção ficam para a F10 |
+| HTTP do Serviço de agentes | FastAPI com as rotas próprias `/v1`. Com `ADK_DEV_ROUTES` verdadeiro, só no desenvolvimento, o app é o do `get_fast_api_app` do ADK, com as rotas genéricas e a interface web, e o router `/v1` entra nele; senão, é um `FastAPI` só com `/v1` e `GET /health` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial") | O `get_fast_api_app` sempre monta as rotas genéricas (`/run`, `/apps/...`), que rodam um agente sem credencial, sem conferência de conexão e sem limite de pedidos; o parâmetro `web` só liga a interface |
 | Gerenciador do projeto Python | uv | O `agents-cli` gera e opera o projeto com uv (install, lint, eval) |
 | Avaliação dos agentes | `adk eval` do ADK, com um evalset e um `test_config.json` por agente em `tests/eval/<agente>/`, e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A definir | — |
 | Geração do PDF | A definir | — |
-| Acesso ao Banco dos agentes e migrações | A definir | — |
-| Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; no projeto `agents`, a definir | Valida e tipa numa peça só, igual nos dois projetos TypeScript |
+| Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
+| Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
 | Validação de entrada na API do chat | `class-validator` e `class-transformer`, no `ValidationPipe` do Nest | Caminho padrão do Nest, e o `@nestjs/swagger` lê os mesmos decorators para gerar o snapshot OpenAPI; descartado: zod com `nestjs-zod` |
 | Parser da conferência de somente leitura | A definir | — |
 | Log estruturado | A definir | — |
@@ -94,8 +96,10 @@ um módulo ([ADR 0008](adr/0008-agentes-como-modulos.md)) numa pasta própria em
 `app/agents/<agente>/`, com `agent.py`, que define o `root_agent` e o `App`, e os arquivos só
 dele, como `tools.py`. O nome do `App` é o da pasta, porque o ADK serve o agente em
 `/apps/<pasta>`; dentro da pasta, os imports são relativos, porque o ADK carrega a pasta como
-módulo de topo. O app HTTP (`app/fast_api_app.py`) serve todas as pastas de `app/agents/`. O
-registro de agentes conectados e as peças compartilhadas entre agentes estão a definir (F10).
+módulo de topo. O app HTTP (`app/fast_api_app.py`) serve todas as pastas de `app/agents/`. Cada
+pasta tem também o `card.py`, com o nome e a descrição da tela, e o módulo compartilhado
+`app/registry/` monta o catálogo e guarda o registro de agentes conectados, `planejados`
+([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes").
 
 ### Integrações externas
 
@@ -160,8 +164,12 @@ novas tentativas e idempotência").
   usa, e que a F03 reaproveita no WebSocket. Conversa inexistente, sem participação ou com id
   malformado recebem o mesmo `conversation_not_found`, para a resposta não revelar se a Conversa
   existe.
-- **Credenciais de bot e de serviço:** a forma (um segredo por processo ou por agente) está a
-  definir. Toda ação de bot leva o identificador de pedido
+- **Credencial de serviço:** um segredo único, `AGENTS_SERVICE_TOKEN`, que o BFF envia em
+  `Authorization: Bearer` e o Serviço de agentes confere com comparação de tempo constante em toda
+  rota `/v1`, `planejada` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção
+  "Rotas e credencial").
+- **Credenciais de bot:** a forma (um segredo por processo ou por agente) está a definir. Toda ação
+  de bot leva o identificador de pedido
   ([ADR 0011](adr/0011-identificador-de-pedido.md)).
 - **Dados de negócio no tempo real:** uma mensagem marcada "dados de negócio" é emitida pelo
   WebSocket pessoa a pessoa. Quem tem permissão de dados recebe o evento com o conteúdo; os outros
@@ -308,7 +316,8 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
-| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); papel e permissão a detalhar |
+| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); papel de administrador `planejado` (`is_admin`) ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Papel de administrador"); permissão de dados a detalhar |
+| Chat | Bots, um por Agente, numa tabela própria ([ADR 0028](adr/0028-bots-numa-tabela-propria.md)) | planejada (`bots`), com o `@usuário` reservado pelo comando de contas (spec da F10, seção "Bots"); autor de Mensagem a detalhar (F11) |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
@@ -321,7 +330,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Pedidos aos agentes e ações de bot | a detalhar |
 | Chat | Perguntas pendentes | a detalhar |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
-| Agentes | Registro de agentes conectados | a detalhar |
+| Agentes | Registro de agentes conectados | planejada (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
 | Negócio | Dados de vendas | dono: script de carga |
 
@@ -372,7 +381,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/people/me/presence` e `PUT /v1/people/me/theme` | existe | Gravar a escolha de presença e o tema: spec da F09, seção "Rotas"; a Presença: "Estados e regras", seção "Presença" |
 | API do chat: `GET /v1/people/presence` | existe | Retrato de quem está disponível ou tem Status: spec da F09, seção "Rotas" |
 | API do chat: `PUT /v1/people/me/time-zone` | existe | Gravar o fuso da Pessoa da Sessão: spec da F05, seções "Busca e Perfil" e "Rotas" |
-| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas (inclusive `workspace`), Presença pela conexão e desconexão, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added`, `conversation.unread` e `activity.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`: spec da F08, seção "Tempo real". A sala `workspace`, o `person.updated` e o `presence.changed`, sem cursor nem reenvio: spec da F09, seção "Tempo real" |
+| API do chat: WebSocket em `/socket.io`, só pelo transporte `websocket` | existe: conexão, salas (inclusive `workspace`), Presença pela conexão e desconexão, `message.created`, `message.updated`, `message.deleted`, `conversation.member_added`, `conversation.unread` e `activity.unread` com cursor, reenvio na reconexão, `sync`, abertura da Conversa, "digitando" e `session.ended` | Salas e eventos: [spec da F03](funcionalidades/03-tempo-real/spec.md), seções "Conexão" e "Eventos"; o evento da F04: spec da F04, seção "Tempo real"; a Conversa direta no `conversation.member_added`: spec da F05, seção "Tempo real"; `message.updated` e `message.deleted`: spec da F06, seção "Tempo real"; `conversation.unread`: spec da F07, seção "Tempo real"; `activity.unread`: spec da F08, seção "Tempo real". A sala `workspace`, o `person.updated` e o `presence.changed`, sem cursor nem reenvio: spec da F09, seção "Tempo real". O `agents.changed`, sem conteúdo, cursor nem reenvio, `planejado`: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Evento `agents.changed`" |
 | BFF: `GET /api/conversations/:id/messages` | existe | Páginas anteriores do histórico, lidas pelo cliente: "Cliente", "Leituras e tempo real" |
 | BFF: `GET /api/conversations`, `GET /api/conversations/:id/members` e `GET /api/people` | existe | Leituras do cliente: a lista de Conversas no `reset`, os Membros e a busca de Pessoas (spec da F04, seção "BFF") |
 | BFF: Server Actions `createChannel` e `addMembers` | existe | Criar Canal e adicionar ao Canal privado: spec da F04, seção "BFF" |
@@ -389,7 +398,12 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
-| Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; o destino delas em produção fica para a F10 |
+| Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção, `planejado` ("Estrutura do código", "HTTP do Serviço de agentes") |
+| Serviço de agentes: `GET /v1/agents`, `PUT` e `DELETE /v1/agents/:slug/connection` | planejada | Catálogo com o estado de conexão, conectar e desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `GET /health` | planejada | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
+| API do chat: `POST /v1/agents/changed` | planejada | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
+| API do chat: `GET /v1/sessions/current`, `GET /v1/people/:id` e `GET /v1/people?admin=true` | planejada (mudança) | `is_admin` na Pessoa e no Perfil, e o filtro de administradores: spec da F10, seção "Papel de administrador" |
+| BFF: `GET /api/agents` e Server Actions `connectAgent` e `disconnectAgent` | planejada | Leitura do catálogo e conectar e desconectar em nome do administrador: spec da F10, seção "BFF" |
 
 ## 6. Estados e regras
 
@@ -544,7 +558,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
-| A definir | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão | Conectar e desconectar agente | a detalhar |
+| Seção Agentes da barra lateral e diálogo "Agentes" (sobre as telas logadas) | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão; administradores | Conectar e desconectar agente; abrir o perfil de um administrador | planejada: as variantes por papel, o diálogo, a Menção a Agente no autocompletar e no destaque, e o selo de administrador no painel de perfil ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Cliente") |
 
 **Leituras e tempo real.** A página carrega pelos Server Components. No cliente, o SWR guarda as
 leituras que o tempo real altera (mensagens, lista de Conversas, não lidas, notificações), e cada evento do WebSocket
@@ -685,6 +699,11 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Web | `SESSION_COOKIE_DOMAIN` | `Domain` do cookie; vazio no local |
 | Web | `SESSION_COOKIE_SECURE` | `Secure` do cookie; `false` no local |
 | Web | `CHAT_API_PUBLIC_URL` | Endereço público da API do chat, em que o navegador abre o WebSocket; lido no servidor e passado ao cliente, para a mesma imagem servir a todos os ambientes |
+| Web | `AGENTS_SERVICE_URL` | Endereço interno do Serviço de agentes |
+| Web | `AGENTS_SERVICE_TOKEN` | Credencial de serviço ("Segurança"); segredo, o mesmo valor do Serviço de agentes |
+| Serviço de agentes | `AGENTS_SERVICE_TOKEN` | Credencial de serviço que as rotas `/v1` conferem ("Segurança") |
+| Serviço de agentes | `DATABASE_URL` | Conexão do registro e do Alembic com o Banco dos agentes (`postgresql+asyncpg://`) |
+| Serviço de agentes | `ADK_DEV_ROUTES` | `true` liga as rotas genéricas do ADK e a interface web ("Estrutura do código", "HTTP do Serviço de agentes"); ausente ou `false` em produção |
 | Serviço de agentes | `SESSION_SERVICE_URI` | Conexão do ADK com o Banco dos agentes, para as sessões (`postgresql+asyncpg://`) |
 | Serviço de agentes | `GEMINI_API_KEY` | Chave do Gemini pelo Google AI Studio; segredo, no `apps/agents/.env` |
 | Serviço de agentes | `GOOGLE_GENAI_USE_ENTERPRISE` | `false`: o SDK do Gemini usa o AI Studio, e não o Vertex AI |
@@ -766,6 +785,12 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
 - **Dados dos testes da web:** o Playwright roda contra o ambiente de desenvolvimento, no banco
   `chat`. Cada teste cria a própria Pessoa, com e-mail de prefixo `e2e-` no domínio `teste.local`,
   e as Pessoas de teste ficam no banco até serem apagadas pelo prefixo ou por um `down -v`.
+- **Banco dos testes do Serviço de agentes:** `agents_test`, apagado, criado de novo e migrado a
+  cada execução dos testes de integração, pelo mesmo motivo e pelo mesmo caminho do `chat_test`,
+  `planejado` ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Decisões de
+  teste").
+- **Serviço de agentes no e2e:** os testes da web passam a exigir o `agents` de pé, com o Uvicorn
+  rodando, além da web e da API do chat (spec da F10, seção "Ambiente de desenvolvimento").
 - Os nomes das variáveis estão em "Valores e configuração".
 - O local não reproduz a rede privada nem a volta automática da PaaS (HLD, seção 9).
 
@@ -784,6 +809,7 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
 | [0025](adr/0025-membro-da-conversa-direta-na-primeira-mensagem.md) | Na Conversa direta, a outra Pessoa vira Membro na primeira Mensagem | aceita |
 | [0026](adr/0026-nao-lidas-calculadas-da-ultima-leitura.md) | Não lidas e menções calculadas a partir da Última leitura | aceita |
 | [0027](adr/0027-notificacoes-calculadas.md) | Notificações calculadas a partir das Menções, das Conversas diretas e da Última leitura | aceita |
+| [0028](adr/0028-bots-numa-tabela-propria.md) | Bots numa tabela própria no Banco do chat | aceita |
 
 As decisões que mudam o desenho estão no HLD, seção 10.
 
@@ -795,18 +821,17 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [ ] Acesso ao modelo: `LiteLlm` do ADK para os três provedores, ou Gemini nativo e `LiteLlm`
       para OpenAI e Anthropic.
 - [ ] Biblioteca do PDF (WeasyPrint, ReportLab ou fpdf2).
-- [ ] Acesso ao Banco dos agentes e migrações (SQLAlchemy com Alembic, ou SQL cru); com ela, o
-      dono do schema desse banco.
-- [x] Biblioteca de validação das variáveis nos projetos TypeScript: zod. No projeto `agents`,
-      segue em aberto; até o módulo de configuração existir, o código gerado pelo `agents-cli` lê
-      `os.environ` direto (`app/app_utils/services.py`, `app/fast_api_app.py`).
+- [x] Acesso ao Banco dos agentes e migrações: SQLAlchemy assíncrono com Alembic, dono do schema
+      desse banco (spec da F10).
+- [x] Biblioteca de validação das variáveis: zod nos projetos TypeScript e `pydantic-settings` no
+      projeto `agents` (spec da F10).
 - [ ] Parser da conferência de somente leitura (pglast ou sqlglot).
 - [ ] Biblioteca de log estruturado (pino e structlog, ou o logger de cada framework).
 - [ ] Porquê das escolhas sem motivo registrado: App Router, SWR; ADRs 0017, 0018, 0019 e 0022.
-- [ ] Rotas próprias `/v1` do Serviço de agentes e o destino das rotas genéricas do ADK e da
-      interface web em produção (F10).
-- [ ] Registro de agentes conectados e peças compartilhadas entre os agentes de `app/agents/`
-      (F10).
+- [x] Rotas próprias `/v1` do Serviço de agentes e o destino das rotas genéricas do ADK e da
+      interface web em produção: desligadas fora do desenvolvimento (spec da F10).
+- [x] Registro de agentes conectados e peças compartilhadas entre os agentes de `app/agents/`:
+      `card.py` por agente e o módulo `app/registry/` (spec da F10).
 
 **Componentes**
 
@@ -819,7 +844,8 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 - [x] `SameSite` do cookie e defesa contra CSRF.
 - [x] Formato do identificador de sessão e forma de guardá-lo.
-- [ ] Credenciais de bot (por processo ou por agente) e credencial de serviço.
+- [ ] Credenciais de bot (por processo ou por agente). A credencial de serviço está decidida
+      ("Segurança").
 - [x] Chave do limite de tentativas de login: só o e-mail (ADR 0023).
 - [x] Origem do IP atrás do proxy: deixou de ser necessária, porque o limite não usa o IP.
 - [x] Lugar da conferência de participação: no service de Conversas.
@@ -836,7 +862,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 **Dados e interfaces**
 
 - [x] Canais e conversas diretas: uma tabela com tipo (ADR 0024).
-- [ ] Bots na mesma tabela das pessoas, ou não.
+- [x] Bots na mesma tabela das pessoas, ou não: numa tabela própria (ADR 0028).
 - [ ] Diagrama de entidades e relações; forma das tabelas.
 - [x] Paginação do histórico e das listas: keyset pelo id.
 - [x] Como o BFF leva a sessão à API do chat.
