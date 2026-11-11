@@ -1,6 +1,6 @@
 # 03: Reserva do @usuário dos Agentes
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem opera a instalação cria o bot de cada Agente pelo comando de contas, e o
 `@usuário` dele fica reservado: nenhuma Pessoa nova pode tê-lo, e nenhum bot pode ter o `@usuário`
