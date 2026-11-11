@@ -1,6 +1,6 @@
 # 06: Conectar um Agente
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o administrador vê na seção Agentes "Conectar agentes", com o número de
 desconectados, "Adicionar agente" ou "Gerenciar agentes", conforme o estado. Ele abre o diálogo e
