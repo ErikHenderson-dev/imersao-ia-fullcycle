@@ -1,6 +1,6 @@
 # 05: Ver os Agentes e os administradores
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem não administra vê a seção Agentes na barra lateral, com "Ver agentes", e
 abre o diálogo "Agentes". O diálogo mostra cada Agente com o estado, explica que só
