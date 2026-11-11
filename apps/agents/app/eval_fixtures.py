@@ -12,6 +12,7 @@ Pessoas, com `quando` em ISO UTC. A F11-T07 acrescenta a resposta da `perguntar_
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 from datetime import datetime
@@ -29,27 +30,36 @@ FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
 SUMMARY_MESSAGE_LIMIT = 500
 
 
-def load_fixture(agent: str, name: str) -> list[dict[str, Any]]:
+@functools.cache
+def fixture_source(agent: str, name: str) -> FixtureSource:
+    """A fonte de uma fixture, lida uma vez por execução da avaliação."""
     if not FIXTURE_NAME.match(name):
         raise ValueError(f"Nome de fixture inválido: {name}")
     path = PROJECT_DIR / "tests" / "eval" / agent / "fixtures" / f"{name}.json"
-    return json.loads(path.read_text(encoding="utf-8"))["mensagens"]
+    return FixtureSource(json.loads(path.read_text(encoding="utf-8"))["mensagens"])
 
 
 class FixtureSource:
     """As Mensagens de uma fixture, filtradas como a rota de leitura do bot."""
 
     def __init__(self, messages: list[dict[str, Any]]) -> None:
-        self._messages = sorted(messages, key=lambda message: message["quando"])
+        # Cada Mensagem com o instante já lido, em ordem cronológica.
+        self._messages = sorted(
+            (
+                (datetime.fromisoformat(message["quando"]), message)
+                for message in messages
+            ),
+            key=lambda pair: pair[0],
+        )
 
     async def read(
         self, since: datetime | None, until: datetime, author_username: str | None
     ) -> dict[str, Any]:
         selected = [
             message
-            for message in self._messages
-            if (since is None or datetime.fromisoformat(message["quando"]) >= since)
-            and datetime.fromisoformat(message["quando"]) < until
+            for at, message in self._messages
+            if (since is None or at >= since)
+            and at < until
             and (author_username is None or message["usuario"] == author_username)
         ]
         return {
@@ -76,7 +86,7 @@ async def fixture_tool_callback(
     name = tool_context.state.get(FIXTURE_KEY)
     if not name or tool.name != "ler_mensagens":
         return None
-    source = FixtureSource(load_fixture(tool_context.agent_name, name))
+    source = fixture_source(tool_context.agent_name, name)
     return await read_recorte(
         source, tool_context.state, args.get("recorte", ""), args.get("pessoa")
     )

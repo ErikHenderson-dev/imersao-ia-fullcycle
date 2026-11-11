@@ -44,29 +44,31 @@ class ChatApiClient:
             }.items()
             if value is not None
         }
-        path = f"/v1/bot/requests/{request_id}/messages"
-        try:
-            response = await self._http.get(path, params=params)
-        except httpx.HTTPError as error:
-            raise ChatApiError(f"GET {path} falhou: {type(error).__name__}") from error
-        if not response.is_success:
-            raise ChatApiError(f"GET {path} respondeu {response.status_code}")
+        response = await self._request(
+            "GET", f"/v1/bot/requests/{request_id}/messages", params=params
+        )
         return response.json()
 
     async def reply(self, request_id: str, body: str) -> None:
         """Grava a resposta do bot ao Pedido; a repetição devolve a mesma Mensagem."""
-        await self._post(f"/v1/bot/requests/{request_id}/reply", {"body": body})
+        await self._request(
+            "POST", f"/v1/bot/requests/{request_id}/reply", json={"body": body}
+        )
 
     async def close(self) -> None:
         await self._http.aclose()
 
-    async def _post(self, path: str, payload: dict) -> None:
+    async def _request(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
+        """A chamada a uma rota /v1/bot; fora de 2xx, ou sem resposta, `ChatApiError`."""
         try:
-            response = await self._http.post(path, json=payload)
+            response = await self._http.request(method, path, **kwargs)
         except httpx.HTTPError as error:
-            raise ChatApiError(f"POST {path} falhou: {type(error).__name__}") from error
+            raise ChatApiError(
+                f"{method} {path} falhou: {type(error).__name__}"
+            ) from error
         if not response.is_success:
-            raise ChatApiError(f"POST {path} respondeu {response.status_code}")
+            raise ChatApiError(f"{method} {path} respondeu {response.status_code}")
+        return response
 
 
 # O cliente do Pedido em execução: o `run_request` o define antes de rodar o agente, e as
