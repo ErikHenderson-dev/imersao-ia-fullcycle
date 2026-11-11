@@ -1,6 +1,6 @@
 # 08: Avaliação completa, medição e acessibilidade
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a F11 fecha com a prova de qualidade: o evalset completo do resumo aprovando
 ≥ 98% dos casos, o p95 ≤ 5 s e o custo por Pedido medidos com o modelo padrão, e a nota 100 de
