@@ -70,6 +70,7 @@ docs/             HLD, LLD, ADRs, brief
 | Projeto do Serviço de agentes | Gerado pelo `agents-cli` 1.13 (modelo `adk_python`, protótipo, sem alvo de implantação), que fica como dependência de desenvolvimento | Traz o app HTTP, os testes e a avaliação no padrão do ADK; sem Terraform nem CI/CD do Google Cloud, porque a implantação é numa PaaS ([ADR 0004](adr/0004-paas-banco-gerenciado.md)) |
 | HTTP do Serviço de agentes | O app FastAPI do `get_fast_api_app` do ADK, que serve cada agente de `app/agents/` com as rotas genéricas do ADK e a interface web de desenvolvimento; as rotas próprias `/v1`, chamando o `Runner`, entram nele | O app gerado pelo `agents-cli`; as rotas `/v1` e o destino das rotas genéricas em produção ficam para a F10 |
 | Gerenciador do projeto Python | uv | O `agents-cli` gera e opera o projeto com uv (install, lint, eval) |
+| Avaliação dos agentes | `adk eval` do ADK, com um evalset e um `test_config.json` por agente em `tests/eval/<agente>/`, e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
 | Fila de pedidos demorados | A definir | — |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A definir | — |
@@ -806,9 +807,6 @@ As decisões que mudam o desenho estão no HLD, seção 10.
       interface web em produção (F10).
 - [ ] Registro de agentes conectados e peças compartilhadas entre os agentes de `app/agents/`
       (F10).
-- [ ] Como avaliar o agente sem o Google Cloud (F11): o `agents-cli eval grade` exige credencial
-      padrão do Google (ADC) mesmo com a métrica local, porque o SDK de avaliação cria um cliente
-      do Cloud Storage; alternativa à vista, o `adk eval` do ADK, com a chave do AI Studio.
 
 **Componentes**
 

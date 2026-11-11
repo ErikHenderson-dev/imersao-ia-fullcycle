@@ -13,12 +13,6 @@
       "skillPath": "skills/google-agents-cli-adk-code/SKILL.md",
       "computedHash": "22d285723230a4c81e9cd44387725eafbe45ffcc9df83429ba155a7afad95c6d"
     },
-    "google-agents-cli-eval": {
-      "source": "google/agents-cli",
-      "sourceType": "github",
-      "skillPath": "skills/google-agents-cli-eval/SKILL.md",
-      "computedHash": "46239dcdfc6615c09258125d2358561b85cfc9d7c6d38f9c6be1a5b42d613172"
-    },
     "google-agents-cli-workflow": {
       "source": "google/agents-cli",
       "sourceType": "github",

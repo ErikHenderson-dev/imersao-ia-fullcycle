@@ -24,9 +24,9 @@ dev = [
 ]
 
 [project.optional-dependencies]
+# adk eval, com o juiz pelo Google AI Studio.
 eval = [
     "google-adk[eval]>=2.12.0,<3.0.0",
-    "google-cloud-aiplatform[evaluation]>=2.2.0,<3.0.0"
 ]
 lint = [
     "ruff>=0.4.6,<1.0.0",
