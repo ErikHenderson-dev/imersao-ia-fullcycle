@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import { PeopleService } from '../src/people/people.service';
@@ -62,6 +63,26 @@ describe('busca de Pessoas', () => {
     expect(withoutAccent.status).toBe(200);
     expect(names(withoutAccent)).toEqual([`Élida Rocha ${tag}`]);
     expect(names(withAccent)).toEqual([`Elias Prado ${tag}`]);
+  });
+
+  it('não traz os bots', async () => {
+    const { cookie } = await authRoutes.loggedIn(app);
+    const tag = randomUUID().replaceAll('-', '').slice(0, 12);
+    const { person } = await authRoutes.createPerson(app, {
+      name: `Assistente ${tag}`,
+    });
+    await app
+      .get(DataSource)
+      .query('INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)', [
+        randomUUID(),
+        `assistente-${tag}`,
+        `Assistente ${tag}`,
+      ]);
+
+    const response = await search(cookie, { q: tag });
+
+    expect(response.status).toBe(200);
+    expect(ids(response)).toEqual([person.id]);
   });
 
   it('trata %, _ e \\ como literais', async () => {

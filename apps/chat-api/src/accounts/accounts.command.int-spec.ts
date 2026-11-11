@@ -11,6 +11,7 @@ import { lockPublicMembership } from '../conversations/public-membership-lock';
 import { PeopleService } from '../people/people.service';
 import { SessionsService } from '../sessions/sessions.service';
 import { CommandOutput } from '../common/cli/command';
+import { BotsService } from '../bots/bots.service';
 import { AccountsCommand } from './accounts.command';
 import { AccountsModule } from './accounts.module';
 
@@ -37,6 +38,7 @@ describe('comando de contas', () => {
   let people: PeopleService;
   let conversations: ConversationsService;
   let sessions: SessionsService;
+  let bots: BotsService;
   let dataSource: DataSource;
   let cls: ClsService;
 
@@ -48,6 +50,7 @@ describe('comando de contas', () => {
     people = context.get(PeopleService);
     conversations = context.get(ConversationsService);
     sessions = context.get(SessionsService);
+    bots = context.get(BotsService);
     dataSource = context.get(DataSource);
     cls = context.get(ClsService);
   });
@@ -62,6 +65,7 @@ describe('comando de contas', () => {
       people,
       conversations,
       sessions,
+      bots,
       givenPassword(password),
       output,
     );
@@ -421,7 +425,7 @@ describe('comando de contas', () => {
     });
 
     it.each([
-      ['o @usuário já usado', ['--username', 'TAKEN'], /já é de outra Pessoa/],
+      ['o @usuário já usado', ['--username', 'TAKEN'], /já é de uma Pessoa/],
       ['o @usuário fora do formato', ['--username', 'Ana Souza'], /@usuário/],
       ['o cargo com 81 caracteres', ['--title', 'c'.repeat(81)], /cargo/],
       ['o telefone com letra', ['--phone', '11 9999-ABCD'], /telefone/],
@@ -646,6 +650,153 @@ describe('comando de contas', () => {
 
       expect(exitCode).toBe(1);
       expect(output.errors.join('\n')).toMatch(/Uso: pnpm accounts set-admin/);
+    });
+  });
+
+  describe('create-bot', () => {
+    function uniqueUsername(): string {
+      return `bot-${randomUUID().replaceAll('-', '').slice(0, 20)}`;
+    }
+
+    it('create-bot cria o bot e escreve o resultado', async () => {
+      const username = uniqueUsername();
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'create-bot',
+        username,
+        'Assistente',
+      ]);
+
+      expect(exitCode).toBe(0);
+      const bot = await bots.findByUsername(username);
+      expect(bot).toMatchObject({ username, name: 'Assistente' });
+      expect(output.infos).toEqual([
+        `Bot criado: @${username} (Assistente, ${bot!.id}).`,
+      ]);
+    });
+
+    it.each([
+      [
+        'o @usuário fora do formato',
+        'Assist_',
+        'Assistente',
+        /O @usuário aceita/,
+      ],
+      ['o nome vazio', 'NOVO', ' ', /Informe seu nome completo/],
+      [
+        'o nome acima de 80',
+        'NOVO',
+        'a'.repeat(81),
+        /O nome pode ter no máximo 80/,
+      ],
+    ])('create-bot recusa %s', async (_, username, name, message) => {
+      const informed = username === 'NOVO' ? uniqueUsername() : username;
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'create-bot',
+        informed,
+        name,
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(message);
+      expect(await bots.findByUsername(informed)).toBeNull();
+    });
+
+    it('create-bot recusa o @usuário de uma Pessoa', async () => {
+      const person = await people.create({
+        email: uniqueEmail(),
+        name: 'Ana Souza',
+        password: 'senha-antiga',
+      });
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'create-bot',
+        person.username,
+        'Assistente',
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors).toEqual([
+        `O @usuário ${person.username} já é de uma Pessoa.`,
+      ]);
+      expect(await bots.findByUsername(person.username)).toBeNull();
+    });
+
+    it('create-bot recusa o @usuário de outro bot', async () => {
+      const username = uniqueUsername();
+      await bots.create({ username, name: 'Assistente' });
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'create-bot',
+        `@${username}`,
+        'Outro',
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors).toEqual([`O @usuário ${username} já é de um bot.`]);
+      expect(await bots.findByUsername(username)).toMatchObject({
+        name: 'Assistente',
+      });
+    });
+
+    it('create-bot mostra o uso sem o nome', async () => {
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'create-bot',
+        uniqueUsername(),
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(/Uso: pnpm accounts create-bot/);
+    });
+
+    it('create recusa o @usuário de um bot, antes de pedir a senha', async () => {
+      const username = uniqueUsername();
+      await bots.create({ username, name: 'Assistente' });
+      const email = uniqueEmail();
+      const output = recordingOutput();
+      let asked = false;
+      const accounts = new AccountsCommand(
+        people,
+        conversations,
+        sessions,
+        bots,
+        {
+          ask: () => {
+            asked = true;
+            return Promise.resolve('senha');
+          },
+        },
+        output,
+      );
+
+      const exitCode = await cls.run(() =>
+        accounts.run(['create', email, 'Ana Souza', '--username', username]),
+      );
+
+      expect(exitCode).toBe(1);
+      expect(output.errors).toEqual([`O @usuário ${username} já é de um bot.`]);
+      expect(asked).toBe(false);
+      expect(await people.findByEmail(email)).toBeNull();
+    });
+
+    it('create deriva do e-mail um @usuário que não é de um bot', async () => {
+      const username = uniqueUsername();
+      await bots.create({ username, name: 'Assistente' });
+      const email = `${username}@teste.local`;
+
+      const exitCode = await command().run(['create', email, 'Ana Souza']);
+
+      expect(exitCode).toBe(0);
+      expect(await people.findByEmail(email)).toMatchObject({
+        username: `${username}2`,
+      });
     });
   });
 });

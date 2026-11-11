@@ -237,6 +237,49 @@ describe('banco de testes', () => {
     });
   });
 
+  describe('bots', () => {
+    function insertBot(username: string, name = 'Assistente') {
+      return app
+        .get(DataSource)
+        .query('INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)', [
+          randomUUID(),
+          username,
+          name,
+        ]);
+    }
+
+    function botUsername(): string {
+      return `bot-${randomUUID().replaceAll('-', '').slice(0, 20)}`;
+    }
+
+    it('bots recusa um @usuário repetido', async () => {
+      const username = botUsername();
+      await insertBot(username);
+
+      const insert = insertBot(username);
+
+      await expect(insert).rejects.toThrow(/bots_username_key/);
+    });
+
+    it.each([['Assistente'], ['a'], ['-assistente'], ['assis tente']])(
+      'bots recusa o @usuário fora do formato: %s',
+      async (username) => {
+        const insert = insertBot(username);
+
+        await expect(insert).rejects.toThrow(/bots_username_check/);
+      },
+    );
+
+    it.each([[''], ['Assis\ntente'], ['a'.repeat(81)]])(
+      'bots recusa o nome fora da regra: %j',
+      async (name) => {
+        const insert = insertBot(botUsername(), name);
+
+        await expect(insert).rejects.toThrow(/bots_name_check/);
+      },
+    );
+  });
+
   describe('conversations', () => {
     async function twoPeople(): Promise<[string, string]> {
       const ids: string[] = [];

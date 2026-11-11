@@ -43,6 +43,7 @@ docker compose -f compose.yaml exec chat-api <comando>
 | `pnpm accounts revoke-sessions <e-mail>` | Apaga todas as Sessões da Pessoa |
 | `pnpm accounts purge-expired-sessions` | Apaga as Sessões vencidas |
 | `pnpm accounts set-admin <e-mail\|@usuário> on\|off` | Dá ou tira o papel de administrador; vale na próxima ação da Pessoa, sem sair e entrar (spec da F10, "Comando de contas") |
+| `pnpm accounts create-bot <@usuário> "<nome>"` | Cria o bot de um Agente, que reserva o @usuário dele: nenhuma Pessoa nova pode tê-lo, e o `create` deriva outro do e-mail (spec da F10, "Comando de contas") |
 | `pnpm channels create <nome> ["<tópico>"]` | Comando de canais: cria um Canal público, com todas as Pessoas como Membros |
 | `pnpm channels set-topic <nome> "<tópico>"` | Troca o Tópico do Canal; `""` apaga |
 | `pnpm channels list` | Lista os Canais públicos, com o número de Membros e o Tópico |

@@ -35,6 +35,9 @@ export interface NewPerson {
   username?: string;
   title?: string;
   phone?: string;
+  // A conferência de "@usuário livre" de quem cria (spec da F10, "Bots"), chamada para cada
+  // candidato derivado do e-mail que `people` não tem. Sem ela, só `people` conta.
+  isUsernameFree?: (username: string) => Promise<boolean>;
 }
 
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
@@ -101,7 +104,7 @@ export class PeopleService {
     }
     const base = usernameBase(email);
     for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
-      const username = await this.freeUsername(base);
+      const username = await this.freeUsername(base, newPerson.isUsernameFree);
       const person = await this.insert({ ...fields, passwordHash, username });
       if (person) return person;
       await this.throwIfEmailTaken(email);
@@ -172,8 +175,13 @@ export class PeopleService {
     }
   }
 
-  // O primeiro candidato livre da base, conferido em lotes pelo índice único do @usuário.
-  private async freeUsername(base: string): Promise<string> {
+  // O primeiro candidato livre da base, conferido em lotes pelo índice único do @usuário e, um a um,
+  // pela conferência de quem cria.
+  private async freeUsername(
+    base: string,
+    isUsernameFree: (username: string) => Promise<boolean> = () =>
+      Promise.resolve(true),
+  ): Promise<string> {
     for (let start = 0; ; start += USERNAME_BATCH) {
       const candidates = usernameCandidates(base, start + USERNAME_BATCH).slice(
         start,
@@ -184,8 +192,11 @@ export class PeopleService {
         .where('person.username = ANY(:candidates)', { candidates })
         .getRawMany<{ username: string }>();
       const taken = new Set(rows.map((row) => row.username));
-      const free = candidates.find((candidate) => !taken.has(candidate));
-      if (free) return free;
+      for (const candidate of candidates) {
+        if (!taken.has(candidate) && (await isUsernameFree(candidate))) {
+          return candidate;
+        }
+      }
     }
   }
 
