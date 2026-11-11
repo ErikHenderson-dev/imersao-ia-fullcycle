@@ -63,6 +63,7 @@ docs/             HLD, LLD, ADRs, brief
 | Leituras no cliente que o tempo real altera | SWR | O cache recebe os eventos do WebSocket direto, sem nova requisição, e a primeira página vem do servidor como `fallbackData` ("Cliente", "Leituras e tempo real") |
 | Tempo real, no servidor e no cliente | Socket.IO | [ADR 0019](adr/0019-socket-io-tempo-real.md) |
 | Cliente do Redis na API do chat | `redis` (node-redis) | Cliente oficial do Redis |
+| Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio` | Cliente oficial do Redis, assíncrono como o app HTTP; `planejado` (spec da F11, "Rota de Pedido") |
 | API do chat | NestJS | HLD, seção 5 |
 | ORM e migrações do Banco do chat | TypeORM | [ADR 0018](adr/0018-typeorm-api-do-chat.md) |
 | Transação entre módulos na API do chat | `@nestjs-cls/transactional`, com o adaptador do TypeORM | A transação passa de um service a outro pelo contexto, sem levar o `EntityManager` à mão nem importar o repositório de outro módulo |
@@ -289,7 +290,9 @@ API do chat roda com uma instância só (HLD 6.2).
   BFF, quem traduz está a definir.
 - **Mensagem gravada, mas o Serviço de agentes não recebeu o pedido** (HLD 6.3): o BFF responde
   sucesso, com a mensagem gravada e um campo que diz que o agente não recebeu o pedido. A tela
-  mostra a mensagem enviada e um aviso de erro do agente ao lado.
+  mostra a mensagem enviada e um aviso de erro do agente ao lado. O aviso é só da aba que enviou e
+  some ao recarregar: avisa quem acabou de pedir, e não é estado da mensagem. `planejado` (spec da
+  F11, seção "Cliente").
 
 ### Logs
 
@@ -606,6 +609,15 @@ continua `open` no banco, mas recusa as ações do bot.
   `request_expired` depois da validade, `request_closed` depois de `failed` ou `cancelled`.
 - Encerrar um Pedido já encerrado não muda nada. Só quem pediu o encerra.
 - Editar ou apagar a Mensagem do Pedido não muda o Pedido (PRD da F11).
+- O Serviço de agentes não deixa a Conversa sem nada enquanto o Pedido aceita ações: a falha do
+  modelo, o `teto de custo por pedido` atingido, uma exceção ou a resposta do modelo recusada pela
+  API do chat por qualquer motivo que não seja o Pedido (o texto acima do `tamanho máximo da
+  Mensagem`, por exemplo) gravam o "não consegui" fixo como `reply`. Com o Pedido recusado
+  (`request_not_found`, `request_closed`, `request_expired`), não há o que gravar, e o fim vai só
+  para o log. `planejado` (spec da F11, seção "Execução do Pedido").
+- Um Pedido entregue duas vezes ao Serviço de agentes (o reenvio do mesmo `client_id` dispara de
+  novo) roda uma vez só: a sessão do ADK, com o id do Pedido, já existe na segunda entrega, que
+  termina sem gravar nada. `planejado`.
 
 **Pergunta pendente**
 
@@ -801,6 +813,7 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Serviço de agentes | `REDIS_URL` | Conexão com o Redis, para o `limite de pedidos por pessoa`; `planejada` |
 | Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); obrigatória, sem padrão no código |
 | Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa`; `planejada` |
+| Serviço de agentes | `TEST_REDIS_URL` | Banco lógico do Redis dos testes de integração; `planejada` |
 | Serviço de agentes | `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` | Chave do provedor, obrigatória só quando o `AGENT_MODEL` o escolhe; segredo |
 
 As demais variáveis estão a definir.
@@ -816,7 +829,7 @@ substitui cada serviço de produção segue o HLD, seção 9, "Implantação e a
 | `chat-api` | `apps/chat-api/Dockerfile.dev` (Node 26, pnpm 11) | 3001 (3000 no contêiner) | API do chat |
 | `postgres` | `postgres:18` | 5432 | Banco do chat, dos agentes e de negócio |
 | `s3` | `chrislusf/seaweedfs:4.52` (`weed mini`) | 8333 | Substituto do armazenamento compatível com S3, com o bucket `reports` |
-| `redis` | `redis:8` | 6379 | Eventos por Pessoa para a reconexão; o banco lógico 1 (`TEST_REDIS_URL`) é dos testes da API do chat |
+| `redis` | `redis:8` | 6379 | Eventos por Pessoa para a reconexão; o banco lógico 1 (`TEST_REDIS_URL`) é dos testes da API do chat, e o 2, dos testes do Serviço de agentes; o limite de pedidos por pessoa do Serviço de agentes, no banco 0 |
 | `agents` | `apps/agents/Dockerfile.dev` (Python 3.13, uv) | 3002 (8000 no contêiner) | Serviço de agentes |
 | `e2e` | Imagem oficial do Playwright, na mesma versão do `@playwright/test` do `web` | — | Roda os testes de ponta a ponta do `web` contra `http://localhost:3000`, encaminhado para a web, e o `playwright-cli`; sobe só pelo `profile` e fica parado, como `web` e `chat-api` |
 

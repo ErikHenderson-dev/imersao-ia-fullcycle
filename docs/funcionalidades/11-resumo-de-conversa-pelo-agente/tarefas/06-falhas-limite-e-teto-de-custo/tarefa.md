@@ -1,6 +1,6 @@
 # 06: Falhas, limite de pedidos e teto de custo
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quando o Agente não consegue atender, ninguém fica esperando: com o modelo
 fora ou com erro, ele grava na Conversa que não conseguiu resumir; com o Serviço de agentes fora
