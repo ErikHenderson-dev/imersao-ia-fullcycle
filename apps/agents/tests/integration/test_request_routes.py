@@ -92,7 +92,10 @@ async def test_aceita_o_pedido_e_grava_a_resposta_como_reply(
 
     assert response.status_code == 202
     calls = await wait_for_reply(fake_chat_api)
-    typing, *_ = calls
+    typing = next(call for call in calls if call["path"].endswith("/typing"))
+    assert calls.index(typing) < next(
+        i for i, call in enumerate(calls) if is_reply(call)
+    )
     assert typing["method"] == "POST"
     assert typing["path"] == f"/v1/bot/requests/{body['request_id']}/typing"
     assert typing["authorization"] == f"Bearer {BOT_TOKEN}"

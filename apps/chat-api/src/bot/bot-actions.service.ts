@@ -39,10 +39,12 @@ export class BotActionsService {
 
   // O "digitando" do bot na Conversa do Pedido (LLD, "Digitando"). Não é ação: nada é gravado. Com a
   // resposta ou a pergunta já gravada, não emite, para um aviso atrasado não pôr o bot de volta na
-  // lista depois da resposta.
+  // lista depois da resposta. A emissão sai com o Pedido ainda travado: a resposta, que espera a
+  // trava, só emite o fim depois dela.
+  @Transactional()
   async typing(requestId: string): Promise<void> {
-    const request = await this.unansweredRequest(requestId);
-    if (!request) return;
+    const request = await this.requests.lockForAction(requestId);
+    if (await this.requests.hasAnswer(request.id)) return;
     const [bot] = await this.bots.findByIds([request.botId]);
     this.realtime.botTyping(
       'typing.start',
@@ -67,16 +69,6 @@ export class BotActionsService {
       message.conversationId,
       message.author,
     );
-  }
-
-  // O Pedido válido e ainda sem resposta, ou null. A trava põe o aviso em fila com a gravação da
-  // resposta: o que trava depois dela a encontra.
-  @Transactional()
-  private async unansweredRequest(
-    requestId: string,
-  ): Promise<{ conversationId: string; botId: string } | null> {
-    const request = await this.requests.lockForAction(requestId);
-    return (await this.requests.hasAnswer(request.id)) ? null : request;
   }
 
   @Transactional()

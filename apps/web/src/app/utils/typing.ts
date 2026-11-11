@@ -29,9 +29,9 @@ export function addTyper(typers: readonly Typer[], typer: Typer): readonly Typer
   return typers.some((existing) => existing.id === typer.id) ? typers : [...typers, typer];
 }
 
-export function removeTyper(typers: readonly Typer[], personId: string): readonly Typer[] {
-  return typers.some((existing) => existing.id === personId)
-    ? typers.filter((existing) => existing.id !== personId)
+export function removeTyper(typers: readonly Typer[], typerId: string): readonly Typer[] {
+  return typers.some((existing) => existing.id === typerId)
+    ? typers.filter((existing) => existing.id !== typerId)
     : typers;
 }
 

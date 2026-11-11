@@ -9,11 +9,10 @@ resposta emite o fim na API do chat. Fica em volta da execução, e não dentro 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Coroutine
 from typing import Any, Protocol
-
-from app.chat_api import ChatApiError
 
 logger = logging.getLogger(__name__)
 
@@ -31,26 +30,34 @@ async def while_typing[T](
     work: Coroutine[Any, Any, T],
     interval: float = TYPING_INTERVAL_S,
 ) -> T:
-    """Roda `work` avisando que o bot digita: antes de começar e a cada `interval` até o fim."""
-    await notify_typing(chat_api, request_id)
+    """Roda `work` avisando que o bot digita: ao começar e a cada `interval` até o fim.
+
+    Os avisos saem em horário fixo, cada um na própria tarefa: uma API do chat lenta não atrasa o
+    trabalho nem o aviso seguinte.
+    """
+    pending: set[asyncio.Task[None]] = set()
 
     async def renew() -> None:
         while True:
+            notice = asyncio.create_task(notify_typing(chat_api, request_id))
+            pending.add(notice)
+            notice.add_done_callback(pending.discard)
             await asyncio.sleep(interval)
-            await notify_typing(chat_api, request_id)
 
     renewal = asyncio.create_task(renew())
     try:
         return await work
     finally:
         renewal.cancel()
+        for notice in (renewal, *pending):
+            notice.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await notice
 
 
 async def notify_typing(chat_api: TypingClient, request_id: str) -> None:
-    """Um aviso; a recusa vai para o log e não interrompe o Pedido nem os avisos seguintes."""
+    """Um aviso; a falha vai para o log e não interrompe o Pedido nem os avisos seguintes."""
     try:
         await chat_api.typing(request_id)
-    except ChatApiError as error:
-        logger.warning(
-            "Aviso de digitando do Pedido %s recusado: %s", request_id, error
-        )
+    except Exception as error:
+        logger.warning("Aviso de digitando do Pedido %s falhou: %s", request_id, error)
