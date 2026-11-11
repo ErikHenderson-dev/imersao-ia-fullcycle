@@ -750,7 +750,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Nome | Valor | Onde vale | Constante ou variável |
 | --- | --- | --- | --- |
 | Limite de pedidos por pessoa | 10 por minuto, em janela fixa, somando todas as Conversas (brief, RNF "Custo") | Serviço de agentes | Variável `AGENT_REQUESTS_PER_MINUTE`, padrão 10 |
-| Teto de custo por pedido | 4 chamadas ao modelo e 1024 tokens de saída por Pedido, mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
+| Teto de custo por pedido | 4 chamadas ao modelo por Pedido e 1024 tokens de saída por chamada, contando o raciocínio, que fica no nível baixo (`ThinkingLevel.LOW`; sem ele, o raciocínio cortava a resposta, avaliação da F11-T08; o nível é parâmetro do Gemini 3 em diante, e no `LiteLlm` vira o esforço de raciocínio do provedor), mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação e na medição, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
 | Teto de Mensagens do resumo | 500: as mais recentes do Recorte (PRD da F11) | API do chat (rotas do bot) | Constante |
 | Tentativas do Worker | A definir | Worker | A definir |
 | Validade da URL do PDF | A definir | API do chat | A definir |
