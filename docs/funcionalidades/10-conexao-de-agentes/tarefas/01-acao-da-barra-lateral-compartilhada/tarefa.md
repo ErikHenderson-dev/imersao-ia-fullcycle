@@ -1,6 +1,6 @@
 # 01: Ação da barra lateral compartilhada
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** refatoração prévia, sem mudança visível. As ações das seções da barra
 lateral ("Adicionar canal" e "Nova conversa") passam a ser um componente `SidebarAction` só, com

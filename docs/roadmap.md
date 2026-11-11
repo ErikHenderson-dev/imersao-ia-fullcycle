@@ -35,7 +35,7 @@ o registro de agentes conectados e a execução dos pedidos ficam no Serviço de
 
 | ID | Funcionalidade | Ao final a pessoa consegue | Depende de | Status |
 | --- | --- | --- | --- | --- |
-| [F10](funcionalidades/10-conexao-de-agentes/) | Conexão de agentes | Como administrador, conectar e desconectar um agente do workspace. Quem não administra vê os agentes e a quem pedir. | F01 | spec pronta |
+| [F10](funcionalidades/10-conexao-de-agentes/) | Conexão de agentes | Como administrador, conectar e desconectar um agente do workspace. Quem não administra vê os agentes e a quem pedir. | F01 | em andamento |
 | F11 | Resumo de conversa pelo agente | Mencionar o agente e receber na conversa um resumo com recorte (hoje, desde ontem, a semana, tudo, por pessoa, por assunto). Sem recorte, escolher por um botão ou responder sem mencionar o agente de novo. | F03, F10 | planejada |
 | F12 | Delegação de Tarefa pelo agente | Pedir ao agente que delegue uma Tarefa a alguém mencionado. Quem recebe é notificado, vê a Tarefa em Atividade → Tarefas e a conclui ou reabre, e quem delegou é avisado. | F08, F11 | planejada |
 | F13 | Consulta a dados de negócio | Perguntar sobre os números do negócio em linguagem natural e receber a resposta em texto na conversa, que fica bloqueada para quem não tem permissão de dados. | F11 | planejada |
@@ -91,7 +91,7 @@ flowchart LR
   classDef concluida fill:#d1fae5,stroke:#059669,color:#111827
 
   class F01,F02,F03,F04,F05,F06,F07,F08,F09 concluida
-  class F10 specPronta
+  class F10 emAndamento
   class F11,F12,F13,F14 planejada
 ```
 
