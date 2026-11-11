@@ -18,21 +18,20 @@ describe('POST /v1/bot/requests/:id/typing', () => {
     await app.close();
   });
 
-  async function openRequest() {
+  async function openRequest(): Promise<string> {
     const member = await authRoutes.loggedIn(app);
     const channel = await conversationRoutes.createChannel(app);
     const bot = await conversationRoutes.createBot(app, 'Assistente');
-    const requestId = await botRoutes.openedRequestId(
+    return botRoutes.openedRequestId(
       app,
       member.cookie,
       channel.id,
       bot.username,
     );
-    return { requestId };
   }
 
   it('responde 204 sem gravar ação', async () => {
-    const { requestId } = await openRequest();
+    const requestId = await openRequest();
 
     const response = await botRoutes.typing(app, requestId);
 
@@ -45,7 +44,7 @@ describe('POST /v1/bot/requests/:id/typing', () => {
     ['sem a credencial', null],
     ['com a credencial errada', 'credencial-errada'],
   ])('responde 401 invalid_bot_token %s', async (_case, token) => {
-    const { requestId } = await openRequest();
+    const requestId = await openRequest();
 
     const response = await botRoutes.typing(app, requestId, token);
 
@@ -64,7 +63,7 @@ describe('POST /v1/bot/requests/:id/typing', () => {
   });
 
   it('responde 410 request_expired depois da validade', async () => {
-    const { requestId } = await openRequest();
+    const requestId = await openRequest();
     await botRoutes.updateRequest(app, requestId, {
       expiresAt: new Date(Date.now() - 1000),
     });
@@ -78,7 +77,7 @@ describe('POST /v1/bot/requests/:id/typing', () => {
   it.each(['failed', 'cancelled'])(
     'responde 409 request_closed com o Pedido %s',
     async (status) => {
-      const { requestId } = await openRequest();
+      const requestId = await openRequest();
       await botRoutes.updateRequest(app, requestId, { status });
 
       const response = await botRoutes.typing(app, requestId);

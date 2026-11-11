@@ -85,7 +85,7 @@ describe('Resposta e digitando do bot em tempo real', () => {
         username: bot.username,
       },
     };
-    return { author, channel, requestId, socket, expected };
+    return { author, requestId, socket, expected };
   }
 
   it('o digitando do bot chega com author bot só a quem abriu a Conversa', async () => {

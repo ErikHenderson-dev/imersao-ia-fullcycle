@@ -941,7 +941,7 @@ function uuidV7LowerBound(instant: Date): string {
 }
 
 // O autor no formato da Mensagem.
-function toAuthor(
+export function toAuthor(
   kind: MessageAuthor['kind'],
   { id, name, username }: PersonAuthor,
 ): MessageAuthor {

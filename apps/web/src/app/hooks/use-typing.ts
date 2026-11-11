@@ -76,7 +76,7 @@ export function useTypingAnnouncer(conversationId: string) {
 // Quem está digitando na Conversa, Pessoa ou Agente (spec da F11, "Cliente"), em ordem de chegada.
 // Cada aviso (re)arma o prazo da `expiração do digitando`; o aviso de que parou, o prazo vencido ou
 // a queda da própria conexão tiram quem digitava.
-export function useTypingPeople(conversationId: string): readonly Typer[] {
+export function useTypers(conversationId: string): readonly Typer[] {
   const { socket } = useRealtime();
   const [typers, setTypers] = useState<readonly Typer[]>([]);
 
