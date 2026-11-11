@@ -1,6 +1,6 @@
 # 05: O Agente aparece digitando
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** enquanto o Agente trabalha num Pedido, quem está na Conversa vê que ele está
 digitando, com o nome dele; o aviso some quando a resposta chega, ou em poucos segundos se o

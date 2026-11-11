@@ -534,10 +534,16 @@ Situação: `existe`.
   novo aviso; a queda da própria conexão esvazia a lista.
 - A aba que sai da sala (fecha a Conversa ou abre outra) conta como aviso de que parou: a API o
   repassa aos outros da sala.
-- Alteração `planejada`: o evento traz `author`, Pessoa ou bot, no lugar de `person`. O bot avisa
-  pelo Serviço de agentes a cada `intervalo do aviso de digitando` enquanto o Pedido roda; a
-  gravação da resposta ou da pergunta conta como aviso de que parou, e a `expiração do digitando`
-  tira o bot da lista se o Serviço de agentes cair (spec da F11, seção ""Digitando" do bot").
+- O evento traz `author`, Pessoa ou bot, no formato do autor da Mensagem (spec da F11, seção
+  ""Digitando" do bot"). Situação do "digitando" do bot: `planejada`.
+- O bot avisa pelo Serviço de agentes, na rota de digitando do bot, ao começar o Pedido e a cada
+  `intervalo do aviso de digitando` enquanto ele roda. A rota passa pelas mesmas recusas de Pedido
+  da ação de bot ("Concorrência e idempotência", "Ação de bot"), sem entrar na unicidade, e emite o
+  aviso a todas as abas com a Conversa do Pedido aberta. A gravação da resposta ou da pergunta conta
+  como aviso de que parou, e a `expiração do digitando` tira o bot da lista se o Serviço de agentes
+  cair.
+- O aviso do bot num Pedido que já tem resposta ou pergunta gravada é aceito sem emitir nada: um
+  aviso atrasado, que cruzou com a gravação, não põe o bot de volta na lista depois da resposta.
 
 ### 6.4 Presença
 
@@ -736,7 +742,7 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Retenção dos eventos de reconexão | 5 min (PRD da F03, história 5) | API do chat (Redis) | Constante |
 | Intervalo de reconferência da Sessão no WebSocket | 60 s (spec da F03) | API do chat | Constante |
 | Ping do WebSocket | Intervalo de 10 s e espera de 5 s | API do chat | Constante |
-| Intervalo do aviso de digitando | 3 s | Web | Constante |
+| Intervalo do aviso de digitando | 3 s | Web e Serviço de agentes | Constante |
 | Expiração do digitando | 5 s (PRD da F03, história 3) | Web | Constante |
 | Atraso da faixa de conexão | 3 s (PRD da F03, história 4) | Web | Constante |
 | Distância do fim da lista | 100 px: até ela, a Mensagem nova rola a lista | Web | Constante |
