@@ -394,7 +394,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/conversations/:id/messages` | existe | Envio sem duplicar ("Concorrência e idempotência"): spec da F02, seção "Rotas"; a Citação: spec da F06, seção "Rotas". `agent_username` e `agent_request`, com o Pedido `new`: spec da F11, seção "Envio e Pergunta pendente". Alteração `planejada`: o Pedido `continuation` e a Pergunta pendente ("Estados e regras", seção "Pedido ao agente e Pergunta pendente"): mesma seção |
 | API do chat: `POST /v1/agent-requests/:id/close` | existe | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
 | API do chat: `GET /v1/bot/requests/:id/messages` | existe | Leitura do Recorte pelo bot, com a credencial de bot ("Segurança") e o "Teto de Mensagens do resumo"; `until` exclusivo, e o Serviço de agentes passa o instante da Mensagem do Pedido: spec da F11, seção "Rotas do bot e credencial" |
-| API do chat: `GET /v1/bot/requests/:id/message-counts` | planejada | Contagem dos Recortes pelo bot, com a credencial de bot: mesma seção |
+| API do chat: `GET /v1/bot/requests/:id/message-counts` | planejada | Contagem dos Recortes pelo bot, com a credencial de bot; aceita o mesmo `until` exclusivo da leitura, para as contagens serem as que a leitura devolveria: mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/question` | planejada | Pergunta do bot, com a credencial de bot: mesma seção |
@@ -617,8 +617,10 @@ continua `open` no banco, mas recusa as ações do bot.
 - Um Pedido entregue duas vezes ao Serviço de agentes (o reenvio do mesmo `client_id` dispara de
   novo) roda uma vez só: a sessão do ADK, com o id do Pedido, já existe na segunda entrega, que a
   rota aceita sem rodar nem contar no `limite de pedidos por pessoa`; duas entregas simultâneas
-  esbarram na criação da sessão, e a segunda termina sem gravar nada. A continuação, que retoma a
-  sessão do Pedido pai, precisa da própria guarda (F11-T07).
+  esbarram na criação da sessão, e a segunda termina sem gravar nada. A continuação roda na sessão
+  do Pedido pai, com o contexto da pergunta, e antes cria uma sessão marcadora com o próprio id, que
+  é a mesma guarda: a entrega repetida da continuação também é aceita sem rodar. Sem a sessão do
+  pai, roda na marcadora, sem o contexto da pergunta. `planejado` (F11-T07).
 
 **Pergunta pendente**
 
@@ -628,7 +630,11 @@ continua `open` no banco, mas recusa as ações do bot.
   que menciona um Agente, que vira Pedido `new`. Mensagens de outros Membros não a encerram.
 - Vencida, é reconhecida pelo `expires_at` na leitura, sem rotina. Ao encerrar, a Mensagem da
   pergunta sai em `message.updated` com as Respostas prontas fechadas; ao vencer, o cliente as
-  desativa pelo `expires_at`.
+  desativa pelo `expires_at`. A primeira Mensagem de quem pediu encerra também a pergunta vencida,
+  sem virar continuação. `planejado` (F11-T07).
+- O cliente aceita o `message.updated` que fecha as Respostas prontas mesmo sem `edited_at` mais
+  novo, porque o fechamento só vai de aberto para encerrado; a edição continua descartada quando é
+  mais velha. `planejado` (F11-T07).
 - Um Pedido que falha não reabre a pergunta que encerrou.
 
 ## 7. Processos de segundo plano

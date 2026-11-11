@@ -1,6 +1,6 @@
 # 07: Escolher o Recorte por Resposta pronta ou responder sem Menção
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** sem Recorte no pedido, o Agente pergunta e oferece "Hoje", "Desde ontem", "A
 semana" e "Tudo", cada um com a quantidade de Mensagens. Quem pediu clica num botão ou escreve a
