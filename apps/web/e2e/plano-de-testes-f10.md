@@ -67,3 +67,14 @@ nos dois temas, sem violações do axe.
 Acessibilidade (`acessibilidade/desconectar-agente-sem-violacoes.spec.ts`): a confirmação, nos dois
 temas, sem violações do axe. Os testes de acessibilidade da F10 esperam as transições de cor da
 troca de tema antes de medir o contraste.
+
+## F10-T08 · Mudança de conexão em tempo real (`agentes/tempo-real.spec.ts`)
+
+1. **A outra Pessoa vê a mudança sem recarregar:** com o diálogo dela aberto em "Não conectado", o
+   administrador conecta; o diálogo dela passa a "Conectado" e a linha aparece na barra lateral;
+   quando ele desconecta, a linha some.
+2. **A reconexão relê a lista:** o Agente é conectado direto no banco, sem evento, com a aba fora
+   do ar; quando a rede volta, a linha aparece sem recarregar.
+
+O chip do Agente virando texto comum sem recarregar fica com a F10-T09 (CA7 dela), porque a 09
+ainda não estava concluída.

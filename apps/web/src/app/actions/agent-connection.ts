@@ -1,7 +1,7 @@
 "use server";
 
 import { setConnection } from "@/app/services/agents-service";
-import { getCurrentPerson } from "@/app/services/chat-api";
+import { announceAgentsChanged, getCurrentPerson } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 
 // O resultado de conectar e desconectar (spec da F10, "BFF"): a união da F01 mais `forbidden`.
@@ -30,5 +30,12 @@ async function changeConnection(slug: unknown, connected: boolean): Promise<Conn
   const session = await getCurrentPerson(token);
   if (session.kind !== "ok") return session;
   if (!session.person.isAdmin) return { kind: "forbidden" };
-  return setConnection(slug, connected, session.person);
+  const result = await setConnection(slug, connected, session.person);
+  if (result.kind !== "ok") return result;
+  // O estado já mudou: uma falha no aviso só vai para o log, e os outros clientes acertam na
+  // próxima conexão do socket.
+  if (!(await announceAgentsChanged(token))) {
+    console.error(`Falha ao avisar a mudança de conexão do agente ${slug}`);
+  }
+  return result;
 }

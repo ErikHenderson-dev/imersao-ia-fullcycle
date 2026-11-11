@@ -826,3 +826,13 @@ export async function markActivityRead(token: string, messageId: string): Promis
   if (response?.status === 400) return { kind: "invalid" };
   return commonFailure(response);
 }
+
+// Avisa o workspace que o registro de Agentes mudou (spec da F10, "BFF", passo 4): a API do chat
+// publica o agents.changed. Devolve se a API confirmou.
+export async function announceAgentsChanged(token: string): Promise<boolean> {
+  const response = await request("/v1/agents/changed", {
+    method: "POST",
+    headers: authenticated(token),
+  });
+  return response?.status === 204;
+}

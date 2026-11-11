@@ -10,6 +10,7 @@ export type ErrorCode =
   | 'members_not_editable'
   | 'message_not_found'
   | 'message_not_owned'
+  | 'forbidden'
   | 'quoted_message_not_found'
   | 'not_found'
   | 'payload_too_large'
@@ -28,6 +29,7 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   members_not_editable: 409,
   message_not_found: 404,
   message_not_owned: 403,
+  forbidden: 403,
   quoted_message_not_found: 404,
   not_found: 404,
   payload_too_large: 413,

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import useSWR from "swr";
+import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import type { Agent } from "@/app/services/agents-service";
 import { redirectToExpiredSession } from "@/app/utils/return-path";
 
@@ -28,8 +29,9 @@ type AgentsContextValue = {
 const AgentsContext = createContext<AgentsContextValue | null>(null);
 
 // A lista de Agentes do cliente, num cache do SWR com a lista lida pelo layout como ponto de
-// partida. Ela não se relê sozinha: quem relê é a abertura do diálogo, o "Tentar de novo" e, nas
-// próximas tarefas, o agents.changed, a conexão do socket e as ações de conectar e desconectar.
+// partida. Ela se relê no agents.changed, a cada conexão e reconexão do socket (o evento perdido
+// numa queda não volta), na abertura do diálogo, no "Tentar de novo" e depois de conectar e
+// desconectar (spec da F10, "Lista de Agentes no cliente").
 export function AgentsProvider({
   initialAgents,
   children,
@@ -46,6 +48,14 @@ export function AgentsProvider({
     shouldRetryOnError: false,
   });
   const reload = useCallback(() => mutate(), [mutate]);
+  const { status, subscribe } = useRealtime();
+
+  useEffect(() => subscribe({ onAgentsChanged: () => void mutate() }), [subscribe, mutate]);
+
+  // Cada "connected" é uma conexão nova: a primeira ou a volta depois de uma queda.
+  useEffect(() => {
+    if (status === "connected") void mutate();
+  }, [status, mutate]);
   const value = useMemo(
     () => ({ agents: data ?? null, error, isValidating, reload }),
     [data, error, isValidating, reload],
