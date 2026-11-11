@@ -94,12 +94,23 @@ def requested_at(request: AgentRequestBody) -> datetime:
     return uuid7_instant(message_id) if message_id.version == 7 else datetime.now(UTC)
 
 
-async def final_text(
-    request: AgentRequestBody, deps: ExecutionDeps, session: Session, usage: Usage
-) -> str | None:
-    """Roda o agente na sessão dada e devolve o texto final do modelo."""
-    runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
+@dataclass
+class RunResult:
+    """O que a execução do agente produziu: o texto final do modelo, ou a pergunta gravada pela
+    ferramenta (F11-T07), que dispensa a `reply`."""
+
     text: str | None = None
+    asked: bool = False
+
+
+async def run_agent(
+    request: AgentRequestBody, deps: ExecutionDeps, session: Session, usage: Usage
+) -> RunResult:
+    """Roda o agente na sessão dada e devolve o texto final ou a marca da pergunta, vista no
+    `state_delta` do evento da ferramenta."""
+    runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
+    result = RunResult()
+    request_id = str(request.request_id)
     async for event in runner.run_async(
         user_id=session.user_id,
         session_id=session.id,
@@ -110,10 +121,12 @@ async def final_text(
         run_config=deps.run_config,
     ):
         usage.add(event.usage_metadata)
+        if event.actions.state_delta.get(context.QUESTION_FOR) == request_id:
+            result.asked = True
         if event.is_final_response() and event.content and event.content.parts:
             joined = "".join(part.text or "" for part in event.content.parts).strip()
-            text = joined or text
-    return text
+            result.text = joined or result.text
+    return result
 
 
 async def run_request(request: AgentRequestBody, deps: ExecutionDeps) -> None:
@@ -151,9 +164,10 @@ async def execute(
     text: str | None = None
     try:
         session = await request_session(request, deps)
-        text = await final_text(request, deps, session, usage)
-        if await asked_question(request, deps, session):
+        result = await run_agent(request, deps, session, usage)
+        if result.asked:
             return "question"
+        text = result.text
     except AlreadyExistsError:
         # Duas entregas simultâneas do mesmo Pedido, que passaram juntas pela conferência da rota:
         # a primeira é que responde.
@@ -195,7 +209,6 @@ async def request_session(request: AgentRequestBody, deps: ExecutionDeps) -> Ses
         app_name=app_name,
         user_id=user_id,
         session_id=str(request.request_id),
-        state={context.CONTINUATION_OF: str(parent_id)} if is_continuation else None,
     )
     if not is_continuation:
         return own
@@ -203,18 +216,6 @@ async def request_session(request: AgentRequestBody, deps: ExecutionDeps) -> Ses
         app_name=app_name, user_id=user_id, session_id=str(parent_id)
     )
     return parent or own
-
-
-async def asked_question(
-    request: AgentRequestBody, deps: ExecutionDeps, session: Session
-) -> bool:
-    """Se a ferramenta gravou a pergunta neste Pedido: ele termina sem `reply`."""
-    current = await deps.session_service.get_session(
-        app_name=session.app_name, user_id=session.user_id, session_id=session.id
-    )
-    return bool(current) and current.state.get(context.QUESTION_FOR) == str(
-        request.request_id
-    )
 
 
 async def write_reply(

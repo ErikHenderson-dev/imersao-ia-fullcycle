@@ -11,12 +11,7 @@ from typing import Any
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
-from app.agent_requests.question import (
-    QUESTION_BODY,
-    ChatApiCounter,
-    question_asked,
-    recorte_options,
-)
+from app.agent_requests.question import QUESTION_BODY, question_asked, recorte_options
 from app.agent_requests.reading import ChatApiSource, read_recorte
 from app.agent_requests.recorte import Recorte
 from app.chat_api import CURRENT_CHAT_API
@@ -65,7 +60,7 @@ async def perguntar_recorte(tool_context: ToolContext) -> dict[str, Any]:
         return {"erro": FORA_DE_UM_PEDIDO}
     request_id = tool_context.state[context.REQUEST_ID]
     options = await recorte_options(
-        ChatApiCounter(client, request_id), tool_context.state
+        ChatApiSource(client, request_id), tool_context.state
     )
     await client.question(request_id, QUESTION_BODY, options)
     return question_asked(tool_context, options)

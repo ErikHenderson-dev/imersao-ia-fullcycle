@@ -45,7 +45,7 @@ class MessageSource(Protocol):
 
 
 class ChatApiSource:
-    """As Mensagens do Pedido pela rota /v1/bot da API do chat."""
+    """As Mensagens do Pedido e as contagens dos Recortes pelas rotas /v1/bot da API do chat."""
 
     def __init__(self, client: ChatApiClient, request_id: str) -> None:
         self._client = client
@@ -60,6 +60,19 @@ class ChatApiSource:
             until=to_api_instant(until),
             author_username=author_username,
         )
+
+    async def count(self, sinces: list[datetime], until: datetime) -> dict[str, Any]:
+        return await self._client.message_counts(
+            self._request_id,
+            sinces=[to_api_instant(since) for since in sinces],
+            until=to_api_instant(until),
+        )
+
+
+def request_clock(state: Mapping[str, Any]) -> tuple[str, datetime]:
+    """O fuso de quem pediu (o padrão, sem ele) e o instante do Pedido, do estado da sessão."""
+    time_zone = state.get(context.TIME_ZONE) or DEFAULT_TIME_ZONE
+    return time_zone, datetime.fromisoformat(state[context.REQUESTED_AT])
 
 
 def username_of(pessoa: str | None) -> str | None:
@@ -77,9 +90,8 @@ async def read_recorte(
     """O Recorte pedido, pronto para o modelo resumir."""
     if recorte not in RECORTES:
         return {"erro": f"Recorte desconhecido. Use um destes: {', '.join(RECORTES)}."}
-    tz_name = state.get(context.TIME_ZONE) or DEFAULT_TIME_ZONE
+    tz_name, requested_at = request_clock(state)
     tz = zone(tz_name)
-    requested_at = datetime.fromisoformat(state[context.REQUESTED_AT])
     interval = recorte_interval(recorte, tz_name, requested_at)
     username = username_of(pessoa)
     page = await source.read(interval.since, interval.until, username)

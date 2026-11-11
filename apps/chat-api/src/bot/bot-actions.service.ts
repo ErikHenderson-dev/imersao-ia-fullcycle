@@ -147,10 +147,21 @@ export class BotActionsService {
     if (!quickReplies) {
       return { message: inserted, created: true, closedQuestion: null };
     }
-    const closed = await this.pendingQuestions.open(request, inserted.id);
+    const { opened, closed } = await this.pendingQuestions.open(
+      request,
+      inserted.id,
+    );
     return {
-      // Relida com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
-      message: await this.messages.viewById(inserted.id),
+      // Com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
+      message: {
+        ...inserted,
+        quickReplies: {
+          options: quickReplies,
+          ownerId: opened.personId,
+          expiresAt: opened.expiresAt,
+          closed: false,
+        },
+      },
       created: true,
       closedQuestion: closed?.questionMessageId ?? null,
     };

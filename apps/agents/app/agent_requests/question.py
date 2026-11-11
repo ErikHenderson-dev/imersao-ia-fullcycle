@@ -16,12 +16,8 @@ from typing import Any, Protocol
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
-from app.agent_requests.recorte import (
-    DEFAULT_TIME_ZONE,
-    recorte_interval,
-    to_api_instant,
-)
-from app.chat_api import ChatApiClient
+from app.agent_requests.reading import request_clock
+from app.agent_requests.recorte import recorte_interval
 
 # O texto da pergunta, como no Figma (Conversa / Mensagem / Pergunta do agente).
 QUESTION_BODY = (
@@ -51,25 +47,9 @@ class MessageCounter(Protocol):
         ...
 
 
-class ChatApiCounter:
-    """As contagens do Pedido pela rota /v1/bot da API do chat."""
-
-    def __init__(self, client: ChatApiClient, request_id: str) -> None:
-        self._client = client
-        self._request_id = request_id
-
-    async def count(self, sinces: list[datetime], until: datetime) -> dict[str, Any]:
-        return await self._client.message_counts(
-            self._request_id,
-            sinces=[to_api_instant(since) for since in sinces],
-            until=to_api_instant(until),
-        )
-
-
 def count_window(state: Mapping[str, Any]) -> CountWindow:
     """Os inícios dos Recortes e o fim, pelo fuso e pelo instante do Pedido no estado."""
-    time_zone = state.get(context.TIME_ZONE) or DEFAULT_TIME_ZONE
-    requested_at = datetime.fromisoformat(state[context.REQUESTED_AT])
+    time_zone, requested_at = request_clock(state)
     intervals = [
         recorte_interval(recorte, time_zone, requested_at)
         for recorte, _ in COUNTED_RECORTES

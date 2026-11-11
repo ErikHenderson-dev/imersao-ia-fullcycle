@@ -803,10 +803,12 @@ export class MessagesService {
     else if (bot)
       agentRequest = await this.openRequest(message, author.id, bot);
     else if (closedQuestion && !isExpired(closedQuestion)) {
-      agentRequest = await this.continueRequest(
+      const [questionBot] = await this.bots.findByIds([closedQuestion.botId]);
+      agentRequest = await this.openRequest(
         message,
         author.id,
-        closedQuestion,
+        questionBot,
+        closedQuestion.requestId,
       );
     }
     return {
@@ -823,36 +825,24 @@ export class MessagesService {
     };
   }
 
-  // A resposta à Pergunta pendente vira a continuação do Pedido que perguntou, com o bot dele.
-  private async continueRequest(
-    message: Message,
-    requesterId: string,
-    question: { requestId: string; botId: string },
-  ): Promise<AgentRequestView> {
-    const request = await this.agentRequests.openContinuation({
-      conversationId: message.conversationId,
-      requesterId,
-      botId: question.botId,
-      triggerMessageId: message.id,
-      parentRequestId: question.requestId,
-    });
-    const [bot] = await this.bots.findByIds([question.botId]);
-    return toAgentRequestView(request, bot.username);
-  }
-
-  // A Mensagem nova que menciona um Agente vira um Pedido `new`, na mesma transação (spec da F11,
-  // "Envio e Pergunta pendente").
+  // A Mensagem nova vira um Pedido na mesma transação (spec da F11, "Envio e Pergunta pendente"):
+  // `new` quando menciona o Agente, e a continuação do Pedido que perguntou quando responde à
+  // Pergunta pendente, com o bot dele.
   private async openRequest(
     message: Message,
     requesterId: string,
     bot: Bot,
+    parentRequestId: string | null = null,
   ): Promise<AgentRequestView> {
-    const request = await this.agentRequests.openNew({
-      conversationId: message.conversationId,
-      requesterId,
-      botId: bot.id,
-      triggerMessageId: message.id,
-    });
+    const request = await this.agentRequests.open(
+      {
+        conversationId: message.conversationId,
+        requesterId,
+        botId: bot.id,
+        triggerMessageId: message.id,
+      },
+      parentRequestId,
+    );
     return toAgentRequestView(request, bot.username);
   }
 

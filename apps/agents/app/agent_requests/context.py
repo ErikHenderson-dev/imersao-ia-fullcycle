@@ -19,5 +19,3 @@ MENTIONS = "mentions"
 KIND = "kind"
 # O Pedido que gravou a pergunta com as Respostas prontas: ele termina sem `reply` (F11-T07).
 QUESTION_FOR = "pergunta_do_pedido"
-# Na sessão marcadora da continuação, o Pedido que perguntou (F11-T07).
-CONTINUATION_OF = "continuacao_de"

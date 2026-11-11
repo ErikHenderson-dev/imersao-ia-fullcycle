@@ -128,7 +128,7 @@ export function MessageItem({
             <QuickReplies
               quickReplies={message.quickReplies}
               currentPersonId={currentPersonId ?? ""}
-              onSelect={(label) => onQuickReply?.(label)}
+              onSelect={onQuickReply}
             />
           )}
         </>

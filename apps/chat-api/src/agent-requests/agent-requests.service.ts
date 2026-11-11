@@ -40,28 +40,17 @@ export class AgentRequestsService {
     return this.txHost.tx.getRepository(BotAction);
   }
 
-  // O Pedido `new` da Mensagem que menciona um Agente, válido pela validade do identificador.
-  openNew(request: NewAgentRequest): Promise<AgentRequest> {
-    return this.requests.save(
-      this.requests.create({
-        ...request,
-        kind: 'new',
-        parentRequestId: null,
-        status: 'open',
-        expiresAt: new Date(Date.now() + AGENT_REQUEST_TTL_MS),
-      }),
-    );
-  }
-
-  // A continuação: a resposta de quem pediu à Pergunta pendente, apontando para o Pedido que
-  // perguntou, com a mesma validade do Pedido new.
-  openContinuation(
-    request: NewAgentRequest & { parentRequestId: string },
+  // O Pedido da Mensagem, válido pela validade do identificador: `new` quando ela menciona um
+  // Agente, e `continuation` quando responde à Pergunta pendente do Pedido `parentRequestId`.
+  open(
+    request: NewAgentRequest,
+    parentRequestId: string | null = null,
   ): Promise<AgentRequest> {
     return this.requests.save(
       this.requests.create({
         ...request,
-        kind: 'continuation',
+        kind: parentRequestId ? 'continuation' : 'new',
+        parentRequestId,
         status: 'open',
         expiresAt: new Date(Date.now() + AGENT_REQUEST_TTL_MS),
       }),

@@ -17,7 +17,7 @@ type QuickRepliesProps = {
   quickReplies: QuickRepliesData;
   currentPersonId: string;
   // O envio comum do texto do botão, como se a Pessoa o escrevesse (spec da F11, "Disparo pelo BFF").
-  onSelect: (label: string) => void;
+  onSelect?: (label: string) => void;
 };
 
 // As Respostas prontas da pergunta do Agente (spec da F11, "Cliente"): botões nativos, na ordem da
@@ -40,7 +40,7 @@ export function QuickReplies({ quickReplies, currentPersonId, onSelect }: QuickR
             aria-label={state === "other_member" ? `${label}, só quem pediu pode responder` : undefined}
             onClick={() => {
               setChosen(true);
-              onSelect(label);
+              onSelect?.(label);
             }}
             className={buttonVariants({ variant: "secondary", size: "sm" })}
           >
