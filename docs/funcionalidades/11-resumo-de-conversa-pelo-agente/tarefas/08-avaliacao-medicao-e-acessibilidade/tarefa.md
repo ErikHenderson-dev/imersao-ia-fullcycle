@@ -23,5 +23,5 @@ pedidos e teto de custo) e 07 (Escolher o Recorte por Resposta pronta ou respond
   Mensagens com o modelo padrão, e o custo por Pedido calculado dos tokens ficam nesta pasta.
 - [ ] **CA3** · O roteiro manual do Lighthouse, feito por uma pessoa com uma Conversa que tem um
   resumo e uma pergunta com Respostas prontas, registra 100 nos dois temas nesta pasta.
-- [ ] **CA4** · O plano de testes da F11 fica junto dos testes do Playwright, e a suíte e2e inteira
+- [x] **CA4** · O plano de testes da F11 fica junto dos testes do Playwright, e a suíte e2e inteira
   passa antes do PR.
