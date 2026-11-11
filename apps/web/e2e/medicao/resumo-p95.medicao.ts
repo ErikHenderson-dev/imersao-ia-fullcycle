@@ -53,24 +53,27 @@ declare global {
   }
 }
 
-// Roda na página: marca o Enter e o primeiro item que entra na lista de Mensagens com o botão do nome
-// do Agente (o que agentMessage procura).
-function markSendAndAgentReply(listName: string): void {
+// Roda na página: marca o Enter na caixa de mensagem e o primeiro nó que entra na lista de Mensagens
+// com o botão do nome do Agente (o que agentMessage procura). Sem a caixa ou a lista, falha.
+function markSendAndAgentReply({ listName, composerName }: { listName: string; composerName: string }): void {
+  const box = document.querySelector(`[aria-label="${composerName}"]`);
+  const list = document.querySelector(`[aria-label="${listName}"]`);
+  if (!box || !list) throw new Error("caixa de mensagem ou lista de Mensagens não encontrada");
   window.__sentAt = undefined;
   window.__agentReplyAt = undefined;
-  document.addEventListener(
+  box.addEventListener(
     "keydown",
     (event) => {
-      if (event.key === "Enter") window.__sentAt ??= performance.now();
+      if ((event as KeyboardEvent).key === "Enter") window.__sentAt ??= performance.now();
     },
-    { capture: true },
+    { once: true },
   );
-  const list = document.querySelector(`[aria-label="${listName}"]`) ?? document.body;
   const observer = new MutationObserver((records) => {
     const added = records.flatMap((record) => [...record.addedNodes]);
+    const isAgentButton = (element: Element) =>
+      element.matches("button") && element.textContent?.trim() === "Assistente";
     const isAgentItem = (node: Node) =>
-      node instanceof Element &&
-      [...node.querySelectorAll("button")].some((button) => button.textContent?.trim() === "Assistente");
+      node instanceof Element && [node, ...node.querySelectorAll("button")].some(isAgentButton);
     if (added.some(isAgentItem)) {
       window.__agentReplyAt = performance.now();
       observer.disconnect();
@@ -99,6 +102,9 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
       const now = Date.now();
       const startOfToday =
         Math.floor((now - DEFAULT_ZONE_OFFSET_MS) / DAY_MS) * DAY_MS + DEFAULT_ZONE_OFFSET_MS;
+      // Perto da meia-noite, as 500 Mensagens não cabem no "hoje" de quem pede.
+      expect(now - startOfToday, "longe da meia-noite do fuso padrão").toBeGreaterThan(30 * 60_000);
+      expect(startOfToday + DAY_MS - now, "longe da meia-noite do fuso padrão").toBeGreaterThan(5 * 60_000);
       const start = Math.max(startOfToday + 60_000, now - 6 * 3_600_000);
       const step = (now - 60_000 - start) / MESSAGES;
       await insertMessages(
@@ -119,10 +125,17 @@ test("p95 do resumo numa Conversa de 500 Mensagens", async ({ page, person, agen
       await box.fill("@assistente resume hoje");
       await box.press("Escape");
       await page.waitForTimeout(Math.max(0, lastSend + MIN_GAP_MS - Date.now()));
-      await page.evaluate(markSendAndAgentReply, `Mensagens em #${channel.name}`);
+      await page.evaluate(markSendAndAgentReply, {
+        listName: `Mensagens em #${channel.name}`,
+        composerName: `Mensagem para #${channel.name}`,
+      });
       lastSend = Date.now();
       await box.press("Enter");
-      await expect(agentMessage(page, channel.name)).toHaveCount(1, { timeout: MODEL_TIMEOUT_MS });
+      const reply = agentMessage(page, channel.name);
+      await expect(reply).toHaveCount(1, { timeout: MODEL_TIMEOUT_MS });
+      // Só o resumo vale como amostra: a pergunta pelo Recorte, a recusa e o "não consegui" são mais
+      // curtos e puxariam o p95 para baixo. O cabeçalho do resumo é o único com "Resumo".
+      await expect(reply, "a resposta é o resumo").toContainText("Resumo");
       const ms = Math.round(await page.evaluate(() => window.__agentReplyAt! - window.__sentAt!));
       // Sem as duas marcas (a lista trocada no meio, por exemplo), a amostra não vale.
       expect(Number.isFinite(ms), "o Enter e a resposta marcados na página").toBe(true);

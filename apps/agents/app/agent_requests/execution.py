@@ -57,16 +57,21 @@ class ExecutionDeps:
 @dataclass
 class Usage:
     """Os tokens do Pedido, somados do `usage_metadata` de cada evento. A saída inclui o raciocínio,
-    que o Gemini informa à parte e cobra como saída (F11-T08)."""
+    cobrado como saída (F11-T08): é o total menos a entrada, porque o Gemini nativo informa o
+    raciocínio fora de `candidates_token_count`, e o LiteLlm, dentro dele."""
 
     input_tokens: int = 0
     output_tokens: int = 0
 
     def add(self, metadata: types.GenerateContentResponseUsageMetadata | None) -> None:
         if metadata:
-            self.input_tokens += metadata.prompt_token_count or 0
-            self.output_tokens += (metadata.candidates_token_count or 0) + (
-                metadata.thoughts_token_count or 0
+            prompt = metadata.prompt_token_count or 0
+            self.input_tokens += prompt
+            self.output_tokens += max(
+                (metadata.total_token_count or 0)
+                - prompt
+                - (metadata.tool_use_prompt_token_count or 0),
+                0,
             )
 
 
