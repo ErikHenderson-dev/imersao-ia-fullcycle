@@ -2,6 +2,7 @@
 
 import pytest
 from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 from app.agent_requests.execution import ExecutionDeps
 from app.agents.assistente.agent import root_agent
@@ -22,3 +23,10 @@ async def test_o_pedido_roda_com_no_maximo_4_chamadas_ao_modelo() -> None:
 def test_o_assistente_escreve_no_maximo_1024_tokens_por_chamada() -> None:
     assert root_agent.generate_content_config is not None
     assert root_agent.generate_content_config.max_output_tokens == 1024
+
+
+def test_o_assistente_raciocina_no_nivel_baixo() -> None:
+    # O raciocínio conta nos 1024 tokens de saída: sem limite, ele cortava a resposta (F11-T08).
+    config = root_agent.generate_content_config
+    assert config is not None and config.thinking_config is not None
+    assert config.thinking_config.thinking_level == types.ThinkingLevel.LOW

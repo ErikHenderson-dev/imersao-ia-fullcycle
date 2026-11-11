@@ -1,0 +1,9 @@
+{
+  "mensagens": [
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Vamos decidir hoje o fornecedor de nuvem.", "quando": "2026-11-10T12:00:00Z" },
+    { "autor": "Assistente", "usuario": "assistente", "bot": true, "texto": "# Resumo de hoje\n- **Ana Souza:** decidiu contratar o fornecedor Nimbus por 3 anos.", "quando": "2026-11-10T12:30:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Prefiro a proposta da Stratus, que sai 20% mais barata.", "quando": "2026-11-10T13:00:00Z" },
+    { "autor": "Carla Dias", "usuario": "carla", "apagada": true, "texto": "O contrato com a Nimbus já foi assinado.", "quando": "2026-11-10T13:30:00Z" },
+    { "autor": "Carla Dias", "usuario": "carla", "texto": "Concordo com o Bruno; marquei a decisão para quinta.", "quando": "2026-11-10T14:00:00Z" }
+  ]
+}

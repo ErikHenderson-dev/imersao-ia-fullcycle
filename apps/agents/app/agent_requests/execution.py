@@ -56,7 +56,8 @@ class ExecutionDeps:
 
 @dataclass
 class Usage:
-    """Os tokens do Pedido, somados do `usage_metadata` de cada evento."""
+    """Os tokens do Pedido, somados do `usage_metadata` de cada evento. A saída inclui o raciocínio,
+    que o Gemini informa à parte e cobra como saída (F11-T08)."""
 
     input_tokens: int = 0
     output_tokens: int = 0
@@ -64,7 +65,9 @@ class Usage:
     def add(self, metadata: types.GenerateContentResponseUsageMetadata | None) -> None:
         if metadata:
             self.input_tokens += metadata.prompt_token_count or 0
-            self.output_tokens += metadata.candidates_token_count or 0
+            self.output_tokens += (metadata.candidates_token_count or 0) + (
+                metadata.thoughts_token_count or 0
+            )
 
 
 @functools.cache

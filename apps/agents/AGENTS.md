@@ -88,7 +88,8 @@ Cada agente tem uma pasta em `tests/eval/<agente>/`, com:
   dele em `session_input.state.eval_fixture`, junto do contexto do Pedido (`time_zone`,
   `requested_at`, `request_id`, `mentions`), e o `before_tool_callback` do agente
   (`app/eval_fixtures.py`) responde à ferramenta com a fixture no lugar da API do chat. Sem
-  `eval_fixture` no estado, o callback não faz nada.
+  `eval_fixture` no estado, o callback não faz nada. Uma Mensagem com `"bot": true` ou
+  `"apagada": true` fica fora da leitura e das contagens, como na rota de leitura do bot.
 
 A avaliação chama o modelo e o juiz de verdade: ao iterar, rode só os casos que mudaram, com
 `<evalset>:<eval_id>,<eval_id>` no lugar do caminho do evalset.

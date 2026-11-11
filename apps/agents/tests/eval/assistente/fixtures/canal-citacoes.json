@@ -1,0 +1,9 @@
+{
+  "mensagens": [
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "@bruno, você consegue subir a versão nova da API hoje?", "quando": "2026-11-10T12:00:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Consigo, subo depois do almoço.", "quando": "2026-11-10T12:10:00Z" },
+    { "autor": "Carla Dias", "usuario": "carla", "texto": "Bruno ficou com a API; eu cuido da documentação.", "quando": "2026-11-10T13:00:00Z" },
+    { "autor": "Ana Souza", "usuario": "ana", "texto": "Valeu, @bruno. Avisa quando subir.", "quando": "2026-11-10T14:00:00Z" },
+    { "autor": "Bruno Lima", "usuario": "bruno", "texto": "Versão nova da API publicada.", "quando": "2026-11-10T16:00:00Z" }
+  ]
+}

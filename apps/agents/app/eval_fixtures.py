@@ -6,8 +6,9 @@ evalset preenche: o estado de um Pedido real vem do `request_state`, que nunca t
 modelo não grava estado. Com ela, responde a `ler_mensagens` pela mesma `read_recorte` de
 produção, com a Conversa de `tests/eval/<agente>/fixtures/<nome>.json` no lugar da API do chat.
 
-Formato da fixture: `{"mensagens": [{"autor", "usuario", "texto", "quando"}]}`, só Mensagens de
-Pessoas, com `quando` em ISO UTC. A `perguntar_recorte` (F11-T07) recebe as contagens da mesma
+Formato da fixture: `{"mensagens": [{"autor", "usuario", "texto", "quando", "bot"?, "apagada"?}]}`,
+com `quando` em ISO UTC. As Mensagens com `bot` ou `apagada` verdadeiro ficam fora da leitura e das
+contagens, como na rota (F11-T08). A `perguntar_recorte` (F11-T07) recebe as contagens da mesma
 Conversa, e a pergunta não é gravada: o estado e o fim do turno ficam como na produção.
 """
 
@@ -50,6 +51,8 @@ class FixtureSource:
             (
                 (datetime.fromisoformat(message["quando"]), message)
                 for message in messages
+                # A rota lê só Mensagens de Pessoas, sem as apagadas.
+                if not message.get("bot") and not message.get("apagada")
             ),
             key=lambda pair: pair[0],
         )

@@ -107,3 +107,21 @@ com 409: o BFF a encerra como `cancelled`, sem erro na tela e sem o modelo.
 
 Acessibilidade (`acessibilidade/respostas-prontas-sem-violacoes.spec.ts`): a Conversa com a pergunta
 ativa para quem pediu, com um bot de `@usuário` aleatório, nos dois temas, sem violações do axe.
+
+## F11-T08 · Avaliação, medição e acessibilidade
+
+A tarefa não acrescenta teste à suíte: a avaliação do Agente é pelo `adk eval` (`apps/agents`), e a
+Acessibilidade do Lighthouse, por uma pessoa (roteiro manual da tarefa). Fecha a F11 com a suíte
+inteira passando antes do PR.
+
+**Medição fora da suíte** (`medicao/resumo-p95.medicao.ts`, com `playwright.medicao.config.ts`):
+o `testMatch` da suíte não pega `.medicao.ts`, e ela roda só a pedido, no contêiner `e2e`, com
+`npx playwright test --config playwright.medicao.config.ts`. Como na F11-T03, segura o
+`agentsLock`, cria o bot `assistente` se ele não existe, conecta o `assistente` e devolve o estado no
+fim; usa o modelo real.
+
+1. **p95 do resumo numa Conversa de 500 Mensagens:** em cada uma das 20 amostras, um Canal novo
+   com a Ana e três Pessoas de teste e 500 Mensagens de hoje; a Ana envia "@assistente resume hoje",
+   e o tempo vai do Enter até a Mensagem do Agente aparecer na aba dela. Imprime uma linha JSON por
+   amostra (com o id do Pedido, para ler os tokens no log do Serviço de agentes) e o p50 e o p95 no
+   fim. O resultado fica em `medicao-p95.md`, na pasta da tarefa.

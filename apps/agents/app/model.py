@@ -19,11 +19,19 @@ GEMINI_ATTEMPTS = 3
 # IA"; LLD, "Valores e configuração"). Todo agente o aplica no generate_content_config, para o adk eval
 # rodar com o mesmo teto da produção.
 MAX_OUTPUT_TOKENS = 1024
+# O raciocínio do modelo conta nos tokens de saída: sem limite, ele chegou a gastar 984 dos 1024 e
+# cortou o resumo (avaliação da F11-T08). O LiteLlm traduz o nível no esforço de raciocínio do
+# provedor que o aceita.
+THINKING_LEVEL = types.ThinkingLevel.LOW
 
 
 def generation_config() -> types.GenerateContentConfig:
-    """A configuração de geração comum aos agentes, com o teto de tokens de saída."""
-    return types.GenerateContentConfig(max_output_tokens=MAX_OUTPUT_TOKENS)
+    """A configuração de geração comum aos agentes, com o teto de tokens de saída e o nível de
+    raciocínio."""
+    return types.GenerateContentConfig(
+        max_output_tokens=MAX_OUTPUT_TOKENS,
+        thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVEL),
+    )
 
 
 def build_model(settings: ModelSettings | None = None) -> BaseLlm:
