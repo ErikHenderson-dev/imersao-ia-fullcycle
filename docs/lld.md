@@ -402,13 +402,15 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros" |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `PUT` e `DELETE /v1/agents/:slug/connection` | planejada | Conectar e desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
+| Serviço de agentes: `DELETE /v1/agents/:slug/connection` | planejada | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | planejada | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
 | API do chat: `GET /v1/people?admin=true` | existe | O filtro de administradores: spec da F10, seção "Papel de administrador" |
 | BFF: `GET /api/agents` | existe | Leitura do catálogo, com Sessão, e `agents_unavailable` (502) na falha do Serviço de agentes: spec da F10, seção "BFF" |
-| BFF: Server Actions `connectAgent` e `disconnectAgent` | planejada | Conectar e desconectar em nome do administrador: spec da F10, seção "BFF" |
+| BFF: Server Action `connectAgent` | existe | Conectar em nome do administrador, com o papel lido sem cache: spec da F10, seção "BFF" |
+| BFF: Server Action `disconnectAgent` | planejada | Desconectar em nome do administrador: spec da F10, seção "BFF" |
 
 ## 6. Estados e regras
 

@@ -1,6 +1,6 @@
 # 06: Conectar um Agente
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** o administrador vê na seção Agentes "Conectar agentes", com o número de
 desconectados, "Adicionar agente" ou "Gerenciar agentes", conforme o estado. Ele abre o diálogo e
@@ -29,21 +29,21 @@ Referências:
 
 **Bloqueada por:** 05 (Ver os Agentes e os administradores)
 
-- [ ] **CA1** · Antes do código, o Figma ganha o erro ao conectar, nos dois temas.
-- [ ] **CA2** · `PUT /v1/agents/:slug/connection` responde 204, inclusive repetido, sem mudar o
+- [x] **CA1** · Antes do código, o Figma ganha o erro ao conectar, nos dois temas.
+- [x] **CA2** · `PUT /v1/agents/:slug/connection` responde 204, inclusive repetido, sem mudar o
   `connected_by`; `unauthorized` sem credencial, `forbidden` sem `is_admin` antes de
   `agent_not_found` com `slug` fora do catálogo, e `validation_failed`; os testes de integração
   cobrem os casos.
-- [ ] **CA3** · `connectAgent` lê a Pessoa da Sessão sem cache, devolve `forbidden` sem chamar o
+- [x] **CA3** · `connectAgent` lê a Pessoa da Sessão sem cache, devolve `forbidden` sem chamar o
   Serviço de agentes quando ela não administra, e `failure` para qualquer falha dele.
-- [ ] **CA4** · Para o administrador, a seção mostra "Conectar agentes" com o CountBadge dos
+- [x] **CA4** · Para o administrador, a seção mostra "Conectar agentes" com o CountBadge dos
   desconectados, "Adicionar agente" com os conectados ou "Gerenciar agentes" com todos; cada linha
   e cada ação abrem o diálogo; o Vitest cobre as variantes de administrador.
-- [ ] **CA5** · O diálogo do administrador mostra "Conectar" nos desconectados e o aviso de "Admin
+- [x] **CA5** · O diálogo do administrador mostra "Conectar" nos desconectados e o aviso de "Admin
   sem conectados"; "Conectar" passa por "Conectando", sem segundo clique, e termina conectado; a
   falha mostra o toast de erro, e `forbidden` mostra "Só administradores conectam agentes".
-- [ ] **CA6** · O Playwright prova o administrador conectando o `assistente` pelo teclado e a outra
+- [x] **CA6** · O Playwright prova o administrador conectando o `assistente` pelo teclado e a outra
   Pessoa vendo a linha ao recarregar; um administrador que perdeu o papel pelo comando, com a tela
   aberta, recebe o erro; o axe no diálogo do administrador, nos dois temas, sem violações.
-- [ ] **CA7** · A validação visual dos frames de administrador citados, nos dois temas, fica nesta
+- [x] **CA7** · A validação visual dos frames de administrador citados, nos dois temas, fica nesta
   pasta.
