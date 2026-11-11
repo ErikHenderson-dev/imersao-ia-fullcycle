@@ -15,13 +15,10 @@
 
 from google.adk.agents import Agent
 from google.adk.apps import App
-from google.adk.models import Gemini
-from google.genai import types
+
+from app.model import build_model
 
 from .tools import get_current_time, get_weather
-
-
-MODEL = "gemini-3.8-flash"
 
 
 root_agent = Agent(
@@ -30,10 +27,8 @@ root_agent = Agent(
     # manifest's value. Renaming the agent only here makes the two disagree, and
     # anything selecting traces by name stops finding this agent's.
     name="assistente",
-    model=Gemini(
-        model=MODEL,
-        retry_options=types.HttpRetryOptions(attempts=3),
-    ),
+    # Provedor e modelo por AGENT_MODEL (spec da F11, "Modelo de IA").
+    model=build_model(),
     instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
     tools=[get_weather, get_current_time],
 )

@@ -60,6 +60,7 @@ def settings_for(url: str, *, adk_dev_routes: bool) -> Settings:
     return Settings(
         database_url=url,
         agents_service_token=SERVICE_TOKEN,
+        agent_model="gemini-3.8-flash",
         adk_dev_routes=adk_dev_routes,
     )
 
