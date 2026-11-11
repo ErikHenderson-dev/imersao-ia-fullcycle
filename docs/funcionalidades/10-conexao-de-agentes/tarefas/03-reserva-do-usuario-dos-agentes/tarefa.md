@@ -1,6 +1,6 @@
 # 03: Reserva do @usuário dos Agentes
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** quem opera a instalação cria o bot de cada Agente pelo comando de contas, e o
 `@usuário` dele fica reservado: nenhuma Pessoa nova pode tê-lo, e nenhum bot pode ter o `@usuário`
@@ -13,14 +13,14 @@ Mensagens. Esta tarefa decide a tabela `bots` e a função única de "`@usuário
 
 **Bloqueada por:** Nenhuma (pode começar imediatamente)
 
-- [ ] **CA1** · A migração cria `bots` com `username` único e os CHECKs de formato do `@usuário` e
+- [x] **CA1** · A migração cria `bots` com `username` único e os CHECKs de formato do `@usuário` e
   do nome das Pessoas; o teste das migrações prova a recusa de `username` repetido e fora do
   formato.
-- [ ] **CA2** · `create-bot <username> <nome>` cria o bot e recusa formato inválido, nome inválido,
+- [x] **CA2** · `create-bot <username> <nome>` cria o bot e recusa formato inválido, nome inválido,
   `@usuário` de uma Pessoa e `@usuário` de outro bot, com mensagens claras.
-- [ ] **CA3** · `create` recusa o `@usuário` de um bot, informado em `--username` ou derivado do
+- [x] **CA3** · `create` recusa o `@usuário` de um bot, informado em `--username` ou derivado do
   e-mail, pela mesma função de "`@usuário` livre".
-- [ ] **CA4** · O bot não aparece no login, na busca de Pessoas, nos Membros nem na Presença: os
+- [x] **CA4** · O bot não aparece no login, na busca de Pessoas, nos Membros nem na Presença: os
   testes de integração da busca continuam passando com um bot criado.
-- [ ] **CA5** · O guia de subida do ambiente, no `AGENTS.md` da raiz, inclui a criação do bot
+- [x] **CA5** · O guia de subida do ambiente, no `AGENTS.md` da raiz, inclui a criação do bot
   `assistente`.
