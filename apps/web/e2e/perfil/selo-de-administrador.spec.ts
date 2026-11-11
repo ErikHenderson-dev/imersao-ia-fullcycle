@@ -2,7 +2,7 @@
 // seed: e2e/seed.spec.ts
 import { expect, logIn, test } from "../fixtures";
 import { readyHistory } from "../support/conversation-page";
-import { insertHistory, setAdminOf } from "../support/database";
+import { insertHistory } from "../support/database";
 import { authorButton, profilePanel } from "../support/profile-panel";
 
 test.describe("Selo de administrador", () => {
@@ -12,9 +12,10 @@ test.describe("Selo de administrador", () => {
     otherPage,
     otherPerson,
     sharedChannel,
+    makeAdmin,
   }) => {
     // 1. A Ana administra; cada uma tem uma Mensagem no Canal das duas
-    await setAdminOf(person.id, true);
+    await makeAdmin(person);
     await insertHistory(sharedChannel, person, 1);
     await insertHistory(sharedChannel, otherPerson, 1);
 
@@ -45,6 +46,7 @@ test.describe("Selo de administrador", () => {
     otherPage,
     person,
     sharedChannel,
+    makeAdmin,
   }) => {
     // 1. O Bruno abre o perfil da Ana, que não administra, e fecha
     await insertHistory(sharedChannel, person, 1);
@@ -57,7 +59,7 @@ test.describe("Selo de administrador", () => {
     await panel.getByRole("button", { name: "Fechar perfil" }).click();
 
     // 2. A Ana passa a administrar, e o Bruno abre o perfil de novo
-    await setAdminOf(person.id, true);
+    await makeAdmin(person);
     await authorButton(otherPage, person.name).click();
     await expect(panel.getByText("Administrador", { exact: true })).toBeVisible();
   });

@@ -2,13 +2,12 @@
 // seed: e2e/seed.spec.ts
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "../fixtures";
-import { setAdminOf } from "../support/database";
 import { profilePanel } from "../support/profile-panel";
 
 test.describe("Acessibilidade", () => {
-  test("selo-de-administrador-sem-violacoes", async ({ loggedInPage: page, person }) => {
+  test("selo-de-administrador-sem-violacoes", async ({ loggedInPage: page, person, makeAdmin }) => {
     // 1. O próprio Perfil de uma administradora, com o selo, nos dois temas
-    await setAdminOf(person.id, true);
+    await makeAdmin(person);
     await page.getByRole("button", { name: `Menu de ${person.name}` }).focus();
     await page.keyboard.press("Enter");
     await page.getByRole("menuitem", { name: "Perfil", exact: true }).press("Enter");

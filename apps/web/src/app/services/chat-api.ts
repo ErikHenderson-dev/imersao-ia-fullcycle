@@ -493,13 +493,20 @@ export type SearchPeopleResult =
 
 export async function searchPeople(
   token: string,
-  { q, notMemberOf, memberOf }: { q: string; notMemberOf?: string; memberOf?: string },
+  {
+    q,
+    notMemberOf,
+    memberOf,
+    admin = false,
+  }: { q: string; notMemberOf?: string; memberOf?: string; admin?: boolean },
 ): Promise<SearchPeopleResult> {
   // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca"); com member_of, a lista de
   // menções (spec da F06).
   const query = new URLSearchParams({ q });
   if (notMemberOf !== undefined) query.set("not_member_of", notMemberOf);
   if (memberOf !== undefined) query.set("member_of", memberOf);
+  // Só os administradores, para o diálogo "Agentes" (spec da F10, "BFF").
+  if (admin) query.set("admin", "true");
   const response = await request(`/v1/people?${query.toString()}`, {
     method: "GET",
     headers: authenticated(token),

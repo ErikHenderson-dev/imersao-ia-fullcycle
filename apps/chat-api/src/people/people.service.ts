@@ -351,26 +351,31 @@ export class PeopleService {
     q: string,
     filter: { excludeIds: string[] } | { onlyIds: string[] },
     limit: number,
+    { onlyAdmins = false }: { onlyAdmins?: boolean } = {},
   ): Promise<Person[]> {
     // %, _ e \ do texto valem como literais no LIKE.
     // Os `@` do começo são do @usuário, e não do texto buscado (spec da F05, "Busca").
     const text = q.trim().replace(/^@+/, '').trim();
     const pattern = `%${text.replace(/[\\%_]/g, '\\$&')}%`;
-    return this.people
-      .createQueryBuilder('person')
-      .where(
-        "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
-        { pattern },
-      )
-      .andWhere(
-        'excludeIds' in filter
-          ? 'NOT (person.id = ANY(:ids))'
-          : 'person.id = ANY(:ids)',
-        { ids: 'excludeIds' in filter ? filter.excludeIds : filter.onlyIds },
-      )
-      .orderBy('unaccent(lower(person.name))', 'ASC')
-      .limit(limit)
-      .getMany();
+    return (
+      this.people
+        .createQueryBuilder('person')
+        .where(
+          "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
+          { pattern },
+        )
+        .andWhere(
+          'excludeIds' in filter
+            ? 'NOT (person.id = ANY(:ids))'
+            : 'person.id = ANY(:ids)',
+          { ids: 'excludeIds' in filter ? filter.excludeIds : filter.onlyIds },
+        )
+        // Só os administradores (spec da F10, "Papel de administrador").
+        .andWhere(onlyAdmins ? 'person.is_admin' : 'TRUE')
+        .orderBy('unaccent(lower(person.name))', 'ASC')
+        .limit(limit)
+        .getMany()
+    );
   }
 
   // O id, o nome, o @usuário e o cargo das Pessoas pedidas, para as listas por nome.

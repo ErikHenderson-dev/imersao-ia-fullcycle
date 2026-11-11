@@ -25,7 +25,7 @@ docker compose -f compose.yaml exec web <comando>
 | `pnpm test` | Testes de unidade das funções puras, com o Vitest (`src/**/*.test.ts`, em Node) |
 | `pnpm build` | Compila a aplicação para produção |
 
-Os testes de ponta a ponta rodam no contêiner `e2e` (`AGENTS.md` da raiz, "Subir e derrubar"), com a web e a API do chat de pé:
+Os testes de ponta a ponta rodam no contêiner `e2e` (`AGENTS.md` da raiz, "Subir e derrubar"), com a web, a API do chat e o Serviço de agentes de pé:
 
 ```bash
 docker compose -f compose.yaml exec e2e <comando>
@@ -46,7 +46,7 @@ A imagem do `e2e` tem npm, e não pnpm: os dois comandos só chamam o que o `pnp
 2. `pnpm exec tsc --noEmit`
 3. `pnpm test`
 4. `pnpm build`
-5. `npm run test:e2e`, no contêiner `e2e`, com a web e a API do chat de pé
+5. `npm run test:e2e`, no contêiner `e2e`, com a web, a API do chat e o Serviço de agentes de pé
 
 ## Server Components
 

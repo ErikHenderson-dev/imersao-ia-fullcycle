@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { AgentsProvider } from "@/app/components/agent/agents-provider";
 import { BfcacheReload } from "@/app/components/bfcache-reload";
 import { AlertCenter } from "@/app/components/notification/alert-center";
 import { PeopleProvider } from "@/app/components/people/people-provider";
@@ -19,6 +20,7 @@ import { Rail } from "@/app/components/workspace-nav/rail";
 import { Sidebar } from "@/app/components/workspace-nav/sidebar";
 import { Toaster } from "@/app/components/ui/toaster";
 import { env } from "@/app/config/env";
+import { listAgents } from "@/app/services/agents-service";
 import { getCurrentPerson } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import {
@@ -38,7 +40,11 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
 
 async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   const token = await readSessionToken();
-  const result = token ? await getCurrentPerson(token) : null;
+  // A lista de Agentes, junto da Pessoa da Sessão, para a primeira pintura da seção Agentes (spec da
+  // F10, "BFF"); a falha do Serviço de agentes não impede o layout: a lista fica indisponível.
+  const [result, agentsResult] = token
+    ? await Promise.all([getCurrentPerson(token), listAgents()])
+    : [null, null];
   if (result?.kind === "failure") {
     // Rede, 5xx ou tempo esgotado: não manda para "Entrar" nem apaga o cookie.
     return (
@@ -59,6 +65,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
       <ThemeProvider personTheme={result.person.theme}>
       <ProfilePanelProvider>
       <PeopleProvider sessionPerson={{ id: result.person.id, name: result.person.name }}>
+      <AgentsProvider initialAgents={agentsResult?.kind === "ok" ? agentsResult.agents : null}>
         <EditProfileProvider sessionPersonId={result.person.id}>
         <div className="flex h-screen flex-col">
           <ConnectionBanner />
@@ -70,7 +77,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
               navigation={
                 <>
                   <Rail person={result.person} />
-                  <Sidebar personId={result.person.id} />
+                  <Sidebar personId={result.person.id} isAdmin={result.person.isAdmin} />
                 </>
               }
             >
@@ -82,6 +89,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
         <Toaster />
         <AlertCenter personId={result.person.id} />
         </EditProfileProvider>
+      </AgentsProvider>
       </PeopleProvider>
       </ProfilePanelProvider>
       </ThemeProvider>

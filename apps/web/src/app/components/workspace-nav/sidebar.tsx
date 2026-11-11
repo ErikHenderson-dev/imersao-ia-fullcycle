@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AgentsSection } from "@/app/components/agent/agents-section";
 import { listConversations } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { ConversationList } from "./conversation-list";
@@ -6,9 +7,9 @@ import { SidebarError } from "./sidebar-error";
 import { SidebarSkeleton } from "./sidebar-skeleton";
 
 // Lista de Conversas: "Canais", com "Adicionar canal" no fim (F04), e "Mensagens diretas" (F05),
-// lidas no servidor e mantidas no cliente pelo tempo real (ConversationList); a de Agentes entra com
-// a F10. Abaixo de md ela fica na gaveta, com o Rail (NavigationDrawer).
-export function Sidebar({ personId }: { personId: string }) {
+// lidas no servidor e mantidas no cliente pelo tempo real (ConversationList), e a seção Agentes
+// (F10). Abaixo de md ela fica na gaveta, com o Rail (NavigationDrawer).
+export function Sidebar({ personId, isAdmin }: { personId: string; isAdmin: boolean }) {
   return (
     <aside
       aria-label="Barra lateral"
@@ -21,6 +22,7 @@ export function Sidebar({ personId }: { personId: string }) {
         <Suspense fallback={<SidebarSkeleton />}>
           <Channels personId={personId} />
         </Suspense>
+        <AgentsSection personId={personId} isAdmin={isAdmin} />
       </nav>
     </aside>
   );

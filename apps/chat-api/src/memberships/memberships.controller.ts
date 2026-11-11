@@ -85,7 +85,11 @@ export class MembershipsController {
   ): Promise<{ people: (PersonSummary & { presence: Presence })[] }> {
     const people = await this.memberships.searchPeople(
       person.id,
-      { notMemberOf: query.not_member_of, memberOf: query.member_of },
+      {
+        notMemberOf: query.not_member_of,
+        memberOf: query.member_of,
+        onlyAdmins: query.admin === 'true',
+      },
       query.q ?? '',
     );
     return { people: withPresence(this.presence, people) };
