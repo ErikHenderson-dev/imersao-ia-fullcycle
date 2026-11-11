@@ -75,6 +75,11 @@ describe('comando de canais', () => {
       password: 'senha',
     });
     const name = uniqueChannelName();
+    // As Pessoas que já existem antes do comando: outras suítes criam Pessoas ao mesmo tempo, e as
+    // que nascem durante ele não precisam entrar.
+    const existing = await dataSource.query<{ id: string }[]>(
+      'SELECT id FROM people',
+    );
 
     const exitCode = await run(['create', name, 'Conversas do time']);
 
@@ -84,13 +89,11 @@ describe('comando de canais', () => {
       kind: 'public_channel',
       topic: 'Conversas do time',
     });
-    // Outras suítes criam Pessoas ao mesmo tempo: conta só as que existiam antes do Canal.
     const [{ outside }] = await dataSource.query<{ outside: string }[]>(
-      `SELECT count(*) AS outside FROM people p
-       WHERE p.created_at <= (SELECT created_at FROM conversations WHERE id = $1)
-         AND NOT EXISTS (SELECT 1 FROM conversation_members m
+      `SELECT count(*) AS outside FROM unnest($2::uuid[]) AS p(id)
+       WHERE NOT EXISTS (SELECT 1 FROM conversation_members m
                          WHERE m.conversation_id = $1 AND m.person_id = p.id)`,
-      [channel.id],
+      [channel.id, existing.map((row) => row.id)],
     );
     expect(Number(outside)).toBe(0);
     expect(await isMember(channel.id, person.id)).toBe(true);
