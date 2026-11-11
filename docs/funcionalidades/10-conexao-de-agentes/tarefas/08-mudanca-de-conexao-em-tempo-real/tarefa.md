@@ -1,6 +1,6 @@
 # 08: Mudança de conexão em tempo real
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quando um administrador conecta ou desconecta um Agente, todas as Pessoas
 veem a mudança sem recarregar, em todas as abas: na barra lateral, no diálogo "Agentes" aberto e em
