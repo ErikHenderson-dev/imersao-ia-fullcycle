@@ -29,7 +29,12 @@ root_agent = Agent(
     name="assistente",
     # Provedor e modelo por AGENT_MODEL (spec da F11, "Modelo de IA").
     model=build_model(),
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
+    # Instrução mínima da F11-T03; as instruções do resumo e as ferramentas dele são da F11-T04.
+    instruction=(
+        "Você é o Assistente, um agente que responde na Conversa de um chat de equipe. "
+        "Responda em português do Brasil, em poucas frases, ao pedido de quem o mencionou. "
+        "Nunca escreva @usuário de ninguém."
+    ),
     tools=[get_weather, get_current_time],
 )
 

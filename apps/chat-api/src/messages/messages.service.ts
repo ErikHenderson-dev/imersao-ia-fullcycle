@@ -9,6 +9,12 @@ import type {
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
+import {
+  AgentRequestsService,
+  AgentRequestView,
+  toAgentRequestView,
+} from '../agent-requests/agent-requests.service';
+import { BotNotFoundError } from '../bots/bot-not-found.error';
 import { BotsService } from '../bots/bots.service';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -69,9 +75,18 @@ export interface NewMessage {
   clientId: string;
   body: string;
   quotedMessageId?: string;
+  // O @usuário do Agente conectado mencionado, que o BFF reconhece (spec da F11, "Envio e Pergunta
+  // pendente"): a Mensagem vira um Pedido.
+  agentUsername?: string;
 }
 
-export interface SentMessage {
+// O envio respondido: a Mensagem e o Pedido que ela criou, ou null.
+export interface SendResult {
+  message: MessageView;
+  agentRequest: AgentRequestView | null;
+}
+
+export interface SentMessage extends SendResult {
   message: MessageView;
   // Falso quando o client_id já tinha sido gravado: o reenvio não gera evento.
   created: boolean;
@@ -97,6 +112,7 @@ export class MessagesService {
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
     private readonly bots: BotsService,
+    private readonly agentRequests: AgentRequestsService,
     private readonly publisher: RealtimePublisher,
     private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
@@ -146,6 +162,55 @@ export class MessagesService {
     return this.withDetails(found);
   }
 
+  // A Mensagem desse id, montada como no histórico, mesmo apagada; quem chama sabe que ela existe.
+  async viewById(id: string): Promise<MessageView> {
+    const message = await this.messages.findOneByOrFail({ id });
+    const [view] = await this.withDetails([message]);
+    return view;
+  }
+
+  // Grava a Mensagem de um bot na Conversa de um Pedido (spec da F11, "Rotas do bot e
+  // credencial"), dentro da transação de quem chama, que confere o Pedido e a ação. O bot não é
+  // Membro: não há Última leitura, Menção nem Citação.
+  async insertBotMessage(
+    botId: string,
+    conversationId: string,
+    body: string,
+  ): Promise<MessageView> {
+    const message = await this.messages.save(
+      this.messages.create({
+        conversationId,
+        authorBotId: botId,
+        authorPersonId: null,
+        clientId: randomUUIDv7(),
+        body,
+        quotedMessageId: null,
+      }),
+    );
+    return this.viewById(message.id);
+  }
+
+  // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos
+  // Membros. Sem Atividade, porque a Mensagem de bot nunca gera Notificação (spec da F11, "Autor da
+  // Mensagem"). A falha só vai para o log, como no envio.
+  publishBotMessage(message: MessageView): void {
+    const { conversationId } = message;
+    this.queueForMessage(
+      message.id,
+      this.toMembers(
+        conversationId,
+        async (memberIds) => {
+          await this.publisher.messageCreated(
+            memberIds,
+            toMessageResponse(message),
+          );
+          void this.unreadPublisher.publish(conversationId, memberIds);
+        },
+        'Falha ao publicar a Mensagem do bot',
+      ),
+    );
+  }
+
   // Envia a Mensagem: grava e, só quando a gravação é nova, publica o evento para os Membros, depois
   // da gravação (spec da F03, "Eventos por Pessoa e reconexão", "Publicação"). A Mensagem já está
   // gravada quando a publicação falha: o envio responde sucesso e a falha vai para o log, porque um
@@ -154,7 +219,7 @@ export class MessagesService {
     author: PersonAuthor,
     conversationId: string,
     newMessage: NewMessage,
-  ): Promise<MessageView> {
+  ): Promise<SendResult> {
     // A barreira desta Mensagem, se ela for a que põe a outra Pessoa na Conversa direta: montada
     // dentro da transação (em `send`), antes do commit, e liberada depois da publicação.
     let barrier: Barrier | null = null;
@@ -167,9 +232,9 @@ export class MessagesService {
       (barrier as Barrier | null)?.release();
       throw error;
     }
-    const { message, created, joinedId } = sent;
+    const { message, created, joinedId, agentRequest } = sent;
     const own = barrier as Barrier | null;
-    if (!created) return message;
+    if (!created) return { message, agentRequest };
     // Uma Mensagem que não abre a Conversa direta espera a barreira que estiver montada nela, para
     // a entrada da outra Pessoa chegar antes de qualquer Mensagem (spec da F05, "Tempo real",
     // "Ordem"). Sem barreira, a publicação sai na hora, sem prender a resposta do envio.
@@ -215,7 +280,7 @@ export class MessagesService {
     // A edição e a exclusão desta Mensagem só publicam depois da criação (spec da F06, "Tempo
     // real", "Ordem"): a fila dela nasce aqui, antes de o envio responder.
     this.queueForMessage(message.id, () => publication);
-    return message;
+    return { message, agentRequest };
   }
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
@@ -513,13 +578,18 @@ export class MessagesService {
   private async send(
     author: PersonAuthor,
     conversationId: string,
-    { clientId, body, quotedMessageId }: NewMessage,
+    { clientId, body, quotedMessageId, agentUsername }: NewMessage,
     onBarrier: (barrier: Barrier) => void,
   ): Promise<SentMessage> {
     const conversation = await this.conversations.getForMember(
       author.id,
       conversationId,
     );
+    // O bot do Agente mencionado, antes de gravar: sem ele, nada é gravado.
+    const bot = agentUsername
+      ? await this.bots.findByUsername(agentUsername)
+      : null;
+    if (agentUsername !== undefined && !bot) throw new BotNotFoundError();
     // O reenvio do mesmo client_id devolve a Mensagem já gravada, sem olhar a Citação nova (spec da
     // F06, "Enviar com Citação"); só o envio novo confere a Citação.
     if (
@@ -588,9 +658,36 @@ export class MessagesService {
         mentions,
         await this.quoteOf(message),
       ),
+      agentRequest: row
+        ? bot && (await this.openRequest(message, author.id, bot))
+        : await this.requestOf(message.id),
       created: Boolean(row),
       joinedId,
     };
+  }
+
+  // A Mensagem nova que menciona um Agente vira um Pedido `new`, na mesma transação (spec da F11,
+  // "Envio e Pergunta pendente").
+  private async openRequest(
+    message: Message,
+    requesterId: string,
+    bot: { id: string; username: string },
+  ): Promise<AgentRequestView> {
+    const request = await this.agentRequests.openNew({
+      conversationId: message.conversationId,
+      requesterId,
+      botId: bot.id,
+      triggerMessageId: message.id,
+    });
+    return toAgentRequestView(request, bot.username);
+  }
+
+  // O Pedido que a Mensagem reenviada criou, ou null: o reenvio não cria outro.
+  private async requestOf(messageId: string): Promise<AgentRequestView | null> {
+    const request = await this.agentRequests.findByTriggerMessage(messageId);
+    if (!request) return null;
+    const [bot] = await this.bots.findByIds([request.botId]);
+    return toAgentRequestView(request, bot.username);
   }
 
   // As Menções da Mensagem pelo texto gravado (spec da F06, "Menções, ao gravar"): os @usuário de

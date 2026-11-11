@@ -21,7 +21,9 @@ from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.agent_requests.routes import build_router as build_requests_router
 from app.app_utils import services
+from app.chat_api import ChatApiClient
 from app.config import Settings, load_settings
 from app.problems import install_problem_handler
 from app.registry.catalog import load_catalog
@@ -43,10 +45,13 @@ def create_app(settings: Settings) -> FastAPI:
     # Uma pasta de agente sem card.py faz a subida falhar com o nome dela.
     catalog = load_catalog()
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    # O Agente age na Conversa pela API do chat, como bot (spec da F11, "Execução do Pedido").
+    chat_api = ChatApiClient(settings.chat_api_url, settings.chat_bot_token)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
+        await chat_api.close()
         await engine.dispose()
 
     if settings.adk_dev_routes:
@@ -69,8 +74,15 @@ def create_app(settings: Settings) -> FastAPI:
     app.description = "API do Serviço de agentes"
     app.state.engine = engine
     app.state.service_token = settings.agents_service_token
+    app.state.chat_api = chat_api
+    # As sessões dos Pedidos, no Banco dos agentes com SESSION_SERVICE_URI.
+    app.state.session_service = services.build_session_service(
+        settings.session_service_uri
+    )
+    app.state.request_tasks = set()
     install_problem_handler(app)
     app.include_router(build_router(catalog))
+    app.include_router(build_requests_router(catalog))
     return app
 
 

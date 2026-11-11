@@ -44,6 +44,8 @@ services:
       AGENTS_DATABASE_URL: postgres://agents:agents@postgres:5432/agents
       # A fixture da recuperação apaga a época dos eventos no Redis de desenvolvimento.
       REDIS_URL: redis://redis:6379/0
+      # O apoio de bot dos testes da F11 age pelas rotas /v1/bot (support/bot.ts).
+      CHAT_BOT_TOKEN: dev-chat-bot-token
       PLAYWRIGHT_HTML_OPEN: never
       HOME: /tmp
     command: ["node", "e2e/support/port-forward.mjs"]
@@ -69,6 +71,8 @@ services:
       # Eventos por Pessoa para a reconexão; os testes usam o banco lógico 1.
       REDIS_URL: redis://redis:6379/0
       TEST_REDIS_URL: redis://redis:6379/1
+      # Credencial de bot das rotas /v1/bot; segredo fixo, só de desenvolvimento, igual ao do agents.
+      CHAT_BOT_TOKEN: dev-chat-bot-token
     ports:
       - "3001:3000"
     depends_on:
@@ -99,6 +103,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents
       # Credencial de serviço do BFF; segredo fixo, só de desenvolvimento, igual ao da web.
       AGENTS_SERVICE_TOKEN: dev-agents-service-token
+      # O Agente age na Conversa como bot, pelas rotas /v1/bot da API do chat (ADR 0010), com a
+      # credencial de bot; segredo fixo, só de desenvolvimento, igual ao do chat-api.
+      CHAT_API_URL: http://chat-api:3000
+      CHAT_BOT_TOKEN: dev-chat-bot-token
       # Rotas genéricas e interface web do ADK, só no desenvolvimento.
       ADK_DEV_ROUTES: "true"
       # Banco dos testes de integração, recriado a cada execução pelo superusuário local.

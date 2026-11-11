@@ -28,6 +28,11 @@ const DETAILS: Record<ErrorCode, string> = {
   not_found: 'Recurso não encontrado.',
   payload_too_large: 'O corpo da requisição é grande demais.',
   request_rejected: 'A requisição foi recusada.',
+  bot_not_found: 'Não há bot com esse @usuário.',
+  invalid_bot_token: 'Credencial de bot ausente ou inválida.',
+  request_not_found: 'Pedido não encontrado.',
+  request_closed: 'O Pedido já foi encerrado.',
+  request_expired: 'O Pedido venceu.',
   internal_error: 'Erro interno. Tente novamente mais tarde.',
 };
 

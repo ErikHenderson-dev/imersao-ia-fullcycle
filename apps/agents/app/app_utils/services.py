@@ -35,16 +35,21 @@ _AGENT_DIR = os.path.dirname(
 )
 
 
-@functools.cache
-def get_session_service():
-    """Process-wide session service: the Banco dos agentes when SESSION_SERVICE_URI is set."""
-    if uri := os.environ.get("SESSION_SERVICE_URI"):
+def build_session_service(uri: str | None):
+    """O serviço de sessões do ADK: o Banco dos agentes com a URI, ou em memória sem ela."""
+    if uri:
         return create_session_service_from_options(
             base_dir=_AGENT_DIR, session_service_uri=uri
         )
     from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
     return InMemorySessionService()
+
+
+@functools.cache
+def get_session_service():
+    """Process-wide session service: the Banco dos agentes when SESSION_SERVICE_URI is set."""
+    return build_session_service(os.environ.get("SESSION_SERVICE_URI"))
 
 
 @functools.cache

@@ -268,8 +268,25 @@ export type CreateChannelResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
+type ApiAgentRequest = {
+  id: string;
+  kind: "new" | "continuation";
+  bot_username: string;
+  parent_request_id: string | null;
+};
+
+// O Pedido que a Mensagem criou ao mencionar um Agente (spec da F11, "Envio e Pergunta pendente").
+export type AgentRequest = {
+  id: string;
+  kind: "new" | "continuation";
+  botUsername: string;
+  parentRequestId: string | null;
+};
+
 export type SendMessageResult =
-  | { kind: "ok"; message: Message }
+  | { kind: "ok"; message: Message; agentRequest: AgentRequest | null }
+  // O agent_username não é de um bot: o Agente está conectado, mas o bot dele não foi criado.
+  | { kind: "bot_not_found" }
   | { kind: "invalid" }
   | { kind: "not_found" }
   // A Mensagem citada não existe mais nesta Conversa (spec da F06, "Citação").
@@ -376,7 +393,7 @@ export async function listMessages(
 export async function sendMessage(
   token: string,
   conversationId: string,
-  message: { clientId: string; body: string; quotedMessageId?: string },
+  message: { clientId: string; body: string; quotedMessageId?: string; agentUsername?: string },
 ): Promise<SendMessageResult> {
   const response = await request(conversationPath(conversationId, "/messages"), {
     method: "POST",
@@ -385,14 +402,28 @@ export async function sendMessage(
       client_id: message.clientId,
       body: message.body,
       quoted_message_id: message.quotedMessageId,
+      agent_username: message.agentUsername,
     }),
   });
   if (response?.status === 201) {
-    const body = await jsonBody<{ message: ApiMessage }>(response);
-    if (body) return { kind: "ok", message: messageFromEvent(body.message) };
-    return { kind: "failure" };
+    const body = await jsonBody<{ message: ApiMessage; agent_request: ApiAgentRequest | null }>(response);
+    if (!body) return { kind: "failure" };
+    const pending = body.agent_request;
+    return {
+      kind: "ok",
+      message: messageFromEvent(body.message),
+      agentRequest: pending && {
+        id: pending.id,
+        kind: pending.kind,
+        botUsername: pending.bot_username,
+        parentRequestId: pending.parent_request_id,
+      },
+    };
   }
   if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 422 && (await errorCode(response)) === "bot_not_found") {
+    return { kind: "bot_not_found" };
+  }
   if (response?.status === 404 && (await errorCode(response)) === "quoted_message_not_found") {
     return { kind: "quote_not_found" };
   }

@@ -72,6 +72,10 @@ class Settings(ModelSettings):
     database_url: str
     # Credencial de serviço que as rotas /v1 conferem.
     agents_service_token: str
+    # A API do chat pela rede interna e a credencial de bot das rotas /v1/bot (spec da F11,
+    # "Execução do Pedido").
+    chat_api_url: str
+    chat_bot_token: str
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False
     # Lidas também pelo código gerado (app_utils/services.py e fast_api_app.py).
@@ -108,6 +112,7 @@ def load_model_settings() -> ModelSettings:
 def load_settings() -> Settings:
     """A configuração inteira, conferida na subida do app HTTP."""
     settings = _read(Settings)
-    if not settings.agents_service_token.strip():
-        raise _missing("AGENTS_SERVICE_TOKEN")
+    for name in ("agents_service_token", "chat_api_url", "chat_bot_token"):
+        if not getattr(settings, name).strip():
+            raise _missing(name.upper())
     return settings

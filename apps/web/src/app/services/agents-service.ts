@@ -66,3 +66,42 @@ export async function setConnection(
   });
   return response?.status === 204 ? { kind: "ok" } : { kind: "failure" };
 }
+
+// O Pedido entregue ao Serviço de agentes (spec da F11, "Rota de Pedido").
+export type AgentRequestPayload = {
+  requestId: string;
+  kind: "new" | "continuation";
+  parentRequestId: string | null;
+  agent: string;
+  conversationId: string;
+  message: { id: string; body: string };
+  requester: { id: string; name: string; username: string };
+  mentions: { username: string; name: string }[];
+  timeZone: string;
+};
+
+// Sem resposta (rede fora ou tempo esgotado), o status é nulo.
+export type StartAgentRequestResult = { kind: "accepted" } | { kind: "failure"; status: number | null };
+
+// Entrega o Pedido e espera só o aceite (spec da F11, "Disparo pelo BFF"): o Agente responde na
+// Conversa pela API do chat, depois.
+export async function startAgentRequest(payload: AgentRequestPayload): Promise<StartAgentRequestResult> {
+  const response = await request("/v1/requests", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      request_id: payload.requestId,
+      kind: payload.kind,
+      parent_request_id: payload.parentRequestId,
+      agent: payload.agent,
+      conversation_id: payload.conversationId,
+      message: payload.message,
+      requester: payload.requester,
+      mentions: payload.mentions,
+      time_zone: payload.timeZone,
+    }),
+  });
+  return response?.status === 202
+    ? { kind: "accepted" }
+    : { kind: "failure", status: response?.status ?? null };
+}

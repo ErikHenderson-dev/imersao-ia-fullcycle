@@ -1,4 +1,4 @@
-"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3)."""
+"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3; F11-T03)."""
 
 import pytest
 
@@ -8,6 +8,8 @@ REQUIRED = {
     "DATABASE_URL": "postgresql+asyncpg://agents:agents@postgres:5432/agents",
     "AGENTS_SERVICE_TOKEN": "segredo",
     "AGENT_MODEL": "gemini-3.8-flash",
+    "CHAT_API_URL": "http://chat-api:3000",
+    "CHAT_BOT_TOKEN": "segredo-do-bot",
 }
 OPTIONAL = [
     "ADK_DEV_ROUTES",
