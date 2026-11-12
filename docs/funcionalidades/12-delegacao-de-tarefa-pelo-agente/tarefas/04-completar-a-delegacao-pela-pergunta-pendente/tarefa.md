@@ -1,6 +1,6 @@
 # 04: Completar a delegação pela Pergunta pendente
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quando o pedido de delegação chega sem Responsável, sem o que fazer, com
 "isso" sem Citação ou com dois ou mais Membros mencionados, o Agente pergunta o que falta; com
