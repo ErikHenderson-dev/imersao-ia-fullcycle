@@ -26,7 +26,9 @@ export const ACTIVITY_TABS = [
   count: keyof ActivityUnread | null;
 }[];
 
-const NOTIFICATION_FILTERS: readonly ActivityFilter[] = ["all", "mentions", "direct"];
+const NOTIFICATION_FILTERS = ACTIVITY_TABS.map((tab) => tab.filter).filter(
+  (filter): filter is ActivityFilter => filter !== "tasks",
+);
 
 // A aba pedida em `?aba=`; uma aba desconhecida vale como Todas.
 export function activityTabFromParam(tab: string | string[] | undefined): ActivityTab {

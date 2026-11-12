@@ -1,5 +1,6 @@
 import type { TaskPayload } from "chat-events";
 import type { Task, TaskPage, TaskRole } from "@/app/services/chat-api";
+import { cachedFormatter } from "./date-formatters";
 
 // A Tarefa da API e dos eventos no formato da web (spec da F12, "Concluir, reabrir e listar").
 export function taskFromPayload(payload: TaskPayload): Task {
@@ -57,7 +58,9 @@ export function taskConversationLabel(task: Pick<Task, "conversation">): string 
 
 // A data da Tarefa, como "10 nov", no fuso de quem vê.
 export function taskDate(isoDate: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone })
+  return cachedFormatter(`day-month:${timeZone}`, () =>
+    new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone }),
+  )
     .format(new Date(isoDate))
     .replace(" de ", " ")
     .replace(".", "");
@@ -68,4 +71,13 @@ export function toggledTask(task: Task): { action: "complete" | "reopen"; next: 
   return task.status === "open"
     ? { action: "complete", next: { ...task, status: "done", completedAt: new Date().toISOString() } }
     : { action: "reopen", next: { ...task, status: "open", completedAt: null } };
+}
+
+// As páginas com a Tarefa trocada no lugar, sem mudar a ordem: a atualização otimista e a volta dela
+// não tiram da lista a Tarefa que, pela ordem, cairia depois das páginas carregadas.
+export function replaceTask(pages: TaskPage[], task: Task): TaskPage[] {
+  return pages.map((page) => ({
+    ...page,
+    tasks: page.tasks.map((entry) => (entry.id === task.id ? task : entry)),
+  }));
 }

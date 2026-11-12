@@ -13,7 +13,7 @@ import type {
   MessageView,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
-import { partiesOf } from '../tasks/task-status.service';
+import { partiesOf } from '../tasks/task.entity';
 import { toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
@@ -179,11 +179,11 @@ export class BotActionsService {
     const task =
       written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
     const view = await this.tasks.view(task);
-    if (written) {
-      void this.realtime.taskCreated(partiesOf(task), {
-        task: toTaskResponse(view),
-      });
-    }
+    // Também na repetição: uma falha entre o commit e a publicação não deixa as Pessoas sem o
+    // evento, e o cliente que já tem a Tarefa só a substitui.
+    void this.realtime.taskCreated(partiesOf(task), {
+      task: toTaskResponse(view),
+    });
     return { task: view, message };
   }
 

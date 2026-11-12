@@ -10,6 +10,7 @@ import {
   getCurrentPerson,
   listActivity,
   listConversations,
+  getTask,
   listTasks,
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
@@ -73,12 +74,13 @@ export default async function ActivityPage({ searchParams }: PageProps<"/ativida
 }
 
 async function TasksTab({ token, path, highlightedId }: { token: string; path: string; highlightedId: string | null }) {
-  const [person, assigned, delegated, unread, timeZone] = await Promise.all([
+  const [person, assigned, delegated, unread, timeZone, highlighted] = await Promise.all([
     getCurrentPerson(token),
     listTasks(token, { role: "assigned" }),
     listTasks(token, { role: "delegated" }),
     getActivityUnread(token),
     readTimeZone(),
+    highlightedId ? getTask(token, highlightedId) : null,
   ]);
   if ([person, assigned, delegated].some((result) => result.kind === "unauthenticated")) {
     redirect(expiredSessionPath(path));
@@ -101,6 +103,7 @@ async function TasksTab({ token, path, highlightedId }: { token: string; path: s
           delegated={delegated.page}
           timeZone={timeZone}
           highlightedId={highlightedId}
+          highlighted={highlighted?.kind === "ok" ? highlighted.task : null}
         />
       ) : (
         <ActivityError />

@@ -14,15 +14,6 @@ export async function fetchTaskPage([, , role, cursor]: TaskPageKey): Promise<Ta
   return (await response.json()) as TaskPage;
 }
 
-// Uma Tarefa, ou nula quando ela não existe para a Pessoa.
-export async function fetchTask(taskId: string): Promise<Task | null> {
-  const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`);
-  if (response.status === 401) return redirectToExpiredSession();
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error("Não foi possível carregar a Tarefa.");
-  return (await response.json()) as Task;
-}
-
 // Conclui ou reabre a Tarefa; devolve a Tarefa como ficou.
 export async function postTaskStatus(taskId: string, action: "complete" | "reopen"): Promise<Task> {
   const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/${action}`, { method: "POST" });

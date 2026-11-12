@@ -67,3 +67,10 @@ export class Task extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   completedAt!: Date | null;
 }
+
+// O Responsável e quem delegou, uma vez cada: quem recebe os eventos da Tarefa.
+export function partiesOf(
+  task: Pick<Task, 'assigneeId' | 'delegatorId'>,
+): string[] {
+  return [...new Set([task.assigneeId, task.delegatorId])];
+}

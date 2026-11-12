@@ -6,8 +6,8 @@ import useSWRInfinite from "swr/infinite";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import { Button } from "@/app/components/ui/button";
 import type { Task, TaskPage, TaskRole } from "@/app/services/chat-api";
-import { fetchTask, fetchTaskPage, postTaskStatus, type TaskPageKey } from "@/app/services/task-pages";
-import { mergeTask, taskRoles, toggledTask } from "@/app/utils/tasks";
+import { fetchTaskPage, postTaskStatus, type TaskPageKey } from "@/app/services/task-pages";
+import { mergeTask, replaceTask, toggledTask } from "@/app/utils/tasks";
 import { TaskItem } from "./task-item";
 
 const LABELS: Record<TaskRole, string> = { assigned: "Recebidas", delegated: "Delegadas" };
@@ -18,12 +18,14 @@ type TaskGroupProps = {
   initialPage: TaskPage;
   timeZone: string;
   highlightedId: string | null;
+  // A Tarefa do link que não está na primeira página, lida pelo servidor: entra no topo do grupo.
+  initialPinned: Task | null;
 };
 
 // Um grupo da aba Tarefas (spec da F12, "Cliente (web)"): a primeira página vem do RSC, e rolar até
 // o fim carrega as seguintes. Os eventos de Tarefa mudam as páginas sem buscar nada, e o `sync` com
 // reset busca de novo.
-export function TaskGroup({ personId, role, initialPage, timeZone, highlightedId }: TaskGroupProps) {
+export function TaskGroup({ personId, role, initialPage, timeZone, highlightedId, initialPinned }: TaskGroupProps) {
   const { data, error, size, setSize, isValidating, mutate } = useSWRInfinite<
     TaskPage,
     Error,
@@ -49,16 +51,28 @@ export function TaskGroup({ personId, role, initialPage, timeZone, highlightedId
     void setSize(1);
     void mutate([initialPage], { revalidate: false });
   }, [initialPage, mutate, setSize]);
+  const [pinned, setPinned] = useState<Task | null>(initialPinned);
+  // O clique troca a Tarefa no lugar (`replaceTask`); os eventos a põem pela ordem (`mergeTask`).
+  const replace = useCallback(
+    (task: Task) => {
+      void mutate((current) => replaceTask(current ?? [], task), { revalidate: false });
+      setPinned((current) => (current?.id === task.id ? task : current));
+    },
+    [mutate],
+  );
+  // A Tarefa nova ou mudada entra nas páginas e, se for a do link, nela também.
   const apply = useCallback(
-    (task: Task) => void mutate((current) => mergeTask(current ?? [], task, role, personId), { revalidate: false }),
+    (task: Task) => {
+      void mutate((current) => mergeTask(current ?? [], task, role, personId), { revalidate: false });
+      setPinned((current) => (current?.id === task.id ? task : current));
+    },
     [mutate, role, personId],
   );
   const { subscribe } = useRealtime();
   useEffect(
     () =>
       subscribe({
-        onTaskCreated: apply,
-        onTaskUpdated: apply,
+        onTask: apply,
         onSync: (event) => {
           if (event.reset) void mutate();
         },
@@ -67,23 +81,8 @@ export function TaskGroup({ personId, role, initialPage, timeZone, highlightedId
     [subscribe, apply, mutate],
   );
 
-  // A Tarefa do link que não está na primeira página entra no topo do grupo dela.
-  const [pinned, setPinned] = useState<Task | null>(null);
   const pages = data ?? [];
   const loaded = pages.flatMap((page) => page.tasks);
-  const isMissing = highlightedId !== null && !loaded.some((task) => task.id === highlightedId);
-  useEffect(() => {
-    if (!isMissing || !highlightedId) return;
-    let isCurrent = true;
-    void fetchTask(highlightedId)
-      .then((task) => {
-        if (isCurrent && task && taskRoles(task, personId).includes(role)) setPinned(task);
-      })
-      .catch(() => {});
-    return () => {
-      isCurrent = false;
-    };
-  }, [isMissing, highlightedId, personId, role]);
   const tasks = pinned && !loaded.some((task) => task.id === pinned.id) ? [pinned, ...loaded] : loaded;
 
   // Concluir ou reabrir, com a atualização otimista desfeita no erro.
@@ -91,16 +90,11 @@ export function TaskGroup({ personId, role, initialPage, timeZone, highlightedId
   const changeStatus = (task: Task) => {
     const { action, next } = toggledTask(task);
     setUpdatingIds((current) => new Set(current).add(task.id));
-    apply(next);
-    if (pinned?.id === task.id) setPinned(next);
+    replace(next);
     postTaskStatus(task.id, action)
-      .then((saved) => {
-        apply(saved);
-        if (pinned?.id === task.id) setPinned(saved);
-      })
+      .then(replace)
       .catch(() => {
-        apply(task);
-        if (pinned?.id === task.id) setPinned(task);
+        replace(task);
         toast.error("Não foi possível mudar a Tarefa. Tente de novo.");
       })
       .finally(() =>

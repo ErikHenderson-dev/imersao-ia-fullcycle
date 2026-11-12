@@ -2,17 +2,14 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { isUUID } from 'class-validator';
-import { Brackets, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import type { ListTasksQuery } from './list-tasks.query';
-import { Task, type TaskStatus } from './task.entity';
+import { partiesOf, Task, type TaskStatus } from './task.entity';
 import { toTaskResponse } from './task.response';
 import { TaskNotAssigneeError } from './task-not-assignee.error';
 import { TaskNotFoundError } from './task-not-found.error';
 import { TasksService, TaskView } from './tasks.service';
-
-// A ordem das listas: as abertas antes das concluídas e, em cada estado, as mais novas primeiro.
-const STATUS_RANK: Record<TaskStatus, number> = { open: 0, done: 1 };
 
 // Listar, concluir e reabrir as Tarefas de uma Pessoa (spec da F12, "Concluir, reabrir e listar").
 // Só o Responsável muda o estado; quem não é parte da Tarefa não a vê.
@@ -34,30 +31,17 @@ export class TaskStatusService {
     { role, cursor, limit }: ListTasksQuery,
   ): Promise<{ tasks: TaskView[]; nextCursor: string | null }> {
     const column = role === 'assigned' ? 'assignee_id' : 'delegator_id';
+    // 'open' vem depois de 'done' como texto: a ordem decrescente de (status, id) põe as abertas
+    // primeiro e as mais novas antes, pelo índice da Pessoa, do estado e do id.
     const query = this.tasks
       .createQueryBuilder('task')
       .where(`task.${column} = :personId`, { personId })
-      .orderBy(`CASE task.status WHEN 'open' THEN 0 ELSE 1 END`, 'ASC')
+      .orderBy('task.status', 'DESC')
       .addOrderBy('task.id', 'DESC')
       .limit(limit + 1);
     if (cursor) {
-      const [status, id] = cursor.split('.') as [TaskStatus, string];
-      const rank = STATUS_RANK[status];
-      query.andWhere(
-        new Brackets((after) =>
-          after
-            .where(`CASE task.status WHEN 'open' THEN 0 ELSE 1 END > :rank`, {
-              rank,
-            })
-            .orWhere(
-              new Brackets((same) =>
-                same
-                  .where('task.status = :status', { status })
-                  .andWhere('task.id < :id', { id }),
-              ),
-            ),
-        ),
-      );
+      const [status, id] = cursor.split('.');
+      query.andWhere('(task.status, task.id) < (:status, :id)', { status, id });
     }
     const found = await query.getMany();
     const page = found.slice(0, limit);
@@ -101,9 +85,12 @@ export class TaskStatusService {
     const task = await this.findVisible(personId, taskId, { lock: true });
     if (task.assigneeId !== personId) throw new TaskNotAssigneeError();
     if (task.status === status) return { task, changed: false };
-    task.status = status;
-    task.completedAt = status === 'done' ? new Date() : null;
-    return { task: await this.tasks.save(task), changed: true };
+    const completedAt = status === 'done' ? new Date() : null;
+    await this.tasks.update({ id: task.id }, { status, completedAt });
+    return {
+      task: Object.assign(task, { status, completedAt }),
+      changed: true,
+    };
   }
 
   private async findVisible(
@@ -122,9 +109,4 @@ export class TaskStatusService {
     }
     return task;
   }
-}
-
-// O Responsável e quem delegou, uma vez cada: quem recebe os eventos da Tarefa.
-export function partiesOf(task: Pick<Task, 'assigneeId' | 'delegatorId'>) {
-  return [...new Set([task.assigneeId, task.delegatorId])];
 }

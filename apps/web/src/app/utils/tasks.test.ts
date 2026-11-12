@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Task, TaskPage } from "@/app/services/chat-api";
-import { mergeTask, taskConversationLabel, taskDate, taskFromPayload, taskRoles, toggledTask } from "./tasks";
+import { mergeTask, replaceTask, taskConversationLabel, taskDate, taskFromPayload, taskRoles, toggledTask } from "./tasks";
 
 const ANA = { id: "ana", name: "Ana Souza", username: "ana" };
 const BRUNO = { id: "bruno", name: "Bruno Lima", username: "bruno" };
@@ -114,5 +114,16 @@ describe("toggledTask", () => {
   it("conclui a aberta e reabre a concluída", () => {
     expect(toggledTask(task("1"))).toMatchObject({ action: "complete", next: { status: "done" } });
     expect(toggledTask(task("1", "done"))).toMatchObject({ action: "reopen", next: { status: "open", completedAt: null } });
+  });
+});
+
+describe("replaceTask", () => {
+  it("troca a Tarefa no lugar, sem tirá-la nem reordenar", () => {
+    const pages: TaskPage[] = [{ tasks: [task("07"), task("05")], nextCursor: "open.05" }];
+
+    const result = replaceTask(pages, task("05", "done"));
+
+    expect(ids(result)).toEqual([["07", "05"]]);
+    expect(result[0].tasks[1].status).toBe("done");
   });
 });

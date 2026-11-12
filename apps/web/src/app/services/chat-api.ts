@@ -1,5 +1,6 @@
 import type {
   TaskPayload,
+  TaskPersonPayload,
   ConversationPayload,
   MentionPayload,
   MessageAuthorPayload,
@@ -907,7 +908,7 @@ export async function announceAgentsChanged(token: string): Promise<boolean> {
 
 // Tarefas (spec da F12, "Concluir, reabrir e listar").
 export type TaskRole = "assigned" | "delegated";
-export type TaskPerson = { id: string; name: string; username: string };
+export type TaskPerson = TaskPersonPayload;
 
 export type Task = {
   id: string;
@@ -917,7 +918,7 @@ export type Task = {
   completedAt: string | null;
   assignee: TaskPerson;
   delegator: TaskPerson;
-  conversation: { id: string; name: string | null; kind: "public_channel" | "private_channel" | "direct" };
+  conversation: { id: string; name: string | null; kind: ConversationKind };
   triggerMessage: { id: string; deleted: boolean };
 };
 
