@@ -191,8 +191,9 @@ novas tentativas e idempotência").
   credencial").
 - **Credencial do Worker:** um segredo próprio, `CHAT_WORKER_TOKEN`, aceito só nas ações de entrega
   e de falha do Relatório, com o mesmo alcance pelo identificador de pedido; o Worker não recebe a
-  credencial de bot. `planejada` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção
-  "Ações de bot do Relatório").
+  credencial de bot. Na falha, `existe`, com o guard que aceita as duas credenciais (F14-T01); as
+  outras rotas `/v1/bot` recusam a do Worker. Na entrega, `planejada`
+  ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Ações de bot do Relatório").
 - **Dados de negócio no tempo real:** uma mensagem marcada "dados de negócio" é emitida pelo
   WebSocket pessoa a pessoa. Quem tem permissão de dados recebe o evento com o conteúdo; os outros
   membros recebem o evento com a versão bloqueada. O evento guardado nos eventos de reconexão
@@ -257,7 +258,8 @@ novas tentativas e idempotência").
   Toda ação gravada é a resposta do Pedido: conta para o "digitando" do bot, e uma ação de outro tipo
   num Pedido já respondido recebe `request_closed`. A exceção é o Pedido demorado: depois de
   `report_started`, vale uma só entre `report_delivered` e `report_failed`, e as duas são recusadas
-  sem o `report_started` (`report_not_started`); as três ações são `planejadas` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção
+  sem o `report_started` (`report_not_started`). `report_started` e `report_failed` existem
+  (F14-T01); `report_delivered` é `planejada` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção
   "Ações de bot do Relatório").
 - **Pergunta pendente no envio:** resolvida na mesma transação que grava a Mensagem, com a linha da
   Pergunta pendente travada, e no máximo uma pergunta aberta por Pessoa e Conversa. Dois envios
@@ -433,7 +435,8 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção. Aceita até cinco Respostas prontas, o tamanho da pergunta de nome repetido (spec da F13, seção "O Agente `assistente`"). Ganha `business_data`, para a pergunta de nome repetido (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/task` | existe | Delegação pelo bot, com a credencial de bot e a ação idempotente: cria a Tarefa e a confirmação; recusa o Responsável que não é Membro da Conversa do Pedido (`assignee_not_member`) ou é um bot (`assignee_is_bot`): spec da F12, seção "Ação `task`" |
-| API do chat: `POST /v1/bot/requests/:id/report-started`, `/report-delivered` e `/report-failed` | planejada | Aviso de início, entrega e falha do Relatório, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"); o aviso estende a validade do Pedido, e a entrega e a falha mencionam quem pediu: [spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Ações de bot do Relatório" |
+| API do chat: `POST /v1/bot/requests/:id/report-started` e `/report-failed` | existe | Aviso de início e falha do Relatório, com a ação idempotente ("Concorrência e idempotência", "Ação de bot"); o aviso aceita só a credencial de bot e estende a validade do Pedido; a falha aceita a de bot e a do Worker ("Segurança") e menciona quem pediu, que recebe a Notificação de Menção: [spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Ações de bot do Relatório" |
+| API do chat: `POST /v1/bot/requests/:id/report-delivered` | planejada | Entrega do Relatório, com a credencial do Worker e a ação idempotente; menciona quem pediu: mesma seção |
 | API do chat: `GET /v1/messages/:id/report` | planejada | URL assinada do PDF, com a Sessão, só para Membro com Permissão de dados no momento (`data_access_required`): spec da F14, seção "Referência ao PDF e download" |
 | BFF: `GET /api/messages/[id]/report` | planejada | Responde 302 para a URL assinada: spec da F14, seção "Cliente (web)" |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
