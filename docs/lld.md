@@ -720,6 +720,16 @@ seções "O Agente `assistente`", "Catálogo e consulta" e "Auditoria"):
 O período é `[início 00:00, fim + 1 dia 00:00)` no `Fuso da empresa`, e o dia de hoje que as
 instruções mostram sai do instante da Mensagem do Pedido nesse fuso.
 
+O Relatório em PDF usa a ferramenta `gerar_relatorio`, `existe`, na ordem da [spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md),
+seção "Ferramenta `gerar_relatorio`": a permissão (`no_permission`, sem tocar a trava), os
+parâmetros, a trava de um Relatório por vez (`reports:active:<id da Pessoa>`, com `SET NX` e a
+`Validade da trava do Relatório`; presa, a recusa de Relatório em andamento, sem auditoria), o
+período anterior, o Aviso de início e só depois o job na fila; se enfileirar falha, `report_failed`,
+a trava solta e a auditoria `error`. O período anterior é calculado em código (seção "Período
+anterior" da mesma spec): o mês, o trimestre e o ano inteiros contra os anteriores inteiros, em
+andamento contra o mesmo trecho do anterior, e o resto contra os mesmos dias antes, com o fim cortado
+em hoje. O filtro por nome do Relatório é `planejado` (F14-T05).
+
 ## 7. Processos de segundo plano
 
 | Job | Disparo | O que faz | Na falha | Situação |
