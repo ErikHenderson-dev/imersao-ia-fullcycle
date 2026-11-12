@@ -33,6 +33,9 @@ const DETAILS: Record<ErrorCode, string> = {
   request_not_found: 'Pedido não encontrado.',
   request_closed: 'O Pedido já foi encerrado.',
   request_expired: 'O Pedido venceu.',
+  assignee_not_member:
+    'O Responsável precisa ser Membro da Conversa do Pedido.',
+  assignee_is_bot: 'Uma Tarefa não pode ser delegada a um Agente.',
   internal_error: 'Erro interno. Tente novamente mais tarde.',
 };
 

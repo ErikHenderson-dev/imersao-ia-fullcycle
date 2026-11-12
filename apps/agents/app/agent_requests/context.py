@@ -19,3 +19,5 @@ MENTIONS = "mentions"
 KIND = "kind"
 # O Pedido que gravou a pergunta com as Respostas prontas: ele termina sem `reply` (F11-T07).
 QUESTION_FOR = "pergunta_do_pedido"
+# O Pedido que delegou a Tarefa, com a confirmação já gravada: ele termina sem `reply` (F12-T01).
+TASK_FOR = "tarefa_do_pedido"

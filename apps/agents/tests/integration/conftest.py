@@ -141,14 +141,14 @@ class FakeChatApi:
     """A API do chat falsa, num servidor temporário em 127.0.0.1: guarda cada requisição; responde
     201 com uma Mensagem qualquer às ações (F11-T03) e 200 com `conversation` à leitura do Recorte
     (F11-T04). `failures` faz a rota cujo caminho termina com a chave responder, na ordem, os
-    status da lista, um por chamada (F11-T06). As contagens respondem `counts`, um número por `since`,
+    status da lista, um por chamada (F11-T06), ou o par (status, code) da recusa (F12-T01). As contagens respondem `counts`, um número por `since`,
     e `total` (F11-T07)."""
 
     def __init__(self) -> None:
         self.requests: list[dict] = []
         # A leitura devolve estas Mensagens, no formato da rota, como estão.
         self.conversation: list[dict] = []
-        self.failures: dict[str, list[int]] = {}
+        self.failures: dict[str, list[int | tuple[int, str]]] = {}
         self.counts: list[int] = [4, 6, 9]
         self.total = 15
         fake = self
@@ -157,8 +157,14 @@ class FakeChatApi:
             def respond(self, path: str, status: int, payload: dict) -> None:
                 for suffix, statuses in fake.failures.items():
                     if path.endswith(suffix) and statuses:
-                        status = statuses.pop(0)
-                        payload = {"code": "falha_do_teste"}
+                        failure = statuses.pop(0)
+                        # Um status sozinho, ou o par (status, code) da recusa (F12-T01).
+                        status, code = (
+                            failure
+                            if isinstance(failure, tuple)
+                            else (failure, "falha_do_teste")
+                        )
+                        payload = {"code": code}
                 body = json.dumps(payload).encode()
                 self.send_response(status)
                 self.send_header("content-type", "application/json")

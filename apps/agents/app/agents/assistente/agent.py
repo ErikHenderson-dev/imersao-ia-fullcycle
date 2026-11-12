@@ -20,7 +20,7 @@ from app.eval_fixtures import fixture_tool_callback
 from app.model import build_model, generation_config
 
 from .instructions import build_instruction
-from .tools import ler_mensagens, perguntar_recorte
+from .tools import delegar_tarefa, ler_mensagens, perguntar_recorte
 
 
 root_agent = Agent(
@@ -33,9 +33,9 @@ root_agent = Agent(
     model=build_model(),
     # O teto de tokens de saída do Pedido (spec da F11, "Modelo de IA").
     generate_content_config=generation_config(),
-    # Instruções do resumo (spec da F11, "O Agente `assistente`").
+    # Instruções do resumo e da delegação (specs da F11 e da F12, "O Agente `assistente`").
     instruction=build_instruction,
-    tools=[ler_mensagens, perguntar_recorte],
+    tools=[ler_mensagens, perguntar_recorte, delegar_tarefa],
     # Só age na avaliação, com a Conversa da fixture do caso (app/eval_fixtures.py).
     before_tool_callback=fixture_tool_callback,
 )

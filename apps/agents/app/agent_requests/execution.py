@@ -33,16 +33,17 @@ logger = logging.getLogger(__name__)
 
 # A resposta fixa quando o Agente não consegue atender (spec da F11, "Fim do Pedido"). Nunca há
 # resposta simulada (HLD 6.3).
-NAO_CONSEGUI = "Não consegui fazer o resumo agora. Tente de novo em instantes."
+NAO_CONSEGUI = "Não consegui atender o seu pedido agora. Tente de novo em instantes."
 # Chamadas ao modelo por Pedido, parte do teto de custo (spec da F11, "Modelo de IA"); o teto de
 # tokens de saída fica em app/model.py.
 MAX_LLM_CALLS = 4
 # A API do chat recusa o Pedido em si (inexistente, encerrado ou vencido): não há o que gravar.
 REQUEST_GONE = frozenset({404, 409, 410})
 
-# reply: gravou o texto do modelo; question: a ferramenta gravou a pergunta (F11-T07); failed: gravou
-# o "não consegui"; discarded: nada foi gravado.
-Outcome = Literal["reply", "question", "failed", "discarded"]
+# reply: gravou o texto do modelo; question: a ferramenta gravou a pergunta (F11-T07); task: a
+# ferramenta delegou a Tarefa e gravou a confirmação (F12-T01); failed: gravou o "não consegui";
+# discarded: nada foi gravado.
+Outcome = Literal["reply", "question", "task", "failed", "discarded"]
 
 
 @dataclass(frozen=True)
@@ -104,11 +105,12 @@ def requested_at(request: AgentRequestBody) -> datetime:
 
 @dataclass
 class RunResult:
-    """O que a execução do agente produziu: o texto final do modelo, ou a pergunta gravada pela
-    ferramenta (F11-T07), que dispensa a `reply`."""
+    """O que a execução do agente produziu: o texto final do modelo, ou a pergunta (F11-T07) ou a
+    Tarefa (F12-T01) gravadas pela ferramenta, que dispensam a `reply`."""
 
     text: str | None = None
     asked: bool = False
+    delegated: bool = False
 
 
 async def run_agent(
@@ -135,6 +137,8 @@ async def run_agent(
         usage.add(event.usage_metadata)
         if event.actions.state_delta.get(context.QUESTION_FOR) == request_id:
             result.asked = True
+        if event.actions.state_delta.get(context.TASK_FOR) == request_id:
+            result.delegated = True
         if event.is_final_response() and event.content and event.content.parts:
             joined = "".join(part.text or "" for part in event.content.parts).strip()
             result.text = joined or result.text
@@ -194,6 +198,9 @@ async def execute(
     # consegui" ao lado dela a contradiria.
     if result.asked:
         return "question"
+    # A confirmação da Tarefa também é o fim do Pedido (F12-T01).
+    if result.delegated:
+        return "task"
     # O texto do modelo recusado por outro motivo que não o Pedido vira o "não consegui".
     if result.text:
         written = await write_reply(deps.chat_api, request_id, result.text)

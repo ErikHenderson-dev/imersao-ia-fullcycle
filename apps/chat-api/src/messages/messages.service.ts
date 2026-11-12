@@ -198,6 +198,17 @@ export class MessagesService {
     return this.withDetails(found);
   }
 
+  // Os ids, entre esses, de Mensagens apagadas: a Tarefa diz que o Pedido dela foi apagado (spec da
+  // F12, "Concluir, reabrir e listar").
+  async findDeletedIds(ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) return new Set();
+    const deleted = await this.messages.find({
+      select: { id: true },
+      where: { id: In(ids), deletedAt: Not(IsNull()) },
+    });
+    return new Set(deleted.map((message) => message.id));
+  }
+
   // A Mensagem desse id, montada como no histórico, mesmo apagada; quem chama sabe que ela existe.
   async viewById(id: string): Promise<MessageView> {
     const message = await this.messages.findOneByOrFail({ id });

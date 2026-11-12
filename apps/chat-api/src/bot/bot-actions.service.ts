@@ -11,6 +11,7 @@ import type {
   MessageView,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
+import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
 
 // As ações do bot na Conversa, sempre dentro de um Pedido real (ADR 0011; spec da F11, "Rotas do bot
@@ -23,6 +24,7 @@ export class BotActionsService {
     private readonly messages: MessagesService,
     private readonly bots: BotsService,
     private readonly realtime: RealtimePublisher,
+    private readonly tasks: TasksService,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -101,6 +103,64 @@ export class BotActionsService {
     return message;
   }
 
+  // Delega a Tarefa ao Membro da Conversa do Pedido e grava a confirmação do bot, numa transação
+  // (spec da F12, "Ação `task`"). Repetida, devolve a Tarefa e a confirmação já gravadas, sem
+  // conferir o Responsável de novo nem publicar.
+  async task(
+    requestId: string,
+    assigneeUsername: string,
+    title: string,
+  ): Promise<{ task: TaskView; message: MessageView }> {
+    const { task, message, created } = await this.recordTask(
+      requestId,
+      assigneeUsername,
+      title,
+    );
+    if (created) this.announceAnswer(message);
+    return { task, message };
+  }
+
+  @Transactional()
+  private async recordTask(
+    requestId: string,
+    assigneeUsername: string,
+    title: string,
+  ): Promise<{ task: TaskView; message: MessageView; created: boolean }> {
+    const request = await this.requests.lockForAction(requestId);
+    const existingId = await this.requests.findActionMessageId(
+      request.id,
+      'task',
+    );
+    if (existingId) {
+      const task = await this.tasks.findByRequest(request.id);
+      return {
+        task: await this.tasks.view(task!),
+        message: await this.messages.viewById(existingId),
+        created: false,
+      };
+    }
+    const assigneeId = await this.tasks.resolveAssignee(
+      request.conversationId,
+      assigneeUsername,
+    );
+    const task = await this.tasks.create({
+      requestId: request.id,
+      conversationId: request.conversationId,
+      triggerMessageId: request.triggerMessageId,
+      assigneeId,
+      delegatorId: request.requesterId,
+      title,
+    });
+    const view = await this.tasks.view(task);
+    const message = await this.messages.insertBotMessage(
+      request.botId,
+      request.conversationId,
+      confirmationOf(view),
+    );
+    await this.requests.recordAction(request.id, 'task', message.id);
+    return { task: view, message, created: true };
+  }
+
   // A resposta ou a pergunta gravada: publica a Mensagem e emite o fim do "digitando" do bot.
   private announceAnswer(message: MessageView): void {
     this.messages.publishBotMessage(message);
@@ -166,4 +226,10 @@ export class BotActionsService {
       closedQuestion: closed?.questionMessageId ?? null,
     };
   }
+}
+
+// A confirmação da Tarefa, montada pelo código, com o nome do Responsável e sem Menção (spec da F12,
+// "Ação `task`").
+function confirmationOf(task: TaskView): string {
+  return `Tarefa delegada a ${task.assignee.name}: ${task.title}`;
 }

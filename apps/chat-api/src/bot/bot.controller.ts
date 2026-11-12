@@ -23,6 +23,8 @@ import {
 import { BotTokenGuard } from './bot-token.guard';
 import { QuestionDto } from './question.dto';
 import { ReplyDto } from './reply.dto';
+import { TaskDto } from './task.dto';
+import { TaskResponse, toTaskResponse } from '../tasks/task.response';
 
 // As rotas do bot, sob o Pedido e com a credencial de bot (spec da F11, "Rotas do bot e
 // credencial").
@@ -84,5 +86,18 @@ export class BotController {
       body.quick_replies,
     );
     return { message: toMessageResponse(message) };
+  }
+
+  @Post('task')
+  async task(
+    @Param('requestId') requestId: string,
+    @Body() body: TaskDto,
+  ): Promise<{ task: TaskResponse; message: MessageResponse }> {
+    const { task, message } = await this.actions.task(
+      requestId,
+      body.assignee_username,
+      body.title,
+    );
+    return { task: toTaskResponse(task), message: toMessageResponse(message) };
   }
 }
