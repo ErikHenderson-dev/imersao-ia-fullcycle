@@ -17,7 +17,7 @@
 | Eventos do WebSocket | Tipos TypeScript em `packages/chat-events/` |
 | Schema do Banco do chat | `apps/chat-api/migrations/`, migrações do TypeORM |
 | Schema do Banco dos agentes | `apps/agents/migrations/`, migrações do Alembic; as tabelas de sessão são do ADK |
-| Schema do Banco de negócio | Script de carga `apps/agents/scripts/load_business.py` (planejado: [spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md), seção "Banco de negócio e script de carga") |
+| Schema do Banco de negócio | Script de carga `apps/agents/scripts/load_business.py`, com o schema em `apps/agents/app/business/schema.py` ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md), seção "Banco de negócio e script de carga") |
 | Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, `apps/agents/app/config.py` (existe) |
 | Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz |
 
@@ -47,11 +47,12 @@ apps/
       agent_requests/
                   rota de Pedido e execução do Pedido (spec da F11)   existe
       chat_api.py cliente da API do chat, com a credencial de bot     existe
-      business/   catálogo de Métricas, consulta, lastro, conferência planejada
-                  de somente leitura e auditoria (spec da F13)
+      business/   schema e carga do Banco de negócio; catálogo de     existe (schema
+                  Métricas, consulta, lastro, conferência de          e carga; o resto
+                  somente leitura e auditoria (spec da F13)           planejado)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
-    scripts/      script de carga do Banco de negócio                 planejada
+    scripts/      script de carga do Banco de negócio                 existe
 packages/
   chat-events/    tipos dos eventos do WebSocket, usados por          existe
                   chat-api e web
@@ -376,7 +377,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
 | Agentes | Auditoria das consultas ao Banco de negócio | `planejada` (`business_queries`): spec da F13, seção "Auditoria" |
-| Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | `planejada`, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
+| Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | existe, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
 
 ## 5. Interfaces
 
@@ -851,6 +852,10 @@ O que cada contêiner recebe está no HLD, seção 8, "Configuração e segredos
 | Serviço de agentes | `AGENT_MODEL` | Modelo de IA ("Estrutura do código", "Acesso ao modelo"); obrigatória, sem padrão no código |
 | Serviço de agentes | `AGENT_REQUESTS_PER_MINUTE` | `Limite de pedidos por pessoa` |
 | Serviço de agentes | `TEST_REDIS_URL` | Banco lógico do Redis dos testes de integração |
+| Serviço de agentes | `BUSINESS_DATABASE_URL` | Conexão só leitura com o Banco de negócio, pelo `business_readonly` (ADR 0013) |
+| Serviço de agentes | `BUSINESS_OWNER_DATABASE_URL` | Conexão do dono do Banco de negócio, que só o script de carga usa |
+| Serviço de agentes | `BUSINESS_TEST_DATABASE_URL` | O `business_readonly` no `business_test` dos testes de integração |
+| Serviço de agentes | `BUSINESS_TIME_ZONE` e `BUSINESS_QUERY_TIMEOUT_MS` | `Fuso da empresa` e `Tempo limite da consulta ao Banco de negócio` |
 | Serviço de agentes | `OPENAI_API_KEY` e `ANTHROPIC_API_KEY` | Chave do provedor, obrigatória só quando o `AGENT_MODEL` o escolhe; segredo |
 
 As demais variáveis estão a definir.
