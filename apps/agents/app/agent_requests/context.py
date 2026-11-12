@@ -17,8 +17,6 @@ TIME_ZONE = "time_zone"
 REQUESTED_AT = "requested_at"
 # As Pessoas mencionadas no pedido, `[{username, name}]`, para o modelo citar pelo nome.
 MENTIONS = "mentions"
-# A Mensagem citada pelo Pedido, `{body, author_name}` ou nula: dado para o título da Tarefa (F12-T05).
-QUOTE = "citacao"
 # `new` ou `continuation`: a continuação não pergunta de novo (F11-T07).
 KIND = "kind"
 # A ferramenta que já gravou o fim do Pedido, `{"pedido": id, "desfecho": "question" | "task"}`:

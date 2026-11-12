@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.agent_requests import context
-from app.agent_requests.task import REFUSALS, delegate
+from app.agent_requests.task import NOT_MENTIONED, REFUSALS, delegate
 from app.chat_api import ChatApiError
 
 pytestmark = pytest.mark.asyncio
@@ -29,7 +29,11 @@ class FakeClient:
 
 def tool_context() -> SimpleNamespace:
     return SimpleNamespace(
-        state={context.REQUEST_ID: "pedido-1"},
+        state={
+            context.REQUEST_ID: "pedido-1",
+            context.REQUESTER_USERNAME: "ana",
+            context.MENTIONS: [{"username": "bruno", "name": "Bruno Lima"}],
+        },
         actions=SimpleNamespace(skip_summarization=False),
     )
 
@@ -81,3 +85,20 @@ async def test_o_pedido_recusado_sobe_sem_tentar_de_novo() -> None:
         await delegate(client, tool_context(), "bruno", "Revisar")  # type: ignore[arg-type]
 
     assert len(client.calls) == 1
+
+
+async def test_recusa_o_responsavel_que_nao_foi_mencionado_nem_pediu() -> None:
+    client, ctx = FakeClient([]), tool_context()
+
+    result = await delegate(client, ctx, "carlos", "Aprovar pagamento")  # type: ignore[arg-type]
+
+    assert result == {"erro": NOT_MENTIONED}
+    assert client.calls == []
+
+
+async def test_quem_pediu_pode_ser_o_responsavel() -> None:
+    client, ctx = FakeClient([]), tool_context()
+
+    result = await delegate(client, ctx, "ana", "Revisar")  # type: ignore[arg-type]
+
+    assert result["responsavel"] == "ana"

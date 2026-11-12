@@ -34,10 +34,11 @@ async def run(
     caplog: pytest.LogCaptureFixture,
     text: str,
     mentions: list[dict] | None = None,
+    quote: dict | None = None,
 ) -> tuple[dict, logging.LogRecord]:
     """Manda o Pedido e espera o registro do fim."""
     caplog.set_level(logging.INFO, logger="app")
-    body = {**pedido(body=text), "mentions": mentions or []}
+    body = {**pedido(body=text), "mentions": mentions or [], "quote": quote}
     response = await client.post("/v1/requests", json=body, headers=AUTH)
     assert response.status_code == 202
     return body, await wait_for_end_log(caplog, body["request_id"])
@@ -145,21 +146,20 @@ async def test_delega_isso_com_a_citacao(
     connected_assistant: None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    caplog.set_level(logging.INFO, logger="app")
-    body = {
-        **pedido(body="@assistente delega isso pra @ana"),
-        "mentions": [{"username": "ana", "name": "Ana Souza"}],
-        "quote": {
-            "id": str(uuid.uuid4()),
-            "body": "Precisamos revisar o contrato da Acme até sexta",
-            "author": {"name": "Bruno Lima", "username": "bruno"},
-        },
+    quote = {
+        "id": str(uuid.uuid4()),
+        "body": "Precisamos revisar o contrato da Acme até sexta",
+        "author": {"name": "Bruno Lima", "username": "bruno"},
     }
 
-    response = await request_client.post("/v1/requests", json=body, headers=AUTH)
+    _, end = await run(
+        request_client,
+        caplog,
+        "@assistente delega isso pra @ana",
+        [{"username": "ana", "name": "Ana Souza"}],
+        quote,
+    )
 
-    assert response.status_code == 202
-    end = await wait_for_end_log(caplog, body["request_id"])
     assert end.desfecho == "task"
     [task] = [call for call in fake_chat_api.requests if is_task(call)]
     assert task["body"]["assignee_username"] == "ana"
