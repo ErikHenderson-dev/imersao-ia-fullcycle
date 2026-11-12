@@ -53,6 +53,23 @@ class FakeClient:
     async def report_failed(self, request_id: str) -> None:
         self.actions.append({"action": "report_failed"})
 
+    async def question(
+        self,
+        request_id: str,
+        body: str,
+        quick_replies: list[str],
+        *,
+        business_data: bool = False,
+    ) -> None:
+        self.actions.append(
+            {
+                "action": "question",
+                "body": body,
+                "quick_replies": quick_replies,
+                "business_data": business_data,
+            }
+        )
+
 
 class BrokenQueue:
     """A fila fora: prende a trava no Redis de verdade, mas enfileirar falha."""
@@ -85,9 +102,10 @@ async def store(
     await agents.dispose()
 
 
-def tool_context(*, data_access: bool = True) -> SimpleNamespace:
+def tool_context(*, data_access: bool = True, kind: str = "new") -> SimpleNamespace:
     return SimpleNamespace(
         state={
+            context.KIND: kind,
             context.REQUEST_ID: str(uuid.uuid4()),
             context.REQUESTER_ID: str(uuid.uuid4()),
             context.CONVERSATION_ID: str(uuid.uuid4()),
@@ -226,3 +244,199 @@ async def test_uma_falha_ao_enfileirar_grava_report_failed_e_solta_a_trava(
         ("report", "error")
     ]
     assert await queue.get(lock_key(ctx.state[context.REQUESTER_ID])) is None
+
+
+# O filtro por nome (F14-T05, CA1 e CA2): a busca da F13, com os nomes repetidos de propósito nos
+# dados fixos (dois vendedores com "Ana", seis clientes com "Silva").
+
+
+async def lock_is_free(queue: ArqRedis, ctx: SimpleNamespace) -> bool:
+    return await queue.get(lock_key(ctx.state[context.REQUESTER_ID])) is None
+
+
+async def test_um_nome_sem_achado_grava_nao_encontrei_e_solta_a_trava(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    client = FakeClient(queue)
+
+    await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", "vendedor", "Zé Ninguém"
+    )
+
+    assert client.actions == [
+        {
+            "action": "reply",
+            "body": "Não encontrei vendedor Zé Ninguém.",
+            "business_data": True,
+        }
+    ]
+    assert await audit_of(store.agents, ctx.state[context.REQUEST_ID]) == [
+        ("report", "not_found")
+    ]
+    assert await lock_is_free(queue, ctx)
+    assert answered(ctx)
+
+
+async def test_um_nome_generico_demais_pede_um_nome_mais_completo(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    client = FakeClient(queue)
+
+    await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", "cliente", "Silva"
+    )
+
+    [action] = client.actions
+    assert action["action"] == "reply"
+    assert action["body"].startswith("Há mais de cinco clientes com Silva.")
+    assert action["business_data"] is True
+    assert await audit_of(store.agents, ctx.state[context.REQUEST_ID]) == [
+        ("report", "too_generic")
+    ]
+    assert await lock_is_free(queue, ctx)
+
+
+async def test_um_nome_repetido_pergunta_qual_com_um_botao_por_nome(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    client = FakeClient(queue)
+
+    await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", "vendedor", "Ana"
+    )
+
+    [action] = client.actions
+    assert action == {
+        "action": "question",
+        "body": "Qual Ana?",
+        "quick_replies": ["Ana Beatriz Costa", "Ana Paula Ramos"],
+        "business_data": True,
+    }
+    assert await audit_of(store.agents, ctx.state[context.REQUEST_ID]) == [
+        ("report", "ambiguous_name")
+    ]
+    assert await lock_is_free(queue, ctx)
+
+
+async def test_na_continuacao_o_nome_repetido_nao_pergunta_de_novo(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context(kind="continuation")
+    client = FakeClient(queue)
+
+    await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", "vendedor", "Ana"
+    )
+
+    [action] = client.actions
+    assert action["action"] == "reply"
+    assert action["body"].startswith("Não consegui identificar vendedor Ana.")
+    assert await lock_is_free(queue, ctx)
+
+
+@pytest.mark.parametrize(
+    ("filtro_tipo", "filtro_nome"),
+    [("vendedor", None), (None, "Ana"), ("fornecedor", "Ana"), ("vendedor", "  ")],
+)
+async def test_filtro_incompleto_volta_ao_modelo_como_erro(
+    store: BusinessStore,
+    queue: ArqRedis,
+    filtro_tipo: str | None,
+    filtro_nome: str | None,
+) -> None:
+    ctx = tool_context()
+    client = FakeClient(queue)
+
+    result = await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", filtro_tipo, filtro_nome
+    )
+
+    assert "erro" in result
+    assert client.actions == []
+    assert await lock_is_free(queue, ctx)
+
+
+async def test_um_nome_com_um_achado_leva_o_filtro_pelo_id_ao_job(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    request_id = ctx.state[context.REQUEST_ID]
+    client = FakeClient(queue)
+
+    await request_report(
+        client, store, queue, ctx, "2026-03-01", "2026-03-31", "vendedor", "Ana Paula"
+    )
+
+    [notice] = client.actions
+    assert notice["body"] == (
+        "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026, vendedor Ana Paula Ramos. "
+        "Ele chega aqui quando ficar pronto."
+    )
+    job = ReportJob.from_payload(
+        (await queue._get_job_def(request_id.encode(), None)).args[0]
+    )
+    assert job.filter is not None
+    assert (job.filter.type, job.filter.name) == ("vendedor", "Ana Paula Ramos")
+    async with store.business.connect() as connection:
+        seller_id = (
+            await connection.execute(
+                text("SELECT id FROM sellers WHERE name = 'Ana Paula Ramos'")
+            )
+        ).scalar_one()
+    assert job.filter.id == seller_id
+    await queue.delete(
+        lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}"
+    )
+
+
+# A trava solta em toda falha antes do job, e a segunda chamada no mesmo Pedido (revisão da F14-T04).
+
+
+async def test_um_periodo_que_ainda_nao_comecou_volta_ao_modelo_como_erro(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    client = FakeClient(queue)
+
+    result = await request_report(client, store, queue, ctx, "2026-12-01", "2026-12-31")
+
+    assert "erro" in result
+    assert client.actions == []
+    assert await lock_is_free(queue, ctx)
+
+
+async def test_a_segunda_chamada_no_mesmo_pedido_nao_recusa_o_proprio_relatorio(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    request_id = ctx.state[context.REQUEST_ID]
+    client = FakeClient(queue)
+    await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
+
+    await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
+
+    assert [action["action"] for action in client.actions] == ["report_started"]
+    assert answered(ctx)
+    await queue.delete(
+        lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}"
+    )
+
+
+class FailingNoticeClient(FakeClient):
+    async def report_started(self, request_id: str, body: str) -> None:
+        raise ConnectionError("API do chat fora")
+
+
+async def test_uma_falha_no_aviso_solta_a_trava(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    client = FailingNoticeClient(queue)
+
+    with pytest.raises(ConnectionError):
+        await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
+
+    assert await lock_is_free(queue, ctx)

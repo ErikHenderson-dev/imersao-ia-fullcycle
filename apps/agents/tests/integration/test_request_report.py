@@ -132,3 +132,31 @@ async def test_sem_periodo_o_agente_pergunta_e_a_continuacao_gera_o_relatorio(
     assert notice["body"]["body"].startswith("Comecei a gerar o relatório de 01/")
     await queued_job(body["request_id"])
     await release(parent["requester"]["id"])
+
+
+async def test_um_pedido_real_de_relatorio_filtrado_grava_o_aviso_com_o_filtro(
+    loaded_business_test: str,
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="app")
+    body = pedido(
+        body="@assistente relatório de março de 2026 em PDF da vendedora Ana Paula Ramos"
+    )
+    body["requester"]["data_access"] = True
+
+    response = await request_client.post("/v1/requests", json=body, headers=AUTH)
+
+    assert response.status_code == 202
+    end = await wait_for_end_log(caplog, body["request_id"])
+    assert end.desfecho == "report"
+    [notice] = actions(fake_chat_api, "/report-started")
+    assert notice["body"]["body"] == (
+        "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026, vendedor Ana Paula Ramos. "
+        "Ele chega aqui quando ficar pronto."
+    )
+    job = await queued_job(body["request_id"])
+    assert job.filter is not None and job.filter.name == "Ana Paula Ramos"
+    await release(body["requester"]["id"])

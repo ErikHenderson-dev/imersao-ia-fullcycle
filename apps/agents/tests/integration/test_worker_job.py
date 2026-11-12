@@ -367,3 +367,42 @@ async def test_o_mesmo_pedido_enfileirado_duas_vezes_gera_um_job_so() -> None:
     finally:
         await queue.delete(f"arq:job:{job.request_id}")
         await queue.aclose()
+
+
+async def test_com_filtro_de_produto_so_pedidos_e_itens_vendidos_se_aplicam(
+    deps: WorkerDeps, loaded_business_test: str
+) -> None:
+    engine = create_async_engine(loaded_business_test)
+    try:
+        async with engine.connect() as connection:
+            product_id, product_name = (
+                await connection.execute(
+                    text("SELECT id, name FROM products ORDER BY id LIMIT 1")
+                )
+            ).one()
+            orders = (
+                await connection.execute(
+                    text(
+                        "SELECT count(*) FROM orders WHERE status = 'paid' "
+                        "AND ordered_at >= '2026-03-01 00:00-03' AND ordered_at < '2026-04-01 00:00-03' "
+                        "AND id IN (SELECT order_id FROM order_items WHERE product_id = :p)"
+                    ),
+                    {"p": product_id},
+                )
+            ).scalar_one()
+    finally:
+        await engine.dispose()
+    job = new_job(filter=ReportFilter("produto", product_id, product_name))
+
+    await run_report(deps, job, NOW)
+
+    content = stored_pdf_text(job.request_id)
+    for label in (
+        "Faturamento líquido",
+        "Ticket médio",
+        "Clientes ativos",
+        "Clientes novos",
+    ):
+        assert f"{label}  não se aplica  não se aplica  não se aplica" in content
+    assert f"Pedidos  {format_count(orders)}  " in content
+    assert f"Março de 2026 · produto {product_name}" in content

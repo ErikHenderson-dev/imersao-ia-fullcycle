@@ -1,7 +1,8 @@
 """O pedido de Relatório em PDF, que a ferramenta `gerar_relatorio` faz (spec da F14, "Ferramenta
 `gerar_relatorio`").
 
-O modelo só escolhe o período; o código confere a Permissão de dados, os parâmetros e a trava de um
+O modelo só escolhe o período e, se o pedido nomeia, o cliente, o vendedor ou o produto; o código
+confere a Permissão de dados, os parâmetros e a trava de um
 Relatório por vez, calcula o período anterior, grava o Aviso de início e só então põe o job na
 fila. A entrega e a falha chegam depois, pelo Worker. Cada passo que recusa encerra o Pedido.
 """
@@ -19,14 +20,16 @@ from google.adk.tools import ToolContext
 from app.agent_requests import context
 from app.business import audit
 from app.business.answer import SEM_PERMISSAO
-from app.business.catalog import Period
-from app.business.consult import DONE, parse_period
+from app.business.catalog import FILTERABLE, Period
+from app.business.consult import DONE, parse_period, resolve_name
 from app.business.db import BusinessStore
 from app.business.periods import report_periods
 from app.business.report_queue import (
+    ReportFilter,
     ReportJob,
     acquire_lock,
     enqueue_report,
+    lock_owner,
     release_lock,
 )
 from app.chat_api import ChatApiClient
@@ -52,11 +55,18 @@ async def request_report(
     tool_context: ToolContext,
     inicio: str,
     fim: str,
+    filtro_tipo: str | None = None,
+    filtro_nome: str | None = None,
 ) -> dict[str, Any]:
     state = tool_context.state
     request_id = state[context.REQUEST_ID]
     requester_id = state[context.REQUESTER_ID]
-    params = {"inicio": inicio, "fim": fim}
+    params = {
+        "inicio": inicio,
+        "fim": fim,
+        "filtro_tipo": filtro_tipo,
+        "filtro_nome": filtro_nome,
+    }
 
     async def record(outcome: audit.Outcome) -> None:
         await store.record(
@@ -83,47 +93,107 @@ async def request_report(
     parsed = parse_period(inicio, fim)
     if isinstance(parsed, str):
         return {"erro": parsed}
-    # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco.
-    if not await acquire_lock(queue, requester_id, request_id):
-        return await refuse(REPORT_IN_PROGRESS)
-    # 4. O filtro por nome entra na tarefa 05. 5. O período anterior, em código, a partir de hoje no fuso da empresa.
     today = date.fromisoformat(state[context.BUSINESS_TODAY])
+    if parsed.start > today:
+        return {"erro": "O período ainda não começou: o início precisa ser até hoje."}
+    name = (filtro_nome or "").strip() or None
+    if bool(filtro_tipo) != bool(name):
+        return {"erro": "O filtro precisa de `filtro_tipo` e `filtro_nome` juntos."}
+    if filtro_tipo and filtro_tipo not in FILTERABLE:
+        return {"erro": "`filtro_tipo` é cliente, vendedor ou produto."}
+    # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco. A trava já presa
+    # por este Pedido é uma segunda chamada da ferramenta: o aviso já foi gravado.
+    if not await acquire_lock(queue, requester_id, request_id):
+        if await lock_owner(queue, requester_id) == request_id:
+            context.mark_answered(tool_context, "report")
+            return DONE
+        return await refuse(REPORT_IN_PROGRESS)
+    # Até o aviso, qualquer falha solta a trava: sem aviso, nenhum job a soltaria.
+    try:
+        job = await _job(
+            client, store, queue, tool_context, record, parsed, today, filtro_tipo, name
+        )
+        if isinstance(job, dict):
+            return job
+        # 6. O Aviso de início, que estende a validade do Pedido, e só depois o job na fila: a
+        # entrega nunca chega antes do aviso.
+        label = f"{job.filter.type} {job.filter.name}" if job.filter else None
+        await client.report_started(request_id, notice_text(job.period, label))
+    except BaseException:
+        await release_lock(queue, requester_id, request_id)
+        raise
+    context.mark_answered(tool_context, "report")
+    try:
+        await enqueue_report(queue, job)
+    except Exception as error:
+        # 7. Sem o job, a trava solta primeiro, a auditoria e a falha depois.
+        logger.warning(
+            "Relatório do Pedido %s não entrou na fila: %s",
+            request_id,
+            type(error).__name__,
+            extra={"request_id": request_id},
+        )
+        await release_lock(queue, requester_id, request_id)
+        await record("error")
+        await client.report_failed(request_id)
+    return DONE
+
+
+async def _job(
+    client: ChatApiClient,
+    store: BusinessStore,
+    queue: ArqRedis,
+    tool_context: ToolContext,
+    record: Callable[[audit.Outcome], Awaitable[None]],
+    parsed: Period,
+    today: date,
+    filtro_tipo: str | None,
+    name: str | None,
+) -> ReportJob | dict[str, Any]:
+    """O job do Relatório, ou a saída de nome já gravada na Conversa (passos 4 e 5)."""
+    state = tool_context.state
+    request_id = state[context.REQUEST_ID]
+    requester_id = state[context.REQUESTER_ID]
+    # 4. O nome do filtro, pela busca da F13; cada saída solta a trava antes de gravar.
+    filter = None
+    if filtro_tipo and name:
+
+        async def record_released(outcome: audit.Outcome, _sql: str | None) -> None:
+            await release_lock(queue, requester_id, request_id)
+            await record(outcome)
+
+        async def finish_released(
+            outcome: audit.Outcome, text: str, *, sql: str | None, business_data: bool
+        ) -> dict[str, Any]:
+            await record_released(outcome, sql)
+            await client.reply(request_id, text, business_data=business_data)
+            context.mark_answered(tool_context, "report")
+            return DONE
+
+        resolved = await resolve_name(
+            store,
+            tool_context,
+            client,
+            record_released,
+            finish_released,
+            filtro_tipo,
+            name,
+        )
+        if isinstance(resolved, dict):
+            return resolved
+        found, label = resolved
+        filter = ReportFilter(
+            found.kind, found.id, label.removeprefix(f"{found.kind} ")
+        )
+    # 5. O período anterior, em código, a partir de hoje no fuso da empresa.
     period, previous = report_periods(parsed.start, parsed.end, today)
-    job = ReportJob(
+    return ReportJob(
         request_id=request_id,
         requester_id=requester_id,
         conversation_id=state[context.CONVERSATION_ID],
         question=state.get(context.QUESTION) or "",
         period=period,
         previous_period=previous,
-        filter=None,
+        filter=filter,
         requested_at=datetime.fromisoformat(state[context.REQUESTED_AT]),
     )
-    return await _start(client, queue, tool_context, job, record)
-
-
-async def _start(
-    client: ChatApiClient,
-    queue: ArqRedis,
-    tool_context: ToolContext,
-    job: ReportJob,
-    record: Callable[[audit.Outcome], Awaitable[None]],
-) -> dict[str, Any]:
-    """6. O Aviso de início, que estende a validade do Pedido, e só depois o job na fila: a entrega
-    nunca chega antes do aviso. 7. Se enfileirar falha, a falha e a trava solta."""
-    label = f"{job.filter.type} {job.filter.name}" if job.filter else None
-    await client.report_started(job.request_id, notice_text(job.period, label))
-    context.mark_answered(tool_context, "report")
-    try:
-        await enqueue_report(queue, job)
-    except Exception as error:
-        logger.warning(
-            "Relatório do Pedido %s não entrou na fila: %s",
-            job.request_id,
-            type(error).__name__,
-            extra={"request_id": job.request_id},
-        )
-        await record("error")
-        await client.report_failed(job.request_id)
-        await release_lock(queue, job.requester_id, job.request_id)
-    return DONE

@@ -115,6 +115,12 @@ async def acquire_lock(redis: Redis, requester_id: str, request_id: str) -> bool
     )
 
 
+async def lock_owner(redis: Redis, requester_id: str) -> str | None:
+    """O id do Pedido que prende a trava da Pessoa, ou nenhum."""
+    owner = await redis.get(lock_key(requester_id))
+    return owner.decode() if isinstance(owner, bytes) else owner
+
+
 async def release_lock(redis: Redis, requester_id: str, request_id: str) -> bool:
     """Solta a trava só se ela ainda é do Pedido; verdadeira quando soltou."""
     released = await redis.eval(RELEASE_SCRIPT, 1, lock_key(requester_id), request_id)  # type: ignore[misc]

@@ -181,16 +181,23 @@ async def perguntar_periodo(tool_context: ToolContext) -> dict[str, Any]:
 
 
 async def gerar_relatorio(
-    inicio: str, fim: str, tool_context: ToolContext
+    inicio: str,
+    fim: str,
+    tool_context: ToolContext,
+    filtro_tipo: str | None = None,
+    filtro_nome: str | None = None,
 ) -> dict[str, Any]:
     """Gera um Relatório de vendas em PDF de um período, com as seis Métricas do catálogo, o período
     anterior e as variações, e grava na Conversa o aviso de que começou; o PDF chega depois, na
     mesma Conversa. Use só quando o pedido pede relatório ou PDF. Depois dela, não escreva nada: o
-    aviso (ou a recusa) já está na Conversa.
+    aviso (ou a recusa, ou a pergunta de qual nome) já está na Conversa.
 
     Args:
         inicio: O primeiro dia do período, em AAAA-MM-DD.
         fim: O último dia do período, em AAAA-MM-DD (inclusive).
+        filtro_tipo: Só quando o pedido nomeia um cliente, vendedor ou produto: "cliente",
+            "vendedor" ou "produto".
+        filtro_nome: O nome como está no pedido (por exemplo, "Ana"), junto de `filtro_tipo`.
 
     Returns:
         A confirmação de que o aviso foi gravado, ou `erro` com o parâmetro a corrigir.
@@ -200,4 +207,6 @@ async def gerar_relatorio(
     queue = CURRENT_REPORTS.get()
     if client is None or store is None or queue is None:
         return {"erro": FORA_DE_UM_PEDIDO}
-    return await request_report(client, store, queue, tool_context, inicio, fim)
+    return await request_report(
+        client, store, queue, tool_context, inicio, fim, filtro_tipo, filtro_nome
+    )

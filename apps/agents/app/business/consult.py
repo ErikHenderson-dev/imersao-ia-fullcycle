@@ -177,7 +177,7 @@ async def consult(
     filter = None
     filter_label = None
     if parsed.filter_kind and parsed.filter_name:
-        resolved = await _resolve_name(
+        resolved = await resolve_name(
             store,
             tool_context,
             client,
@@ -242,7 +242,7 @@ async def consult(
     return await finish("answered", text, sql=sql, business_data=True)
 
 
-async def _resolve_name(
+async def resolve_name(
     store: BusinessStore,
     tool_context: ToolContext,
     client: ChatApiClient,
