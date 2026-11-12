@@ -1,6 +1,6 @@
 # 08: Avaliação completa, medição e acessibilidade
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** a F11 fecha com a prova de qualidade: o evalset completo do resumo aprovando
 ≥ 98% dos casos, o p95 ≤ 5 s e o custo por Pedido medidos com o modelo padrão, e a nota 100 de
@@ -23,5 +23,7 @@ pedidos e teto de custo) e 07 (Escolher o Recorte por Resposta pronta ou respond
   Mensagens com o modelo padrão, e o custo por Pedido calculado dos tokens ficam nesta pasta.
 - [ ] **CA3** · O roteiro manual do Lighthouse, feito por uma pessoa com uma Conversa que tem um
   resumo e uma pergunta com Respostas prontas, registra 100 nos dois temas nesta pasta.
+  **Dispensado pelo usuário em 2026-11-11:** o Lighthouse não foi medido na F11; o roteiro fica
+  em `roteiro-manual.md` para quem quiser medir depois.
 - [x] **CA4** · O plano de testes da F11 fica junto dos testes do Playwright, e a suíte e2e inteira
   passa antes do PR.
