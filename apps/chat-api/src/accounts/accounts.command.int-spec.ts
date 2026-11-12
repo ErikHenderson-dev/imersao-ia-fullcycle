@@ -677,9 +677,7 @@ describe('comando de contas', () => {
       ]);
 
       expect(exitCode).toBe(0);
-      expect(output.infos).toEqual([
-        'Ana Souza agora tem Permissão de dados.',
-      ]);
+      expect(output.infos).toEqual(['Ana Souza agora tem Permissão de dados.']);
       expect(await dataAccessOf(ana.id)).toBe(true);
     });
 

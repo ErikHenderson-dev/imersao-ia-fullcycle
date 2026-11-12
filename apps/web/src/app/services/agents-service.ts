@@ -90,6 +90,7 @@ export type StartAgentRequestResult = { kind: "accepted" } | { kind: "failure"; 
 // Entrega o Pedido e espera só o aceite (spec da F11, "Disparo pelo BFF"): o Agente responde na
 // Conversa pela API do chat, depois.
 export async function startAgentRequest(payload: AgentRequestPayload): Promise<StartAgentRequestResult> {
+  const { dataAccess, ...requester } = payload.requester;
   const response = await request("/v1/requests", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -100,12 +101,7 @@ export async function startAgentRequest(payload: AgentRequestPayload): Promise<S
       agent: payload.agent,
       conversation_id: payload.conversationId,
       message: payload.message,
-      requester: {
-        id: payload.requester.id,
-        name: payload.requester.name,
-        username: payload.requester.username,
-        data_access: payload.requester.dataAccess,
-      },
+      requester: { ...requester, data_access: dataAccess },
       mentions: payload.mentions,
       time_zone: payload.timeZone,
       quote: payload.quote,

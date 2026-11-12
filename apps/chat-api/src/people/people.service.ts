@@ -321,26 +321,26 @@ export class PeopleService {
 
   // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Devolve se mudou: o
   // valor que já estava não grava nada.
-  async setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
-    const result = await this.people
-      .createQueryBuilder()
-      .update()
-      .set({ isAdmin })
-      .where('id = :personId AND is_admin <> :isAdmin', { personId, isAdmin })
-      .execute();
-    return (result.affected ?? 0) > 0;
+  setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
+    return this.setFlag(personId, 'isAdmin', isAdmin);
   }
 
-  // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"); devolve se mudou.
-  async setDataAccess(personId: string, dataAccess: boolean): Promise<boolean> {
+  // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"), com a mesma regra.
+  setDataAccess(personId: string, dataAccess: boolean): Promise<boolean> {
+    return this.setFlag(personId, 'dataAccess', dataAccess);
+  }
+
+  private async setFlag(
+    personId: string,
+    flag: 'isAdmin' | 'dataAccess',
+    value: boolean,
+  ): Promise<boolean> {
+    const column = flag === 'isAdmin' ? 'is_admin' : 'data_access';
     const result = await this.people
       .createQueryBuilder()
       .update()
-      .set({ dataAccess })
-      .where('id = :personId AND data_access <> :dataAccess', {
-        personId,
-        dataAccess,
-      })
+      .set({ [flag]: value })
+      .where(`id = :personId AND ${column} <> :value`, { personId, value })
       .execute();
     return (result.affected ?? 0) > 0;
   }

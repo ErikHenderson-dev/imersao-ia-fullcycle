@@ -1,5 +1,6 @@
 import type { QuotePayload } from "chat-events";
 import type { Agent, AgentRequestPayload } from "@/app/services/agents-service";
+import type { CurrentPersonResult, Person } from "@/app/services/chat-api";
 import { splitMessageBody } from "./message-segments";
 
 function normalized(value: string): string {
@@ -57,12 +58,8 @@ export function agentRequestQuote(quote: QuotePayload | null): AgentRequestPaylo
 // Agente"; ADR 0015). Sem a Pessoa da Sessão, o Pedido vai sem a permissão: na dúvida, sem acesso.
 export function agentRequester(
   author: { id: string; name: string; username: string },
-  session: { kind: "ok"; person: { dataAccess: boolean } } | { kind: "unauthenticated" | "failure" },
+  session: { kind: "ok"; person: Pick<Person, "dataAccess"> } | Exclude<CurrentPersonResult, { kind: "ok" }>,
 ): AgentRequestPayload["requester"] {
-  return {
-    id: author.id,
-    name: author.name,
-    username: author.username,
-    dataAccess: session.kind === "ok" && session.person.dataAccess,
-  };
+  const { id, name, username } = author;
+  return { id, name, username, dataAccess: session.kind === "ok" && session.person.dataAccess };
 }

@@ -174,36 +174,43 @@ export class AccountsCommand implements Command {
 
   // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Não publica evento: a
   // mudança aparece na próxima carga da página e na próxima abertura do Perfil.
-  private async setAdmin(args: string[]): Promise<number> {
-    const [identifier, value] = args;
-    if (
-      args.length !== 2 ||
-      !identifier.trim() ||
-      !['on', 'off'].includes(value)
-    ) {
-      this.output.error(
-        'Uso: pnpm accounts set-admin <e-mail|@usuário> on|off',
-      );
-      return 1;
-    }
-    const person = await this.findByEmailOrUsername(identifier.trim());
-    const isAdmin = value === 'on';
-    const changed = await this.people.setAdmin(person.id, isAdmin);
-    this.output.info(
-      changed
-        ? isAdmin
-          ? `${person.name} agora é administrador(a).`
-          : `${person.name} deixou de ser administrador(a).`
-        : isAdmin
-          ? `${person.name} já era administrador(a).`
-          : `${person.name} já não era administrador(a).`,
+  private setAdmin(args: string[]): Promise<number> {
+    return this.setFlag(
+      args,
+      'set-admin',
+      (personId, value) => this.people.setAdmin(personId, value),
+      {
+        on: 'agora é administrador(a)',
+        off: 'deixou de ser administrador(a)',
+        alreadyOn: 'já era administrador(a)',
+        alreadyOff: 'já não era administrador(a)',
+      },
     );
-    return 0;
   }
 
   // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"). Não publica evento: a
   // mudança vale no próximo Pedido e na próxima leitura de cada Mensagem.
-  private async setDataAccess(args: string[]): Promise<number> {
+  private setDataAccess(args: string[]): Promise<number> {
+    return this.setFlag(
+      args,
+      'set-data-access',
+      (personId, value) => this.people.setDataAccess(personId, value),
+      {
+        on: 'agora tem Permissão de dados',
+        off: 'deixou de ter Permissão de dados',
+        alreadyOn: 'já tinha Permissão de dados',
+        alreadyOff: 'já não tinha Permissão de dados',
+      },
+    );
+  }
+
+  // Uma operação `<e-mail|@usuário> on|off`: grava só se mudar e diz o que aconteceu, depois do nome.
+  private async setFlag(
+    args: string[],
+    operation: string,
+    set: (personId: string, value: boolean) => Promise<boolean>,
+    results: Record<'on' | 'off' | 'alreadyOn' | 'alreadyOff', string>,
+  ): Promise<number> {
     const [identifier, value] = args;
     if (
       args.length !== 2 ||
@@ -211,22 +218,21 @@ export class AccountsCommand implements Command {
       !['on', 'off'].includes(value)
     ) {
       this.output.error(
-        'Uso: pnpm accounts set-data-access <e-mail|@usuário> on|off',
+        `Uso: pnpm accounts ${operation} <e-mail|@usuário> on|off`,
       );
       return 1;
     }
     const person = await this.findByEmailOrUsername(identifier.trim());
-    const dataAccess = value === 'on';
-    const changed = await this.people.setDataAccess(person.id, dataAccess);
-    this.output.info(
-      changed
-        ? dataAccess
-          ? `${person.name} agora tem Permissão de dados.`
-          : `${person.name} deixou de ter Permissão de dados.`
-        : dataAccess
-          ? `${person.name} já tinha Permissão de dados.`
-          : `${person.name} já não tinha Permissão de dados.`,
-    );
+    const on = value === 'on';
+    const changed = await set(person.id, on);
+    const result = changed
+      ? on
+        ? results.on
+        : results.off
+      : on
+        ? results.alreadyOn
+        : results.alreadyOff;
+    this.output.info(`${person.name} ${result}.`);
     return 0;
   }
 
