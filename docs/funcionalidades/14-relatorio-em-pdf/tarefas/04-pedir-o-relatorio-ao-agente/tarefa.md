@@ -1,6 +1,6 @@
 # 04: Pedir o Relatório de um período ao Agente
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Pessoa com Permissão de dados menciona o Agente e pede um Relatório em PDF
 de um período ("@assistente me manda um relatório de março de 2026 em PDF"), vê o Aviso de início
