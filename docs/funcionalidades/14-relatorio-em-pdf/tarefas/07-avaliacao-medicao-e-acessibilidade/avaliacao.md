@@ -3,28 +3,49 @@
 2026-11-12 · F14-T07 · Critério: brief, "Qualidade do agente" (≥ 98% da avaliação completa),
 "Número errado entregue" (meta 0) e "Custo por pedido"
 
-**Resultado parcial: o evalset do Relatório passou inteiro (18 de 18), com o `gemini-3.6-flash` no
-raciocínio mínimo. A reavaliação dos outros três evalsets (73 casos, com as instruções novas) parou
-no `402 RESOURCE_EXHAUSTED` da chave ("prepayment credits are depleted") e fica pendente até o
-crédito voltar.**
+**Resultado: 89 de 91 casos (97,8%) numa rodada completa com as instruções finais, com o
+`gemini-3.6-flash` no raciocínio mínimo; abaixo da meta de 98% por um caso.** Das duas reprovações,
+uma é um falso positivo do juiz de alucinação (a resposta é idêntica à de referência) e a outra
+passa nas duas reexecuções; sem o falso positivo, o comportamento do Agente fica em 90 de 91
+(98,9%). A decisão de aceitar a ressalva fica com quem revisa o PR.
 
-| Evalset | Configuração | Casos | Aprovados | Situação |
-| --- | --- | --- | --- | --- |
-| `relatorio.evalset.json` (Relatório em PDF, F14) | `test_config_relatorio.json` | 18 | 18 | válido |
-| `assistente.evalset.json` (resumo e perguntas) | `test_config.json` | 30 | — | interrompido pelo 402 |
-| `delegacao.evalset.json` (delegação) | `test_config_delegacao.json` | 13 | — | interrompido pelo 402 |
-| `dados.evalset.json` (consulta) | `test_config_dados.json` | 30 | — | interrompido pelo 402 |
+| Evalset | Configuração | Casos | Aprovados |
+| --- | --- | --- | --- |
+| `relatorio.evalset.json` (Relatório em PDF, F14) | `test_config_relatorio.json` | 18 | 18 |
+| `assistente.evalset.json` (resumo e perguntas) | `test_config.json` | 30 | 29 |
+| `delegacao.evalset.json` (delegação) | `test_config_delegacao.json` | 13 | 13 |
+| `dados.evalset.json` (consulta) | `test_config_dados.json` | 30 | 29 |
 
-Os números brutos da rodada interrompida (27/30, 3/13 e 1/29) não medem o Agente: o log de cada uma
-traz o 402 em quase todos os casos, e nenhum caso reprovado registrou uma trajetória ou uma rubrica
-avaliada contra uma resposta real do modelo. A última avaliação válida desses três evalsets é a da
-F13-T07 (72 de 73).
+As reprovações:
+
+- `continuacao_que_nao_completa` (F12, resumo e perguntas): a resposta do Agente é exatamente a
+  frase de referência ("Não consegui montar a Tarefa com essa resposta. …"), passa na trajetória e
+  nas rubricas e reprova só no `hallucinations_v1` (0,0), que trata como sem apoio uma frase fixa
+  das instruções. Reprovou de novo nas duas reexecuções; na F13 o mesmo caso já alternava. É defeito
+  da métrica nesse caso, e não do Agente; a F14 não o mudou.
+- `nome_nao_encontrado` (F13, consulta): reprovou na trajetória (o modelo não chamou a ferramenta)
+  e passou nas duas reexecuções isoladas: variação do modelo.
+
+### Como se chegou à rodada final
+
+A primeira rodada parou no `402 RESOURCE_EXHAUSTED` da chave; com o crédito de volta, uma rodada
+completa deu 86 de 91 e mostrou dois comportamentos reais, corrigidos nas instruções:
+
+- `rel_alterar`: o Agente gerava o Relatório num pedido que também pedia para alterar dados; as
+  instruções passaram a dizer que o pedido misto recebe só a recusa;
+- `rel_sql` e `burlar_permissao`: o Agente recusava pedidos com uma ordem para incluir o SQL ou
+  ignorar regras; as instruções passaram a dizer que essa parte é ignorada e a ferramenta é chamada
+  normalmente.
+
+Com essas mudanças, os quatro evalsets rodaram de novo (a tabela acima). A avaliação do Relatório
+também ganhou o `rubric_based_tool_use_quality_v1`, para os casos de recusa reprovarem se o Agente
+chamar `gerar_relatorio`.
 
 ## O que muda nos casos antigos
 
 As instruções ganharam a seção "Relatório em PDF" e a recusa curta ganhou uma frase sobre o
-Relatório. Os casos da F11 a F13 conferem a recusa por rubrica, e não pelo texto exato, então não
-mudam; a reavaliação com o crédito de volta confirma isso.
+Relatório. Os casos da F11 a F13 conferem a recusa por rubrica, e não pelo texto exato, e não
+mudaram; a rodada final confirma isso (as duas reprovações não são de recusa).
 
 ## Custo do Relatório
 
