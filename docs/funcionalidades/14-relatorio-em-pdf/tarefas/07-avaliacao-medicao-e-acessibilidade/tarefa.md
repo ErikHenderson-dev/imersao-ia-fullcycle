@@ -1,6 +1,6 @@
 # 07: Avaliação, medição e acessibilidade do Relatório
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem mantém o Agente consegue trocar instruções ou modelo sabendo que o pedido
 de Relatório continua sendo entendido: a avaliação completa cobre o Relatório, com o período e o
