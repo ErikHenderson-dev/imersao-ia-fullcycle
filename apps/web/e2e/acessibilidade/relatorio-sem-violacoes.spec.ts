@@ -18,10 +18,11 @@ test.describe("Acessibilidade", () => {
     //    permissão
     const bot = await insertBot("Relator");
     await setDataAccessOf(otherPerson.id, true);
-    await otherPage.goto(`/conversas/${sharedChannel.id}`);
     await deliverReportByApi(otherPage, sharedChannel.id, bot.username);
 
-    // 2. A entrega completa, na página de quem tem a permissão, nos dois temas
+    // 2. A entrega completa, na página de quem tem a permissão, aberta depois da entrega, nos dois
+    //    temas
+    await otherPage.goto(`/conversas/${sharedChannel.id}`);
     await readyHistory(otherPage, sharedChannel.name);
     await expect(messageItem(otherPage, sharedChannel.name, "o relatório está pronto.")).toContainText(FILE_NAME);
     await expectNoViolationsInBothThemes(otherPage);

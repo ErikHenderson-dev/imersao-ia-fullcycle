@@ -24,6 +24,21 @@
           }
         }
       ]
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 1.0,
+      "judge_model_options": {
+        "judge_model": "gemini-3.8-flash",
+        "num_samples": 3
+      },
+      "rubrics": [
+        {
+          "rubric_id": "so_relatorio_pedido",
+          "rubric_content": {
+            "text_property": "O Agente só chama gerar_relatorio quando o pedido pede um relatório ou PDF das Métricas de um período, sem lista, ranking, série mês a mês, gráfico, dado de contato nem alteração de dados; nesses outros pedidos, não chama gerar_relatorio nem consultar_dados."
+          }
+        }
+      ]
     }
   }
 }

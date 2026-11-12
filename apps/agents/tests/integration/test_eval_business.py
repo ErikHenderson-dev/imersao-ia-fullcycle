@@ -6,6 +6,7 @@ que a ferramenta grava fica no estado do caso, sem auditoria.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from types import SimpleNamespace
 
 import pytest
@@ -19,6 +20,17 @@ from app.eval_fixtures import (
 )
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
+
+
+@pytest.fixture
+def eval_business(
+    loaded_business_test: str, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """O Banco de negócio da avaliação apontado para o de teste; o cache sai limpo mesmo na falha."""
+    monkeypatch.setenv("BUSINESS_DATABASE_URL", loaded_business_test)
+    eval_business_store.cache_clear()
+    yield
+    eval_business_store.cache_clear()
 
 
 async def test_a_consulta_da_avaliacao_grava_a_resposta_no_estado(
@@ -50,11 +62,9 @@ async def test_a_consulta_da_avaliacao_grava_a_resposta_no_estado(
 
 
 async def test_o_relatorio_da_avaliacao_grava_o_aviso_e_a_carga_no_estado(
-    loaded_business_test: str, monkeypatch: pytest.MonkeyPatch
+    eval_business: None,
 ) -> None:
     """F14-T07, CA1: `gerar_relatorio` roda até o aviso, sem Worker nem Redis."""
-    monkeypatch.setenv("BUSINESS_DATABASE_URL", loaded_business_test)
-    eval_business_store.cache_clear()
     state = {
         "eval_fixture": "canal-geral",
         "request_id": "0198f000-0000-7000-8000-000000000001",
@@ -84,4 +94,3 @@ async def test_o_relatorio_da_avaliacao_grava_o_aviso_e_a_carga_no_estado(
     assert report["previous_period"] == {"start": "2026-02-01", "end": "2026-02-28"}
     assert report["filter"]["name"] == "Ana Paula Ramos"
     await eval_business_store().dispose()
-    eval_business_store.cache_clear()
