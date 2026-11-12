@@ -109,8 +109,10 @@ leitura dela.
 _Avoid_: nova, como sinônimo
 
 **Notificação**:
-O aviso a uma Pessoa de uma Menção a ela, ou de uma Mensagem de outro autor numa Conversa direta
-com ela. Fica lida quando ela lê a Conversa até aquela Mensagem ou marca tudo como lido.
+O aviso a uma Pessoa de uma Menção a ela, de uma Mensagem de outro autor numa Conversa direta com
+ela, de uma Tarefa que ela recebeu ou da conclusão ou reabertura de uma Tarefa que ela delegou. A
+de Menção ou de Conversa direta fica lida quando ela lê a Conversa até aquela Mensagem; a de
+Tarefa, quando ela a abre; todas, quando ela marca tudo como lido.
 _Avoid_: alerta, aviso
 
 **Atividade**:
@@ -127,7 +129,12 @@ vencer por falta de uso ou ser revogada. Vale para todas as abas daquele navegad
 _Avoid_: login (como substantivo), token
 
 **Tarefa**:
-Um trabalho que um Agente delega a uma pessoa mencionada, a pedido de quem o mencionou; fica com
-essa pessoa como responsável até ela concluí-lo, e pode ser reaberto. Não é a tarefa do
-planejamento (`F01-T02`), definida no `AGENTS.md`.
+Um trabalho que um Agente delega a um Membro da Conversa do Pedido, a pedido de quem o chamou;
+fica aberto até o Responsável concluí-lo, e pode ser reaberto. Não é a tarefa do planejamento
+(`F01-T02`), definida no `AGENTS.md`.
 _Avoid_: to-do, pendência
+
+**Responsável**:
+A Pessoa a quem uma Tarefa foi delegada, a única que a conclui e reabre. Quem fez o Pedido é
+"quem delegou", sem termo próprio.
+_Avoid_: dono, assignee, encarregado
