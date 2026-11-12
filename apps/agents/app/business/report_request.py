@@ -85,6 +85,10 @@ async def request_report(
         context.mark_answered(tool_context, "report")
         return DONE
 
+    # A ferramenta já atendeu este Pedido (o aviso, uma recusa ou uma pergunta): nada a fazer.
+    answered = state.get(context.ANSWERED_BY_TOOL)
+    if answered and answered.get("pedido") == request_id:
+        return DONE
     # 1. A Permissão de dados, no código, antes da trava e do banco (ADR 0015).
     if not state.get(context.DATA_ACCESS):
         await record("no_permission")
@@ -99,12 +103,12 @@ async def request_report(
     name = parse_filter(filtro_tipo, filtro_nome)
     if isinstance(name, dict):
         return name
-    # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco. A trava já presa
-    # por este Pedido é uma segunda chamada da ferramenta: o aviso já foi gravado.
+    # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco. A trava presa
+    # por este mesmo Pedido é outra chamada da ferramenta, em paralelo: ela volta ao modelo, sem
+    # gravar nada nem marcar o desfecho, e a primeira segue.
     if not await acquire_lock(queue, requester_id, request_id):
         if await lock_owner(queue, requester_id) == request_id:
-            context.mark_answered(tool_context, "report")
-            return DONE
+            return {"erro": "Um Relatório deste pedido já está sendo gerado; não chame de novo."}
         return await refuse(REPORT_IN_PROGRESS)
     # Até o aviso, qualquer falha solta a trava: sem aviso, nenhum job a soltaria.
     try:
@@ -117,7 +121,7 @@ async def request_report(
         # entrega nunca chega antes do aviso.
         label = f"{job.filter.type} {job.filter.name}" if job.filter else None
         await client.report_started(request_id, notice_text(job.period, label))
-    except BaseException:
+    except Exception:
         await release_lock(queue, requester_id, request_id)
         raise
     context.mark_answered(tool_context, "report")

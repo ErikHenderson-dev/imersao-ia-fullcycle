@@ -408,7 +408,7 @@ async def test_um_periodo_que_ainda_nao_comecou_volta_ao_modelo_como_erro(
     assert await lock_is_free(queue, ctx)
 
 
-async def test_a_segunda_chamada_no_mesmo_pedido_nao_recusa_o_proprio_relatorio(
+async def test_a_segunda_chamada_no_mesmo_pedido_nao_grava_nada(
     store: BusinessStore, queue: ArqRedis
 ) -> None:
     ctx = tool_context()
@@ -416,13 +416,27 @@ async def test_a_segunda_chamada_no_mesmo_pedido_nao_recusa_o_proprio_relatorio(
     client = FakeClient(queue)
     await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
 
-    await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
+    await request_report(client, store, queue, ctx, "2026-04-01", "2026-04-30")
 
     assert [action["action"] for action in client.actions] == ["report_started"]
     assert answered(ctx)
-    await queue.delete(
-        lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}"
-    )
+    await queue.delete(lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}")
+
+
+async def test_uma_chamada_em_paralelo_no_mesmo_pedido_volta_ao_modelo(
+    store: BusinessStore, queue: ArqRedis
+) -> None:
+    ctx = tool_context()
+    requester = ctx.state[context.REQUESTER_ID]
+    await acquire_lock(queue, requester, ctx.state[context.REQUEST_ID])
+    client = FakeClient(queue)
+
+    result = await request_report(client, store, queue, ctx, "2026-03-01", "2026-03-31")
+
+    assert "erro" in result
+    assert client.actions == []
+    assert not answered(ctx)
+    await queue.delete(lock_key(requester))
 
 
 class FailingNoticeClient(FakeClient):
