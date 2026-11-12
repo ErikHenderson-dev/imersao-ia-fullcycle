@@ -43,17 +43,13 @@ consulta fica auditada. Referências:
 - [x] **CA7** · O estado do Pedido traz a data de hoje no fuso da empresa (`BUSINESS_TIME_ZONE`), e
   as instruções dizem o catálogo, as regras de período, que a Mensagem citada não entra na consulta
   e que a recusa curta cita as três capacidades e o que dá para perguntar.
-- [ ] **CA8** · Testes de unidade (SQL de cada Métrica sem coluna de contato, período com fuso,
+- [x] **CA8** · Testes de unidade (SQL de cada Métrica sem coluna de contato, período com fuso,
   texto, lastro e conferência de somente leitura) e de integração (cada Métrica contra números à mão
   nos dados fixos, tempo limite, sem permissão e um Pedido com o modelo real) cobrem CA1 a CA7.
-- [ ] **CA9** · Um teste Playwright com o modelo real mostra o número e a linha do que foi
+- [x] **CA9** · Um teste Playwright com o modelo real mostra o número e a linha do que foi
   considerado para a Pessoa com permissão e a Resposta bloqueada para a outra, sem recarregar.
 - [x] **CA10** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
 
-**Pendências:** CA8 tem os testes de unidade e de integração sem o modelo verdes (cada Métrica contra
-o SQL à mão, o tempo limite, a recusa sem permissão, o lastro e a auditoria, em
-`tests/integration/test_business_query.py`), mas o de integração com o modelo real
-(`tests/integration/test_request_business.py`) e o Playwright de CA9
-(`e2e/agentes/consulta-a-dados.spec.ts`) estão escritos e não passaram: a chave do Gemini responde
-402 (créditos pré-pagos esgotados). O caso `fora_dados` da avaliação passa a ser consulta e é refeito
-na F13-T07.
+**Modelo real:** o teste de integração (`tests/integration/test_request_business.py`) e o Playwright
+de CA9 (`e2e/agentes/consulta-a-dados.spec.ts`) passaram depois que a chave do Gemini voltou a ter
+crédito; antes, ela respondia 402.

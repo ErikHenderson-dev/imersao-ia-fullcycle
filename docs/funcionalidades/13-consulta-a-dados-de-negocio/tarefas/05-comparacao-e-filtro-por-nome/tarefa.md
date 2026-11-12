@@ -27,15 +27,11 @@ pronta por nome completo; com mais, o pedido de um nome mais específico. Refer�
   (`not_found`); dois a cinco gravam a Pergunta pendente de nome com a marca e uma Resposta pronta
   por nome completo (`ambiguous_name`); mais de cinco gravam o pedido de nome mais específico com a
   marca (`too_generic`).
-- [ ] **CA4** · A continuação com um dos nomes responde com a consulta filtrada.
-- [ ] **CA5** · Testes de unidade (variação, base zero, busca sem acento) e de integração (comparação
+- [x] **CA4** · A continuação com um dos nomes responde com a consulta filtrada.
+- [x] **CA5** · Testes de unidade (variação, base zero, busca sem acento) e de integração (comparação
   e filtro contra números à mão, os três desfechos de nome e a continuação) cobrem CA1 a CA4.
 - [x] **CA6** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
 
-**Pendências:** CA4 e CA5 têm os testes sem o modelo verdes (a consulta filtrada pelo nome completo,
-a comparação e o filtro contra o SQL à mão e os três desfechos de nome, em
-`tests/integration/test_business_query.py`), mas o de integração da continuação com o modelo real
-(`tests/integration/test_request_business.py`, "a continuação com o nome completo responde a
-consulta filtrada") está escrito e não rodou: a chave do Gemini responde 402. A rota de pergunta da
-API do chat passou a aceitar até cinco Respostas prontas, o tamanho da pergunta de nome que a spec
-pede (LLD, "Interfaces").
+**Modelo real:** a continuação com o nome completo (`tests/integration/test_request_business.py`)
+passou depois que a chave do Gemini voltou a ter crédito. A rota de pergunta da API do chat passou a
+aceitar até cinco Respostas prontas, o tamanho da pergunta de nome que a spec pede (LLD, "Interfaces").

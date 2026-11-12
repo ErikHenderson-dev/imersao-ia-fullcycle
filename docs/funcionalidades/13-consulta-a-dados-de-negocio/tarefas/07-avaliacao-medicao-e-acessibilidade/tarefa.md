@@ -22,9 +22,9 @@ acessibilidade. Referências:
   o MCP `adk-docs` e registrada no plano.
 - [x] **CA2** · O evalset `dados` tem 30 casos com configuração própria, cobrindo as categorias da
   spec, e o caso `fora_dados` da F11 passa a ser uma consulta.
-- [ ] **CA3** · A avaliação completa, com os 73 casos de resumo, delegação e consulta, atinge ≥ 98%
+- [x] **CA3** · A avaliação completa, com os 73 casos de resumo, delegação e consulta, atinge ≥ 98%
   de aprovação, com o custo por caso informado.
-- [ ] **CA4** · O p95 da consulta completa, da Mensagem enviada até a resposta aparecer, fica ≤ 5 s
+- [x] **CA4** · O p95 da consulta completa, da Mensagem enviada até a resposta aparecer, fica ≤ 5 s
   com o modelo padrão, registrado na pasta desta tarefa.
 - [x] **CA5** · A checagem com `@axe-core/playwright` na Conversa com uma resposta completa e uma
   bloqueada, nos dois temas, não tem violações.
@@ -32,8 +32,9 @@ acessibilidade. Referências:
   pasta desta tarefa.
 - [x] **CA7** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
 
-**Pendências:** CA3 e CA4 dependem do modelo real, e a chave do Gemini responde 402 (créditos
-pré-pagos esgotados): a avaliação completa (`avaliacao.md`) e a medição do p95
-(`e2e/medicao/consulta-p95.medicao.ts`, `medicao-p95.md`) estão prontas para rodar e não rodaram.
-CA6 é o roteiro manual do Lighthouse (`roteiro-lighthouse.md`), à espera de uma pessoa; o axe nos
-dois temas passa (CA5).
+**Resultados:** a avaliação completa aprovou 72 de 73 casos (98,6%), com os 30 da consulta
+aprovados, e a consulta custa cerca de US$ 0,0035 por caso (`avaliacao.md`); o p95 da consulta é de
+2,20 s (`medicao-p95.md`).
+
+**Pendência:** CA6 é o roteiro manual do Lighthouse (`roteiro-lighthouse.md`), à espera de uma
+pessoa; o axe nos dois temas passa (CA5).

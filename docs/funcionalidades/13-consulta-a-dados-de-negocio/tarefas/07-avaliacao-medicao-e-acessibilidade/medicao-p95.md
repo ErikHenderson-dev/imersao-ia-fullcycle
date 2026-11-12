@@ -2,8 +2,9 @@
 
 2026-11-12 · F13-T07, CA4 · Meta: p95 ≤ 5 s (brief, "Tempo de resposta")
 
-**Resultado: não rodou.** A medição chama o modelo padrão, e a chave do Gemini responde
-`402 RESOURCE_EXHAUSTED` (créditos pré-pagos esgotados).
+**Resultado: p95 de 2,20 s, dentro da meta**, com o `gemini-3.6-flash` no raciocínio mínimo, 20
+amostras, em 2026-11-12. A primeira tentativa parou no `402 RESOURCE_EXHAUSTED` da chave; com o
+crédito de volta, a medição rodou.
 
 ## Como medir
 
@@ -20,4 +21,4 @@ quem pediu; imprime uma linha JSON por amostra e o p50 e o p95 no fim.
 
 | Amostras | p50 | p95 | Máximo | Modelo |
 | --- | --- | --- | --- | --- |
-| a medir | | | | |
+| 20 | 1,69 s | 2,20 s | 2,24 s | `gemini-3.6-flash` |
