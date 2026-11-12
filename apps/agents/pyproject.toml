@@ -12,6 +12,9 @@ dependencies = [
     "sqlalchemy[asyncio]",
     "pydantic-settings>=2.16.2",
     "alembic>=1.20.1",
+    "litellm>=1.84",
+    # Limite de pedidos por Pessoa (spec da F11, "Rota de Pedido").
+    "redis>=8.1",
 ]
 requires-python = ">=3.13,<3.14"
 

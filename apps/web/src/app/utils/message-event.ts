@@ -10,11 +10,26 @@ export function messageFromEvent(payload: MessagePayload): Message {
     id: payload.id,
     conversationId: payload.conversation_id,
     clientId: payload.client_id,
-    author: { ...payload.author, initials: initials(payload.author.name) },
+    // O evento guardado antes da F11 traz só o id e o nome: o autor era sempre uma Pessoa.
+    author: {
+      ...payload.author,
+      kind: payload.author.kind ?? "person",
+      username: payload.author.username ?? "",
+      initials: initials(payload.author.name),
+    },
     body: payload.body,
     createdAt: payload.created_at,
     editedAt: payload.edited_at ?? null,
     mentions: payload.mentions ?? [],
     quote: payload.quote ?? null,
+    // O evento guardado antes da F11-T07 não traz as Respostas prontas.
+    quickReplies: payload.quick_replies
+      ? {
+          options: payload.quick_replies.options,
+          ownerId: payload.quick_replies.owner_id,
+          expiresAt: payload.quick_replies.expires_at,
+          closed: payload.quick_replies.closed,
+        }
+      : null,
   };
 }

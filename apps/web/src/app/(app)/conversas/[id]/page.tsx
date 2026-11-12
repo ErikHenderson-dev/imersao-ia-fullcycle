@@ -124,7 +124,7 @@ async function ConversationHistory({
     return <HistoryError composerLabel={composerLabel(conversation, selfId)} />;
   }
 
-  const { id: authorId, name, initials } = personResult.person;
+  const { id: authorId, name, username, initials } = personResult.person;
   const renderedAt = new Date().toISOString();
   return (
     // Cada renderização do servidor monta o histórico de novo: com Cache Components, a Conversa que
@@ -136,7 +136,7 @@ async function ConversationHistory({
       initialPage={pageResult.page}
       timeZone={timeZone}
       renderedAt={renderedAt}
-      currentPerson={{ id: authorId, name, initials }}
+      currentPerson={{ kind: "person", id: authorId, name, username, initials }}
       messageParam={messageParam}
     />
   );

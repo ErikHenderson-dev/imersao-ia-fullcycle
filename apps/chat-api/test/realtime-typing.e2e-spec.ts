@@ -147,7 +147,12 @@ describe('"digitando" em tempo real', () => {
 
     const expected = {
       conversation_id: channel.id,
-      person: { id: typist.person.id, name: typist.person.name },
+      author: {
+        kind: 'person',
+        id: typist.person.id,
+        name: typist.person.name,
+        username: typist.person.username,
+      },
     };
     expect(await waitForCount(started, 1)).toEqual([expected]);
     expect(await waitForCount(stopped, 1)).toEqual([expected]);
@@ -181,7 +186,12 @@ describe('"digitando" em tempo real', () => {
     expect(await waitForCount(stopped, 1)).toEqual([
       {
         conversation_id: channel.id,
-        person: { id: typist.person.id, name: typist.person.name },
+        author: {
+          kind: 'person',
+          id: typist.person.id,
+          name: typist.person.name,
+          username: typist.person.username,
+        },
       },
     ]);
   });

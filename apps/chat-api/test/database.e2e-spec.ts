@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { join } from 'node:path';
+import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { backfillLastRead } from '../migrations/support/backfill-last-read';
+import { buildDataSourceOptions } from '../src/database/database.options';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import { createTestApp } from './support/create-test-app';
@@ -384,11 +387,13 @@ describe('banco de testes', () => {
   describe('messages', () => {
     // Uma Pessoa e um Canal direto no banco, para a Mensagem ter as referências.
     async function insertMessage(values: {
-      body: string | null;
-      deletedAt: Date | null;
+      body?: string | null;
+      deletedAt?: Date | null;
+      author?: 'person' | 'bot' | 'both' | 'none';
     }) {
       const dataSource = app.get(DataSource);
       const personId = randomUUID();
+      const botId = randomUUID();
       const conversationId = randomUUID();
       await dataSource.query(
         `INSERT INTO people (id, email, name, password_hash, username)
@@ -396,19 +401,25 @@ describe('banco de testes', () => {
         [personId, uniqueEmail(), `ana${personId.slice(0, 8)}`],
       );
       await dataSource.query(
+        `INSERT INTO bots (id, username, name) VALUES ($1, $2, 'Assistente')`,
+        [botId, `bot${botId.slice(0, 8)}`],
+      );
+      await dataSource.query(
         `INSERT INTO conversations (id, kind, name) VALUES ($1, 'public_channel', $2)`,
         [conversationId, `c-${conversationId.slice(0, 8)}`],
       );
+      const author = values.author ?? 'person';
       return dataSource.query<unknown[]>(
-        `INSERT INTO messages (id, conversation_id, author_id, client_id, body, deleted_at)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO messages (id, conversation_id, author_person_id, author_bot_id, client_id, body, deleted_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           randomUUID(),
           conversationId,
-          personId,
+          author === 'person' || author === 'both' ? personId : null,
+          author === 'bot' || author === 'both' ? botId : null,
           randomUUID(),
-          values.body,
-          values.deletedAt,
+          values.body === undefined ? 'Viva' : values.body,
+          values.deletedAt ?? null,
         ],
       );
     }
@@ -426,6 +437,79 @@ describe('banco de testes', () => {
       await expect(
         insertMessage({ body: null, deletedAt: null }),
       ).rejects.toThrow(/messages_body_check/);
+    });
+
+    it('o CHECK do autor de messages exige exatamente um autor', async () => {
+      await expect(insertMessage({ author: 'person' })).resolves.toBeDefined();
+      await expect(insertMessage({ author: 'bot' })).resolves.toBeDefined();
+      await expect(insertMessage({ author: 'both' })).rejects.toThrow(
+        /messages_author_check/,
+      );
+      await expect(insertMessage({ author: 'none' })).rejects.toThrow(
+        /messages_author_check/,
+      );
+    });
+
+    // Num banco próprio, para desfazer a migração sem travar a tabela dos outros testes.
+    it('a migração do autor preserva a Pessoa das Mensagens existentes', async () => {
+      const name = `chat_test_migration_${randomUUID().slice(0, 8)}`;
+      const admin = new Client({
+        connectionString: process.env.TEST_DATABASE_ADMIN_URL,
+      });
+      await admin.connect();
+      await admin.query(`CREATE DATABASE "${name}" OWNER chat`);
+      const url = new URL(process.env.TEST_DATABASE_URL!);
+      url.pathname = `/${name}`;
+      const migrated = new DataSource({
+        ...buildDataSourceOptions(url.toString()),
+        migrations: [join(__dirname, '../migrations/*.ts')],
+      });
+      try {
+        await migrated.initialize();
+        await migrated.runMigrations();
+        // Desfaz até esta migração, mesmo com outras depois dela.
+        while (await isApplied(migrated, 'AddMessageBotAuthor1794450000000')) {
+          await migrated.undoLastMigration();
+        }
+        const [personId, conversationId, messageId] = [
+          randomUUID(),
+          randomUUID(),
+          randomUUID(),
+        ];
+        await migrated.query(
+          `INSERT INTO people (id, email, name, password_hash, username)
+             VALUES ($1, $2, 'Ana', 'hash', 'ana-migracao')`,
+          [personId, uniqueEmail()],
+        );
+        await migrated.query(
+          `INSERT INTO conversations (id, kind, name) VALUES ($1, 'public_channel', 'migracao')`,
+          [conversationId],
+        );
+        await migrated.query(
+          `INSERT INTO messages (id, conversation_id, author_id, client_id, body)
+             VALUES ($1, $2, $3, gen_random_uuid(), 'Antes da migração')`,
+          [messageId, conversationId, personId],
+        );
+
+        const ran = await migrated.runMigrations();
+
+        expect(ran.map((migration) => migration.name)).toContain(
+          'AddMessageBotAuthor1794450000000',
+        );
+        const rows = await migrated.query<
+          { author_person_id: string; author_bot_id: string | null }[]
+        >(
+          'SELECT author_person_id, author_bot_id FROM messages WHERE id = $1',
+          [messageId],
+        );
+        expect(rows).toEqual([
+          { author_person_id: personId, author_bot_id: null },
+        ]);
+      } finally {
+        if (migrated.isInitialized) await migrated.destroy();
+        await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+        await admin.end();
+      }
     });
   });
 
@@ -477,3 +561,14 @@ describe('banco de testes', () => {
     });
   });
 });
+
+async function isApplied(
+  dataSource: DataSource,
+  name: string,
+): Promise<boolean> {
+  const rows = await dataSource.query<unknown[]>(
+    'SELECT 1 FROM migrations WHERE name = $1',
+    [name],
+  );
+  return rows.length > 0;
+}

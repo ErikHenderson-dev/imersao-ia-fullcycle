@@ -15,13 +15,12 @@
 
 from google.adk.agents import Agent
 from google.adk.apps import App
-from google.adk.models import Gemini
-from google.genai import types
 
-from .tools import get_current_time, get_weather
+from app.eval_fixtures import fixture_tool_callback
+from app.model import build_model, generation_config
 
-
-MODEL = "gemini-3.8-flash"
+from .instructions import build_instruction
+from .tools import ler_mensagens, perguntar_recorte
 
 
 root_agent = Agent(
@@ -30,12 +29,15 @@ root_agent = Agent(
     # manifest's value. Renaming the agent only here makes the two disagree, and
     # anything selecting traces by name stops finding this agent's.
     name="assistente",
-    model=Gemini(
-        model=MODEL,
-        retry_options=types.HttpRetryOptions(attempts=3),
-    ),
-    instruction="You are a helpful AI assistant designed to provide accurate and useful information.",
-    tools=[get_weather, get_current_time],
+    # Provedor e modelo por AGENT_MODEL (spec da F11, "Modelo de IA").
+    model=build_model(),
+    # O teto de tokens de saída do Pedido (spec da F11, "Modelo de IA").
+    generate_content_config=generation_config(),
+    # Instruções do resumo (spec da F11, "O Agente `assistente`").
+    instruction=build_instruction,
+    tools=[ler_mensagens, perguntar_recorte],
+    # Só age na avaliação, com a Conversa da fixture do caso (app/eval_fixtures.py).
+    before_tool_callback=fixture_tool_callback,
 )
 
 # O ADK serve o agente em /apps/<nome da pasta>: o nome do App é o da pasta.

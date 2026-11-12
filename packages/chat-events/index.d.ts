@@ -2,10 +2,15 @@
 // execução: o pacote é o contrato do tempo real, consumido pela chat-api e pela web. Campos em
 // snake_case, como no REST.
 
+/** Quem escreveu a Mensagem: uma Pessoa ou o bot de um Agente (spec da F11, "Autor da Mensagem"). */
+export type MessageAuthorKind = "person" | "bot";
+
 /** Autor de uma Mensagem, como no REST. */
 export interface MessageAuthorPayload {
+  kind: MessageAuthorKind;
   id: string;
   name: string;
+  username: string;
 }
 
 /** Uma Mensagem, no mesmo formato da resposta REST (spec da F02, "Rotas"). */
@@ -22,6 +27,19 @@ export interface MessagePayload {
   mentions: MentionPayload[];
   /** A Citação, ou nula (spec da F06, "A Mensagem no REST e nos eventos"). */
   quote: QuotePayload | null;
+  /**
+   * As Respostas prontas da pergunta do bot, ou nulas (spec da F11, "Envio e Pergunta pendente").
+   * Ausente no evento guardado antes da F11-T07.
+   */
+  quick_replies?: QuickRepliesPayload | null;
+}
+
+/** Os botões da pergunta do bot: os rótulos, quem pode responder, até quando e se já se encerrou. */
+export interface QuickRepliesPayload {
+  options: string[];
+  owner_id: string;
+  expires_at: string;
+  closed: boolean;
 }
 
 /** A Mensagem citada: o autor e o texto atual, ou só a marca de apagada. */
@@ -33,12 +51,6 @@ export type QuotePayload =
 export interface MentionPayload {
   id: string;
   username: string;
-}
-
-/** Pessoa que está digitando. */
-export interface TypingPersonPayload {
-  id: string;
-  name: string;
 }
 
 export interface MessageCreatedEvent {
@@ -193,9 +205,13 @@ export interface ConversationRef {
   conversation_id: string;
 }
 
+/**
+ * Quem está digitando, ou parou, numa Conversa: uma Pessoa ou o bot de um Agente, no formato do autor
+ * da Mensagem (spec da F11, ""Digitando" do bot").
+ */
 export interface TypingEvent {
   conversation_id: string;
-  person: TypingPersonPayload;
+  author: MessageAuthorPayload;
 }
 
 export type ConversationOpenResult =

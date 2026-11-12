@@ -1,4 +1,11 @@
-import { IsOptional, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
+import { USERNAME_MAX_LENGTH } from '../people/username';
 import { EditMessageDto } from './edit-message.dto';
 
 // O envio leva o texto, com as mesmas regras da edição, e o identificador gerado no cliente.
@@ -11,4 +18,11 @@ export class SendMessageDto extends EditMessageDto {
   @IsOptional()
   @IsUUID()
   quoted_message_id?: string;
+
+  // O @usuário do Agente conectado mencionado, que o BFF reconhece (spec da F11, "Envio e Pergunta
+  // pendente"). Um que não é de bot recebe bot_not_found; nulo é entrada inválida.
+  @ValidateIf((_dto, value) => value !== undefined)
+  @IsString()
+  @MaxLength(USERNAME_MAX_LENGTH)
+  agent_username?: string;
 }

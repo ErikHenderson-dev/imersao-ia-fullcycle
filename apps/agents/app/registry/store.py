@@ -60,3 +60,12 @@ async def disconnect(engine: AsyncEngine, slug: str) -> None:
         await connection.execute(
             delete(connected_agents).where(connected_agents.c.slug == slug)
         )
+
+
+async def is_connected(engine: AsyncEngine, slug: str) -> bool:
+    """Se o Agente está conectado, sem ler o registro inteiro (a rota de Pedido)."""
+    async with engine.connect() as connection:
+        result = await connection.execute(
+            select(connected_agents.c.slug).where(connected_agents.c.slug == slug)
+        )
+        return result.first() is not None

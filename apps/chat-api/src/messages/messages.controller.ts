@@ -10,6 +10,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  AgentRequestResponse,
+  toAgentRequestResponse,
+} from '../agent-requests/agent-request.response';
 import { Person } from '../people/person.entity';
 import { AuthGuard } from '../sessions/auth.guard';
 import { CurrentPerson } from '../sessions/current-person.decorator';
@@ -42,17 +46,24 @@ export class MessagesController {
     @CurrentPerson() person: Person,
     @Param('conversationId') conversationId: string,
     @Body() body: SendMessageDto,
-  ): Promise<{ message: MessageResponse }> {
-    const message = await this.messages.sendMessage(
-      { id: person.id, name: person.name },
+  ): Promise<{
+    message: MessageResponse;
+    agent_request: AgentRequestResponse | null;
+  }> {
+    const { message, agentRequest } = await this.messages.sendMessage(
+      { id: person.id, name: person.name, username: person.username },
       conversationId,
       {
         clientId: body.client_id,
         body: body.body,
         quotedMessageId: body.quoted_message_id,
+        agentUsername: body.agent_username,
       },
     );
-    return { message: toMessageResponse(message) };
+    return {
+      message: toMessageResponse(message),
+      agent_request: agentRequest && toAgentRequestResponse(agentRequest),
+    };
   }
 
   // Edita a própria Mensagem (spec da F06, "Rotas").
@@ -64,7 +75,7 @@ export class MessagesController {
     @Body() body: EditMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.messages.editMessage(
-      { id: person.id, name: person.name },
+      { id: person.id, name: person.name, username: person.username },
       conversationId,
       id,
       body.body,

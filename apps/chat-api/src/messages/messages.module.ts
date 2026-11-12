@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AgentRequestsModule } from '../agent-requests/agent-requests.module';
+import { BotsModule } from '../bots/bots.module';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { MembershipsModule } from '../memberships/memberships.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -20,6 +22,8 @@ import { UnreadPublisher } from './unread.publisher';
     TypeOrmModule.forFeature([Message, MessageMention]),
     ConversationsModule,
     PeopleModule,
+    BotsModule,
+    AgentRequestsModule,
     SessionsModule,
     RealtimeModule,
     MembershipsModule,

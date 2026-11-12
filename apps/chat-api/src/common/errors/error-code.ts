@@ -15,6 +15,11 @@ export type ErrorCode =
   | 'not_found'
   | 'payload_too_large'
   | 'request_rejected'
+  | 'bot_not_found'
+  | 'invalid_bot_token'
+  | 'request_not_found'
+  | 'request_closed'
+  | 'request_expired'
   | 'internal_error';
 
 export const ERROR_STATUS: Record<ErrorCode, number> = {
@@ -34,5 +39,10 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   not_found: 404,
   payload_too_large: 413,
   request_rejected: 400,
+  bot_not_found: 422,
+  invalid_bot_token: 401,
+  request_not_found: 404,
+  request_closed: 409,
+  request_expired: 410,
   internal_error: 500,
 };

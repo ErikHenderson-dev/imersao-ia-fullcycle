@@ -1,10 +1,27 @@
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
-import type { MentionPayload, QuotePayload } from 'chat-events';
+import type {
+  MentionPayload,
+  MessageAuthorPayload,
+  QuotePayload,
+} from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
+import {
+  AgentRequestsService,
+  AgentRequestView,
+  toAgentRequestView,
+} from '../agent-requests/agent-requests.service';
+import {
+  isExpired,
+  PendingQuestionsService,
+  type PendingQuestionView,
+} from '../agent-requests/pending-questions.service';
+import { BotNotFoundError } from '../bots/bot-not-found.error';
+import type { Bot } from '../bots/bot.entity';
+import { BotsService } from '../bots/bots.service';
 import { ConversationNotFoundError } from '../conversations/conversation-not-found.error';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -22,9 +39,14 @@ import { UnreadPublisher } from './unread.publisher';
 import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
 import { toMessageResponse } from './message.response';
 
-export interface MessageAuthor {
+// Quem escreveu a Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem").
+export type MessageAuthor = MessageAuthorPayload;
+
+// A Pessoa da Sessão que envia ou edita: a gravação como bot é da ação de bot.
+export interface PersonAuthor {
   id: string;
   name: string;
+  username: string;
 }
 
 // Uma Pessoa mencionada (spec da F06, "A Mensagem no REST e nos eventos").
@@ -32,6 +54,12 @@ export type MentionView = MentionPayload;
 
 // A Mensagem citada (spec da F06, "A Mensagem no REST e nos eventos").
 export type QuoteView = QuotePayload;
+
+// As Respostas prontas da pergunta do bot (spec da F11, "Envio e Pergunta pendente"): os rótulos e a
+// Pergunta pendente da Mensagem.
+export interface QuickRepliesView extends PendingQuestionView {
+  options: string[];
+}
 
 export interface MessageView {
   id: string;
@@ -43,6 +71,7 @@ export interface MessageView {
   editedAt: Date | null;
   mentions: MentionView[];
   quote: QuoteView | null;
+  quickReplies: QuickRepliesView | null;
 }
 
 export interface MessagePage {
@@ -59,14 +88,45 @@ export interface NewMessage {
   clientId: string;
   body: string;
   quotedMessageId?: string;
+  // O @usuário do Agente conectado mencionado, que o BFF reconhece (spec da F11, "Envio e Pergunta
+  // pendente"): a Mensagem vira um Pedido.
+  agentUsername?: string;
 }
 
-export interface SentMessage {
+// O envio respondido: a Mensagem e o Pedido que ela criou, ou null.
+export interface SendResult {
   message: MessageView;
+  agentRequest: AgentRequestView | null;
+}
+
+export interface SentMessage extends SendResult {
   // Falso quando o client_id já tinha sido gravado: o reenvio não gera evento.
   created: boolean;
   // A Pessoa que virou Membro da Conversa direta com esta Mensagem (a primeira), ou null.
   joinedId: string | null;
+  // A Mensagem da Pergunta pendente que esta Mensagem encerrou, ou null.
+  closedQuestionId: string | null;
+}
+
+// O Recorte que o bot lê: `since` inclusivo e `until` exclusivo, e o @usuário de uma Pessoa.
+export interface BotReadFilter {
+  since?: Date;
+  until?: Date;
+  authorUsername?: string;
+}
+
+// Uma Mensagem de Pessoa como o bot a lê (spec da F11, "Rotas do bot e credencial").
+export interface BotReadMessage {
+  id: string;
+  author: { name: string; username: string };
+  body: string;
+  createdAt: Date;
+}
+
+export interface BotReadPage {
+  messages: BotReadMessage[];
+  // A contagem do Recorte inteiro, mesmo acima do teto.
+  total: number;
 }
 
 interface PublicationSlot {
@@ -86,6 +146,9 @@ export class MessagesService {
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private readonly conversations: ConversationsService,
     private readonly people: PeopleService,
+    private readonly bots: BotsService,
+    private readonly agentRequests: AgentRequestsService,
+    private readonly pendingQuestions: PendingQuestionsService,
     private readonly publisher: RealtimePublisher,
     private readonly unreadPublisher: UnreadPublisher,
     private readonly memberships: MembershipsService,
@@ -135,15 +198,158 @@ export class MessagesService {
     return this.withDetails(found);
   }
 
+  // A Mensagem desse id, montada como no histórico, mesmo apagada; quem chama sabe que ela existe.
+  async viewById(id: string): Promise<MessageView> {
+    const message = await this.messages.findOneByOrFail({ id });
+    const [view] = await this.withDetails([message]);
+    return view;
+  }
+
+  // As Mensagens de Pessoas, não apagadas, do Recorte, da mais antiga para a mais nova: as `limit`
+  // mais recentes, e o `total` do Recorte (spec da F11, "Rotas do bot e credencial"). Os limites
+  // viram UUIDs v7 de limite, para a consulta usar o índice (conversation_id, id).
+  async listForBot(
+    conversationId: string,
+    { since, until, authorUsername }: BotReadFilter,
+    limit: number,
+  ): Promise<BotReadPage> {
+    const { params, conditions } = botReadConditions(conversationId, {
+      since,
+      until,
+    });
+    if (authorUsername !== undefined) {
+      params.push(authorUsername);
+      conditions.push(`p.username = $${params.length}`);
+    }
+    // Numa consulta só: a contagem da janela é a do Recorte inteiro, antes do LIMIT, e sai do mesmo
+    // retrato que a página. Sem linhas, o Recorte está vazio.
+    const newestFirst = await this.txHost.tx.query<
+      {
+        id: string;
+        name: string;
+        username: string;
+        body: string;
+        created_at: Date;
+        total: number;
+      }[]
+    >(
+      `SELECT m.id, p.name, p.username, m.body, m.created_at, count(*) OVER ()::int AS total
+         FROM messages m JOIN people p ON p.id = m.author_person_id
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY m.id DESC LIMIT $${params.length + 1}`,
+      [...params, limit],
+    );
+    return {
+      total: newestFirst[0]?.total ?? 0,
+      messages: newestFirst.reverse().map((row) => ({
+        id: row.id,
+        author: { name: row.name, username: row.username },
+        body: row.body,
+        createdAt: row.created_at,
+      })),
+    };
+  }
+
+  // Quantas Mensagens de Pessoas, não apagadas, a leitura do bot traria desde cada `since` até
+  // `until`, e sem início (spec da F11, "Rotas do bot e credencial"): os mesmos filtros e limites
+  // da `listForBot`, numa consulta só.
+  async countForBot(
+    conversationId: string,
+    sinces: Date[],
+    until: Date | undefined,
+  ): Promise<{ counts: number[]; total: number }> {
+    const { params, conditions } = botReadConditions(conversationId, {
+      until,
+    });
+    const filters = sinces.map((since) => {
+      params.push(uuidV7LowerBound(since));
+      return `count(*) FILTER (WHERE m.id >= $${params.length})::int`;
+    });
+    const [row] = await this.txHost.tx.query<Record<string, number>[]>(
+      `SELECT ${[...filters, 'count(*)::int'].map((filter, index) => `${filter} AS c${index}`).join(', ')}
+         FROM messages m
+        WHERE ${conditions.join(' AND ')}`,
+      params,
+    );
+    return {
+      counts: sinces.map((_, index) => row[`c${index}`]),
+      total: row[`c${sinces.length}`],
+    };
+  }
+
+  // Grava a Mensagem de um bot na Conversa de um Pedido (spec da F11, "Rotas do bot e
+  // credencial"), dentro da transação de quem chama, que confere o Pedido e a ação. O bot não é
+  // Membro: não há Última leitura, Menção nem Citação.
+  // Na pergunta, os rótulos das Respostas prontas vão junto, e a Pergunta pendente que dá o resto do
+  // payload é gravada por quem chama.
+  async insertBotMessage(
+    botId: string,
+    conversationId: string,
+    body: string,
+    quickReplies: string[] | null = null,
+  ): Promise<MessageView> {
+    const message = await this.messages.save(
+      this.messages.create({
+        conversationId,
+        authorBotId: botId,
+        authorPersonId: null,
+        clientId: randomUUIDv7(),
+        body,
+        quotedMessageId: null,
+        quickReplies,
+      }),
+    );
+    const [bot] = await this.bots.findByIds([botId]);
+    // Montada sem reler a linha: a Mensagem de bot não tem Menção nem Citação.
+    return toView(message, toAuthor('bot', bot), [], null);
+  }
+
+  // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos
+  // Membros. Sem Atividade, porque a Mensagem de bot nunca gera Notificação (spec da F11, "Autor da
+  // Mensagem"). A falha só vai para o log, como no envio.
+  publishBotMessage(message: MessageView): void {
+    const { conversationId } = message;
+    this.queueForMessage(
+      message.id,
+      this.toMembers(
+        conversationId,
+        async (memberIds) => {
+          await this.announceCreated(message, memberIds);
+        },
+        'Falha ao publicar a Mensagem do bot',
+      ),
+    );
+  }
+
+  // Publica, depois do commit, a pergunta do bot cuja Pergunta pendente se encerrou: o
+  // message.updated com as Respostas prontas fechadas, que desativa os botões em tempo real (spec
+  // da F11, "Envio e Pergunta pendente"). Na fila da Mensagem da pergunta, depois da criação dela.
+  publishQuestionClosed(questionMessageId: string, conversationId: string) {
+    this.queueForMessage(
+      questionMessageId,
+      this.toMembers(
+        conversationId,
+        async (memberIds) => {
+          const question = await this.viewById(questionMessageId);
+          await this.publisher.messageUpdated(
+            memberIds,
+            toMessageResponse(question),
+          );
+        },
+        'Falha ao publicar a pergunta encerrada',
+      ),
+    );
+  }
+
   // Envia a Mensagem: grava e, só quando a gravação é nova, publica o evento para os Membros, depois
   // da gravação (spec da F03, "Eventos por Pessoa e reconexão", "Publicação"). A Mensagem já está
   // gravada quando a publicação falha: o envio responde sucesso e a falha vai para o log, porque um
   // reenvio da Pessoa não publicaria de novo.
   async sendMessage(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     newMessage: NewMessage,
-  ): Promise<MessageView> {
+  ): Promise<SendResult> {
     // A barreira desta Mensagem, se ela for a que põe a outra Pessoa na Conversa direta: montada
     // dentro da transação (em `send`), antes do commit, e liberada depois da publicação.
     let barrier: Barrier | null = null;
@@ -156,9 +362,12 @@ export class MessagesService {
       (barrier as Barrier | null)?.release();
       throw error;
     }
-    const { message, created, joinedId } = sent;
+    const { message, created, joinedId, agentRequest, closedQuestionId } = sent;
     const own = barrier as Barrier | null;
-    if (!created) return message;
+    if (!created) return { message, agentRequest };
+    if (closedQuestionId) {
+      this.publishQuestionClosed(closedQuestionId, conversationId);
+    }
     // Uma Mensagem que não abre a Conversa direta espera a barreira que estiver montada nela, para
     // a entrada da outra Pessoa chegar antes de qualquer Mensagem (spec da F05, "Tempo real",
     // "Ordem"). Sem barreira, a publicação sai na hora, sem prender a resposta do envio.
@@ -180,13 +389,7 @@ export class MessagesService {
               ),
             );
         }
-        await this.publisher.messageCreated(
-          memberIds,
-          toMessageResponse(message),
-        );
-        // Os números de todos os Membros, depois da Mensagem (spec da F07, "Tempo real"). Têm fila
-        // própria, por Conversa: a fila da Mensagem não espera por eles.
-        const unread = this.unreadPublisher.publish(conversationId, memberIds);
+        const { unread } = await this.announceCreated(message, memberIds);
         // Os números de Atividade (spec da F08, "Tempo real"): numa Conversa direta, as duas
         // Pessoas; num Canal, o autor, que leu até aqui, e as Pessoas mencionadas.
         this.activityPublisher.publish(
@@ -204,7 +407,20 @@ export class MessagesService {
     // A edição e a exclusão desta Mensagem só publicam depois da criação (spec da F06, "Tempo
     // real", "Ordem"): a fila dela nasce aqui, antes de o envio responder.
     this.queueForMessage(message.id, () => publication);
-    return message;
+    return { message, agentRequest };
+  }
+
+  // O message.created aos Membros e, depois dele, os números de Não lidas deles (spec da F07,
+  // "Tempo real"), no envio e na Mensagem de bot. Os números têm fila própria, por Conversa: a fila
+  // da Mensagem não espera por eles, e quem chama recebe a publicação deles.
+  private async announceCreated(
+    message: MessageView,
+    memberIds: string[],
+  ): Promise<{ unread: Promise<void> }> {
+    await this.publisher.messageCreated(memberIds, toMessageResponse(message));
+    return {
+      unread: this.unreadPublisher.publish(message.conversationId, memberIds),
+    };
   }
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
@@ -250,7 +466,7 @@ export class MessagesService {
   // mudou, publica o message.updated para os Membros depois do commit. Como no envio, a falha da
   // publicação só vai para o log.
   async editMessage(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     messageId: string,
     body: string,
@@ -381,7 +597,7 @@ export class MessagesService {
   // idempotência", "Editar e apagar mensagem"): a que chega depois lê a linha já gravada.
   @Transactional()
   private async edit(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
     messageId: string,
     body: string,
@@ -419,7 +635,12 @@ export class MessagesService {
       : previousMentions;
     // O autor é quem pediu: o nome vem da Sessão, sem outra consulta.
     return {
-      message: toView(message, author, mentions, await this.quoteOf(message)),
+      message: toView(
+        message,
+        toAuthor('person', author),
+        mentions,
+        await this.quoteOf(message),
+      ),
       changed,
       mentionChangedIds: rewritesMentions
         ? symmetricDifference(
@@ -462,7 +683,7 @@ export class MessagesService {
       .getOne();
     // A apagada responde como a que não existe: editar ou apagar de novo dá 404.
     if (!message || message.deletedAt) throw new MessageNotFoundError();
-    if (message.authorId !== personId) throw new MessageNotOwnedError();
+    if (message.authorPersonId !== personId) throw new MessageNotOwnedError();
     return message;
   }
 
@@ -495,20 +716,26 @@ export class MessagesService {
   // Mensagem, gravam juntas (spec da F05, "Conversa direta", "Primeira Mensagem").
   @Transactional()
   private async send(
-    author: MessageAuthor,
+    author: PersonAuthor,
     conversationId: string,
-    { clientId, body, quotedMessageId }: NewMessage,
+    { clientId, body, quotedMessageId, agentUsername }: NewMessage,
     onBarrier: (barrier: Barrier) => void,
   ): Promise<SentMessage> {
     const conversation = await this.conversations.getForMember(
       author.id,
       conversationId,
     );
+    // O bot do Agente mencionado, antes de gravar: sem ele, nada é gravado.
+    let bot: Bot | null = null;
+    if (agentUsername !== undefined) {
+      bot = await this.bots.findByUsername(agentUsername);
+      if (!bot) throw new BotNotFoundError();
+    }
     // O reenvio do mesmo client_id devolve a Mensagem já gravada, sem olhar a Citação nova (spec da
     // F06, "Enviar com Citação"); só o envio novo confere a Citação.
     if (
       quotedMessageId !== undefined &&
-      !(await this.messages.existsBy({ authorId: author.id, clientId }))
+      !(await this.messages.existsBy({ authorPersonId: author.id, clientId }))
     ) {
       await this.assertQuotable(conversationId, quotedMessageId);
     }
@@ -518,7 +745,7 @@ export class MessagesService {
       .values({
         id: randomUUIDv7(),
         conversationId,
-        authorId: author.id,
+        authorPersonId: author.id,
         clientId,
         body,
         quotedMessageId: quotedMessageId ?? null,
@@ -532,13 +759,16 @@ export class MessagesService {
       ? this.messages.create({
           id: row.id,
           conversationId,
-          authorId: author.id,
+          authorPersonId: author.id,
           clientId,
           body,
           quotedMessageId: quotedMessageId ?? null,
           createdAt: row.created_at,
         })
-      : await this.messages.findOneByOrFail({ authorId: author.id, clientId });
+      : await this.messages.findOneByOrFail({
+          authorPersonId: author.id,
+          clientId,
+        });
     // O mesmo client_id usado em outra Conversa não é reenvio desta.
     if (message.conversationId !== conversationId) {
       throw new ClientIdConflictError();
@@ -562,11 +792,66 @@ export class MessagesService {
     const mentions = row
       ? await this.saveMentions(message, body, false)
       : await this.mentionsOf(message.id);
+    // A Mensagem nova de quem pediu encerra a Pergunta pendente dela na Conversa, vencida ou não
+    // (LLD, "Pedido ao agente e Pergunta pendente"). Com a Menção, a Mensagem vira um Pedido new;
+    // sem ela e com a pergunta valendo, a continuação. O reenvio devolve o que ela já criou.
+    const closedQuestion = row
+      ? await this.pendingQuestions.takeOpen(conversationId, author.id)
+      : null;
+    let agentRequest: AgentRequestView | null = null;
+    if (!row) agentRequest = await this.requestOf(message.id);
+    else if (bot)
+      agentRequest = await this.openRequest(message, author.id, bot);
+    else if (closedQuestion && !isExpired(closedQuestion)) {
+      const [questionBot] = await this.bots.findByIds([closedQuestion.botId]);
+      agentRequest = await this.openRequest(
+        message,
+        author.id,
+        questionBot,
+        closedQuestion.requestId,
+      );
+    }
     return {
-      message: toView(message, author, mentions, await this.quoteOf(message)),
+      message: toView(
+        message,
+        toAuthor('person', author),
+        mentions,
+        await this.quoteOf(message),
+      ),
+      agentRequest,
       created: Boolean(row),
       joinedId,
+      closedQuestionId: closedQuestion?.questionMessageId ?? null,
     };
+  }
+
+  // A Mensagem nova vira um Pedido na mesma transação (spec da F11, "Envio e Pergunta pendente"):
+  // `new` quando menciona o Agente, e a continuação do Pedido que perguntou quando responde à
+  // Pergunta pendente, com o bot dele.
+  private async openRequest(
+    message: Message,
+    requesterId: string,
+    bot: Bot,
+    parentRequestId: string | null = null,
+  ): Promise<AgentRequestView> {
+    const request = await this.agentRequests.open(
+      {
+        conversationId: message.conversationId,
+        requesterId,
+        botId: bot.id,
+        triggerMessageId: message.id,
+      },
+      parentRequestId,
+    );
+    return toAgentRequestView(request, bot.username);
+  }
+
+  // O Pedido que a Mensagem reenviada criou, ou null: o reenvio não cria outro.
+  private async requestOf(messageId: string): Promise<AgentRequestView | null> {
+    const request = await this.agentRequests.findByTriggerMessage(messageId);
+    if (!request) return null;
+    const [bot] = await this.bots.findByIds([request.botId]);
+    return toAgentRequestView(request, bot.username);
   }
 
   // As Menções da Mensagem pelo texto gravado (spec da F06, "Menções, ao gravar"): os @usuário de
@@ -656,18 +941,12 @@ export class MessagesService {
   }
 
   // As Mensagens citadas, com o autor e o texto atual, ou só a marca de apagada, numa consulta para
-  // as Mensagens e outra para os autores.
+  // as Mensagens e as dos autores.
   private async quotesById(ids: string[]): Promise<Map<string, QuoteView>> {
     const quotes = new Map<string, QuoteView>();
     if (ids.length === 0) return quotes;
     const quoted = await this.messages.findBy({ id: In(ids) });
-    const authors = new Map(
-      (
-        await this.people.findByIds([
-          ...new Set(quoted.map((message) => message.authorId)),
-        ])
-      ).map((person) => [person.id, { id: person.id, name: person.name }]),
-    );
+    const authorOf = await this.authorsOf(quoted);
     for (const message of quoted) {
       quotes.set(
         message.id,
@@ -676,7 +955,7 @@ export class MessagesService {
           : {
               id: message.id,
               deleted: false,
-              author: authors.get(message.authorId)!,
+              author: authorOf(message),
               body: message.body ?? '',
             },
       );
@@ -684,9 +963,31 @@ export class MessagesService {
     return quotes;
   }
 
-  // Os autores, as Menções e as Citações de uma página, numa consulta para cada.
+  // O autor de cada Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem"), com uma consulta
+  // para as Pessoas e outra para os bots.
+  private async authorsOf(
+    messages: Message[],
+  ): Promise<(message: Message) => MessageAuthor> {
+    const idsOf = (pick: (message: Message) => string | null) => [
+      ...new Set(messages.flatMap((message) => pick(message) ?? [])),
+    ];
+    const [people, bots] = await Promise.all([
+      this.people.findByIds(idsOf((message) => message.authorPersonId)),
+      this.bots.findByIds(idsOf((message) => message.authorBotId)),
+    ]);
+    const authors = new Map<string, MessageAuthor>([
+      ...people.map(
+        (person) => [person.id, toAuthor('person', person)] as const,
+      ),
+      ...bots.map((bot) => [bot.id, toAuthor('bot', bot)] as const),
+    ]);
+    return (message) =>
+      authors.get((message.authorPersonId ?? message.authorBotId)!)!;
+  }
+
+  // Os autores, as Menções, as Citações e as Perguntas pendentes de uma página, numa consulta para
+  // cada.
   private async withDetails(messages: Message[]): Promise<MessageView[]> {
-    const authorIds = [...new Set(messages.map((message) => message.authorId))];
     const quotedIds = [
       ...new Set(
         messages.flatMap((message) =>
@@ -694,25 +995,66 @@ export class MessagesService {
         ),
       ),
     ];
-    const [people, mentions, quotes] = await Promise.all([
-      this.people.findByIds(authorIds),
+    const questionIds = messages.flatMap((message) =>
+      message.quickReplies ? [message.id] : [],
+    );
+    const [authorOf, mentions, quotes, questions] = await Promise.all([
+      this.authorsOf(messages),
       this.mentionsByMessage(messages.map((message) => message.id)),
       this.quotesById(quotedIds),
+      this.pendingQuestions.viewsByMessages(questionIds),
     ]);
-    const authors = new Map(
-      people.map((person) => [person.id, { id: person.id, name: person.name }]),
-    );
     return messages.map((message) =>
       toView(
         message,
-        authors.get(message.authorId)!,
+        authorOf(message),
         mentions.get(message.id) ?? [],
         message.quotedMessageId
           ? (quotes.get(message.quotedMessageId) ?? null)
           : null,
+        quickRepliesOf(message, questions.get(message.id)),
       ),
     );
   }
+}
+
+// O menor UUID v7 do instante: os 48 bits do tempo e o resto zerado. Um id é desse instante em
+// diante quando é maior ou igual a ele (o banco compara UUIDs byte a byte).
+function uuidV7LowerBound(instant: Date): string {
+  const hex = instant.getTime().toString(16).padStart(12, '0');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-0000-0000-000000000000`;
+}
+
+// As condições do Recorte que o bot lê e conta: as Mensagens de Pessoas, não apagadas, da
+// Conversa, com `since` inclusivo e `until` exclusivo. Os parâmetros seguem a numeração das
+// condições, e quem chama acrescenta os seus depois.
+function botReadConditions(
+  conversationId: string,
+  { since, until }: { since?: Date; until?: Date },
+): { params: unknown[]; conditions: string[] } {
+  const params: unknown[] = [conversationId];
+  const conditions = [
+    'm.conversation_id = $1',
+    'm.author_person_id IS NOT NULL',
+    'm.deleted_at IS NULL',
+  ];
+  if (since) {
+    params.push(uuidV7LowerBound(since));
+    conditions.push(`m.id >= $${params.length}`);
+  }
+  if (until) {
+    params.push(uuidV7LowerBound(until));
+    conditions.push(`m.id < $${params.length}`);
+  }
+  return { params, conditions };
+}
+
+// O autor no formato da Mensagem.
+export function toAuthor(
+  kind: MessageAuthor['kind'],
+  { id, name, username }: PersonAuthor,
+): MessageAuthor {
+  return { kind, id, name, username };
 }
 
 function sameUsernames(before: string, after: string): boolean {
@@ -734,6 +1076,7 @@ function toView(
   author: MessageAuthor,
   mentions: MentionView[],
   quote: QuoteView | null,
+  quickReplies: QuickRepliesView | null = null,
 ): MessageView {
   return {
     id: message.id,
@@ -746,7 +1089,17 @@ function toView(
     editedAt: message.editedAt ?? null,
     mentions,
     quote,
+    quickReplies,
   };
+}
+
+// As Respostas prontas da Mensagem: os rótulos dela e a Pergunta pendente que ela abriu.
+function quickRepliesOf(
+  message: Message,
+  question: PendingQuestionView | undefined,
+): QuickRepliesView | null {
+  if (!message.quickReplies || !question) return null;
+  return { options: message.quickReplies, ...question };
 }
 
 // Os ids que estão em só uma das listas: quem entrou ou saiu das Menções.

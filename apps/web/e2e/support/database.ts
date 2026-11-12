@@ -85,24 +85,27 @@ function uuidV7At(milliseconds: number): string {
 export type TestMessage = { id: string; body: string; createdAt: Date };
 
 // Mensagens direto no banco, em datas conhecidas e na ordem em que vêm.
+// O autor é uma Pessoa ou o bot de um Agente (`insertBot`), como a resposta do Agente.
 export async function insertMessages(
   channel: TestChannel,
-  messages: { author: TestPerson; body: string; at: Date; quotedMessageId?: string }[],
+  messages: { author: TestPerson | TestBot; body: string; at: Date; quotedMessageId?: string }[],
 ): Promise<TestMessage[]> {
+  const isBot = (author: TestPerson | TestBot) => !("email" in author);
   const inserted = messages.map((message) => ({
     id: uuidV7At(message.at.getTime()),
     body: message.body,
     createdAt: message.at,
   }));
   await pool.query(
-    `INSERT INTO messages (id, conversation_id, author_id, client_id, body, created_at, updated_at, quoted_message_id)
-     SELECT id, $1, author_id, client_id, body, at, at, quoted
-     FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::text[], $6::timestamptz[], $7::uuid[])
-       AS rows(id, author_id, client_id, body, at, quoted)`,
+    `INSERT INTO messages (id, conversation_id, author_person_id, author_bot_id, client_id, body, created_at, updated_at, quoted_message_id)
+     SELECT id, $1, person_id, bot_id, client_id, body, at, at, quoted
+     FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::uuid[], $6::text[], $7::timestamptz[], $8::uuid[])
+       AS rows(id, person_id, bot_id, client_id, body, at, quoted)`,
     [
       channel.id,
       inserted.map((message) => message.id),
-      messages.map((message) => message.author.id),
+      messages.map((message) => (isBot(message.author) ? null : message.author.id)),
+      messages.map((message) => (isBot(message.author) ? message.author.id : null)),
       messages.map(() => randomUUIDv7()),
       messages.map((message) => message.body),
       messages.map((message) => message.at),
@@ -128,6 +131,33 @@ export function insertHistory(
       at: new Date(start + index * 60_000),
     })),
   );
+}
+
+export type TestBot = { id: string; name: string; username: string };
+
+// O bot de um Agente direto no banco, com @usuário aleatório: o teste não depende do bot `assistente`
+// nem do estado de conexão dos Agentes (spec da F11, "Autor da Mensagem").
+// Com `username`, o bot fixo de um Agente do catálogo, como o comando de contas o cria (o `assistente`
+// do AGENTS.md da raiz), mantido se já existe.
+export async function insertBot(name = "Assistente", username?: string): Promise<TestBot> {
+  const handle = username ?? `e2e-bot-${randomUUID().replaceAll("-", "").slice(0, 20)}`;
+  const result = await pool.query<{ id: string }>(
+    `INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)
+     ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username RETURNING id`,
+    [randomUUIDv7(), handle, name],
+  );
+  return { id: result.rows[0].id, name, username: handle };
+}
+
+export type TestAgentRequest = { id: string; kind: string; status: string };
+
+// O Pedido mais recente da Conversa, que o envio com a Menção criou, ou null (F11).
+export async function latestAgentRequestOf(channel: TestChannel): Promise<TestAgentRequest | null> {
+  const result = await pool.query<TestAgentRequest>(
+    "SELECT id, kind, status FROM agent_requests WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 1",
+    [channel.id],
+  );
+  return result.rows[0] ?? null;
 }
 
 export async function countMessagesWithBody(channel: TestChannel, body: string): Promise<number> {
@@ -231,4 +261,12 @@ export async function themeOf(personId: string): Promise<string> {
 // que o grava pelo `set-admin`.
 export async function setAdminOf(personId: string, isAdmin: boolean): Promise<void> {
   await pool.query("UPDATE people SET is_admin = $2 WHERE id = $1", [personId, isAdmin]);
+}
+
+// Muda o vencimento da Pergunta pendente da Mensagem da pergunta (F11-T07).
+export async function setQuestionExpiry(questionMessageId: string, expiresAt: Date): Promise<void> {
+  await pool.query("UPDATE pending_questions SET expires_at = $2 WHERE question_message_id = $1", [
+    questionMessageId,
+    expiresAt,
+  ]);
 }

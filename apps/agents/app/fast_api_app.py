@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -19,9 +20,14 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.agent_requests.execution import ExecutionDeps
+from app.agent_requests.rate_limit import RequestRateLimiter
+from app.agent_requests.routes import build_router as build_requests_router
 from app.app_utils import services
+from app.chat_api import ChatApiClient
 from app.config import Settings, load_settings
 from app.problems import install_problem_handler
 from app.registry.catalog import load_catalog
@@ -33,6 +39,19 @@ load_dotenv()
 AGENTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "agents")
 
 
+def configure_logging() -> None:
+    """Os registros do projeto, a partir de `info`, no stderr: o uvicorn só configura os loggers
+    dele, e sem isto o fim de cada Pedido (LLD, "Logs") não aparece."""
+    project = logging.getLogger("app")
+    if not project.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+        )
+        project.addHandler(handler)
+        project.setLevel(logging.INFO)
+
+
 def create_app(settings: Settings) -> FastAPI:
     """O app HTTP, de um de dois jeitos (spec da F10, "Rotas e credencial").
 
@@ -40,13 +59,23 @@ def create_app(settings: Settings) -> FastAPI:
     genéricas e a interface web do ADK, e o router /v1 entra nele. Senão, é um FastAPI só com /v1 e
     GET /health: abertas na rede privada, as rotas genéricas rodariam um agente sem credencial.
     """
+    configure_logging()
     # Uma pasta de agente sem card.py faz a subida falhar com o nome dela.
     catalog = load_catalog()
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    # O Agente age na Conversa pela API do chat, como bot (spec da F11, "Execução do Pedido").
+    chat_api = ChatApiClient(settings.chat_api_url, settings.chat_bot_token)
+    # O limite de pedidos por Pessoa (spec da F11, "Rota de Pedido"). Os tempos curtos fazem o Redis
+    # fora virar 503 bem antes do tempo limite do BFF.
+    redis = Redis.from_url(
+        settings.redis_url, socket_connect_timeout=1, socket_timeout=1
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
+        await chat_api.close()
+        await redis.aclose()
         await engine.dispose()
 
     if settings.adk_dev_routes:
@@ -69,8 +98,19 @@ def create_app(settings: Settings) -> FastAPI:
     app.description = "API do Serviço de agentes"
     app.state.engine = engine
     app.state.service_token = settings.agents_service_token
+    # As sessões dos Pedidos, no Banco dos agentes com SESSION_SERVICE_URI; a mesma instância das
+    # rotas genéricas do ADK.
+    session_service = services.build_session_service(settings.session_service_uri)
+    app.state.session_service = session_service
     install_problem_handler(app)
     app.include_router(build_router(catalog))
+    app.include_router(
+        build_requests_router(
+            catalog,
+            ExecutionDeps(session_service=session_service, chat_api=chat_api),
+            RequestRateLimiter(redis, settings.agent_requests_per_minute),
+        )
+    )
     return app
 
 

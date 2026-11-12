@@ -20,6 +20,9 @@ export const envSchema = z.object({
   // Carência da presença (LLD, "Valores de regra"): tempo sem nenhum socket antes de a Pessoa ficar
   // ausente. Reduzida nos testes.
   PRESENCE_GRACE_MS: z.coerce.number().int().positive().default(30_000),
+  // Credencial de bot que as rotas /v1/bot conferem (LLD, "Segurança"); o mesmo valor do Serviço
+  // de agentes.
+  CHAT_BOT_TOKEN: z.string().trim().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

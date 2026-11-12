@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { DataSource } from 'typeorm';
+import { Bot } from '../../src/bots/bot.entity';
+import { BotsService } from '../../src/bots/bots.service';
 import { ConversationsService } from '../../src/conversations/conversations.service';
 import { Conversation } from '../../src/conversations/conversation.entity';
 import { uniqueChannelName } from './unique-channel-name';
@@ -115,7 +117,7 @@ export const conversationRoutes = {
     app: INestApplication,
     cookie: string,
     conversationId: string,
-    options: { clientId?: string; body?: string } = {},
+    options: { clientId?: string; body?: string; agentUsername?: string } = {},
   ): request.Test {
     return request(app.getHttpServer() as App)
       .post(`/v1/conversations/${conversationId}/messages`)
@@ -123,7 +125,20 @@ export const conversationRoutes = {
       .send({
         client_id: options.clientId ?? randomUUID(),
         body: options.body ?? 'Chegou na hora',
+        // O Agente mencionado, como o BFF o manda (spec da F11).
+        agent_username: options.agentUsername,
       });
+  },
+
+  // Pelo REST, como a web: a página mais recente do histórico.
+  listMessages(
+    app: INestApplication,
+    cookie: string,
+    conversationId: string,
+  ): request.Test {
+    return request(app.getHttpServer() as App)
+      .get(`/v1/conversations/${conversationId}/messages`)
+      .set('Cookie', cookie);
   },
 
   // Pelo REST, como a web: envia e devolve o id da Mensagem gravada.
@@ -201,7 +216,7 @@ export const conversationRoutes = {
     );
     const ids = instants.map((at) => uuidV7At(at));
     await app.get(DataSource).query(
-      `INSERT INTO messages (id, conversation_id, author_id, client_id, body, created_at, updated_at)
+      `INSERT INTO messages (id, conversation_id, author_person_id, client_id, body, created_at, updated_at)
        SELECT id, $1, $2, gen_random_uuid(), 'Mensagem ' || position, at, at
        FROM unnest($3::uuid[], $4::timestamptz[]) WITH ORDINALITY AS rows(id, at, position)`,
       [
@@ -212,5 +227,34 @@ export const conversationRoutes = {
       ],
     );
     return ids;
+  },
+
+  // Um bot de Agente, pelo service, como o comando de contas (spec da F10, "Bots"), com @usuário
+  // aleatório: os testes não dependem do bot `assistente`.
+  createBot(app: INestApplication, name = 'Assistente'): Promise<Bot> {
+    return app.get(BotsService).create({
+      username: `bot-${randomUUID().replaceAll('-', '').slice(0, 20)}`,
+      name,
+    });
+  },
+
+  // Direto no banco, como a Mensagem de bot que a ação `reply` da F11 vai gravar: sem evento nem
+  // Última leitura. Devolve o id.
+  async insertBotMessage(
+    app: INestApplication,
+    options: { conversationId: string; botId: string; body?: string },
+  ): Promise<string> {
+    const id = uuidV7At(Date.now());
+    await app.get(DataSource).query(
+      `INSERT INTO messages (id, conversation_id, author_bot_id, client_id, body)
+         VALUES ($1, $2, $3, gen_random_uuid(), $4)`,
+      [
+        id,
+        options.conversationId,
+        options.botId,
+        options.body ?? 'Resumo de hoje',
+      ],
+    );
+    return id;
   },
 };

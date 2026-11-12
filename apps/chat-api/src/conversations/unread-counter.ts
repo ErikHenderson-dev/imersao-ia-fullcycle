@@ -46,6 +46,7 @@ export class UnreadCounter {
 
   // As contagens de várias participações numa consulta só, com uma subconsulta limitada por par.
   // A participação que não existe fica fora do mapa.
+  // A Mensagem de bot, sem Pessoa como autor, é de outro autor para todos (spec da F11).
   async countFor(members: MemberKey[]): Promise<Map<string, Unread>> {
     if (members.length === 0) return new Map();
     const rows = await this.txHost.tx.query<
@@ -61,7 +62,7 @@ export class UnreadCounter {
               (SELECT count(*)::int FROM (
                  SELECT 1 FROM messages message
                   WHERE message.conversation_id = member.conversation_id
-                    AND message.author_id <> member.person_id
+                    AND message.author_person_id IS DISTINCT FROM member.person_id
                     AND message.deleted_at IS NULL
                     AND message.id > COALESCE(member.last_read_message_id, $4::uuid)
                   LIMIT $3) AS unread) AS unread_count,
@@ -71,7 +72,7 @@ export class UnreadCounter {
                   WHERE mention.person_id = member.person_id
                     AND mention.message_id > COALESCE(member.last_read_message_id, $4::uuid)
                     AND message.conversation_id = member.conversation_id
-                    AND message.author_id <> member.person_id
+                    AND message.author_person_id IS DISTINCT FROM member.person_id
                     AND message.deleted_at IS NULL
                   LIMIT $3) AS mentioned) AS mention_count
          FROM unnest($1::uuid[], $2::uuid[]) AS pair(conversation_id, person_id)

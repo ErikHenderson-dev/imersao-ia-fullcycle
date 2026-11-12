@@ -54,7 +54,7 @@ describe('restrições das Conversas no banco', () => {
       await conversations.createPublicChannel(uniqueChannelName());
 
     const insert = dataSource.query(
-      `INSERT INTO messages (id, conversation_id, author_id, client_id, body)
+      `INSERT INTO messages (id, conversation_id, author_person_id, client_id, body)
        VALUES ($1, $2, $3, $4, $5)`,
       [randomUUIDv7(), channel.id, author.id, randomUUID(), '😀'.repeat(4001)],
     );

@@ -1,0 +1,3724 @@
+{
+"mensagens": [
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 1 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 1 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 1 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 1 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 2 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 2 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 2 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 2 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 3 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 3 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 3 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 3 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 4 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 4 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 4 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 4 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 5 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 5 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 5 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 5 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 6 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 6 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 6 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 6 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 7 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 7 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 7 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 7 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 8 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 8 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 8 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 8 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 9 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 9 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 9 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 9 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 10 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 10 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 10 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 10 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 11 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 11 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 11 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 11 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 12 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 12 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 12 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 12 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 13 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 13 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 13 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 13 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 14 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 14 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 14 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 14 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 15 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 15 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 15 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 15 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T07:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 16 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 16 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 16 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 16 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 17 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 17 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 17 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 17 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 18 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 18 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 18 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 18 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 19 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 19 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 19 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 19 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 20 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 20 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 20 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 20 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 21 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 21 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 21 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 21 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 22 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 22 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 22 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 22 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 23 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 23 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 23 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 23 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 24 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 24 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 24 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 24 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 25 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 25 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 25 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 25 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 26 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 26 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 26 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 26 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 27 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 27 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 27 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 27 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 28 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 28 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 28 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 28 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 29 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 29 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 29 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 29 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 30 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 30 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 30 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 30 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T08:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 31 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 31 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 31 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 31 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 32 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 32 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 32 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 32 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 33 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 33 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 33 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 33 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 34 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 34 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 34 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 34 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 35 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 35 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 35 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 35 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 36 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 36 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 36 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 36 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 37 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 37 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 37 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 37 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 38 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 38 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 38 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 38 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 39 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 39 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 39 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 39 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 40 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 40 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 40 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 40 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 41 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 41 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 41 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 41 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 42 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 42 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 42 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 42 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 43 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 43 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 43 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 43 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 44 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 44 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 44 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 44 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 45 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 45 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 45 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 45 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T09:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 46 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 46 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 46 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 46 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 47 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 47 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 47 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 47 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 48 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 48 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 48 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 48 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 49 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 49 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 49 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 49 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 50 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 50 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 50 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 50 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 51 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 51 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 51 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 51 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 52 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 52 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 52 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 52 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 53 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 53 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 53 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 53 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 54 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 54 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 54 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 54 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 55 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 55 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 55 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 55 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 56 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 56 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 56 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 56 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 57 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 57 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 57 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 57 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 58 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 58 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 58 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 58 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 59 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 59 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 59 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 59 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 60 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 60 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 60 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 60 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T10:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 61 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 61 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 61 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 61 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 62 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 62 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 62 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 62 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 63 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 63 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 63 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 63 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 64 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 64 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 64 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 64 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 65 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 65 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 65 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 65 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 66 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 66 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 66 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 66 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 67 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 67 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 67 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 67 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 68 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 68 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 68 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 68 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 69 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 69 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 69 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 69 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 70 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 70 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 70 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 70 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 71 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 71 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 71 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 71 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 72 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 72 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 72 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 72 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 73 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 73 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 73 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 73 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 74 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 74 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 74 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 74 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 75 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 75 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 75 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 75 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T11:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 76 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 76 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 76 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 76 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 77 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 77 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 77 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 77 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 78 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 78 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 78 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 78 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 79 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 79 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 79 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 79 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 80 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 80 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 80 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 80 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 81 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 81 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 81 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 81 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 82 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 82 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 82 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 82 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 83 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 83 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 83 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 83 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 84 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 84 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 84 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 84 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 85 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 85 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 85 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 85 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 86 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 86 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 86 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 86 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 87 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 87 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 87 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 87 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 88 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 88 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 88 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 88 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 89 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 89 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 89 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 89 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 90 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 90 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 90 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 90 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T12:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 91 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 91 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 91 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 91 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 92 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 92 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 92 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 92 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 93 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 93 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 93 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 93 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 94 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 94 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 94 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 94 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 95 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 95 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 95 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 95 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 96 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 96 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 96 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 96 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 97 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 97 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 97 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 97 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 98 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 98 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 98 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 98 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 99 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 99 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 99 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 99 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 100 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 100 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 100 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 100 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 101 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 101 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 101 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 101 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 102 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 102 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 102 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 102 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 103 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 103 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 103 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 103 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 104 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 104 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 104 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 104 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 105 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 105 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 105 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 105 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T13:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 106 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 106 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 106 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 106 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 107 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 107 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 107 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 107 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 108 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 108 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 108 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 108 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 109 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 109 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 109 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 109 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 110 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 110 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 110 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 110 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 111 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 111 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 111 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 111 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 112 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 112 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 112 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 112 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 113 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 113 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 113 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 113 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 114 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 114 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 114 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 114 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 115 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 115 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 115 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 115 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 116 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 116 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 116 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 116 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 117 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 117 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 117 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 117 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 118 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 118 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 118 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 118 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 119 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 119 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 119 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 119 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 120 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 120 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 120 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 120 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T14:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 121 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 121 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 121 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 121 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 122 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 122 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 122 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 122 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 123 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 123 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 123 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 123 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 124 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 124 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 124 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 124 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 125 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 125 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 125 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 125 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 126 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 126 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 126 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 126 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 127 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 127 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 127 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 127 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 128 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 128 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 128 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 128 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 129 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 129 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 129 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 129 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 130 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 130 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 130 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 130 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 131 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 131 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 131 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 131 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 132 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 132 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 132 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 132 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 133 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 133 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 133 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 133 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 134 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 134 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 134 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 134 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 135 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 135 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 135 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 135 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T15:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 136 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 136 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 136 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 136 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 137 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 137 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 137 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 137 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 138 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 138 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 138 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 138 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 139 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 139 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 139 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 139 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 140 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 140 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 140 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 140 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:19:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 141 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:20:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 141 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:21:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 141 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:22:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 141 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:23:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 142 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:24:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 142 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:25:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 142 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:26:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 142 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:27:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 143 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:28:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 143 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:29:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 143 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:30:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 143 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:31:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 144 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:32:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 144 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:33:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 144 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:34:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 144 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:35:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 145 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:36:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 145 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:37:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 145 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:38:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 145 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:39:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 146 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:40:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 146 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:41:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 146 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:42:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 146 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:43:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 147 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:44:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 147 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:45:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 147 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:46:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 147 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:47:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 148 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:48:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 148 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:49:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 148 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:50:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 148 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:51:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 149 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:52:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 149 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:53:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 149 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:54:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 149 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:55:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 150 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:56:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 150 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:57:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 150 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:58:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 150 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T16:59:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 151 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:00:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 151 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:01:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 151 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:02:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 151 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:03:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 152 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:04:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 152 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:05:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 152 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:06:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 152 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:07:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 153 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:08:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 153 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:09:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 153 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:10:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 153 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:11:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 154 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:12:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Item 154 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:13:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Item 154 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:14:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 154 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:15:00Z"
+},
+{
+"autor": "Ana Souza",
+"usuario": "ana",
+"texto": "Item 155 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:16:00Z"
+},
+{
+"autor": "Bruno Lima",
+"usuario": "bruno",
+"texto": "Decidimos fazer a virada da migração no sábado às 8h.",
+"quando": "2026-11-10T17:17:00Z"
+},
+{
+"autor": "Carla Dias",
+"usuario": "carla",
+"texto": "Vou avisar o suporte sobre a janela de sábado.",
+"quando": "2026-11-10T17:18:00Z"
+},
+{
+"autor": "Diego Rocha",
+"usuario": "diego",
+"texto": "Item 155 do checklist da migração do banco conferido.",
+"quando": "2026-11-10T17:19:00Z"
+}
+]
+}

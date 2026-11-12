@@ -3,6 +3,7 @@ import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ProblemDetailsFilter } from './common/errors/problem-details.filter';
 import { AgentsModule } from './agents/agents.module';
 import { ActivityModule } from './activity/activity.module';
+import { BotModule } from './bot/bot.module';
 import { AppConfigModule } from './config/config.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { DatabaseModule } from './database/database.module';
@@ -26,6 +27,7 @@ import { SessionsModule } from './sessions/sessions.module';
     RealtimeModule,
     ActivityModule,
     AgentsModule,
+    BotModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },

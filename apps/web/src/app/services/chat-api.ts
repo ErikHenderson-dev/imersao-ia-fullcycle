@@ -1,6 +1,7 @@
 import type {
   ConversationPayload,
   MentionPayload,
+  MessageAuthorPayload,
   MessagePayload,
   QuotePayload,
   Presence,
@@ -17,6 +18,7 @@ import {
   unreadFromPayload,
   type UnreadPayload,
 } from "@/app/utils/conversation-event";
+import type { AgentErrorReason, AgentRequestFailure } from "@/app/utils/agent-request-failure";
 import { initials } from "@/app/utils/initials";
 import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
@@ -218,7 +220,9 @@ function withInitials<T extends { name: string }>(person: T): T & { initials: st
   return { ...person, initials: initials(person.name) };
 }
 
-export type MessageAuthor = PersonSummary;
+// Quem escreveu a Mensagem, Pessoa ou bot de um Agente, com as iniciais para o avatar da Pessoa
+// (spec da F11, "Autor da Mensagem").
+export type MessageAuthor = MessageAuthorPayload & { initials: string };
 
 export type Message = {
   id: string;
@@ -233,6 +237,16 @@ export type Message = {
   mentions: Mention[];
   // A Citação, com o autor e o texto atual da original, ou a marca de apagada (spec da F06).
   quote: Quote | null;
+  // As Respostas prontas da pergunta do Agente, ou nulas (spec da F11, "Envio e Pergunta pendente").
+  quickReplies: QuickReplies | null;
+};
+
+// Os botões da pergunta do Agente: os rótulos, quem pode responder, até quando e se já se encerrou.
+export type QuickReplies = {
+  options: string[];
+  ownerId: string;
+  expiresAt: string;
+  closed: boolean;
 };
 
 export type Mention = MentionPayload;
@@ -265,8 +279,29 @@ export type CreateChannelResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
+type ApiAgentRequest = {
+  id: string;
+  kind: AgentRequest["kind"];
+  bot_username: string;
+  parent_request_id: string | null;
+};
+
+// O Pedido que a Mensagem criou ao mencionar um Agente (spec da F11, "Envio e Pergunta pendente").
+export type AgentRequest = {
+  id: string;
+  kind: "new" | "continuation";
+  botUsername: string;
+  parentRequestId: string | null;
+};
+
+// O Agente não recebeu o Pedido da Mensagem gravada: o aviso ao lado dela, só para quem pediu (LLD,
+// "Erros").
+export type AgentError = { reason: AgentErrorReason; agentName: string };
+
 export type SendMessageResult =
-  | { kind: "ok"; message: Message }
+  | { kind: "ok"; message: Message; agentRequest: AgentRequest | null; agentError?: AgentError }
+  // O agent_username não é de um bot: o Agente está conectado, mas o bot dele não foi criado.
+  | { kind: "bot_not_found" }
   | { kind: "invalid" }
   | { kind: "not_found" }
   // A Mensagem citada não existe mais nesta Conversa (spec da F06, "Citação").
@@ -373,7 +408,7 @@ export async function listMessages(
 export async function sendMessage(
   token: string,
   conversationId: string,
-  message: { clientId: string; body: string; quotedMessageId?: string },
+  message: { clientId: string; body: string; quotedMessageId?: string; agentUsername?: string },
 ): Promise<SendMessageResult> {
   const response = await request(conversationPath(conversationId, "/messages"), {
     method: "POST",
@@ -382,18 +417,49 @@ export async function sendMessage(
       client_id: message.clientId,
       body: message.body,
       quoted_message_id: message.quotedMessageId,
+      agent_username: message.agentUsername,
     }),
   });
   if (response?.status === 201) {
-    const body = await jsonBody<{ message: ApiMessage }>(response);
-    if (body) return { kind: "ok", message: messageFromEvent(body.message) };
-    return { kind: "failure" };
+    const body = await jsonBody<{ message: ApiMessage; agent_request: ApiAgentRequest | null }>(response);
+    if (!body) return { kind: "failure" };
+    const pending = body.agent_request;
+    return {
+      kind: "ok",
+      message: messageFromEvent(body.message),
+      agentRequest: pending && {
+        id: pending.id,
+        kind: pending.kind,
+        botUsername: pending.bot_username,
+        parentRequestId: pending.parent_request_id,
+      },
+    };
   }
   if (response?.status === 400) return { kind: "invalid" };
+  if (response?.status === 422 && (await errorCode(response)) === "bot_not_found") {
+    return { kind: "bot_not_found" };
+  }
   if (response?.status === 404 && (await errorCode(response)) === "quoted_message_not_found") {
     return { kind: "quote_not_found" };
   }
   return commonFailure(response);
+}
+
+// Encerra o Pedido que o Serviço de agentes não aceitou (spec da F11, "Disparo pelo BFF"). A falha só
+// vai para o log: o Pedido vence sozinho, e a tela já mostra o que precisa.
+export async function closeAgentRequest(
+  token: string,
+  requestId: string,
+  status: AgentRequestFailure["close"],
+): Promise<void> {
+  const response = await request(`/v1/agent-requests/${encodeURIComponent(requestId)}/close`, {
+    method: "POST",
+    headers: { ...authenticated(token), "content-type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (response?.status !== 204) {
+    console.warn(`Pedido não encerrado na API do chat (status ${response?.status ?? "sem resposta"})`);
+  }
 }
 
 // Editar a própria Mensagem (spec da F06, "Rotas").

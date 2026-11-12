@@ -44,16 +44,17 @@ const MENTIONS_OF_PERSON = `
      AND member.person_id = mention.person_id
    WHERE mention.person_id = person.id
      AND conversation.kind <> 'direct'
-     AND message.author_id <> person.id
+     AND message.author_person_id <> person.id
      AND message.deleted_at IS NULL`;
 
 // As Mensagens de outro autor, não apagadas, na Conversa direta `member` de `person.id`, pelo
 // índice de Mensagens por Conversa e id. A Conversa consigo mesma fica fora pelo autor. Quem usa
-// acrescenta o filtro de id em `message.id`.
+// acrescenta o filtro de id em `message.id`. A Mensagem de bot fica fora de propósito: o
+// `author_person_id` nulo nunca passa no `<>` (spec da F11, "Autor da Mensagem").
 const DIRECT_OF_MEMBER = `
     FROM messages message
    WHERE message.conversation_id = member.conversation_id
-     AND message.author_id <> person.id
+     AND message.author_person_id <> person.id
      AND message.deleted_at IS NULL`;
 
 // As Conversas diretas de que `person.id` é Membro: as participações, e a condição da Pessoa, que

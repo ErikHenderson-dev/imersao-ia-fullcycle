@@ -227,13 +227,13 @@ export class RealtimeGateway
     if (!conversationId) return;
     const room = conversationRoom(conversationId);
     if (!socket.rooms.has(room)) return;
-    const { id, name: personName } = socket.data.person;
+    const { id, name: personName, username } = socket.data.person;
     socket
       .to(room)
       .except(personRoom(id))
       .emit(name, {
         conversation_id: conversationId,
-        person: { id, name: personName },
+        author: { kind: 'person', id, name: personName, username },
       });
   }
 

@@ -2,12 +2,17 @@
 
 import { CircleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { AgentAvatar } from "@/app/components/agent/agent-avatar";
+import { AgentTag } from "@/app/components/agent/agent-tag";
+import { AgentText } from "@/app/components/agent/agent-text";
+import { OpenAgentsButton } from "@/app/components/agent/open-agents-button";
+import { QuickReplies } from "@/app/components/agent/quick-replies";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { UserStatus } from "@/app/components/people/user-status";
 import { buttonVariants } from "@/app/components/ui/button";
 import { cn } from "@/app/utils/cn";
-import type { Message } from "@/app/services/chat-api";
+import type { AgentError, Message } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
 import { DayDivider } from "./day-divider";
 import { UnreadDivider } from "./unread-divider";
@@ -44,6 +49,12 @@ type MessageItemProps = {
   // citada").
   onGoToQuote?: (messageId: string) => void;
   highlighted?: boolean;
+  // O Agente não recebeu o Pedido desta Mensagem: o aviso ao lado dela, só na aba de quem pediu
+  // (spec da F11, "Cliente").
+  agentError?: AgentError;
+  // O clique numa Resposta pronta da pergunta do Agente: envia o rótulo como Mensagem de quem pediu
+  // (spec da F11, "Cliente").
+  onQuickReply?: (label: string) => void;
 };
 
 export type MessageEdit = {
@@ -72,6 +83,8 @@ export function MessageItem({
   failure,
   onGoToQuote,
   highlighted = false,
+  agentError,
+  onQuickReply,
 }: MessageItemProps) {
   const mentionsMe = message.mentions.some((mention) => mention.id === currentPersonId);
   const isEditing = edit?.isEditing ?? false;
@@ -106,14 +119,30 @@ export function MessageItem({
           onGoTo={() => onGoToQuote?.(message.quote!.id)}
         />
       )}
-      <MessageBody
-        text={message.body}
-        mentions={message.mentions}
-        currentPersonId={currentPersonId}
-        edited={message.editedAt}
-        timeZone={timeZone}
-      />
+      {message.author.kind === "bot" ? (
+        // O texto do Agente em blocos, sem Menção nem link, e as Respostas prontas da pergunta (spec
+        // da F11, "Cliente").
+        <>
+          <AgentText text={message.body} />
+          {message.quickReplies && (
+            <QuickReplies
+              quickReplies={message.quickReplies}
+              currentPersonId={currentPersonId ?? ""}
+              onSelect={onQuickReply}
+            />
+          )}
+        </>
+      ) : (
+        <MessageBody
+          text={message.body}
+          mentions={message.mentions}
+          currentPersonId={currentPersonId}
+          edited={message.editedAt}
+          timeZone={timeZone}
+        />
+      )}
       {failed}
+      {agentError && <AgentRequestError error={agentError} />}
     </>
   );
   return (
@@ -187,12 +216,30 @@ function SendFailure({
   );
 }
 
+// O erro do Agente ao lado da Mensagem enviada (Conversa / Mensagem / Erro do agente), sem ação: o
+// Pedido não volta, e quem pediu menciona de novo.
+function AgentRequestError({ error }: { error: AgentError }) {
+  return (
+    <p role="alert" className="flex items-center gap-2 pt-1 text-small text-danger-fg">
+      <CircleAlert size={16} aria-hidden />
+      {error.reason === "rate_limited"
+        ? "Muitos pedidos em pouco tempo. Tente de novo em um minuto."
+        : `O ${error.agentName} não recebeu o pedido. Mencione de novo.`}
+    </p>
+  );
+}
+
 function CompactRow({ message, timeZone, content }: RowProps) {
+  const isBot = message.author.kind === "bot";
   return (
     <div className="group flex gap-2 px-5 py-1">
       {/* Sem o nome à vista, como no Figma; o leitor de tela ainda ouve de quem é. */}
       <span className="sr-only">
-        <PersonName id={message.author.id} name={message.author.name} />
+        {isBot ? (
+          `${message.author.name}, Agente`
+        ) : (
+          <PersonName id={message.author.id} name={message.author.name} />
+        )}
       </span>
       <div className="flex w-9 shrink-0 justify-end pt-1">
         <MessageTime
@@ -206,24 +253,39 @@ function CompactRow({ message, timeZone, content }: RowProps) {
   );
 }
 
+// A linha completa: o avatar e o nome abrem o Perfil da Pessoa, ou o diálogo "Agentes" na Mensagem do
+// Agente, que troca o Status pelo AgentTag (spec da F11, "MessageItem de bot"). O avatar fica fora
+// da ordem do teclado: o nome, logo ao lado, abre o mesmo.
 function FullRow({ message, timeZone, content }: RowProps) {
+  const { author } = message;
+  const nameClass = "text-body font-black text-fg hover:underline";
+  const [avatar, name, badge] =
+    author.kind === "bot"
+      ? [
+          <OpenAgentsButton key="avatar" decorative className="self-start">
+            <AgentAvatar />
+          </OpenAgentsButton>,
+          <OpenAgentsButton key="name" className={nameClass}>
+            {author.name}
+          </OpenAgentsButton>,
+          <AgentTag key="badge" className="self-center" />,
+        ]
+      : [
+          <OpenProfileButton key="avatar" personId={author.id} decorative className="self-start">
+            <PersonAvatar person={author} presenceBackdrop="surface" />
+          </OpenProfileButton>,
+          <OpenProfileButton key="name" personId={author.id} className={nameClass}>
+            <PersonName id={author.id} name={author.name} />
+          </OpenProfileButton>,
+          <UserStatus key="badge" personId={author.id} />,
+        ];
   return (
     <div className="mt-2 flex gap-2 px-5 py-1">
-      <div className="flex w-9 shrink-0 justify-end">
-        {/* Fora da ordem do teclado: o nome, logo ao lado, já abre o mesmo Perfil. */}
-        <OpenProfileButton personId={message.author.id} decorative className="self-start">
-          <PersonAvatar person={message.author} presenceBackdrop="surface" />
-        </OpenProfileButton>
-      </div>
+      <div className="flex w-9 shrink-0 justify-end">{avatar}</div>
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="flex items-baseline gap-2">
-          <OpenProfileButton
-            personId={message.author.id}
-            className="text-body font-black text-fg hover:underline"
-          >
-            <PersonName id={message.author.id} name={message.author.name} />
-          </OpenProfileButton>
-          <UserStatus personId={message.author.id} />
+          {name}
+          {badge}
           <MessageTime message={message} timeZone={timeZone} />
         </p>
         {content}

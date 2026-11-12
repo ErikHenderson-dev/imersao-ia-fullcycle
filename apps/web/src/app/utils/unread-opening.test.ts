@@ -9,12 +9,13 @@ function message(n: number, authorId = "outra"): Message {
     id: id(n),
     conversationId: "c1",
     clientId: `client-${n}`,
-    author: { id: authorId, name: "Pessoa", initials: "P" },
+    author: { kind: "person", id: authorId, name: "Pessoa", username: "pessoa", initials: "P" },
     body: `Mensagem ${n}`,
     createdAt: "2026-11-10T10:00:00.000Z",
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
   };
 }
 

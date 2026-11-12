@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { cache } from "react";
 import { env } from "@/app/config/env";
+import type { AgentRequest } from "@/app/services/chat-api";
 
 // Service HTTP do Serviço de agentes, usado só no servidor (spec da F10, "BFF"): o BFF é o único
 // que o chama, com a credencial de serviço. Devolve uniões de resultado em vez de lançar.
@@ -65,4 +66,43 @@ export async function setConnection(
     body: JSON.stringify({ person_id: person.id, is_admin: person.isAdmin }),
   });
   return response?.status === 204 ? { kind: "ok" } : { kind: "failure" };
+}
+
+// O Pedido entregue ao Serviço de agentes (spec da F11, "Rota de Pedido").
+export type AgentRequestPayload = {
+  requestId: string;
+  kind: AgentRequest["kind"];
+  parentRequestId: string | null;
+  agent: string;
+  conversationId: string;
+  message: { id: string; body: string };
+  requester: { id: string; name: string; username: string };
+  mentions: { username: string; name: string }[];
+  timeZone: string;
+};
+
+// Sem resposta (rede fora ou tempo esgotado), o status é nulo.
+export type StartAgentRequestResult = { kind: "accepted" } | { kind: "failure"; status: number | null };
+
+// Entrega o Pedido e espera só o aceite (spec da F11, "Disparo pelo BFF"): o Agente responde na
+// Conversa pela API do chat, depois.
+export async function startAgentRequest(payload: AgentRequestPayload): Promise<StartAgentRequestResult> {
+  const response = await request("/v1/requests", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      request_id: payload.requestId,
+      kind: payload.kind,
+      parent_request_id: payload.parentRequestId,
+      agent: payload.agent,
+      conversation_id: payload.conversationId,
+      message: payload.message,
+      requester: payload.requester,
+      mentions: payload.mentions,
+      time_zone: payload.timeZone,
+    }),
+  });
+  return response?.status === 202
+    ? { kind: "accepted" }
+    : { kind: "failure", status: response?.status ?? null };
 }

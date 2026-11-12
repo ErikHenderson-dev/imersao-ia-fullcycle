@@ -7,12 +7,13 @@ function message(id: string): Message {
     id,
     conversationId: "c1",
     clientId: `client-${id}`,
-    author: { id: "p1", name: "Ana Souza", initials: "AS" },
+    author: { kind: "person", id: "p1", name: "Ana Souza", username: "pessoa", initials: "AS" },
     body: `Mensagem ${id}`,
     createdAt: "2026-11-09T12:00:00.000Z",
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
   };
 }
 

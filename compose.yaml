@@ -44,6 +44,8 @@ services:
       AGENTS_DATABASE_URL: postgres://agents:agents@postgres:5432/agents
       # A fixture da recuperação apaga a época dos eventos no Redis de desenvolvimento.
       REDIS_URL: redis://redis:6379/0
+      # O apoio de bot dos testes da F11 age pelas rotas /v1/bot (support/bot.ts).
+      CHAT_BOT_TOKEN: dev-chat-bot-token
       PLAYWRIGHT_HTML_OPEN: never
       HOME: /tmp
     command: ["node", "e2e/support/port-forward.mjs"]
@@ -69,6 +71,8 @@ services:
       # Eventos por Pessoa para a reconexão; os testes usam o banco lógico 1.
       REDIS_URL: redis://redis:6379/0
       TEST_REDIS_URL: redis://redis:6379/1
+      # Credencial de bot das rotas /v1/bot; segredo fixo, só de desenvolvimento, igual ao do agents.
+      CHAT_BOT_TOKEN: dev-chat-bot-token
     ports:
       - "3001:3000"
     depends_on:
@@ -99,11 +103,22 @@ services:
       DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents
       # Credencial de serviço do BFF; segredo fixo, só de desenvolvimento, igual ao da web.
       AGENTS_SERVICE_TOKEN: dev-agents-service-token
+      # O Agente age na Conversa como bot, pelas rotas /v1/bot da API do chat (ADR 0010), com a
+      # credencial de bot; segredo fixo, só de desenvolvimento, igual ao do chat-api.
+      CHAT_API_URL: http://chat-api:3000
+      CHAT_BOT_TOKEN: dev-chat-bot-token
+      # Limite de pedidos por Pessoa (spec da F11, "Rota de Pedido"); os testes de integração usam o
+      # banco lógico 2, e o 1 é dos testes da API do chat.
+      REDIS_URL: redis://redis:6379/0
+      TEST_REDIS_URL: redis://redis:6379/2
       # Rotas genéricas e interface web do ADK, só no desenvolvimento.
       ADK_DEV_ROUTES: "true"
       # Banco dos testes de integração, recriado a cada execução pelo superusuário local.
       TEST_DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents_test
       TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      # Modelo dos Agentes (spec da F11, "Modelo de IA"). Este environment vence o env_file: para
+      # trocar, AGENT_MODEL=openai/<modelo> docker compose -f compose.yaml up -d agents.
+      AGENT_MODEL: ${AGENT_MODEL:-gemini-3.6-flash}
       # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
       GOOGLE_GENAI_USE_ENTERPRISE: "false"
       AGENTS_CLI_TELEMETRY: "0"
@@ -112,6 +127,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # Sem o Redis, o Serviço de agentes sobe e recusa os Pedidos com agents_unavailable.
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:18

@@ -9,12 +9,13 @@ function message(id: string, overrides: Partial<Message> = {}): Message {
     id,
     conversationId: "c",
     clientId: id,
-    author: { id: "other", name: "Ana", initials: "AN" },
+    author: { kind: "person", id: "other", name: "Ana", username: "pessoa", initials: "AN" },
     body: `Mensagem ${id}`,
     createdAt: "2026-11-10T12:00:00.000Z",
     editedAt: null,
     mentions: [],
     quote: null,
+    quickReplies: null,
     ...overrides,
   };
 }
@@ -47,9 +48,19 @@ describe("Atividade no cache", () => {
     expect(notificationKindFor(mentioning, { kind: "public_channel" }, ME)).toBe("mention");
     expect(notificationKindFor(message("2"), { kind: "private_channel" }, ME)).toBeNull();
     expect(notificationKindFor(message("3"), { kind: "direct" }, ME)).toBe("direct");
-    const own = message("4", { author: { id: ME, name: "Eu", initials: "EU" } });
+    const own = message("4", { author: { kind: "person", id: ME, name: "Eu", username: "pessoa", initials: "EU" } });
     expect(notificationKindFor(own, { kind: "direct" }, ME)).toBeNull();
     expect(notificationKindFor(mentioning, undefined, ME)).toBeNull();
+  });
+
+  it("a Mensagem de bot não é Notificação, nem na Conversa direta", () => {
+    const fromBot = message("5", {
+      author: { kind: "bot", id: "bot", name: "Assistente", username: "assistente", initials: "AS" },
+      mentions: [{ id: ME, username: "eu" }],
+    });
+
+    expect(notificationKindFor(fromBot, { kind: "direct" }, ME)).toBeNull();
+    expect(notificationKindFor(fromBot, { kind: "public_channel" }, ME)).toBeNull();
   });
 
   it("a nova entra no topo da aba do tipo dela", () => {
