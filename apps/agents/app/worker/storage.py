@@ -33,7 +33,14 @@ class ReportStorage:
             aws_access_key_id=settings.s3_access_key_id,
             aws_secret_access_key=settings.s3_secret_access_key,
             region_name="us-east-1",
-            config=Config(s3={"addressing_style": "path"}),
+            # Tempos de rede abaixo do tempo limite da tentativa, sem as novas tentativas do boto3:
+            # quem tenta de novo é o job (spec da F14, "Fila e job").
+            config=Config(
+                s3={"addressing_style": "path"},
+                connect_timeout=5,
+                read_timeout=10,
+                retries={"max_attempts": 1},
+            ),
         )
         return cls(client, settings.s3_bucket)
 

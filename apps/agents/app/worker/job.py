@@ -83,14 +83,18 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
         logger.warning(
             "Relatório do Pedido %s barrado pelo lastro", job.request_id, **log
         )
-        await _record(deps, job, "lastro_blocked", sql)
-        await deps.chat.report_failed(job.request_id)
+        # Sem nova tentativa, nem se a falha não chegar à API: a trava solta primeiro.
         await release_lock(deps.redis, job.requester_id, job.request_id)
+        await _final_steps(
+            deps, job, _record(deps, job, "lastro_blocked", sql), log["extra"]
+        )
         return
     key = report_key(job.request_id)
     await deps.storage.put_pdf(key, pdf)
     # A auditoria antes da entrega: uma falha nela faz a tentativa falhar.
-    await _record(deps, job, "delivered", sql)
+    # Uma nova tentativa depois de uma entrega que falhou não audita de novo.
+    if not await audit.has_outcome(deps.business.agents, job.request_id, "delivered"):
+        await _record(deps, job, "delivered", sql)
     await deps.chat.report_delivered(
         job.request_id,
         storage_key=key,
@@ -136,7 +140,7 @@ async def generate_report(ctx: dict[str, Any], payload: dict[str, Any]) -> None:
             run_report(deps, job, datetime.now(UTC)), timeout=ATTEMPT_TIMEOUT_S
         )
     except ChatApiError as error:
-        if error.status not in REQUEST_GONE:
+        if error.status not in REQUEST_GONE or error.code == "report_not_started":
             await _retry_or_fail(deps, job, job_try, error)
             return
         # O Pedido acabou: sem nova tentativa nem "não consegui", só o log e a trava solta.
@@ -173,10 +177,16 @@ async def _retry_or_fail(
     )
     # A trava primeiro; a auditoria e a falha depois, cada uma sem impedir a outra.
     await release_lock(deps.redis, job.requester_id, job.request_id)
+    await _final_steps(deps, job, _record(deps, job, "error", None), log["extra"])
+
+
+async def _final_steps(
+    deps: WorkerDeps, job: ReportJob, audit_step: Any, extra: dict[str, str]
+) -> None:
+    """A auditoria e o "não consegui" do fim do job, cada um sem impedir o outro: a falha de um só
+    vai para o log, e o job termina sem nova tentativa."""
     results = await asyncio.gather(
-        _record(deps, job, "error", None),
-        deps.chat.report_failed(job.request_id),
-        return_exceptions=True,
+        audit_step, deps.chat.report_failed(job.request_id), return_exceptions=True
     )
     for result in results:
         if isinstance(result, Exception):
@@ -184,7 +194,7 @@ async def _retry_or_fail(
                 "Falha final do Relatório do Pedido %s incompleta: %s",
                 job.request_id,
                 type(result).__name__,
-                **log,
+                extra=extra,
             )
 
 

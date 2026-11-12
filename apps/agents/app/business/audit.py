@@ -20,6 +20,7 @@ from sqlalchemy import (
     Text,
     func,
     insert,
+    select,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -96,3 +97,18 @@ async def record(
                 kind=kind,
             )
         )
+
+
+async def has_outcome(engine: AsyncEngine, request_id: str, outcome: Outcome) -> bool:
+    """Se o Pedido já tem uma linha com o desfecho: a nova tentativa do Worker não audita de novo a
+    entrega (spec da F14, "Auditoria")."""
+    async with engine.connect() as connection:
+        found = await connection.execute(
+            select(business_queries.c.id)
+            .where(
+                business_queries.c.request_id == uuid.UUID(request_id),
+                business_queries.c.outcome == outcome,
+            )
+            .limit(1)
+        )
+        return found.first() is not None

@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.business.db import BusinessStore, business_engine
 from app.chat_api import ChatApiClient
 from app.config import load_worker_settings
-from app.worker.job import MAX_TRIES, WorkerDeps, generate_report
+from app.worker.job import ATTEMPT_TIMEOUT_S, MAX_TRIES, WorkerDeps, generate_report
 from app.worker.storage import ReportStorage
 
 
@@ -60,6 +60,8 @@ class WorkerSettings:
     on_shutdown = shutdown
     # As novas tentativas são do job (`job.py`); o tempo limite do arq é só uma rede de segurança
     # acima do da tentativa.
-    max_tries = MAX_TRIES
-    job_timeout = 60
+    # Uma a mais que as do job: o job interrompido (o Worker reiniciado no meio da última) ainda
+    # roda a falha final, em vez de o arq o descartar sem o "não consegui".
+    max_tries = MAX_TRIES + 1
+    job_timeout = int(ATTEMPT_TIMEOUT_S) + 30
     redis_settings = RedisSettings.from_dsn(os.environ["REDIS_URL"])

@@ -175,3 +175,62 @@ async def test_uma_trava_de_outro_pedido_fica_na_falha_final(
 
     assert await redis.get(lock_key(job.requester_id)) == other
     await redis.delete(lock_key(job.requester_id))
+
+
+# A revisão da F14-T06: uma entrega que falha e passa na tentativa seguinte audita uma vez só; sem
+# lastro não há nova tentativa, nem se o "não consegui" falhar; e o Relatório não iniciado não é um
+# Pedido que acabou.
+
+
+async def test_uma_entrega_que_falha_e_passa_depois_audita_uma_vez_so(
+    deps: WorkerDeps, fake_chat_api: FakeChatApi, agents_engine: AsyncEngine
+) -> None:
+    job = new_job()
+    fake_chat_api.failures["/report-delivered"] = [503]
+    with pytest.raises(Retry):
+        await generate_report({"deps": deps, "job_try": 1}, job.to_payload())
+
+    await generate_report({"deps": deps, "job_try": 2}, job.to_payload())
+
+    assert [row.outcome for row in await audit_rows(agents_engine, job.request_id)] == [
+        "delivered"
+    ]
+    assert len(posts(fake_chat_api, "/report-delivered")) == 2
+
+
+async def test_sem_lastro_e_com_a_falha_recusada_nao_ha_nova_tentativa(
+    deps: WorkerDeps,
+    fake_chat_api: FakeChatApi,
+    redis: Redis,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(worker_job, "allowed_numbers", lambda *_: set())
+    fake_chat_api.failures["/report-failed"] = [503]
+    job = new_job()
+    await acquire_lock(redis, job.requester_id, job.request_id)
+
+    await generate_report({"deps": deps, "job_try": 1}, job.to_payload())
+
+    assert len(posts(fake_chat_api, "/report-failed")) == 1
+    assert await redis.get(lock_key(job.requester_id)) is None
+
+
+async def test_o_relatorio_nao_iniciado_volta_a_fila(
+    deps: WorkerDeps, fake_chat_api: FakeChatApi
+) -> None:
+    fake_chat_api.failures["/report-delivered"] = [(409, "report_not_started")]
+    job = new_job()
+
+    with pytest.raises(Retry):
+        await generate_report({"deps": deps, "job_try": 1}, job.to_payload())
+
+
+async def test_o_job_interrompido_na_ultima_tentativa_ainda_grava_a_falha(
+    deps: WorkerDeps, fake_chat_api: FakeChatApi
+) -> None:
+    job = new_job()
+    ctx = {"deps": with_storage(deps, FlakyStorage(failures=1)), "job_try": 4}
+
+    await generate_report(ctx, job.to_payload())
+
+    assert len(posts(fake_chat_api, "/report-failed")) == 1
