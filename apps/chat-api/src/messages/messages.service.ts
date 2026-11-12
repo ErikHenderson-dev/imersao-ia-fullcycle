@@ -244,31 +244,18 @@ export class MessagesService {
   async findReport(
     messageId: string,
   ): Promise<(NewReport & { conversationId: string }) | null> {
-    const report = await this.reports
-      .createQueryBuilder('report')
-      .innerJoin(Message, 'message', 'message.id = report.message_id')
-      .select([
-        'report.storage_key AS storage_key',
-        'report.file_name AS file_name',
-        'report.size_bytes AS size_bytes',
-        'message.conversation_id AS conversation_id',
-      ])
-      .where('report.message_id = :messageId', { messageId })
-      .andWhere('message.deleted_at IS NULL')
-      .getRawOne<{
-        storage_key: string;
-        file_name: string;
-        size_bytes: number;
-        conversation_id: string;
-      }>();
-    return report
-      ? {
-          storageKey: report.storage_key,
-          fileName: report.file_name,
-          sizeBytes: report.size_bytes,
-          conversationId: report.conversation_id,
-        }
-      : null;
+    const report = await this.reports.findOne({
+      where: { messageId, message: { deletedAt: IsNull() } },
+      relations: { message: true },
+    });
+    if (!report?.message) return null;
+    const { storageKey, fileName, sizeBytes } = report;
+    return {
+      storageKey,
+      fileName,
+      sizeBytes,
+      conversationId: report.message.conversationId,
+    };
   }
 
   // A Mensagem desse id, montada como no histórico, mesmo apagada; quem chama sabe que ela existe.
@@ -1126,9 +1113,9 @@ export class MessagesService {
     const questionIds = messages.flatMap((message) =>
       message.quickReplies ? [message.id] : [],
     );
-    // Só a Mensagem de bot pode ter o PDF do Relatório.
+    // Só a Mensagem de bot com a marca "dados de negócio" pode ter o PDF do Relatório.
     const botIds = messages.flatMap((message) =>
-      message.authorBotId ? [message.id] : [],
+      message.authorBotId && message.businessData ? [message.id] : [],
     );
     const [authorOf, mentions, quotes, questions, reports] = await Promise.all([
       this.authorsOf(messages),

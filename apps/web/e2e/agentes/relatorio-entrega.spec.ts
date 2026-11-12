@@ -3,15 +3,13 @@
 import { readFile } from "node:fs/promises";
 import type { Page } from "@playwright/test";
 import { expect, logIn, test } from "../fixtures";
-import { botReportStarted, requestByApi, workerReportDelivered } from "../support/bot";
+import { BLOCKED_NOTICE, botReportStarted, REPORT_NOTICE, requestByApi, workerReportDelivered } from "../support/bot";
 import { messageItem, messageList, readyHistory } from "../support/conversation-page";
 import { insertBot, setDataAccessOf, type TestChannel, type TestPerson } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 import { putSamplePdf } from "../support/s3";
 
-const NOTICE = "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.";
 const FILE_NAME = "relatorio-2026-03-01-a-2026-03-31.pdf";
-const BLOCKED = "Resposta com dados de negócio. Você não tem permissão para vê-la.";
 
 // A Ana (com Permissão de dados) e o Bruno (sem) no Canal; o bot do teste grava o aviso, o PDF de
 // exemplo vai para o S3 na chave do Pedido e o Worker entrega, pelas rotas, sem o modelo.
@@ -21,7 +19,7 @@ async function deliveredReport(page: Page, otherPage: Page, channel: TestChannel
   await logIn(page, person);
   await openSharedChannel(page, otherPage, channel, person, { history: 0 });
   const requestId = await requestByApi(page, channel.id, bot.username);
-  await botReportStarted(requestId, NOTICE);
+  await botReportStarted(requestId, REPORT_NOTICE);
   const sizeBytes = await putSamplePdf(`reports/${requestId}.pdf`);
   const delivery = await workerReportDelivered(requestId, { fileName: FILE_NAME, sizeBytes });
   return { bot, delivery };
@@ -51,7 +49,7 @@ test.describe("Entrega do Relatório", () => {
 
     // 4. O Bruno vê a Resposta bloqueada, sem cartão
     const toBruno = messageList(otherPage, sharedChannel.name);
-    await expect(toBruno.getByText(BLOCKED, { exact: true })).toHaveCount(2);
+    await expect(toBruno.getByText(BLOCKED_NOTICE, { exact: true })).toHaveCount(2);
     await expect(toBruno).not.toContainText(FILE_NAME);
     await expect(otherPage.getByRole("link", { name: /^Baixar/ })).toHaveCount(0);
   });

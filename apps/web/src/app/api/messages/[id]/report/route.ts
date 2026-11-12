@@ -5,8 +5,7 @@ import { readSessionToken } from "@/app/services/session-cookie";
 // API confere a Permissão de dados no clique, e a URL assinada só vai no 302, nunca no HTML.
 export async function GET(request: Request, { params }: RouteContext<"/api/messages/[id]/report">) {
   const token = await readSessionToken();
-  if (!token) return Response.redirect(new URL("/login", request.url), 302);
-  const result = await getMessageReportUrl(token, (await params).id);
+  const result = token ? await getMessageReportUrl(token, (await params).id) : { kind: "unauthenticated" as const };
   switch (result.kind) {
     case "ok":
       return new Response(null, {

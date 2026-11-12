@@ -7,6 +7,11 @@ import { API, postMessageByApi } from "./chat-api";
 // teste age antes do Serviço de agentes, e a ação dele depois é a repetição, sem nova Mensagem
 // (bot_actions).
 
+// O Aviso de início dos testes da F14 e o aviso da Resposta bloqueada (spec da F13, "Cliente").
+export const REPORT_NOTICE =
+  "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.";
+export const BLOCKED_NOTICE = "Resposta com dados de negócio. Você não tem permissão para vê-la.";
+
 // Uma ação do bot; o corpo da resposta, ou null no 204. Com `token`, age com outra credencial, como
 // a do Worker na falha do Relatório (F14-T01).
 async function botPost<T>(
