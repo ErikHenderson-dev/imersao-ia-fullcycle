@@ -1,6 +1,6 @@
 # 02: Resposta bloqueada para quem não tem Permissão de dados
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Mensagem do Agente marcada com Dados de negócio aparece completa para quem
 tem Permissão de dados e como Resposta bloqueada (o avatar, o nome, a marca de Agente e o aviso
