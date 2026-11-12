@@ -10,13 +10,6 @@ import { openSharedChannel } from "../support/realtime";
 const NOTICE = "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.";
 const BLOCKED = "Resposta com dados de negócio. Você não tem permissão para vê-la.";
 
-// As Mensagens do bot do teste: os itens da lista com o nome dele.
-function botMessages(page: Page, channel: TestChannel, botName: string) {
-  return messageList(page, channel.name)
-    .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: botName, exact: true }) });
-}
-
 // A Ana (com Permissão de dados) e o Bruno (sem) no Canal; o bot do teste grava o Aviso de início
 // e o Worker, a falha, pelas rotas, sem o modelo nem o Serviço de agentes.
 async function failedReport(page: Page, otherPage: Page, channel: TestChannel, person: TestPerson) {
@@ -38,7 +31,7 @@ test.describe("Aviso de início e falha do Relatório", () => {
     sharedChannel,
   }) => {
     // 1. O bot grava o aviso e o Worker, a falha
-    const { bot } = await failedReport(page, otherPage, sharedChannel, person);
+    await failedReport(page, otherPage, sharedChannel, person);
 
     // 2. A Ana vê o aviso e a falha, com a Menção a ela destacada
     const toAna = messageList(page, sharedChannel.name);

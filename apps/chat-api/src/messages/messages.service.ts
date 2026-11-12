@@ -303,8 +303,9 @@ export class MessagesService {
   // credencial"), dentro da transação de quem chama, que confere o Pedido e a ação. O bot não é
   // Membro: não há Última leitura nem Citação.
   // Na pergunta, os rótulos das Respostas prontas vão junto, e a Pergunta pendente que dá o resto do
-  // payload é gravada por quem chama. A Menção só vem de quem chama, já resolvida: a entrega e a
-  // falha do Relatório mencionam quem pediu (spec da F14, "Ações de bot do Relatório").
+  // payload é gravada por quem chama. Com `withMentions`, os @usuário de Membros no texto viram
+  // Menções, como na Mensagem de uma Pessoa: a entrega e a falha do Relatório mencionam quem pediu
+  // (spec da F14, "Ações de bot do Relatório"); as outras Mensagens de bot não mencionam ninguém.
   async insertBotMessage(
     botId: string,
     conversationId: string,
@@ -312,11 +313,11 @@ export class MessagesService {
     {
       quickReplies = null,
       businessData = false,
-      mentions = [],
+      withMentions = false,
     }: {
       quickReplies?: string[] | null;
       businessData?: boolean;
-      mentions?: MentionView[];
+      withMentions?: boolean;
     } = {},
   ): Promise<MessageView> {
     const message = await this.messages.save(
@@ -331,18 +332,12 @@ export class MessagesService {
         businessData,
       }),
     );
-    if (mentions.length > 0) {
-      await this.mentions.insert(
-        mentions.map((mention) => ({
-          id: randomUUIDv7(),
-          messageId: message.id,
-          personId: mention.id,
-        })),
-      );
-    }
+    const mentions = withMentions
+      ? await this.saveMentions(message, body, false)
+      : [];
     const [bot] = await this.bots.findByIds([botId]);
     // Montada sem reler a linha: a Mensagem de bot não tem Citação.
-    return toView(message, toAuthor('bot', bot), sortMentions(mentions), null);
+    return toView(message, toAuthor('bot', bot), mentions, null);
   }
 
   // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos

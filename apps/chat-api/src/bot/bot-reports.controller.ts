@@ -5,9 +5,8 @@ import {
   toMessageResponse,
 } from '../messages/message.response';
 import { BotActionsService } from './bot-actions.service';
-import { BotOrWorkerTokenGuard } from './bot-or-worker-token.guard';
-import { BotTokenGuard } from './bot-token.guard';
-import { ReportStartedDto } from './report-started.dto';
+import { BotOrWorkerTokenGuard, BotTokenGuard } from './bot-token.guard';
+import { EditMessageDto } from '../messages/edit-message.dto';
 
 // As ações de bot do Relatório, sob o Pedido, cada uma com a credencial que aceita (spec da F14,
 // "Ações de bot do Relatório").
@@ -19,7 +18,8 @@ export class BotReportsController {
   @UseGuards(BotTokenGuard)
   async reportStarted(
     @Param('requestId') requestId: string,
-    @Body() body: ReportStartedDto,
+    // O texto com as regras da Mensagem; a marca "dados de negócio" é da rota.
+    @Body() body: EditMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.actions.reportStarted(requestId, body.body);
     return { message: toMessageResponse(message, BOT_READER) };

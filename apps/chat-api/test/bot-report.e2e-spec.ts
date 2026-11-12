@@ -67,16 +67,6 @@ describe('Ações de bot do Relatório', () => {
     return context;
   }
 
-  async function expiresAt(requestId: string): Promise<Date> {
-    const [row] = await app
-      .get(DataSource)
-      .query<{ expires_at: Date }[]>(
-        'SELECT expires_at FROM agent_requests WHERE id = $1',
-        [requestId],
-      );
-    return row.expires_at;
-  }
-
   async function activityOf(cookie: string): Promise<ActivityBody> {
     const response = await request(server)
       .get('/v1/activity')
@@ -87,7 +77,7 @@ describe('Ações de bot do Relatório', () => {
 
   describe('report-started', () => {
     it('report-started grava o aviso com a marca e estende a validade do Pedido', async () => {
-      const { requestId } = await scene();
+      const { channel, requestId } = await scene();
       const before = Date.now();
 
       const response = await botRoutes.reportStarted(app, requestId);
@@ -100,7 +90,8 @@ describe('Ações de bot do Relatório', () => {
         business_data: true,
         blocked: false,
       });
-      const expires = (await expiresAt(requestId)).getTime();
+      const [row] = await botRoutes.requestRows(app, channel.id);
+      const expires = row.expires_at.getTime();
       expect(expires).toBeGreaterThanOrEqual(before + LONG_TTL_MS - 1000);
       expect(expires).toBeLessThanOrEqual(Date.now() + LONG_TTL_MS + 1000);
       expect(await botRoutes.actionRows(app, requestId)).toEqual([

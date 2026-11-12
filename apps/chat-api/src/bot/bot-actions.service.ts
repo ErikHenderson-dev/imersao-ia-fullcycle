@@ -224,7 +224,7 @@ export class BotActionsService {
           body,
           { businessData: true },
         );
-        await this.requests.extendForReport(request);
+        await this.requests.extendForReport(request.id);
         return { message: inserted };
       },
     );
@@ -240,17 +240,19 @@ export class BotActionsService {
       requestId,
       'report_failed',
       async (request) => {
-        const [requester] = await this.people.findByIds([request.requesterId]);
-        const mention = { id: requester.id, username: requester.username };
+        const [{ username }] = await this.people.findByIds([
+          request.requesterId,
+        ]);
         return {
           message: await this.messages.insertBotMessage(
             request.botId,
             request.conversationId,
-            `@${mention.username}, não consegui gerar o relatório.`,
-            { businessData: true, mentions: [mention] },
+            `@${username}, não consegui gerar o relatório.`,
+            { businessData: true, withMentions: true },
           ),
         };
       },
+      admitReportOutcome,
     );
     if (written) this.announceAnswer(message);
     return message;
@@ -269,39 +271,27 @@ export class BotActionsService {
 
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
   // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
-  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Uma ação de outro
-  // tipo num Pedido já respondido recebe `request_closed`, com a exceção do Pedido demorado: a
-  // entrega e a falha do Relatório só valem depois do Aviso de início, e só uma delas (spec da F14,
-  // "Ações de bot do Relatório").
+  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Antes de gravar,
+  // `admit` confere as ações já gravadas no Pedido: por padrão, uma resposta por Pedido.
   @Transactional()
   private async once<T extends { message: MessageView }>(
     requestId: string,
     actionType: BotActionType,
     write: (request: AgentRequest) => Promise<T>,
+    admit: (recorded: BotActionType[]) => void = admitFirstAnswer,
   ): Promise<{ message: MessageView; written: T | null }> {
     const request = await this.requests.lockForAction(requestId);
-    const existingId = await this.requests.findActionMessageId(
-      request.id,
-      actionType,
+    const recorded = await this.requests.findActions(request.id);
+    const existing = recorded.find(
+      (action) => action.actionType === actionType,
     );
-    if (existingId) {
+    if (existing) {
       return {
-        message: await this.messages.viewById(existingId),
+        message: await this.messages.viewById(existing.messageId),
         written: null,
       };
     }
-    if (REPORT_TERMINAL_ACTIONS.includes(actionType)) {
-      const recorded = await this.requests.findActionTypes(request.id);
-      if (!recorded.includes('report_started')) {
-        throw new ReportNotStartedError();
-      }
-      if (recorded.some((type) => REPORT_TERMINAL_ACTIONS.includes(type))) {
-        throw new RequestClosedError();
-      }
-    } else if (await this.requests.hasAnswer(request.id)) {
-      // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
-      throw new RequestClosedError();
-    }
+    admit(recorded.map((action) => action.actionType));
     const written = await write(request);
     await this.requests.recordAction(
       request.id,
@@ -309,5 +299,19 @@ export class BotActionsService {
       written.message.id,
     );
     return { message: written.message, written };
+  }
+}
+
+// O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
+function admitFirstAnswer(recorded: BotActionType[]): void {
+  if (recorded.length > 0) throw new RequestClosedError();
+}
+
+// A entrega e a falha do Relatório só valem depois do Aviso de início, e só uma delas (spec da F14,
+// "Ações de bot do Relatório").
+function admitReportOutcome(recorded: BotActionType[]): void {
+  if (!recorded.includes('report_started')) throw new ReportNotStartedError();
+  if (recorded.some((type) => REPORT_TERMINAL_ACTIONS.includes(type))) {
+    throw new RequestClosedError();
   }
 }

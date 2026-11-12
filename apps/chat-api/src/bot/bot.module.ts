@@ -8,9 +8,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { TasksModule } from '../tasks/tasks.module';
 import { BotActionsService } from './bot-actions.service';
 import { BotController } from './bot.controller';
-import { BotOrWorkerTokenGuard } from './bot-or-worker-token.guard';
 import { BotReportsController } from './bot-reports.controller';
-import { BotTokenGuard } from './bot-token.guard';
 
 @Module({
   imports: [
@@ -23,6 +21,6 @@ import { BotTokenGuard } from './bot-token.guard';
     PeopleModule,
   ],
   controllers: [BotController, BotReportsController],
-  providers: [BotActionsService, BotTokenGuard, BotOrWorkerTokenGuard],
+  providers: [BotActionsService],
 })
 export class BotModule {}
