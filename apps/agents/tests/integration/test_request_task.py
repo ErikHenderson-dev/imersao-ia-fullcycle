@@ -136,3 +136,31 @@ async def test_sem_responsavel_pergunta_e_a_continuacao_cria_a_tarefa(
     assert task["path"] == f"/v1/bot/requests/{answer['request_id']}/task"
     assert task["body"]["assignee_username"] == "ana"
     assert "contrato" in task["body"]["title"].lower()
+
+
+# F12-T05, CA3: "isso" com a Citação vira o título da Tarefa.
+async def test_delega_isso_com_a_citacao(
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="app")
+    body = {
+        **pedido(body="@assistente delega isso pra @ana"),
+        "mentions": [{"username": "ana", "name": "Ana Souza"}],
+        "quote": {
+            "id": str(uuid.uuid4()),
+            "body": "Precisamos revisar o contrato da Acme até sexta",
+            "author": {"name": "Bruno Lima", "username": "bruno"},
+        },
+    }
+
+    response = await request_client.post("/v1/requests", json=body, headers=AUTH)
+
+    assert response.status_code == 202
+    end = await wait_for_end_log(caplog, body["request_id"])
+    assert end.desfecho == "task"
+    [task] = [call for call in fake_chat_api.requests if is_task(call)]
+    assert task["body"]["assignee_username"] == "ana"
+    assert "acme" in task["body"]["title"].lower()

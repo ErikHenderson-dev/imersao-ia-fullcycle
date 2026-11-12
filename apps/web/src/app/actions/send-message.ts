@@ -11,7 +11,12 @@ import {
 } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 import { readTimeZone } from "@/app/services/time-zone-cookie";
-import { agentRequestMentions, mentionedAgentUsername, needsAgentRegistry } from "@/app/utils/agent-mentions";
+import {
+  agentRequestMentions,
+  agentRequestQuote,
+  mentionedAgentUsername,
+  needsAgentRegistry,
+} from "@/app/utils/agent-mentions";
 import { agentRequestFailure } from "@/app/utils/agent-request-failure";
 import { messageBodyToSave } from "@/app/utils/message-text";
 
@@ -62,6 +67,7 @@ export async function sendMessage(
         requester: { id: sent.author.id, name: sent.author.name, username: sent.author.username },
         mentions,
         timeZone,
+        quote: agentRequestQuote(sent.quote),
       }),
     );
     // O Pedido não aceito se encerra, e quem pediu vê o erro ao lado da Mensagem; o Agente

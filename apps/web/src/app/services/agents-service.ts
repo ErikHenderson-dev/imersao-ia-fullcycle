@@ -79,6 +79,8 @@ export type AgentRequestPayload = {
   requester: { id: string; name: string; username: string };
   mentions: { username: string; name: string }[];
   timeZone: string;
+  // A Mensagem citada pelo Pedido, ou nula (spec da F12, "Rota de Pedido e execução").
+  quote: { id: string; body: string; author: { name: string; username: string } } | null;
 };
 
 // Sem resposta (rede fora ou tempo esgotado), o status é nulo.
@@ -100,6 +102,7 @@ export async function startAgentRequest(payload: AgentRequestPayload): Promise<S
       requester: payload.requester,
       mentions: payload.mentions,
       time_zone: payload.timeZone,
+      quote: payload.quote,
     }),
   });
   return response?.status === 202

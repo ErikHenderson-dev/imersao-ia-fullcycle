@@ -94,6 +94,11 @@ def request_state(request: AgentRequestBody) -> dict[str, object]:
         context.REQUESTED_AT: to_api_instant(requested_at(request)),
         context.MENTIONS: [mention.model_dump() for mention in request.mentions],
         context.KIND: request.kind,
+        context.QUOTE: (
+            {"body": request.quote.body, "author_name": request.quote.author.name}
+            if request.quote
+            else None
+        ),
     }
 
 
