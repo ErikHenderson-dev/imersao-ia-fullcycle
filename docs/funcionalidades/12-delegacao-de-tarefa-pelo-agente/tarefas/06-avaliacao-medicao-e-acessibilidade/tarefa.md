@@ -1,6 +1,6 @@
 # 06: Avaliação, medição e acessibilidade da delegação
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem mantém o Agente consegue trocar instruções ou modelo sabendo que a
 delegação continua certa: a avaliação completa cobre a delegação e reprova Responsável errado e
