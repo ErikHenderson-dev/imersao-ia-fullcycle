@@ -61,6 +61,12 @@ docker compose -f compose.yaml exec chat-api pnpm accounts set-admin <e-mail> on
 docker compose -f compose.yaml exec chat-api pnpm accounts set-data-access <e-mail> on
 ```
 
+**Banco de negócio.** Depois das migrações, carregue o Banco de negócio com os dados fixos de vendas que o Agente consulta (`docs/funcionalidades/13-consulta-a-dados-de-negocio/spec.md`, "Banco de negócio e script de carga"). A carga apaga e recria as tabelas, sempre com os mesmos dados:
+
+```bash
+docker compose -f compose.yaml exec agents uv run python -m scripts.load_business
+```
+
 **Testes de ponta a ponta.** O serviço `e2e` sobe à parte, com o ambiente acima já de pé (web, API do chat, Serviço de agentes e banco). Ele não roda os testes sozinho: o processo dele só encaminha `localhost:3000` para a web e `localhost:3001` para a API do chat, para o navegador do teste usar os mesmos endereços que o da máquina e o cookie de sessão valer no WebSocket (`docs/lld.md`, "Ambiente de desenvolvimento"). Por isso, no `e2e`, a web é `localhost`, e não o nome do serviço, uma exceção à regra de "Rede entre serviços":
 
 ```bash

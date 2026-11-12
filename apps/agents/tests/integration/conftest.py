@@ -65,6 +65,58 @@ def test_database_url() -> Iterator[str]:
     yield url
 
 
+async def _recreate_business_database(admin_url: str, name: str) -> None:
+    """O Banco de negócio de teste com os papéis do init (docker/postgres/init): o dono `business`
+    e o `business_readonly`, que só lê, inclusive as tabelas que a carga criar."""
+    admin = await asyncpg.connect(admin_url)
+    try:
+        await admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+        await admin.execute(f'CREATE DATABASE "{name}" OWNER business')
+        await admin.execute(f'REVOKE CONNECT ON DATABASE "{name}" FROM PUBLIC')
+        await admin.execute(
+            f'GRANT CONNECT ON DATABASE "{name}" TO business, business_readonly'
+        )
+    finally:
+        await admin.close()
+    database = await asyncpg.connect(_with_database(admin_url, name))
+    try:
+        await database.execute("GRANT USAGE ON SCHEMA public TO business_readonly")
+        await database.execute(
+            "ALTER DEFAULT PRIVILEGES FOR ROLE business IN SCHEMA public "
+            "GRANT SELECT ON TABLES TO business_readonly"
+        )
+    finally:
+        await database.close()
+
+
+def _with_database(url: str, name: str) -> str:
+    return urlparse(url)._replace(path=f"/{name}").geturl()
+
+
+@pytest.fixture(scope="session")
+def business_test_database_url() -> Iterator[str]:
+    """A URL do usuário só leitura no `business_test`, recriado uma vez por execução (F13-T03)."""
+    url = os.environ.get("BUSINESS_TEST_DATABASE_URL")
+    admin_url = os.environ.get("TEST_DATABASE_ADMIN_URL")
+    if not url or not admin_url:
+        raise RuntimeError(
+            "BUSINESS_TEST_DATABASE_URL e TEST_DATABASE_ADMIN_URL são obrigatórias"
+        )
+    asyncio.run(_recreate_business_database(admin_url, urlparse(url).path.lstrip("/")))
+    yield url
+
+
+@pytest.fixture(scope="session")
+def business_test_admin_url(business_test_database_url: str) -> str:
+    """O superusuário no `business_test`, pelo SQLAlchemy assíncrono: a carga roda com
+    `SET ROLE business`."""
+    admin_url = os.environ["TEST_DATABASE_ADMIN_URL"]
+    name = urlparse(business_test_database_url).path.lstrip("/")
+    return _with_database(admin_url, name).replace(
+        "postgresql://", "postgresql+asyncpg://", 1
+    )
+
+
 def settings_for(
     url: str,
     *,
@@ -83,6 +135,8 @@ def settings_for(
         redis_url=redis_url or redis_url_for_tests(),
         # Sessões do ADK em memória: os testes não gravam no banco de desenvolvimento.
         session_service_uri=None,
+        # O Banco de negócio de teste, pelo usuário só leitura (F13-T03).
+        business_database_url=os.environ.get("BUSINESS_TEST_DATABASE_URL", ""),
     )
 
 

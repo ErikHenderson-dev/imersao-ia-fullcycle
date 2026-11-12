@@ -84,6 +84,11 @@ class Settings(ModelSettings):
     # Pedido"; LLD, "Valores e configuração").
     redis_url: Required
     agent_requests_per_minute: PositiveInt = 10
+    # O Banco de negócio pelo usuário só leitura (spec da F13, "Ambiente de desenvolvimento"; ADR
+    # 0013), o fuso da empresa e o tempo limite da consulta (LLD, "Valores e configuração").
+    business_database_url: Required
+    business_time_zone: Required = "America/Sao_Paulo"
+    business_query_timeout_ms: PositiveInt = 3000
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False
     # Lidas também pelo código gerado (app_utils/services.py e fast_api_app.py).
@@ -98,6 +103,22 @@ class Settings(ModelSettings):
         return [
             origin.strip() for origin in self.allow_origins.split(",") if origin.strip()
         ]
+
+
+class BusinessLoadSettings(BaseSettings):
+    """A carga do Banco de negócio, que só o script lê: a credencial do dono fica fora do app."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    business_owner_database_url: Required
+
+
+def load_business_load_settings() -> BusinessLoadSettings:
+    """A URL do dono do Banco de negócio, com o nome da variável no erro quando falta."""
+    try:
+        return BusinessLoadSettings()
+    except ValidationError as error:
+        raise _missing("BUSINESS_OWNER_DATABASE_URL") from error
 
 
 def _read[T: ModelSettings](cls: type[T]) -> T:
