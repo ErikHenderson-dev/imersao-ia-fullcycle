@@ -1,6 +1,6 @@
 # 03: Worker gera e entrega o PDF de um período
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** um Pedido demorado posto na fila vira um PDF entregue na Conversa: o Worker
 consulta as seis Métricas no período e no período anterior, monta o Relatório com as variações e o
