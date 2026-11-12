@@ -4,6 +4,7 @@ import { Conversation } from '../conversations/conversation.entity';
 import { BaseEntity } from '../database/base.entity';
 import { Message } from '../messages/message.entity';
 import { Person } from '../people/person.entity';
+import { TASK_TITLE_MAX_LENGTH } from './task-values';
 
 export type TaskStatus = 'open' | 'done';
 
@@ -14,7 +15,10 @@ export type TaskStatus = 'open' | 'done';
 @Index('tasks_assignee_idx', ['assigneeId', 'status', 'id'])
 @Index('tasks_delegator_idx', ['delegatorId', 'status', 'id'])
 @Check('tasks_status_check', `"status" IN ('open', 'done')`)
-@Check('tasks_title_check', `char_length("title") BETWEEN 1 AND 120`)
+@Check(
+  'tasks_title_check',
+  `char_length("title") BETWEEN 1 AND ${TASK_TITLE_MAX_LENGTH}`,
+)
 export class Task extends BaseEntity {
   @Column({ type: 'uuid' })
   requestId!: string;

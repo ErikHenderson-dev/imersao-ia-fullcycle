@@ -2,7 +2,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
 import { isUUID } from 'class-validator';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   AgentRequest,
   type AgentRequestClosedStatus,
@@ -12,10 +12,6 @@ import { BotAction, BotActionType } from './bot-action.entity';
 import { RequestClosedError } from './request-closed.error';
 import { RequestExpiredError } from './request-expired.error';
 import { RequestNotFoundError } from './request-not-found.error';
-
-// As ações que respondem ao Pedido: depois de uma delas, o bot já não está digitando (LLD,
-// "Digitando").
-const ANSWER_ACTIONS: BotActionType[] = ['reply', 'question'];
 
 export interface NewAgentRequest {
   conversationId: string;
@@ -109,12 +105,10 @@ export class AgentRequestsService {
     return action?.messageId ?? null;
   }
 
-  // Se o Pedido já tem a resposta ou a pergunta gravada.
+  // Se o Pedido já tem uma ação gravada: toda ação de bot responde ao Pedido, e depois dela o bot
+  // já não está digitando (LLD, "Digitando").
   hasAnswer(requestId: string): Promise<boolean> {
-    return this.actions.existsBy({
-      requestId,
-      actionType: In(ANSWER_ACTIONS),
-    });
+    return this.actions.existsBy({ requestId });
   }
 
   async recordAction(

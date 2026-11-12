@@ -60,12 +60,12 @@ export class TasksService {
   async resolveAssignee(
     conversationId: string,
     username: string,
-  ): Promise<string> {
-    const [member] = await this.conversations.findMembersByUsernames(
+  ): Promise<{ id: string; name: string }> {
+    const member = await this.conversations.findMemberByUsername(
       conversationId,
-      [username],
+      username,
     );
-    if (member) return member.id;
+    if (member) return member;
     if (await this.bots.findByUsername(username)) {
       throw new AssigneeIsBotError();
     }
@@ -73,7 +73,7 @@ export class TasksService {
   }
 
   create(task: NewTask): Promise<Task> {
-    return this.tasks.save(this.tasks.create({ ...task, status: 'open' }));
+    return this.tasks.save(this.tasks.create(task));
   }
 
   // A Tarefa que o Pedido criou, ou null.
@@ -88,9 +88,9 @@ export class TasksService {
     const personIds = [
       ...new Set(tasks.flatMap((task) => [task.assigneeId, task.delegatorId])),
     ];
-    const [people, summaries, deleted] = await Promise.all([
+    const [people, conversations, deleted] = await Promise.all([
       this.people.findByIds(personIds),
-      this.conversations.summariesByIds([
+      this.conversations.findByIds([
         ...new Set(tasks.map((task) => task.conversationId)),
       ]),
       this.messages.findDeletedIds(tasks.map((task) => task.triggerMessageId)),
@@ -102,7 +102,7 @@ export class TasksService {
       ]),
     );
     const conversationById = new Map(
-      summaries.map(({ conversation }) => [
+      conversations.map((conversation) => [
         conversation.id,
         {
           id: conversation.id,

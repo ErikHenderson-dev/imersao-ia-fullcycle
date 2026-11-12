@@ -1,6 +1,7 @@
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
+import type { AgentRequest } from '../agent-requests/agent-request.entity';
 import type { BotActionType } from '../agent-requests/bot-action.entity';
 import { PendingQuestionsService } from '../agent-requests/pending-questions.service';
 import { BotsService } from '../bots/bots.service';
@@ -73,8 +74,18 @@ export class BotActionsService {
   // Grava a resposta do bot ao Pedido e emite o fim do "digitando". Repetida, devolve a Mensagem já
   // gravada, sem gravar nem publicar (LLD, "Concorrência e idempotência", "Ação de bot").
   async reply(requestId: string, body: string): Promise<MessageView> {
-    const { message, created } = await this.record(requestId, 'reply', body);
-    if (created) this.announceAnswer(message);
+    const { message, written } = await this.once(
+      requestId,
+      'reply',
+      async (request) => ({
+        message: await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+        ),
+      }),
+    );
+    if (written) this.announceAnswer(message);
     return message;
   }
 
@@ -86,17 +97,40 @@ export class BotActionsService {
     body: string,
     quickReplies: string[],
   ): Promise<MessageView> {
-    const { message, created, closedQuestion } = await this.record(
+    const { message, written } = await this.once(
       requestId,
       'question',
-      body,
-      quickReplies,
+      async (request) => {
+        const inserted = await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+          quickReplies,
+        );
+        const { opened, closed } = await this.pendingQuestions.open(
+          request,
+          inserted.id,
+        );
+        return {
+          // Com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
+          message: {
+            ...inserted,
+            quickReplies: {
+              options: quickReplies,
+              ownerId: opened.personId,
+              expiresAt: opened.expiresAt,
+              closed: false,
+            },
+          },
+          closedQuestion: closed?.questionMessageId ?? null,
+        };
+      },
     );
-    if (!created) return message;
+    if (!written) return message;
     this.announceAnswer(message);
-    if (closedQuestion) {
+    if (written.closedQuestion) {
       this.messages.publishQuestionClosed(
-        closedQuestion,
+        written.closedQuestion,
         message.conversationId,
       );
     }
@@ -105,63 +139,45 @@ export class BotActionsService {
 
   // Delega a Tarefa ao Membro da Conversa do Pedido e grava a confirmação do bot, numa transação
   // (spec da F12, "Ação `task`"). Repetida, devolve a Tarefa e a confirmação já gravadas, sem
-  // conferir o Responsável de novo nem publicar.
+  // conferir o Responsável de novo nem publicar. A Tarefa é montada depois do commit, fora da
+  // trava do Pedido.
   async task(
     requestId: string,
     assigneeUsername: string,
     title: string,
   ): Promise<{ task: TaskView; message: MessageView }> {
-    const { task, message, created } = await this.recordTask(
+    const { message, written } = await this.once(
       requestId,
-      assigneeUsername,
-      title,
-    );
-    if (created) this.announceAnswer(message);
-    return { task, message };
-  }
-
-  @Transactional()
-  private async recordTask(
-    requestId: string,
-    assigneeUsername: string,
-    title: string,
-  ): Promise<{ task: TaskView; message: MessageView; created: boolean }> {
-    const request = await this.requests.lockForAction(requestId);
-    const existingId = await this.requests.findActionMessageId(
-      request.id,
       'task',
+      async (request) => {
+        const assignee = await this.tasks.resolveAssignee(
+          request.conversationId,
+          assigneeUsername,
+        );
+        await this.tasks.create({
+          requestId: request.id,
+          conversationId: request.conversationId,
+          triggerMessageId: request.triggerMessageId,
+          assigneeId: assignee.id,
+          delegatorId: request.requesterId,
+          title,
+        });
+        return {
+          message: await this.messages.insertBotMessage(
+            request.botId,
+            request.conversationId,
+            `Tarefa delegada a ${assignee.name}: ${title}`,
+          ),
+        };
+      },
     );
-    if (existingId) {
-      const task = await this.tasks.findByRequest(request.id);
-      return {
-        task: await this.tasks.view(task!),
-        message: await this.messages.viewById(existingId),
-        created: false,
-      };
-    }
-    const assigneeId = await this.tasks.resolveAssignee(
-      request.conversationId,
-      assigneeUsername,
-    );
-    const task = await this.tasks.create({
-      requestId: request.id,
-      conversationId: request.conversationId,
-      triggerMessageId: request.triggerMessageId,
-      assigneeId,
-      delegatorId: request.requesterId,
-      title,
-    });
-    const view = await this.tasks.view(task);
-    const message = await this.messages.insertBotMessage(
-      request.botId,
-      request.conversationId,
-      confirmationOf(view),
-    );
-    await this.requests.recordAction(request.id, 'task', message.id);
-    return { task: view, message, created: true };
+    if (written) this.announceAnswer(message);
+    const task = await this.tasks.findByRequest(requestId);
+    return { task: await this.tasks.view(task!), message };
   }
 
-  // A resposta ou a pergunta gravada: publica a Mensagem e emite o fim do "digitando" do bot.
+  // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do
+  // "digitando" do bot.
   private announceAnswer(message: MessageView): void {
     this.messages.publishBotMessage(message);
     this.realtime.botTyping(
@@ -172,19 +188,14 @@ export class BotActionsService {
   }
 
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
-  // com o Pedido travado. A pergunta leva os rótulos e abre a Pergunta pendente, e devolve a
-  // Mensagem da pergunta anterior que ela encerrou.
+  // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
+  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo).
   @Transactional()
-  private async record(
+  private async once<T extends { message: MessageView }>(
     requestId: string,
     actionType: BotActionType,
-    body: string,
-    quickReplies: string[] | null = null,
-  ): Promise<{
-    message: MessageView;
-    created: boolean;
-    closedQuestion: string | null;
-  }> {
+    write: (request: AgentRequest) => Promise<T>,
+  ): Promise<{ message: MessageView; written: T | null }> {
     const request = await this.requests.lockForAction(requestId);
     const existingId = await this.requests.findActionMessageId(
       request.id,
@@ -193,43 +204,15 @@ export class BotActionsService {
     if (existingId) {
       return {
         message: await this.messages.viewById(existingId),
-        created: false,
-        closedQuestion: null,
+        written: null,
       };
     }
-    const inserted = await this.messages.insertBotMessage(
-      request.botId,
-      request.conversationId,
-      body,
-      quickReplies,
+    const written = await write(request);
+    await this.requests.recordAction(
+      request.id,
+      actionType,
+      written.message.id,
     );
-    await this.requests.recordAction(request.id, actionType, inserted.id);
-    if (!quickReplies) {
-      return { message: inserted, created: true, closedQuestion: null };
-    }
-    const { opened, closed } = await this.pendingQuestions.open(
-      request,
-      inserted.id,
-    );
-    return {
-      // Com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
-      message: {
-        ...inserted,
-        quickReplies: {
-          options: quickReplies,
-          ownerId: opened.personId,
-          expiresAt: opened.expiresAt,
-          closed: false,
-        },
-      },
-      created: true,
-      closedQuestion: closed?.questionMessageId ?? null,
-    };
+    return { message: written.message, written };
   }
-}
-
-// A confirmação da Tarefa, montada pelo código, com o nome do Responsável e sem Menção (spec da F12,
-// "Ação `task`").
-function confirmationOf(task: TaskView): string {
-  return `Tarefa delegada a ${task.assignee.name}: ${task.title}`;
 }

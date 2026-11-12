@@ -109,8 +109,8 @@ class RunResult:
     Tarefa (F12-T01) gravadas pela ferramenta, que dispensam a `reply`."""
 
     text: str | None = None
-    asked: bool = False
-    delegated: bool = False
+    # O desfecho que a ferramenta já gravou (`context.ANSWERED_BY_TOOL`), ou nenhum.
+    answered: Literal["question", "task"] | None = None
 
 
 async def run_agent(
@@ -120,9 +120,9 @@ async def run_agent(
     usage: Usage,
     result: RunResult,
 ) -> None:
-    """Roda o agente na sessão dada e guarda em `result` o texto final ou a marca da pergunta, vista
-    no `state_delta` do evento da ferramenta. Quem chama fica com a marca mesmo se a execução falhar
-    depois da pergunta gravada."""
+    """Roda o agente na sessão dada e guarda em `result` o texto final ou a marca da ferramenta que
+    gravou o fim (a pergunta ou a Tarefa), vista no `state_delta` do evento dela. Quem chama fica
+    com a marca mesmo se a execução falhar depois da gravação."""
     runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
     request_id = str(request.request_id)
     async for event in runner.run_async(
@@ -135,10 +135,9 @@ async def run_agent(
         run_config=deps.run_config,
     ):
         usage.add(event.usage_metadata)
-        if event.actions.state_delta.get(context.QUESTION_FOR) == request_id:
-            result.asked = True
-        if event.actions.state_delta.get(context.TASK_FOR) == request_id:
-            result.delegated = True
+        marker = event.actions.state_delta.get(context.ANSWERED_BY_TOOL)
+        if marker and marker["pedido"] == request_id:
+            result.answered = marker["desfecho"]
         if event.is_final_response() and event.content and event.content.parts:
             joined = "".join(part.text or "" for part in event.content.parts).strip()
             result.text = joined or result.text
@@ -194,13 +193,10 @@ async def execute(
         logger.error(
             "Falha no Pedido %s: %s", request_id, type(error).__name__, extra=log
         )
-    # A pergunta gravada é o fim do Pedido, mesmo que a execução tenha falhado depois dela: um "não
-    # consegui" ao lado dela a contradiria.
-    if result.asked:
-        return "question"
-    # A confirmação da Tarefa também é o fim do Pedido (F12-T01).
-    if result.delegated:
-        return "task"
+    # A pergunta ou a Tarefa gravada é o fim do Pedido, mesmo que a execução tenha falhado depois
+    # dela: um "não consegui" ao lado dela a contradiria.
+    if result.answered:
+        return result.answered
     # O texto do modelo recusado por outro motivo que não o Pedido vira o "não consegui".
     if result.text:
         written = await write_reply(deps.chat_api, request_id, result.text)

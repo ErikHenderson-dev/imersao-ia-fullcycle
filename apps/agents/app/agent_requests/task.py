@@ -13,6 +13,7 @@ from typing import Any
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
+from app.agent_requests.reading import username_of
 from app.chat_api import ChatApiClient, ChatApiError
 
 # O motivo de cada recusa do Responsável, para o modelo escrever a recusa curta.
@@ -27,17 +28,16 @@ async def delegate(
 ) -> dict[str, Any]:
     """Chama a ação `task` e marca o Pedido como respondido; na recusa do Responsável, devolve o
     motivo, sem marcar."""
-    request_id = tool_context.state[context.REQUEST_ID]
-    username = responsavel.strip().removeprefix("@")
+    username = username_of(responsavel)
+    if username is None:
+        return {"erro": ASSIGNEE_REFUSALS["assignee_not_member"]}
     try:
-        await client.task(request_id, username, titulo.strip())
+        await client.task(tool_context.state[context.REQUEST_ID], username, titulo)
     except ChatApiError as error:
         reason = ASSIGNEE_REFUSALS.get(error.code or "")
         if reason is None:
             raise
         return {"erro": reason}
-    # A confirmação já está na Conversa: o evento da ferramenta é a resposta final, sem nova
-    # chamada ao modelo, como na pergunta.
-    tool_context.state[context.TASK_FOR] = request_id
-    tool_context.actions.skip_summarization = True
-    return {"tarefa": titulo.strip(), "responsavel": username}
+    # A confirmação já está na Conversa, como a pergunta (`context.mark_answered`).
+    context.mark_answered(tool_context, "task")
+    return {"tarefa": titulo, "responsavel": username}

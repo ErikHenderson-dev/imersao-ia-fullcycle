@@ -3,19 +3,10 @@ import { authRoutes } from './support/auth-routes';
 import { botRoutes } from './support/bot-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import { createTestApp } from './support/create-test-app';
+import type { TaskResponse } from '../src/tasks/task.response';
 
 type TaskBody = {
-  task: {
-    id: string;
-    title: string;
-    status: string;
-    created_at: string;
-    completed_at: string | null;
-    assignee: { id: string; name: string; username: string };
-    delegator: { id: string; name: string; username: string };
-    conversation: { id: string; name: string | null; kind: string };
-    trigger_message: { id: string; deleted: boolean };
-  };
+  task: TaskResponse;
   message: {
     id: string;
     author: { kind: string };
@@ -141,28 +132,50 @@ describe('Ação task do bot', () => {
     ).toBe(1);
   });
 
-  it.each([
-    ['sem a credencial', 401, 'invalid_bot_token'],
-    ['com id desconhecido', 404, 'request_not_found'],
-    ['com o Pedido vencido', 410, 'request_expired'],
-    ['com o Pedido encerrado', 409, 'request_closed'],
-  ])(
-    'recusa como as outras ações do bot: %s',
-    async (scenario, status, code) => {
-      const { bruno, channel, requestId } = await openRequest();
-      let target = requestId;
-      if (scenario === 'com id desconhecido') {
-        target = '0190f1a0-0000-7000-8000-000000000000';
-      }
-      if (scenario === 'com o Pedido vencido') {
+  // Cada caso prepara o Pedido e devolve o alvo da chamada e a credencial.
+  type Refusal = (
+    requestId: string,
+  ) => Promise<{ target: string; token?: null }>;
+  const REFUSALS: [string, number, string, Refusal][] = [
+    [
+      'sem a credencial',
+      401,
+      'invalid_bot_token',
+      (requestId) => Promise.resolve({ target: requestId, token: null }),
+    ],
+    [
+      'com id desconhecido',
+      404,
+      'request_not_found',
+      () => Promise.resolve({ target: '0190f1a0-0000-7000-8000-000000000000' }),
+    ],
+    [
+      'com o Pedido vencido',
+      410,
+      'request_expired',
+      async (requestId) => {
         await botRoutes.updateRequest(app, requestId, {
           expiresAt: new Date(Date.now() - 1000),
         });
-      }
-      if (scenario === 'com o Pedido encerrado') {
+        return { target: requestId };
+      },
+    ],
+    [
+      'com o Pedido encerrado',
+      409,
+      'request_closed',
+      async (requestId) => {
         await botRoutes.updateRequest(app, requestId, { status: 'failed' });
-      }
-      const token = scenario === 'sem a credencial' ? null : undefined;
+        return { target: requestId };
+      },
+    ],
+  ];
+
+  it.each(REFUSALS)(
+    'recusa como as outras ações do bot: %s',
+    async (_, status, code, prepare) => {
+      const { bruno, channel, requestId } = await openRequest();
+      const { target, token } = await prepare(requestId);
 
       const response = await botRoutes.task(
         app,
