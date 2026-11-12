@@ -47,9 +47,9 @@ apps/
       agent_requests/
                   rota de Pedido e execução do Pedido (spec da F11)   existe
       chat_api.py cliente da API do chat, com a credencial de bot     existe
-      business/   schema e carga do Banco de negócio; catálogo de     existe (schema
-                  Métricas, consulta, lastro, conferência de          e carga; o resto
-                  somente leitura e auditoria (spec da F13)           planejado)
+      business/   schema e carga do Banco de negócio; catálogo de     existe (a busca
+                  Métricas, consulta, lastro, conferência de          por nome,
+                  somente leitura e auditoria (spec da F13)           planejada)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 existe
@@ -87,7 +87,7 @@ docs/             HLD, LLD, ADRs, brief
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
 | Validação de entrada na API do chat | `class-validator` e `class-transformer`, no `ValidationPipe` do Nest | Caminho padrão do Nest, e o `@nestjs/swagger` lê os mesmos decorators para gerar o snapshot OpenAPI; descartado: zod com `nestjs-zod` |
-| Parser da conferência de somente leitura | pglast, `planejado` (spec da F13, seção "Catálogo e consulta") | Usa o parser do próprio Postgres, e não pode divergir da gramática dele; descartado: sqlglot, que reimplementa a gramática |
+| Parser da conferência de somente leitura | pglast (spec da F13, seção "Catálogo e consulta") | Usa o parser do próprio Postgres, e não pode divergir da gramática dele; descartado: sqlglot, que reimplementa a gramática |
 | Log estruturado | A definir | — |
 
 ## 2. Componentes e dependências
@@ -376,7 +376,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
-| Agentes | Auditoria das consultas ao Banco de negócio | `planejada` (`business_queries`): spec da F13, seção "Auditoria" |
+| Agentes | Auditoria das consultas ao Banco de negócio | existe (`business_queries`): spec da F13, seção "Auditoria" |
 | Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | existe, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
 
 ## 5. Interfaces
@@ -666,6 +666,29 @@ continua `open` no banco, mas recusa as ações do bot.
   novo, porque o fechamento só vai de aberto para encerrado; a edição continua descartada quando é
   mais velha.
 - Um Pedido que falha não reabre a pergunta que encerrou.
+
+### 6.6 Consulta a dados de negócio
+
+Situação: existe a consulta de uma Métrica num período (F13-T04); a comparação, o filtro por nome e
+a pergunta de período são das tarefas seguintes da F13.
+
+A ferramenta `consultar_dados` segue esta ordem, e cada passo que recusa encerra o Pedido com uma
+`reply` e uma linha de auditoria ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md),
+seções "O Agente `assistente`", "Catálogo e consulta" e "Auditoria"):
+
+1. sem Permissão de dados, a recusa sem permissão, sem a marca e sem tocar o banco
+   (`no_permission`);
+2. parâmetros inválidos voltam ao modelo como erro, sem consulta e sem auditoria;
+3. o SQL do catálogo passa pela conferência de somente leitura e roda com o usuário só leitura e o
+   `Tempo limite da consulta ao Banco de negócio`; a falha grava "Não consegui responder." sem a
+   marca (`error`);
+4. o texto sai do código e passa pelo lastro, que aceita só os números do resultado e o dia, o mês
+   e o ano das datas citadas; sem lastro, "Não consegui responder." (`lastro_blocked`);
+5. a auditoria é gravada antes da `reply` com a marca (`answered`); se a auditoria falha, o Pedido
+   termina no "não consegui" geral.
+
+O período é `[início 00:00, fim + 1 dia 00:00)` no `Fuso da empresa`, e o dia de hoje que as
+instruções mostram sai do instante da Mensagem do Pedido nesse fuso.
 
 ## 7. Processos de segundo plano
 
@@ -1027,8 +1050,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 - [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
       custo em "Valores e configuração" (spec da F11).
-- [ ] Subseção de "Estados e regras": consulta a dados de negócio (a comparação do lastro está
-      na spec da F13, seção "Catálogo e consulta").
+- [x] Subseção de "Estados e regras": consulta a dados de negócio (6.6).
 - [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
       pendentes vencidas não têm rotina (spec da F11).
 
