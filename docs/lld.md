@@ -738,7 +738,7 @@ encontra a trava dele e não recusa o próprio Relatório.
 
 | Job | Disparo | O que faz | Na falha | Situação |
 | --- | --- | --- | --- | --- |
-| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | Consulta as seis Métricas nos dois períodos, monta o PDF, confere o lastro no texto dele, grava no S3 pela chave do id do Pedido, audita e entrega por `report_delivered`; solta a trava do Relatório (spec da F14, seção "Worker de agentes") | Nova tentativa até `tentativas do Worker`, com a `espera entre tentativas do Worker` e o `tempo limite da tentativa do Worker`; esgotadas, grava `report_failed`; sem lastro ou com o Pedido recusado, encerra sem nova tentativa (mesma seção) | existe; as novas tentativas e o encerramento pelo Pedido recusado, `planejados` (F14-T06) |
+| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | Consulta as seis Métricas nos dois períodos, monta o PDF, confere o lastro no texto dele, grava no S3 pela chave do id do Pedido, audita e entrega por `report_delivered`; solta a trava do Relatório (spec da F14, seção "Worker de agentes") | Nova tentativa até `tentativas do Worker`, com a `espera entre tentativas do Worker` e o `tempo limite da tentativa do Worker`; esgotadas, grava `report_failed`; sem lastro ou com o Pedido recusado, encerra sem nova tentativa (mesma seção) | existe; o tempo limite da tentativa é do próprio job, e a nova tentativa é o `Retry` do arq (F14-T06) |
 
 A idempotência do job vem da chave no S3 pelo id do Pedido, regravada numa nova tentativa, e da
 ação de bot única; o PDF fica enquanto a Mensagem existir, sem rotina de limpeza (spec da F14,
