@@ -56,14 +56,14 @@ describe("Atividade no cache", () => {
     expect(notificationKindFor(mentioning, undefined, ME)).toBeNull();
   });
 
-  it("a Mensagem de bot não é Notificação, nem na Conversa direta", () => {
-    const fromBot = message("5", {
-      author: { kind: "bot", id: "bot", name: "Assistente", username: "assistente", initials: "AS" },
-      mentions: [{ id: ME, username: "eu" }],
-    });
+  it("a Mensagem de bot só é Notificação quando menciona a Pessoa num Canal", () => {
+    const bot = { kind: "bot" as const, id: "bot", name: "Assistente", username: "assistente", initials: "AS" };
+    const mentioning = message("5", { author: bot, mentions: [{ id: ME, username: "eu" }] });
+    const silent = message("6", { author: bot });
 
-    expect(notificationKindFor(fromBot, { kind: "direct" }, ME)).toBeNull();
-    expect(notificationKindFor(fromBot, { kind: "public_channel" }, ME)).toBeNull();
+    expect(notificationKindFor(mentioning, { kind: "public_channel" }, ME)).toBe("mention");
+    expect(notificationKindFor(mentioning, { kind: "direct" }, ME)).toBeNull();
+    expect(notificationKindFor(silent, { kind: "public_channel" }, ME)).toBeNull();
   });
 
   it("a nova entra no topo da aba do tipo dela", () => {
