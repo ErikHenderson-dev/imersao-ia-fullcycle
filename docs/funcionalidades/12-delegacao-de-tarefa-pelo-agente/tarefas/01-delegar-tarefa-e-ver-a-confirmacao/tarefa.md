@@ -1,6 +1,6 @@
 # 01: Delegar uma Tarefa e ver a confirmação na Conversa
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa menciona o Agente e um Membro da Conversa pedindo para delegar um
 trabalho ("@assistente delega pra @bruno revisar o contrato"), e o Agente cria a Tarefa aberta e
