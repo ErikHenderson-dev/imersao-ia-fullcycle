@@ -14,6 +14,10 @@ from redis.exceptions import RedisError
 from app.problems import ProblemError
 
 WINDOW_S = 60
+DELIVERY_KEY = "agent_requests:delivery"
+# A reserva só precisa durar até a sessão do Pedido existir, o que acontece no começo da execução;
+# depois, a reentrega é barrada pela sessão.
+DELIVERY_CLAIM_S = 600
 
 
 class RequestRateLimiter:
@@ -34,3 +38,26 @@ class RequestRateLimiter:
                 "O serviço de agentes está indisponível.",
             ) from error
         return count <= self._limit
+
+    async def claim_delivery(self, request_id: str) -> bool:
+        """Reserva a entrega do Pedido antes de contá-lo: só a primeira de entregas simultâneas do
+        mesmo Pedido ganha a reserva, e as outras não gastam o limite da Pessoa."""
+        try:
+            claimed = await self._redis.set(
+                f"{DELIVERY_KEY}:{request_id}", 1, nx=True, ex=DELIVERY_CLAIM_S
+            )
+        except RedisError as error:
+            raise ProblemError(
+                503,
+                "agents_unavailable",
+                "O serviço de agentes está indisponível.",
+            ) from error
+        return bool(claimed)
+
+    async def release_delivery(self, request_id: str) -> None:
+        """Solta a reserva do Pedido recusado pelo limite, para o reenvio dele ser contado de novo."""
+        try:
+            await self._redis.delete(f"{DELIVERY_KEY}:{request_id}")
+        except RedisError:
+            # Sem soltar, a reserva vence sozinha em DELIVERY_CLAIM_S.
+            pass

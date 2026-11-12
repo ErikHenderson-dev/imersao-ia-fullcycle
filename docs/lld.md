@@ -1,6 +1,6 @@
 # LLD — Full Cycle Chat
 
-2026-11-11 · Luiz Carlos · Status: rascunho · HLD: [hld.md](hld.md)
+2026-11-12 · Luiz Carlos · Status: rascunho · HLD: [hld.md](hld.md)
 
 **Onde mora cada fato**
 
@@ -140,6 +140,7 @@ teto de custo é por Pedido, dentro do processo, e não passa pelo Redis ("Valor
 
 | Operação | Recebe | Devolve | Garante |
 | --- | --- | --- | --- |
+| Reservar a entrega do Pedido | Identificador do Pedido | Reservado ou já reservado | Só a primeira de entregas simultâneas do mesmo Pedido reserva, e só ela passa ao limite; a reserva vence sozinha e é solta quando o limite recusa o Pedido (seção "6.5 Pedido ao agente e Pergunta pendente") |
 | Conferir e contar pedido | Pessoa | Permitido ou negado | Nega acima do `limite de pedidos por pessoa`, numa janela fixa por minuto ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Rota de Pedido") |
 
 Com o Redis fora, as operações de contadores falham e o pedido é recusado (HLD, seção 8, "Erros,
@@ -620,7 +621,8 @@ continua `open` no banco, mas recusa as ações do bot.
 - Um Pedido entregue duas vezes ao Serviço de agentes (o reenvio do mesmo `client_id` dispara de
   novo) roda uma vez só: a sessão do ADK, com o id do Pedido, já existe na segunda entrega, que a
   rota aceita sem rodar nem contar no `limite de pedidos por pessoa`; duas entregas simultâneas
-  esbarram na criação da sessão, e a segunda termina sem gravar nada. A continuação roda na sessão
+  ainda não veem a sessão, e a reserva da entrega nos "Contadores (Redis)" deixa só a primeira passar
+  ao limite; as outras são aceitas sem rodar nem contar. A continuação roda na sessão
   do Pedido pai, com o contexto da pergunta, e antes cria uma sessão marcadora com o próprio id, que
   é a mesma guarda: a entrega repetida da continuação também é aceita sem rodar. Sem a sessão do
   pai, roda na marcadora, sem o contexto da pergunta.

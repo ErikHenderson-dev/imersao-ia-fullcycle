@@ -27,3 +27,6 @@ pedidos e teto de custo) e 07 (Escolher o Recorte por Resposta pronta ou respond
   em `roteiro-manual.md` para quem quiser medir depois.
 - [x] **CA4** · O plano de testes da F11 fica junto dos testes do Playwright, e a suíte e2e inteira
   passa antes do PR.
+  **Aceito com instabilidade conhecida:** a suíte inteira deu 275 de 278; os 3 que falharam
+  (`atividade/abrir-na-mensagem` e `perfil/presenca`, de funcionalidades anteriores e sem relação
+  com a F11) passam sozinhos, 11 de 11 (`verificacao-completa.md`).

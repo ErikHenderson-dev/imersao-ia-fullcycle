@@ -1,8 +1,11 @@
 # Avaliação do `assistente` na F11-T07
 
 Execução do `adk eval` só com os casos de vários turnos desta tarefa, com o evalset e o
-`test_config.json` de `apps/agents/tests/eval/assistente/`, o modelo padrão (`gemini-3.8-flash`) e o
-juiz `gemini-3.8-flash`, em 2026-11-11:
+`test_config.json` de `apps/agents/tests/eval/assistente/`, o modelo padrão da época
+(`gemini-3.8-flash`) e o juiz `gemini-3.8-flash`, em 2026-11-11:
+
+> A F11-T08 trocou depois o modelo padrão do Agente para o `gemini-3.6-flash`. A avaliação completa
+> com ele, que inclui estes casos, está em `../08-avaliacao-medicao-e-acessibilidade/avaliacao.md`.
 
 ```bash
 docker compose -f compose.yaml exec agents uv run --extra eval adk eval app/agents/assistente \

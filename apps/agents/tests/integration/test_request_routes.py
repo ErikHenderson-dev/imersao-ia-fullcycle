@@ -10,9 +10,11 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 import pytest
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
 from tests.integration.conftest import (
     BOT_TOKEN,
@@ -295,3 +297,41 @@ async def test_reentregar_o_mesmo_pedido_responde_202_sem_rodar_de_novo(
         assert response.status_code == 202
         await asyncio.sleep(1)
         assert len(fake_chat_api.requests) == calls_before
+
+
+async def test_entregas_simultaneas_do_mesmo_pedido_gastam_o_limite_uma_vez(
+    test_database_url: str,
+    fake_chat_api: FakeChatApi,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # As duas entregas chegam antes de a sessão do Pedido existir: só uma passa ao limite (aqui, 2),
+    # e o Pedido seguinte da mesma Pessoa ainda cabe nele. A leitura da sessão demora de propósito,
+    # para as duas entregas a consultarem antes de a primeira criá-la.
+    get_session = InMemorySessionService.get_session
+
+    async def slow_get_session(self: InMemorySessionService, **kwargs: Any) -> Any:
+        await asyncio.sleep(0.3)
+        return await get_session(self, **kwargs)
+
+    monkeypatch.setattr(InMemorySessionService, "get_session", slow_get_session)
+    settings = settings_for(
+        test_database_url, adk_dev_routes=False, chat_api_url=fake_chat_api.url
+    )
+    settings.agent_requests_per_minute = 2
+    caplog.set_level(logging.INFO, logger="app")
+    async with app_client(settings) as client:
+        await set_assistant_connected(client, True)
+        body = pedido()
+        following = {**pedido(), "requester": body["requester"]}
+
+        deliveries = await asyncio.gather(
+            client.post("/v1/requests", json=body, headers=AUTH),
+            client.post("/v1/requests", json=body, headers=AUTH),
+        )
+        response = await client.post("/v1/requests", json=following, headers=AUTH)
+
+        assert [delivery.status_code for delivery in deliveries] == [202, 202]
+        assert response.status_code == 202
+        await wait_for_end_log(caplog, body["request_id"])
+        await wait_for_end_log(caplog, following["request_id"])

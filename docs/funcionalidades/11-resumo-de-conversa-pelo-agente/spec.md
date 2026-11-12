@@ -181,7 +181,9 @@ clique numa Resposta pronta é um envio comum do texto do botão por essa mesma 
 
 - Confere, nesta ordem: o Agente existe no catálogo (`agent_not_found`, 404) e está conectado
   (`agent_not_connected`, 409); o limite de pedidos da Pessoa (`rate_limited`, 429). Depois responde
-  202 e roda o Pedido numa tarefa em segundo plano, no mesmo processo.
+  202 e roda o Pedido numa tarefa em segundo plano, no mesmo processo. A entrega repetida do mesmo
+  Pedido, inclusive a simultânea, é aceita sem rodar nem gastar o limite (LLD, seção "6.5 Pedido ao
+  agente e Pergunta pendente").
 - **Limite de pedidos:** um contador por Pessoa e minuto no Redis, em janela fixa, somando todas as
   Conversas. O valor é a variável `AGENT_REQUESTS_PER_MINUTE`, padrão 10. Com o Redis fora, o
   Pedido é recusado com `agents_unavailable` (503), como manda o HLD. O Serviço de agentes ganha a

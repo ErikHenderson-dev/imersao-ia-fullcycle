@@ -46,7 +46,12 @@ def build_router(
             session_id=str(body.request_id),
         ):
             return Response(status_code=202)
+        # Entregas simultâneas ainda não veem a sessão: a reserva no Redis deixa só uma passar ao
+        # limite, e as outras são aceitas sem gastá-lo, como a reentrega.
+        if not await limiter.claim_delivery(str(body.request_id)):
+            return Response(status_code=202)
         if not await limiter.allow(str(body.requester.id)):
+            await limiter.release_delivery(str(body.request_id))
             logger.warning(
                 "Pedido %s recusado pelo limite de pedidos",
                 body.request_id,
