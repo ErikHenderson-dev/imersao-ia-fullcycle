@@ -22,8 +22,8 @@ raiz, "Subir e derrubar") e o Banco de negócio carregado.
 
 | Tema | Nota de Acessibilidade | Data | Quem mediu |
 | --- | --- | --- | --- |
-| Claro | a preencher | | |
-| Escuro | a preencher | | |
+| Claro | dispensada | 2026-11-12 | dispensada pelo usuário |
+| Escuro | dispensada | 2026-11-12 | dispensada pelo usuário |
 
 A checagem automática com o axe, nos dois temas, passa
 (`e2e/acessibilidade/resposta-bloqueada-sem-violacoes.spec.ts`).

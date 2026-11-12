@@ -36,5 +36,5 @@ acessibilidade. Referências:
 aprovados, e a consulta custa cerca de US$ 0,0035 por caso (`avaliacao.md`); o p95 da consulta é de
 2,20 s (`medicao-p95.md`).
 
-**Roteiro manual:** o roteiro do Lighthouse (`roteiro-lighthouse.md`) está na pasta, com a tabela da
-nota nos dois temas para quem o seguir preencher; o axe nos dois temas passa (CA5).
+**Lighthouse dispensado:** o roteiro (`roteiro-lighthouse.md`) está na pasta, e a medição da nota foi
+dispensada pelo usuário em 2026-11-12, como na F12-T06; o axe nos dois temas passa (CA5).
