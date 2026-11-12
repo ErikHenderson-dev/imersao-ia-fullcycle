@@ -671,7 +671,12 @@ continua `open` no banco, mas recusa as ações do bot.
 ### 6.6 Consulta a dados de negócio
 
 Situação: existem a consulta de uma Métrica num período (F13-T04), a comparação entre dois
-períodos e o filtro por nome (F13-T05); a pergunta de período é da F13-T06.
+períodos e o filtro por nome (F13-T05) e a pergunta de período (F13-T06).
+
+Sem período, o Agente chama `perguntar_periodo`, que grava "De que período?" com as Respostas
+prontas "Este mês", "Mês passado" e "Este ano", sem a marca e sem auditoria; a continuação de quem
+pediu completa a consulta, e a que não completa recebe "não entendi o que consultar", sem nova
+pergunta. Toda ferramenta de pergunta recusa rodar numa continuação (`ask_question`).
 
 A ferramenta `consultar_dados` segue esta ordem, e cada passo que recusa encerra o Pedido com uma
 `reply` e uma linha de auditoria ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md),
