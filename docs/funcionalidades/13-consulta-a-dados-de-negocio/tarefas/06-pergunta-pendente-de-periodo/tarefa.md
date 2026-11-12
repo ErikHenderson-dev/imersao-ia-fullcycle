@@ -1,6 +1,6 @@
 # 06: Pergunta pendente de período
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa com Permissão de dados pergunta sem período ("quanto faturamos?"), e o
 Agente pergunta "De que período?" com as Respostas prontas "Este mês", "Mês passado" e "Este ano".
