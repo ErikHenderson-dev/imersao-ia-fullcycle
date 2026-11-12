@@ -69,14 +69,23 @@ class ChatApiClient:
         return response.json()
 
     async def question(
-        self, request_id: str, body: str, quick_replies: list[str]
+        self,
+        request_id: str,
+        body: str,
+        quick_replies: list[str],
+        *,
+        business_data: bool = False,
     ) -> None:
         """Grava a pergunta do bot com as Respostas prontas; a repetição devolve a mesma
         Mensagem (F11-T07)."""
         await self._request(
             "POST",
             f"/v1/bot/requests/{request_id}/question",
-            json={"body": body, "quick_replies": quick_replies},
+            json={
+                "body": body,
+                "quick_replies": quick_replies,
+                "business_data": business_data,
+            },
         )
 
     async def task(self, request_id: str, assignee_username: str, title: str) -> None:

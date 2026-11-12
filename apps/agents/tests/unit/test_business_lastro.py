@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from app.business.answer import allowed_numbers, answer_text
+from app.business.answer import Comparison, allowed_numbers, answer_text, variation
 from app.business.catalog import Period
 from app.business.lastro import has_lastro, numbers_in
 
@@ -46,3 +46,22 @@ def test_aceita_o_fuso_com_numeros_no_nome() -> None:
     text = answer_text("faturamento", MARCH, MARCH, value, "Etc/GMT+3")
 
     assert has_lastro(text, allowed_numbers([value], MARCH, MARCH, "Etc/GMT+3"))
+
+
+def test_aceita_a_comparacao() -> None:
+    february = Period(date(2026, 2, 1), date(2026, 2, 28))
+    current, base = Decimal("1234567.89"), Decimal("1100000.00")
+    text = answer_text(
+        "faturamento",
+        MARCH,
+        MARCH,
+        current,
+        TZ,
+        comparison=Comparison(february, february, base),
+    )
+    allowed = allowed_numbers(
+        [current, base, variation(current, base)], MARCH, MARCH, TZ
+    )
+    allowed |= allowed_numbers([], february, february, TZ)
+
+    assert has_lastro(text, allowed)

@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Literal, get_args
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Select, distinct, func, select
+from sqlalchemy import ColumnElement, Select, distinct, func, select
 from sqlalchemy.dialects import postgresql
 
 from app.business.schema import customers, order_items, orders
@@ -47,6 +47,24 @@ class Period:
 
 
 @dataclass(frozen=True)
+class Filter:
+    """O cliente, o vendedor ou o produto a que a consulta se restringe, já resolvido pelo nome."""
+
+    kind: str
+    id: int
+
+
+# Onde cada filtro vale (spec da F13, "O Agente `assistente`"; F13-T05).
+FILTERABLE: dict[str, frozenset[str]] = {
+    "vendedor": frozenset(
+        {"faturamento", "pedidos", "ticket_medio", "clientes_ativos", "itens_vendidos"}
+    ),
+    "cliente": frozenset({"faturamento", "pedidos", "ticket_medio", "itens_vendidos"}),
+    "produto": frozenset({"pedidos", "itens_vendidos"}),
+}
+
+
+@dataclass(frozen=True)
 class Query:
     statement: Select
     # O período que a consulta lê: o pedido, ou a janela dos clientes ativos.
@@ -54,7 +72,12 @@ class Query:
 
 
 def query_for(
-    metric: str, period: Period, time_zone: ZoneInfo, *, gross: bool = False
+    metric: str,
+    period: Period,
+    time_zone: ZoneInfo,
+    *,
+    gross: bool = False,
+    filter: Filter | None = None,
 ) -> Query:
     """A consulta da Métrica no período: o agregado da Métrica (`value`) e a contagem da base."""
     window = (
@@ -85,7 +108,22 @@ def query_for(
         statement = statement.select_from(
             order_items.join(orders, order_items.c.order_id == orders.c.id)
         )
+    if filter is not None:
+        statement = statement.where(_filter_condition(metric, filter))
     return Query(statement=statement, window=window)
+
+
+def _filter_condition(metric: str, filter: Filter) -> ColumnElement[bool]:
+    if filter.kind == "vendedor":
+        return orders.c.seller_id == filter.id
+    if filter.kind == "cliente":
+        return orders.c.customer_id == filter.id
+    # Produto: as unidades dele, ou os pedidos pagos que o têm.
+    if metric == "itens_vendidos":
+        return order_items.c.product_id == filter.id
+    return orders.c.id.in_(
+        select(order_items.c.order_id).where(order_items.c.product_id == filter.id)
+    )
 
 
 def compiled_sql(statement: Select) -> str:

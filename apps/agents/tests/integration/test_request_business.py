@@ -70,3 +70,40 @@ async def test_a_pergunta_de_faturamento_grava_a_resposta_com_a_marca(
         ).scalar_one()
     await agents.dispose()
     assert outcome == "answered"
+
+
+def is_question(call: dict) -> bool:
+    return call["method"] == "POST" and call["path"].endswith("/question")
+
+
+async def test_a_continuacao_com_o_nome_completo_responde_a_consulta_filtrada(
+    loaded_business_test: str,
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="app")
+    parent = pedido(body="@assistente quantos pedidos a Ana fechou em junho de 2026?")
+    parent["requester"]["data_access"] = True
+    await request_client.post("/v1/requests", json=parent, headers=AUTH)
+    await wait_for_end_log(caplog, parent["request_id"])
+    body = {
+        **parent,
+        "request_id": str(uuid.uuid4()),
+        "kind": "continuation",
+        "parent_request_id": parent["request_id"],
+        "message": {"id": str(uuid.uuid4()), "body": "Ana Paula Ramos"},
+    }
+
+    response = await request_client.post("/v1/requests", json=body, headers=AUTH)
+
+    assert response.status_code == 202
+    end = await wait_for_end_log(caplog, body["request_id"])
+    assert end.desfecho == "business"
+    [question] = [call for call in fake_chat_api.requests if is_question(call)]
+    assert question["body"]["quick_replies"] == ["Ana Beatriz Costa", "Ana Paula Ramos"]
+    [reply] = [call for call in fake_chat_api.requests if is_reply(call)]
+    assert reply["body"]["body"].startswith(
+        "Pedidos pagos (vendedor Ana Paula Ramos) em junho de 2026:"
+    )

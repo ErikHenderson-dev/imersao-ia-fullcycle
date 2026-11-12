@@ -119,9 +119,14 @@ async def consultar_dados(
     fim: str,
     tool_context: ToolContext,
     bruto: bool = False,
+    comparar_inicio: str | None = None,
+    comparar_fim: str | None = None,
+    filtro_tipo: str | None = None,
+    filtro_nome: str | None = None,
 ) -> dict[str, Any]:
     """Consulta um número de vendas do negócio e grava a resposta na Conversa, com o número e o que
-    foi considerado. Depois dela, não escreva nada: a resposta já está na Conversa.
+    foi considerado. Depois dela, não escreva nada: a resposta (ou a pergunta de qual nome) já está
+    na Conversa.
 
     Args:
         metrica: "faturamento", "pedidos", "ticket_medio", "clientes_ativos", "clientes_novos" ou
@@ -129,6 +134,12 @@ async def consultar_dados(
         inicio: O primeiro dia do período, em AAAA-MM-DD.
         fim: O último dia do período, em AAAA-MM-DD (inclusive).
         bruto: Só no faturamento, quando o pedido fala em faturamento bruto.
+        comparar_inicio: Só numa comparação ("março contra fevereiro"): o primeiro dia do período
+            comparado, em AAAA-MM-DD.
+        comparar_fim: Só numa comparação: o último dia do período comparado (inclusive).
+        filtro_tipo: Só quando o pedido nomeia um cliente, vendedor ou produto: "cliente",
+            "vendedor" ou "produto".
+        filtro_nome: O nome como está no pedido (por exemplo, "Ana"), junto de `filtro_tipo`.
 
     Returns:
         A confirmação de que a resposta foi gravada, ou `erro` com o parâmetro a corrigir.
@@ -137,4 +148,16 @@ async def consultar_dados(
     store = CURRENT_BUSINESS.get()
     if client is None or store is None:
         return {"erro": FORA_DE_UM_PEDIDO}
-    return await consult(client, store, tool_context, metrica, inicio, fim, bruto)
+    return await consult(
+        client,
+        store,
+        tool_context,
+        metrica,
+        inicio,
+        fim,
+        bruto,
+        comparar_inicio,
+        comparar_fim,
+        filtro_tipo,
+        filtro_nome,
+    )

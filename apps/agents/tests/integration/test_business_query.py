@@ -26,6 +26,8 @@ from app.business.answer import (
     SEM_PERMISSAO,
     format_count,
     format_money,
+    format_percent,
+    variation,
 )
 from app.business.consult import consult
 from app.business.db import BusinessStore, business_engine
@@ -40,6 +42,23 @@ MARCH = "ordered_at >= '2026-03-01 00:00-03' AND ordered_at < '2026-04-01 00:00-
 class FakeClient:
     def __init__(self) -> None:
         self.replies: list[dict] = []
+        self.questions: list[dict] = []
+
+    async def question(
+        self,
+        request_id: str,
+        body: str,
+        quick_replies: list[str],
+        *,
+        business_data: bool = False,
+    ) -> None:
+        self.questions.append(
+            {
+                "body": body,
+                "quick_replies": quick_replies,
+                "business_data": business_data,
+            }
+        )
 
     async def reply(
         self, request_id: str, body: str, *, business_data: bool = False
@@ -149,6 +168,10 @@ async def test_a_resposta_grava_a_auditoria_sem_o_resultado(
         "inicio": "2026-03-01",
         "fim": "2026-03-31",
         "bruto": False,
+        "comparar_inicio": None,
+        "comparar_fim": None,
+        "filtro_tipo": None,
+        "filtro_nome": None,
     }
     assert row["sql"].startswith("SELECT sum(orders.net_amount)")
     # Nem o número nem o texto da resposta vão para a auditoria.
@@ -251,3 +274,188 @@ async def test_o_parametro_invalido_volta_ao_modelo_sem_consulta(
     assert "erro" in result
     assert client.replies == []
     assert await audit_of(store.agents, ctx.state[context.REQUEST_ID]) == []
+
+
+# A comparação e o filtro por nome (F13-T05, CA1, CA3 e CA4).
+
+ANA_PAULA = "seller_id = (SELECT id FROM sellers WHERE name = 'Ana Paula Ramos')"
+# A soma ou a contagem de cada Métrica de pedidos, à mão, com o WHERE do período em {w}.
+AGGREGATES = {
+    "faturamento": "SELECT coalesce(sum(net_amount), 0) FROM orders WHERE status = 'paid' AND {w}",
+    "pedidos": "SELECT count(*) FROM orders WHERE status = 'paid' AND {w}",
+    "itens_vendidos": (
+        "SELECT coalesce(sum(i.quantity), 0) FROM order_items i JOIN orders o ON o.id = i.order_id "
+        "WHERE o.status = 'paid' AND {w}"
+    ),
+}
+
+
+def period_where(metric: str, start: str, end: str, with_filter: bool) -> str:
+    """O período (e a vendedora) no WHERE, com o alias de `orders` quando a Métrica junta itens."""
+    t = "o." if metric == "itens_vendidos" else ""
+    where = f"{t}ordered_at >= '{start} 00:00-03' AND {t}ordered_at < '{end} 00:00-03'"
+    return f"{where} AND {t}{ANA_PAULA}" if with_filter else where
+
+
+def shown(metric: str, value: object) -> str:
+    return (
+        format_money(Decimal(value))  # type: ignore[arg-type]
+        if metric == "faturamento"
+        else format_count(int(value))  # type: ignore[call-overload]
+    )
+
+
+@pytest.mark.parametrize("metric", sorted(AGGREGATES))
+@pytest.mark.parametrize("with_filter", [False, True])
+async def test_a_comparacao_de_cada_metrica_bate_com_o_sql_a_mao(
+    store: BusinessStore, metric: str, with_filter: bool
+) -> None:
+    sql = AGGREGATES[metric]
+    march = await scalar(
+        store.business,
+        sql.format(w=period_where(metric, "2026-03-01", "2026-04-01", with_filter)),
+    )
+    february = await scalar(
+        store.business,
+        sql.format(w=period_where(metric, "2026-02-01", "2026-03-01", with_filter)),
+    )
+    client, ctx = FakeClient(), tool_context()
+    extra = (
+        {"filtro_tipo": "vendedor", "filtro_nome": "Ana Paula Ramos"}
+        if with_filter
+        else {}
+    )
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        metric,
+        "2026-03-01",
+        "2026-03-31",
+        comparar_inicio="2026-02-01",
+        comparar_fim="2026-02-28",
+        **extra,
+    )
+
+    [reply] = client.replies
+    body = reply["body"]
+    assert (
+        f": {shown(metric, march)}. Fevereiro de 2026: {shown(metric, february)}. "
+        in body
+    )
+    change = variation(Decimal(march), Decimal(february))  # type: ignore[arg-type]
+    assert change is not None and f"Variação: {format_percent(change)}." in body
+    assert "contra 01/02/2026 a 28/02/2026" in body
+    assert ("vendedor Ana Paula Ramos" in body) is with_filter
+    assert reply["business_data"] is True
+
+
+async def test_nome_sem_achado_grava_nao_encontrei(store: BusinessStore) -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        "pedidos",
+        "2026-03-01",
+        "2026-03-31",
+        filtro_tipo="vendedor",
+        filtro_nome="Zé",
+    )
+
+    assert client.replies == [
+        {
+            "request_id": ctx.state[context.REQUEST_ID],
+            "body": "Não encontrei vendedor Zé.",
+            "business_data": True,
+        }
+    ]
+    [row] = await audit_of(store.agents, ctx.state[context.REQUEST_ID])
+    assert (row["outcome"], row["sql"]) == ("not_found", None)
+
+
+async def test_nome_repetido_grava_a_pergunta_com_os_nomes_completos(
+    store: BusinessStore,
+) -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        "pedidos",
+        "2026-03-01",
+        "2026-03-31",
+        filtro_tipo="vendedor",
+        filtro_nome="Ana",
+    )
+
+    assert client.questions == [
+        {
+            "body": "Qual Ana?",
+            "quick_replies": ["Ana Beatriz Costa", "Ana Paula Ramos"],
+            "business_data": True,
+        }
+    ]
+    assert client.replies == []
+    assert ctx.state[context.ANSWERED_BY_TOOL]["desfecho"] == "question"
+    [row] = await audit_of(store.agents, ctx.state[context.REQUEST_ID])
+    assert row["outcome"] == "ambiguous_name"
+
+
+async def test_nome_generico_demais_pede_um_nome_mais_completo(
+    store: BusinessStore,
+) -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        "faturamento",
+        "2026-03-01",
+        "2026-03-31",
+        filtro_tipo="cliente",
+        filtro_nome="Silva",
+    )
+
+    assert [reply["body"] for reply in client.replies] == [
+        "Há mais de cinco clientes com Silva. Diga um nome mais completo."
+    ]
+    assert client.replies[0]["business_data"] is True
+    [row] = await audit_of(store.agents, ctx.state[context.REQUEST_ID])
+    assert row["outcome"] == "too_generic"
+
+
+async def test_o_nome_completo_responde_com_a_consulta_filtrada(
+    store: BusinessStore,
+) -> None:
+    expected = await scalar(
+        store.business,
+        "SELECT count(*) FROM orders WHERE status = 'paid' "
+        "AND ordered_at >= '2026-06-01 00:00-03' AND ordered_at < '2026-07-01 00:00-03' "
+        f"AND {ANA_PAULA}",
+    )
+    client, ctx = FakeClient(), tool_context()
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        "pedidos",
+        "2026-06-01",
+        "2026-06-30",
+        filtro_tipo="vendedor",
+        filtro_nome="ana paula ramos",
+    )
+
+    [reply] = client.replies
+    assert reply["body"].startswith(
+        f"Pedidos pagos (vendedor Ana Paula Ramos) em junho de 2026: {format_count(int(expected))}."  # type: ignore[call-overload]
+    )
+    assert (
+        "Considerado: pedidos pagos, vendedor Ana Paula Ramos, de 01/06/2026"
+        in reply["body"]
+    )

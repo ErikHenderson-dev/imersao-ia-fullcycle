@@ -34,6 +34,26 @@ MONTHS = [
 ]
 
 
+# Os desfechos de nome (spec da F13, "O Agente `assistente`", passo 3 de `consultar_dados`).
+PLURALS = {"cliente": "clientes", "vendedor": "vendedores", "produto": "produtos"}
+
+
+def not_found_text(kind: str, name: str) -> str:
+    return f"Não encontrei {kind} {name}."
+
+
+def which_name_text(name: str) -> str:
+    return f"Qual {name}?"
+
+
+def too_generic_text(kind: str, name: str) -> str:
+    return f"Há mais de cinco {PLURALS[kind]} com {name}. Diga um nome mais completo."
+
+
+def unresolved_name_text(kind: str, name: str) -> str:
+    return f"Não consegui identificar {kind} {name}. Mencione o Agente de novo com o nome completo."
+
+
 @dataclass(frozen=True)
 class Wording:
     """Como a Métrica sai no texto."""
@@ -124,8 +144,8 @@ def _date(day: date) -> str:
     return day.strftime("%d/%m/%Y")
 
 
-def period_span(period: Period, preposition: str) -> str:
-    """O período na frase: o mês ou o ano inteiro pelo nome, senão as datas."""
+def period_label(period: Period) -> str:
+    """O período pelo nome do mês ou do ano inteiro, senão pelas datas."""
     start, end = period.start, period.end
     next_day = end + timedelta(days=1)
     if (
@@ -133,17 +153,22 @@ def period_span(period: Period, preposition: str) -> str:
         and next_day.day == 1
         and (start.year, start.month) == (end.year, end.month)
     ):
-        return f"{preposition} {MONTHS[start.month - 1]} de {start.year}"
-    if (start.month, start.day, end.month, end.day) == (
-        1,
-        1,
-        12,
-        31,
-    ) and start.year == end.year:
-        return f"{preposition} {start.year}"
+        return f"{MONTHS[start.month - 1]} de {start.year}"
+    if start == date(start.year, 1, 1) and end == date(start.year, 12, 31):
+        return str(start.year)
     if start == end:
-        return f"em {_date(start)}"
-    return f"de {_date(start)} a {_date(end)}"
+        return _date(start)
+    return f"{_date(start)} a {_date(end)}"
+
+
+def period_span(period: Period, preposition: str) -> str:
+    """O período na frase, com a preposição: "de março de 2026", "de 01/03/2026 a 15/03/2026"."""
+    label = period_label(period)
+    if period.start == period.end:
+        return f"em {label}"
+    if " a " in label:
+        return f"de {label}"
+    return f"{preposition} {label}"
 
 
 def format_value(metric: str, value: Decimal | int) -> str:
@@ -155,12 +180,53 @@ def format_value(metric: str, value: Decimal | int) -> str:
 
 
 def considered_line(
-    metric: str, window: Period, time_zone: str, *, gross: bool = False
+    metric: str,
+    window: Period,
+    time_zone: str,
+    *,
+    gross: bool = False,
+    filter_label: str | None = None,
+    compared: Period | None = None,
 ) -> str:
-    return (
-        f"Considerado: {wording(metric, gross=gross).considered}, de {_date(window.start)} "
-        f"a {_date(window.end)}, fuso {time_zone}."
-    )
+    considered = wording(metric, gross=gross).considered
+    if filter_label:
+        considered += f", {filter_label}"
+    dates = f"de {_date(window.start)} a {_date(window.end)}"
+    if compared:
+        dates += f" contra {_date(compared.start)} a {_date(compared.end)}"
+    return f"Considerado: {considered}, {dates}, fuso {time_zone}."
+
+
+@dataclass(frozen=True)
+class Comparison:
+    """O período da comparação, a janela que ele lê e o valor dele (já arredondado)."""
+
+    period: Period
+    window: Period
+    value: Decimal | int | None
+
+
+TENTHS = Decimal("0.1")
+
+
+def variation(current: Decimal | int, base: Decimal | int) -> Decimal | None:
+    """`(atual - base) / base`, em percentual com uma casa; sem variação com a base zero."""
+    if base == 0:
+        return None
+    change = (Decimal(current) - Decimal(base)) / Decimal(base) * 100
+    return change.quantize(TENTHS, rounding=ROUND_HALF_UP)
+
+
+def format_percent(value: Decimal) -> str:
+    sign = "+" if value >= 0 else "-"
+    return f"{sign}{_thousands(abs(value), 1)}%"
+
+
+def comparable(metric: str, value: Decimal | int | None) -> Decimal | int | None:
+    """Na comparação, um período vazio vale zero nas somas e contagens; o ticket médio fica vazio."""
+    if value is None and metric != "ticket_medio":
+        return 0
+    return value
 
 
 def answer_text(
@@ -171,16 +237,46 @@ def answer_text(
     time_zone: str,
     *,
     gross: bool = False,
+    filter_label: str | None = None,
+    comparison: Comparison | None = None,
 ) -> str:
     """A resposta da Métrica no período, ou a frase do resultado vazio, com a linha do que foi
-    considerado. O valor já vem arredondado como sai no texto (`rounded`)."""
+    considerado; com a comparação, os dois valores e a variação. Os valores já vêm arredondados como
+    saem no texto (`rounded`)."""
     words = wording(metric, gross=gross)
-    if value is None:
-        first = f"{words.empty} {period_span(period, 'em')}."
+    title = f"{words.title} ({filter_label})" if filter_label else words.title
+    span = period_span(period, words.preposition)
+    if comparison is None:
+        first = (
+            f"{words.empty} {period_span(period, 'em')}."
+            if value is None
+            else f"{title} {span}: {format_value(metric, value)}."
+        )
     else:
-        span = period_span(period, words.preposition)
-        first = f"{words.title} {span}: {format_value(metric, value)}."
-    return f"{first}\n\n{considered_line(metric, window, time_zone, gross=gross)}"
+        current = comparable(metric, value)
+        base = comparable(metric, comparison.value)
+        none = "sem pedidos pagos"
+        first = (
+            f"{title} {span}: {none if current is None else format_value(metric, current)}. "
+            f"{period_label(comparison.period).capitalize()}: "
+            f"{none if base is None else format_value(metric, base)}. "
+        )
+        change = None if current is None or base is None else variation(current, base)
+        if change is not None:
+            first += f"Variação: {format_percent(change)}."
+        elif base == 0:
+            first += "Sem variação percentual: a base é zero."
+        else:
+            first += "Sem variação percentual: um dos períodos não tem pedidos pagos."
+    line = considered_line(
+        metric,
+        window,
+        time_zone,
+        gross=gross,
+        filter_label=filter_label,
+        compared=comparison.window if comparison else None,
+    )
+    return f"{first}\n\n{line}"
 
 
 def allowed_numbers(
