@@ -20,8 +20,8 @@ from google.adk.tools import ToolContext
 from app.agent_requests import context
 from app.business import audit
 from app.business.answer import SEM_PERMISSAO
-from app.business.catalog import FILTERABLE, Period
-from app.business.consult import DONE, parse_period, resolve_name
+from app.business.catalog import Period
+from app.business.consult import DONE, parse_filter, parse_period, resolve_name
 from app.business.db import BusinessStore
 from app.business.periods import report_periods
 from app.business.report_queue import (
@@ -96,11 +96,9 @@ async def request_report(
     today = date.fromisoformat(state[context.BUSINESS_TODAY])
     if parsed.start > today:
         return {"erro": "O período ainda não começou: o início precisa ser até hoje."}
-    name = (filtro_nome or "").strip() or None
-    if bool(filtro_tipo) != bool(name):
-        return {"erro": "O filtro precisa de `filtro_tipo` e `filtro_nome` juntos."}
-    if filtro_tipo and filtro_tipo not in FILTERABLE:
-        return {"erro": "`filtro_tipo` é cliente, vendedor ou produto."}
+    name = parse_filter(filtro_tipo, filtro_nome)
+    if isinstance(name, dict):
+        return name
     # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco. A trava já presa
     # por este Pedido é uma segunda chamada da ferramenta: o aviso já foi gravado.
     if not await acquire_lock(queue, requester_id, request_id):
@@ -181,10 +179,8 @@ async def _job(
         )
         if isinstance(resolved, dict):
             return resolved
-        found, label = resolved
-        filter = ReportFilter(
-            found.kind, found.id, label.removeprefix(f"{found.kind} ")
-        )
+        found, full_name = resolved
+        filter = ReportFilter(found.kind, found.id, full_name)
     # 5. O período anterior, em código, a partir de hoje no fuso da empresa.
     period, previous = report_periods(parsed.start, parsed.end, today)
     return ReportJob(

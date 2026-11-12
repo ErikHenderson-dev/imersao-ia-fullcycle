@@ -77,6 +77,19 @@ def parse_period(start: str | None, end: str | None) -> Period | str:
     return period
 
 
+def parse_filter(
+    filtro_tipo: str | None, filtro_nome: str | None
+) -> str | dict[str, str] | None:
+    """O nome do filtro sem os espaços das pontas, nenhum sem filtro, ou o `erro` que volta ao
+    modelo: o tipo e o nome vêm juntos, e o tipo é do catálogo."""
+    name = (filtro_nome or "").strip() or None
+    if bool(filtro_tipo) != bool(name):
+        return {"erro": "O filtro precisa de `filtro_tipo` e `filtro_nome` juntos."}
+    if filtro_tipo and filtro_tipo not in FILTERABLE:
+        return {"erro": "`filtro_tipo` é cliente, vendedor ou produto."}
+    return name
+
+
 def parse_params(
     metrica: str,
     inicio: str,
@@ -102,11 +115,9 @@ def parse_params(
         compared = parse_period(comparar_inicio, comparar_fim)
         if isinstance(compared, str):
             return {"erro": f"Comparação: {compared}"}
-    name = (filtro_nome or "").strip() or None
-    if bool(filtro_tipo) != bool(name):
-        return {"erro": "O filtro precisa de `filtro_tipo` e `filtro_nome` juntos."}
-    if filtro_tipo and filtro_tipo not in FILTERABLE:
-        return {"erro": "`filtro_tipo` é cliente, vendedor ou produto."}
+    name = parse_filter(filtro_tipo, filtro_nome)
+    if isinstance(name, dict):
+        return name
     if filtro_tipo and metrica not in FILTERABLE[filtro_tipo]:
         return {"erro": f"A Métrica {metrica} não tem filtro por {filtro_tipo}."}
     return Params(period, compared, filtro_tipo, name)
@@ -188,7 +199,8 @@ async def consult(
         )
         if isinstance(resolved, dict):
             return resolved
-        filter, filter_label = resolved
+        filter, full_name = resolved
+        filter_label = f"{filter.kind} {full_name}"
     queries = [
         query_for(metrica, parsed.period, store.time_zone, gross=bruto, filter=filter)
     ]
@@ -251,7 +263,8 @@ async def resolve_name(
     kind: str,
     name: str,
 ) -> tuple[Filter, str] | dict[str, Any]:
-    """O filtro do único cadastro com o nome, ou o desfecho de nome já gravado na Conversa."""
+    """O filtro do único cadastro com o nome e o nome completo dele, ou o desfecho de nome já
+    gravado na Conversa."""
     found = await names.find(store, kind, name)
     if not found:
         return await finish(
@@ -263,7 +276,7 @@ async def resolve_name(
         )
     if len(found) == 1:
         [(found_id, full_name)] = found
-        return Filter(kind, found_id), f"{kind} {full_name}"
+        return Filter(kind, found_id), full_name
     labels = list(dict.fromkeys(full[:MAX_QUICK_REPLY_LENGTH] for _, full in found))
     # Numa continuação, a resposta já veio de uma pergunta: não pergunta de novo. Nomes iguais
     # também não dão botões distintos.
