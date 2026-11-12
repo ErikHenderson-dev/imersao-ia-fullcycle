@@ -27,3 +27,6 @@ raiz, "Subir e derrubar").
 A meta é 100 nos dois temas (PRD da F12, "Critérios de aceite", "Todas as histórias"). A checagem
 automática com o axe na mesma tela passa nos dois temas
 (`e2e/acessibilidade/tarefas-sem-violacoes.spec.ts`).
+
+**Situação:** dispensado pelo usuário em 2026-11-12, como na F11. O roteiro fica para quando a
+medição for feita.

@@ -35,6 +35,6 @@ novas passam na acessibilidade. Referências:
 [roteiro-lighthouse.md](roteiro-lighthouse.md).
 
 **Pendências:**
-- **CA6:** o Lighthouse está em `roteiro-lighthouse.md`, com a nota a preencher por uma pessoa.
+- **CA6:** dispensado pelo usuário em 2026-11-12, como na F11; o axe nos dois temas passa na aba Tarefas e na aba Todas (`e2e/acessibilidade/tarefas-sem-violacoes.spec.ts`), e o roteiro fica em `roteiro-lighthouse.md` para quando for rodado.
 - **CA1:** confirmar com o MCP `adk-docs`, quando ele conectar, que `ignore_args` num evalset próprio
   é a forma recomendada.
