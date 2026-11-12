@@ -11,6 +11,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Literal
 
 from app.business.catalog import Period
 from app.business.lastro import numbers_in
@@ -144,8 +145,8 @@ def _date(day: date) -> str:
     return day.strftime("%d/%m/%Y")
 
 
-def period_label(period: Period) -> str:
-    """O período pelo nome do mês ou do ano inteiro, senão pelas datas."""
+def _period_label(period: Period) -> tuple[str, Literal["named", "range", "day"]]:
+    """O período pelo nome do mês ou do ano inteiro, senão pelas datas, e que tipo de rótulo é."""
     start, end = period.start, period.end
     next_day = end + timedelta(days=1)
     if (
@@ -153,22 +154,26 @@ def period_label(period: Period) -> str:
         and next_day.day == 1
         and (start.year, start.month) == (end.year, end.month)
     ):
-        return f"{MONTHS[start.month - 1]} de {start.year}"
+        return f"{MONTHS[start.month - 1]} de {start.year}", "named"
     if start == date(start.year, 1, 1) and end == date(start.year, 12, 31):
-        return str(start.year)
+        return str(start.year), "named"
     if start == end:
-        return _date(start)
-    return f"{_date(start)} a {_date(end)}"
+        return _date(start), "day"
+    return f"{_date(start)} a {_date(end)}", "range"
+
+
+def period_label(period: Period) -> str:
+    return _period_label(period)[0]
 
 
 def period_span(period: Period, preposition: str) -> str:
     """O período na frase, com a preposição: "de março de 2026", "de 01/03/2026 a 15/03/2026"."""
-    label = period_label(period)
-    if period.start == period.end:
-        return f"em {label}"
-    if " a " in label:
-        return f"de {label}"
-    return f"{preposition} {label}"
+    label, kind = _period_label(period)
+    return {
+        "named": f"{preposition} {label}",
+        "day": f"em {label}",
+        "range": f"de {label}",
+    }[kind]
 
 
 def format_value(metric: str, value: Decimal | int) -> str:
@@ -229,6 +234,16 @@ def comparable(metric: str, value: Decimal | int | None) -> Decimal | int | None
     return value
 
 
+def comparison_numbers(
+    metric: str, value: Decimal | int | None, comparison: Comparison
+) -> tuple[Decimal | int | None, Decimal | int | None, Decimal | None]:
+    """Os dois valores comparáveis e a variação, os mesmos no texto e no lastro."""
+    current = comparable(metric, value)
+    base = comparable(metric, comparison.value)
+    change = None if current is None or base is None else variation(current, base)
+    return current, base, change
+
+
 def answer_text(
     metric: str,
     period: Period,
@@ -253,15 +268,17 @@ def answer_text(
             else f"{title} {span}: {format_value(metric, value)}."
         )
     else:
-        current = comparable(metric, value)
-        base = comparable(metric, comparison.value)
-        none = "sem pedidos pagos"
+        current, base, change = comparison_numbers(metric, value, comparison)
+
+        def shown(number: Decimal | int | None) -> str:
+            return (
+                "sem pedidos pagos" if number is None else format_value(metric, number)
+            )
+
         first = (
-            f"{title} {span}: {none if current is None else format_value(metric, current)}. "
-            f"{period_label(comparison.period).capitalize()}: "
-            f"{none if base is None else format_value(metric, base)}. "
+            f"{title} {span}: {shown(current)}. "
+            f"{period_label(comparison.period).capitalize()}: {shown(base)}. "
         )
-        change = None if current is None or base is None else variation(current, base)
         if change is not None:
             first += f"Variação: {format_percent(change)}."
         elif base == 0:

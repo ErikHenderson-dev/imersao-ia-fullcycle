@@ -8,14 +8,12 @@ tabela, que é pequena, sem depender da extensão `unaccent` no Banco de negóci
 from __future__ import annotations
 
 import unicodedata
-from typing import Literal
 
 from sqlalchemy import Table, select
 
 from app.business.db import BusinessStore
 from app.business.schema import customers, products, sellers
 
-FilterKind = Literal["cliente", "vendedor", "produto"]
 TABLES: dict[str, Table] = {
     "cliente": customers,
     "vendedor": sellers,
@@ -38,10 +36,9 @@ def matching(rows: list[tuple[int, str]], query: str) -> list[tuple[int, str]]:
     wanted = normalized(query)
     if not wanted:
         return []
-    exact = [row for row in rows if normalized(row[1]) == wanted]
-    if exact:
-        return exact
-    return [row for row in rows if wanted in normalized(row[1])]
+    keyed = [(row, normalized(row[1])) for row in rows]
+    exact = [row for row, key in keyed if key == wanted]
+    return exact or [row for row, key in keyed if wanted in key]
 
 
 async def find(store: BusinessStore, kind: str, name: str) -> list[tuple[int, str]]:

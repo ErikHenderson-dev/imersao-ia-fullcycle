@@ -2,9 +2,10 @@
 // mais recentes do Recorte, e o `total` conta o Recorte inteiro.
 export const SUMMARY_MESSAGE_LIMIT = 500;
 
-// As Respostas prontas de uma pergunta do bot: no máximo quatro botões, os da pergunta pelo Recorte
-// (spec da F11, "O Agente `assistente`"), cada um com um rótulo curto.
-export const QUICK_REPLIES_MAX = 4;
+// As Respostas prontas de uma pergunta do bot: no máximo cinco botões, os da pergunta de nome
+// repetido (spec da F13, "O Agente `assistente`"; a pergunta pelo Recorte usa quatro), cada um com
+// um rótulo curto.
+export const QUICK_REPLIES_MAX = 5;
 export const QUICK_REPLY_MAX_LENGTH = 64;
 
 // Os `since` de uma chamada às contagens: os quatro Recortes cabem com folga.

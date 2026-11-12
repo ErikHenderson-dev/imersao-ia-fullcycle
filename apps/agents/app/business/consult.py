@@ -10,6 +10,7 @@ modelo não vê.
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -18,6 +19,7 @@ from typing import Any
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
+from app.agent_requests.question import MAX_QUICK_REPLY_LENGTH, ask_question
 from app.business import audit, names
 from app.business.answer import (
     NAO_CONSEGUI_RESPONDER,
@@ -25,12 +27,11 @@ from app.business.answer import (
     Comparison,
     allowed_numbers,
     answer_text,
-    comparable,
+    comparison_numbers,
     not_found_text,
     rounded,
     too_generic_text,
     unresolved_name_text,
-    variation,
     which_name_text,
 )
 from app.business.catalog import (
@@ -38,6 +39,7 @@ from app.business.catalog import (
     METRICS,
     Filter,
     Period,
+    Query,
     compiled_sql,
     query_for,
 )
@@ -52,7 +54,8 @@ logger = logging.getLogger(__name__)
 DONE = {"resposta": "gravada na Conversa; não escreva nada"}
 
 
-# A pergunta de nome lista no máximo estes nomes; mais que isso, pede um nome mais completo.
+# A pergunta de nome lista no máximo estes nomes, um botão cada (spec da F13); mais que isso, pede
+# um nome mais completo.
 MAX_NAME_OPTIONS = 5
 
 
@@ -99,13 +102,13 @@ def parse_params(
         compared = _period(comparar_inicio, comparar_fim)
         if isinstance(compared, str):
             return {"erro": f"Comparação: {compared}"}
-    if bool(filtro_tipo) != bool(filtro_nome and filtro_nome.strip()):
+    name = (filtro_nome or "").strip() or None
+    if bool(filtro_tipo) != bool(name):
         return {"erro": "O filtro precisa de `filtro_tipo` e `filtro_nome` juntos."}
     if filtro_tipo and filtro_tipo not in FILTERABLE:
         return {"erro": "`filtro_tipo` é cliente, vendedor ou produto."}
     if filtro_tipo and metrica not in FILTERABLE[filtro_tipo]:
         return {"erro": f"A Métrica {metrica} não tem filtro por {filtro_tipo}."}
-    name = (filtro_nome or "").strip() or None
     return Params(period, compared, filtro_tipo, name)
 
 
@@ -175,54 +178,30 @@ async def consult(
     filter = None
     filter_label = None
     if parsed.filter_kind and parsed.filter_name:
-        kind, name = parsed.filter_kind, parsed.filter_name
-        found = await names.find(store, kind, name)
-        if not found:
-            return await finish(
-                "not_found", not_found_text(kind, name), sql=None, business_data=True
+        resolved = await _resolve_name(
+            store,
+            tool_context,
+            client,
+            record,
+            finish,
+            parsed.filter_kind,
+            parsed.filter_name,
+        )
+        if isinstance(resolved, dict):
+            return resolved
+        filter, filter_label = resolved
+    queries = [
+        query_for(metrica, parsed.period, store.time_zone, gross=bruto, filter=filter)
+    ]
+    if parsed.compared:
+        queries.append(
+            query_for(
+                metrica, parsed.compared, store.time_zone, gross=bruto, filter=filter
             )
-        if len(found) > MAX_NAME_OPTIONS:
-            return await finish(
-                "too_generic",
-                too_generic_text(kind, name),
-                sql=None,
-                business_data=True,
-            )
-        if len(found) > 1:
-            # Numa continuação, a resposta já veio de uma pergunta: não pergunta de novo.
-            if state.get(context.KIND) == "continuation":
-                return await finish(
-                    "ambiguous_name",
-                    unresolved_name_text(kind, name),
-                    sql=None,
-                    business_data=True,
-                )
-            await record("ambiguous_name", None)
-            labels = [full_name for _, full_name in found]
-            await client.question(
-                request_id, which_name_text(name), labels, business_data=True
-            )
-            context.mark_answered(tool_context, "question")
-            return {"pergunta": which_name_text(name), "opcoes": labels}
-        [(found_id, full_name)] = found
-        filter = Filter(kind, found_id)
-        filter_label = f"{kind} {full_name}"
-    query = query_for(
-        metrica, parsed.period, store.time_zone, gross=bruto, filter=filter
-    )
-    compared_query = (
-        query_for(metrica, parsed.compared, store.time_zone, gross=bruto, filter=filter)
-        if parsed.compared
-        else None
-    )
-    sql = compiled_sql(query.statement)
+        )
+    sql = compiled_sql(queries[0].statement)
     try:
-        assert_read_only(sql)
-        row = await store.fetch_one(query.statement)
-        compared_row = None
-        if compared_query is not None:
-            assert_read_only(compiled_sql(compared_query.statement))
-            compared_row = await store.fetch_one(compared_query.statement)
+        values = [_value(metrica, await _run(store, query)) for query in queries]
     except Exception as error:
         # O tempo limite, o banco fora ou a conferência: sem número, "não consegui responder".
         logger.warning(
@@ -234,26 +213,22 @@ async def consult(
         return await finish(
             "error", NAO_CONSEGUI_RESPONDER, sql=sql, business_data=False
         )
-    value = _value(metrica, row)
     time_zone = store.time_zone.key
-    allowed = allowed_numbers([value], parsed.period, query.window, time_zone)
+    value = values[0]
+    allowed = allowed_numbers([value], parsed.period, queries[0].window, time_zone)
     comparison = None
-    if compared_query is not None and parsed.compared is not None:
-        compared_value = _value(metrica, compared_row)
-        comparison = Comparison(parsed.compared, compared_query.window, compared_value)
-        current, base = comparable(metrica, value), comparable(metrica, compared_value)
-        change = (
-            variation(current, base)
-            if current is not None and base is not None
-            else None
-        )
+    if parsed.compared:
+        comparison = Comparison(parsed.compared, queries[1].window, values[1])
         allowed |= allowed_numbers(
-            [current, base, change], parsed.compared, compared_query.window, time_zone
+            comparison_numbers(metrica, value, comparison),
+            parsed.compared,
+            queries[1].window,
+            time_zone,
         )
     text = answer_text(
         metrica,
         parsed.period,
-        query.window,
+        queries[0].window,
         value,
         time_zone,
         gross=bruto,
@@ -265,6 +240,52 @@ async def consult(
             "lastro_blocked", NAO_CONSEGUI_RESPONDER, sql=sql, business_data=False
         )
     return await finish("answered", text, sql=sql, business_data=True)
+
+
+async def _resolve_name(
+    store: BusinessStore,
+    tool_context: ToolContext,
+    client: ChatApiClient,
+    record: Callable[[audit.Outcome, str | None], Awaitable[None]],
+    finish: Callable[..., Awaitable[dict[str, Any]]],
+    kind: str,
+    name: str,
+) -> tuple[Filter, str] | dict[str, Any]:
+    """O filtro do único cadastro com o nome, ou o desfecho de nome já gravado na Conversa."""
+    found = await names.find(store, kind, name)
+    if not found:
+        return await finish(
+            "not_found", not_found_text(kind, name), sql=None, business_data=True
+        )
+    if len(found) > MAX_NAME_OPTIONS:
+        return await finish(
+            "too_generic", too_generic_text(kind, name), sql=None, business_data=True
+        )
+    if len(found) == 1:
+        [(found_id, full_name)] = found
+        return Filter(kind, found_id), f"{kind} {full_name}"
+    labels = list(dict.fromkeys(full[:MAX_QUICK_REPLY_LENGTH] for _, full in found))
+    # Numa continuação, a resposta já veio de uma pergunta: não pergunta de novo. Nomes iguais
+    # também não dão botões distintos.
+    if tool_context.state.get(context.KIND) == "continuation" or len(labels) < len(
+        found
+    ):
+        return await finish(
+            "ambiguous_name",
+            unresolved_name_text(kind, name),
+            sql=None,
+            business_data=True,
+        )
+    await record("ambiguous_name", None)
+    return await ask_question(
+        client, tool_context, which_name_text(name), labels, business_data=True
+    )
+
+
+async def _run(store: BusinessStore, query: Query) -> Any:
+    """A conferência de somente leitura e a consulta, pelo usuário só leitura."""
+    assert_read_only(compiled_sql(query.statement))
+    return await store.fetch_one(query.statement)
 
 
 def _value(metric: str, row: Any) -> Decimal | int | None:

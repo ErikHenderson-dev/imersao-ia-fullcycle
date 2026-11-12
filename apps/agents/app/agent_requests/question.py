@@ -92,3 +92,23 @@ def question_asked(tool_context: ToolContext, options: list[str]) -> dict[str, A
     """Marca que este Pedido perguntou (`context.mark_answered`)."""
     context.mark_answered(tool_context, "question")
     return {"pergunta": QUESTION_BODY, "opcoes": options}
+
+
+async def ask_question(
+    client: Any,
+    tool_context: ToolContext,
+    body: str,
+    labels: list[str],
+    *,
+    business_data: bool = False,
+) -> dict[str, Any]:
+    """Grava a pergunta do bot com as Respostas prontas e marca que este Pedido perguntou: o fim do
+    Pedido não grava `reply` (F11-T07; a pergunta de nome e a de período da F13)."""
+    await client.question(
+        tool_context.state[context.REQUEST_ID],
+        body,
+        labels,
+        business_data=business_data,
+    )
+    context.mark_answered(tool_context, "question")
+    return {"pergunta": body, "opcoes": labels}
