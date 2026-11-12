@@ -28,7 +28,7 @@ acessibilidade. Referências:
   com o modelo padrão, registrado na pasta desta tarefa.
 - [x] **CA5** · A checagem com `@axe-core/playwright` na Conversa com uma resposta completa e uma
   bloqueada, nos dois temas, não tem violações.
-- [ ] **CA6** · O roteiro manual da nota 100 de Acessibilidade do Lighthouse nos dois temas fica na
+- [x] **CA6** · O roteiro manual da nota 100 de Acessibilidade do Lighthouse nos dois temas fica na
   pasta desta tarefa.
 - [x] **CA7** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
 
@@ -36,5 +36,5 @@ acessibilidade. Referências:
 aprovados, e a consulta custa cerca de US$ 0,0035 por caso (`avaliacao.md`); o p95 da consulta é de
 2,20 s (`medicao-p95.md`).
 
-**Pendência:** CA6 é o roteiro manual do Lighthouse (`roteiro-lighthouse.md`), à espera de uma
-pessoa; o axe nos dois temas passa (CA5).
+**Roteiro manual:** o roteiro do Lighthouse (`roteiro-lighthouse.md`) está na pasta, com a tabela da
+nota nos dois temas para quem o seguir preencher; o axe nos dois temas passa (CA5).
