@@ -226,7 +226,9 @@ class EvalReportQueue:
     async def eval(self, *_: Any) -> int:
         return 0
 
-    async def enqueue_job(self, _name: str, payload: dict[str, Any], **_: Any) -> object:
+    async def enqueue_job(
+        self, _name: str, payload: dict[str, Any], **_: Any
+    ) -> object:
         self._state[EVAL_REPORT_KEY] = payload
         return payload
 
