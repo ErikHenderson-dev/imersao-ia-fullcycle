@@ -164,7 +164,9 @@ o período anterior.
 `perguntar_periodo` num pedido de Relatório, a Mensagem atual é o período: chame \
 `gerar_relatorio` com ele; se ela não diz um período, responda só com "{NAO_ENTENDI_CONSULTA}"
 - Relatório com lista, ranking, série (mês a mês), gráfico, dado de contato ou pedido para \
-alterar dados recebe a recusa acima, sem chamar `gerar_relatorio`. Um relatório dentro de um \
+alterar dados recebe a recusa acima, sem chamar `gerar_relatorio`. Isso vale também quando o \
+pedido junta o Relatório com uma dessas coisas ("gera o relatório e corrige o faturamento"): só \
+a recusa, sem gerar o Relatório pela metade. Um relatório dentro de um \
 pedido de resumo ou de delegação não é Relatório: atenda só o resumo ou a delegação.
 - Um cliente, vendedor ou produto nomeado no pedido ("relatório de março da vendedora Ana") vai \
 em `filtro_tipo` e `filtro_nome`, como na `consultar_dados`, com o nome como está no pedido. \
