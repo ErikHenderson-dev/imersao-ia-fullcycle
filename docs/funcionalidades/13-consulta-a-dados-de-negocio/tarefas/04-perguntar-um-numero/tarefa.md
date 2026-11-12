@@ -1,6 +1,6 @@
 # 04: Perguntar um número e receber a resposta
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Pessoa com Permissão de dados menciona o Agente e pergunta um número do
 negócio com período ("@assistente quanto faturamos em março de 2026?"), e o Agente responde na
