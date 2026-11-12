@@ -48,9 +48,11 @@ export function agentRequestMentions(
 }
 
 // A Mensagem citada pelo Pedido, para o Agente tirar dela a Tarefa (spec da F12, "Rota de Pedido e
-// execução"): o texto atual e o autor, ou nula sem Citação ou com a citada apagada.
+// execução"): o texto atual e o autor, ou nula sem Citação ou com a citada apagada. A citada com
+// Dados de negócio também vai nula, mesmo para quem tem permissão: o conteúdo de negócio nunca vira
+// título de Tarefa (spec da F13, "Citação enviada ao Agente").
 export function agentRequestQuote(quote: QuotePayload | null): AgentRequestPayload["quote"] {
-  if (!quote || quote.deleted) return null;
+  if (!quote || quote.deleted || quote.business_data) return null;
   return { id: quote.id, body: quote.body, author: { name: quote.author.name, username: quote.author.username } };
 }
 

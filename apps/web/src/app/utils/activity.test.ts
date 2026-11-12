@@ -31,6 +31,8 @@ function item(kind: MessageActivityItem["kind"]): Pick<MessageActivityItem, "kin
       mentions: [],
       quote: null,
       quickReplies: null,
+      businessData: false,
+      blocked: false,
     },
     conversation: { name: "geral" },
   };

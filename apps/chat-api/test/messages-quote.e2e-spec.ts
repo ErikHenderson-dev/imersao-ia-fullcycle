@@ -79,6 +79,8 @@ describe('Citação', () => {
         username: author.person.username,
       },
       body: 'A original',
+      business_data: false,
+      blocked: false,
     });
   });
 
@@ -105,6 +107,8 @@ describe('Citação', () => {
         username: bot.username,
       },
       body: 'Resumo de hoje',
+      business_data: false,
+      blocked: false,
     });
   });
 

@@ -78,7 +78,12 @@ export class BotActionsService {
 
   // Grava a resposta do bot ao Pedido e emite o fim do "digitando". Repetida, devolve a Mensagem já
   // gravada, sem gravar nem publicar (LLD, "Concorrência e idempotência", "Ação de bot").
-  async reply(requestId: string, body: string): Promise<MessageView> {
+  // Com a marca "dados de negócio" quando a resposta traz números do negócio (spec da F13).
+  async reply(
+    requestId: string,
+    body: string,
+    businessData = false,
+  ): Promise<MessageView> {
     const { message, written } = await this.once(
       requestId,
       'reply',
@@ -87,6 +92,7 @@ export class BotActionsService {
           request.botId,
           request.conversationId,
           body,
+          { businessData },
         ),
       }),
     );
@@ -101,6 +107,7 @@ export class BotActionsService {
     requestId: string,
     body: string,
     quickReplies: string[],
+    businessData = false,
   ): Promise<MessageView> {
     const { message, written } = await this.once(
       requestId,
@@ -110,7 +117,7 @@ export class BotActionsService {
           request.botId,
           request.conversationId,
           body,
-          quickReplies,
+          { quickReplies, businessData },
         );
         const { opened, closed } = await this.pendingQuestions.open(
           request,

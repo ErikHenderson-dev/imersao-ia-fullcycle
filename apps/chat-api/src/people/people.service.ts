@@ -345,6 +345,18 @@ export class PeopleService {
     return (result.affected ?? 0) > 0;
   }
 
+  // Das Pessoas dadas, as que têm Permissão de dados agora, numa consulta só: a entrega de uma
+  // Mensagem com a marca lê a permissão de cada Membro no momento (spec da F13, "Conferência do
+  // bloqueio").
+  async filterWithDataAccess(personIds: string[]): Promise<Set<string>> {
+    if (personIds.length === 0) return new Set();
+    const people = await this.people.find({
+      select: { id: true },
+      where: { id: In(personIds), dataAccess: true },
+    });
+    return new Set(people.map((person) => person.id));
+  }
+
   // O Perfil de qualquer Pessoa (spec da F05, "Busca e Perfil"); um id que não é UUID é uma Pessoa
   // que não existe.
   async getProfile(id: string): Promise<Person> {

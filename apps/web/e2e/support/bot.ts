@@ -21,9 +21,17 @@ async function botPost<T>(requestId: string, action: string, payload?: unknown):
   return response.status === 204 ? null : ((await response.json()) as T);
 }
 
-// A resposta do bot ao Pedido; a repetição devolve a Mensagem já gravada.
-export async function botReply(requestId: string, body: string): Promise<{ id: string; body: string }> {
-  const result = await botPost<{ message: { id: string; body: string } }>(requestId, "reply", { body });
+// A resposta do bot ao Pedido; a repetição devolve a Mensagem já gravada. Com `businessData`, a
+// resposta leva a marca "dados de negócio" (F13-T02).
+export async function botReply(
+  requestId: string,
+  body: string,
+  { businessData = false }: { businessData?: boolean } = {},
+): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(requestId, "reply", {
+    body,
+    business_data: businessData,
+  });
   return result!.message;
 }
 

@@ -280,6 +280,12 @@ export async function setAdminOf(personId: string, isAdmin: boolean): Promise<vo
   await pool.query("UPDATE people SET is_admin = $2 WHERE id = $1", [personId, isAdmin]);
 }
 
+// A Permissão de dados, direto no banco (F13-T02): o contêiner e2e não tem o comando de contas,
+// que a grava pelo `set-data-access`.
+export async function setDataAccessOf(personId: string, dataAccess: boolean): Promise<void> {
+  await pool.query("UPDATE people SET data_access = $2 WHERE id = $1", [personId, dataAccess]);
+}
+
 // Muda o vencimento da Pergunta pendente da Mensagem da pergunta (F11-T07).
 export async function setQuestionExpiry(questionMessageId: string, expiresAt: Date): Promise<void> {
   await pool.query("UPDATE pending_questions SET expires_at = $2 WHERE question_message_id = $1", [

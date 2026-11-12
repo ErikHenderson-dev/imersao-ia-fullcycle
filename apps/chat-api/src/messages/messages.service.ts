@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type {
   MentionPayload,
   MessageAuthorPayload,
-  QuotePayload,
+  MessagePayload,
 } from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
@@ -37,7 +37,7 @@ import { MessageNotOwnedError } from './message-not-owned.error';
 import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
 import { UnreadPublisher } from './unread.publisher';
 import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
-import { toMessageResponse } from './message.response';
+import { dependsOnReader, toMessageResponse } from './message.response';
 
 // Quem escreveu a Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem").
 export type MessageAuthor = MessageAuthorPayload;
@@ -53,7 +53,17 @@ export interface PersonAuthor {
 export type MentionView = MentionPayload;
 
 // A Mensagem citada (spec da F06, "A Mensagem no REST e nos eventos").
-export type QuoteView = QuotePayload;
+// A Mensagem citada: o autor, o texto atual e a marca "dados de negócio", ou só a marca de
+// apagada. O bloqueio depende de quem lê, e sai em toMessageResponse.
+export type QuoteView =
+  | {
+      id: string;
+      deleted: false;
+      author: MessageAuthor;
+      body: string;
+      businessData: boolean;
+    }
+  | { id: string; deleted: true };
 
 // As Respostas prontas da pergunta do bot (spec da F11, "Envio e Pergunta pendente"): os rótulos e a
 // Pergunta pendente da Mensagem.
@@ -72,6 +82,8 @@ export interface MessageView {
   mentions: MentionView[];
   quote: QuoteView | null;
   quickReplies: QuickRepliesView | null;
+  // A marca "dados de negócio" (spec da F13).
+  businessData: boolean;
 }
 
 export interface MessagePage {
@@ -297,7 +309,10 @@ export class MessagesService {
     botId: string,
     conversationId: string,
     body: string,
-    quickReplies: string[] | null = null,
+    {
+      quickReplies = null,
+      businessData = false,
+    }: { quickReplies?: string[] | null; businessData?: boolean } = {},
   ): Promise<MessageView> {
     const message = await this.messages.save(
       this.messages.create({
@@ -308,6 +323,7 @@ export class MessagesService {
         body,
         quotedMessageId: null,
         quickReplies,
+        businessData,
       }),
     );
     const [bot] = await this.bots.findByIds([botId]);
@@ -344,7 +360,7 @@ export class MessagesService {
           const question = await this.viewById(questionMessageId);
           await this.publisher.messageUpdated(
             memberIds,
-            toMessageResponse(question),
+            await this.payloadForMembers(question, memberIds),
           );
         },
         'Falha ao publicar a pergunta encerrada',
@@ -428,10 +444,29 @@ export class MessagesService {
     message: MessageView,
     memberIds: string[],
   ): Promise<{ unread: Promise<void> }> {
-    await this.publisher.messageCreated(memberIds, toMessageResponse(message));
+    await this.publisher.messageCreated(
+      memberIds,
+      await this.payloadForMembers(message, memberIds),
+    );
     return {
       unread: this.unreadPublisher.publish(message.conversationId, memberIds),
     };
+  }
+
+  // A carga da Mensagem para os Membros: a mesma para todos ou, quando ela ou a citada tem a marca
+  // "dados de negócio", a de cada um, com a Permissão de dados lida agora (spec da F13, "Marca e
+  // Resposta bloqueada", item "WebSocket"). O evento guardado na reconexão é a versão de cada Pessoa.
+  private async payloadForMembers(
+    message: MessageView,
+    memberIds: string[],
+  ): Promise<MessagePayload | ((personId: string) => MessagePayload)> {
+    if (!dependsOnReader(message)) {
+      return toMessageResponse(message, { dataAccess: false });
+    }
+    const withAccess = await this.people.filterWithDataAccess(memberIds);
+    const full = toMessageResponse(message, { dataAccess: true });
+    const blocked = toMessageResponse(message, { dataAccess: false });
+    return (personId) => (withAccess.has(personId) ? full : blocked);
   }
 
   // As publicações pendentes de cada Mensagem, em fila: a criação, as edições e a exclusão saem na
@@ -491,7 +526,7 @@ export class MessagesService {
               async (memberIds) => {
                 await this.publisher.messageUpdated(
                   memberIds,
-                  toMessageResponse(edited),
+                  await this.payloadForMembers(edited, memberIds),
                 );
                 // Só quem entrou ou saiu das Menções e ainda não tinha lido a Mensagem tem os
                 // números mudados (spec da F07).
@@ -774,6 +809,8 @@ export class MessagesService {
           clientId,
           body,
           quotedMessageId: quotedMessageId ?? null,
+          // A Mensagem de Pessoa nunca tem a marca "dados de negócio" (spec da F13).
+          businessData: false,
           createdAt: row.created_at,
         })
       : await this.messages.findOneByOrFail({
@@ -968,6 +1005,7 @@ export class MessagesService {
               deleted: false,
               author: authorOf(message),
               body: message.body ?? '',
+              businessData: message.businessData,
             },
       );
     }
@@ -1101,6 +1139,7 @@ function toView(
     mentions,
     quote,
     quickReplies,
+    businessData: message.businessData,
   };
 }
 

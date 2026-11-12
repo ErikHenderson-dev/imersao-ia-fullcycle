@@ -119,6 +119,19 @@ describe("agentRequestQuote", () => {
     });
   });
 
+  it("a citada com Dados de negócio não vai ao Agente", () => {
+    expect(
+      agentRequestQuote({
+        id: "m1",
+        deleted: false,
+        author,
+        body: "Faturamento de março: R$ 1.234,00.",
+        business_data: true,
+        blocked: false,
+      }),
+    ).toBeNull();
+  });
+
   it("é nula sem Citação ou com a citada apagada", () => {
     expect(agentRequestQuote(null)).toBeNull();
     expect(agentRequestQuote({ id: "m1", deleted: true })).toBeNull();

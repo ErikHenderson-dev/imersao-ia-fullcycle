@@ -29,8 +29,19 @@ export class RealtimePublisher {
     private readonly events: EventsStore,
   ) {}
 
-  messageCreated(memberIds: string[], message: MessagePayload): Promise<void> {
-    return this.publish('message.created', memberIds, { message });
+  // A Mensagem nova, a mesma para todos, ou montada para cada Membro quando depende de quem lê
+  // (spec da F13, "Marca e Resposta bloqueada", item "WebSocket").
+  messageCreated(
+    memberIds: string[],
+    message: MessagePayload | ((personId: string) => MessagePayload),
+  ): Promise<void> {
+    return this.publish(
+      'message.created',
+      memberIds,
+      typeof message === 'function'
+        ? (personId) => ({ message: message(personId) })
+        : { message },
+    );
   }
 
   // A Mensagem apagada, pelo id, para os Membros (spec da F06, "Tempo real").
@@ -42,8 +53,17 @@ export class RealtimePublisher {
   }
 
   // A Mensagem editada, inteira, para os Membros (spec da F06, "Tempo real").
-  messageUpdated(memberIds: string[], message: MessagePayload): Promise<void> {
-    return this.publish('message.updated', memberIds, { message });
+  messageUpdated(
+    memberIds: string[],
+    message: MessagePayload | ((personId: string) => MessagePayload),
+  ): Promise<void> {
+    return this.publish(
+      'message.updated',
+      memberIds,
+      typeof message === 'function'
+        ? (personId) => ({ message: message(personId) })
+        : { message },
+    );
   }
 
   // Pessoas que entraram numa Conversa: vai para todos os Membros dela depois da gravação (spec da

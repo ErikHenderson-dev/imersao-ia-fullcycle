@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert } from "lucide-react";
+import { CircleAlert, Lock } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { AgentAvatar } from "@/app/components/agent/agent-avatar";
 import { AgentTag } from "@/app/components/agent/agent-tag";
@@ -11,6 +11,7 @@ import { OpenProfileButton } from "@/app/components/profile/open-profile-button"
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
 import { UserStatus } from "@/app/components/people/user-status";
 import { buttonVariants } from "@/app/components/ui/button";
+import { BLOCKED_NOTICE } from "@/app/utils/business-data";
 import { cn } from "@/app/utils/cn";
 import type { AgentError, Message } from "@/app/services/chat-api";
 import { formatTime } from "@/app/utils/format-time";
@@ -119,7 +120,9 @@ export function MessageItem({
           onGoTo={() => onGoToQuote?.(message.quote!.id)}
         />
       )}
-      {message.author.kind === "bot" ? (
+      {message.blocked ? (
+        <BlockedNotice />
+      ) : message.author.kind === "bot" ? (
         // O texto do Agente em blocos, sem Menção nem link, e as Respostas prontas da pergunta (spec
         // da F11, "Cliente").
         <>
@@ -213,6 +216,17 @@ function SendFailure({
         Descartar
       </button>
     </div>
+  );
+}
+
+// A Resposta bloqueada (Conversa / Dados de negócio / Resposta bloqueada): o cadeado e o aviso no
+// lugar do texto, sem Respostas prontas (spec da F13, "Cliente").
+function BlockedNotice() {
+  return (
+    <p className="flex items-center gap-2 text-body text-fg-muted">
+      <Lock size={16} aria-hidden className="shrink-0" />
+      {BLOCKED_NOTICE}
+    </p>
   );
 }
 

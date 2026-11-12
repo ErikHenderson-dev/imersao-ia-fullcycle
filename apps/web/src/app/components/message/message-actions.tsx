@@ -12,6 +12,7 @@ import {
 import { IconButton } from "@/app/components/ui/icon-button";
 import type { Message } from "@/app/services/chat-api";
 import { cn } from "@/app/utils/cn";
+import { messageDisplayText } from "@/app/utils/business-data";
 import { copyMessageText } from "@/app/utils/copy-message-text";
 import { DeleteMessageDialog } from "./delete-message-dialog";
 
@@ -49,7 +50,8 @@ export function MessageActions({ message, onEdit, onDeleted, onReply }: MessageA
       id: "copy",
       label: "Copiar texto",
       icon: Copy,
-      onSelect: () => void copyMessageText(message.body),
+      // A Resposta bloqueada copia o aviso (spec da F13, "Cliente").
+      onSelect: () => void copyMessageText(messageDisplayText(message)),
     },
     ...(onEdit ? [{ id: "edit", label: "Editar", icon: Pencil, onSelect: onEdit }] : []),
     ...(onDeleted

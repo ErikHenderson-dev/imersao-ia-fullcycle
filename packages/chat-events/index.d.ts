@@ -32,6 +32,16 @@ export interface MessagePayload {
    * Ausente no evento guardado antes da F11-T07.
    */
   quick_replies?: QuickRepliesPayload | null;
+  /**
+   * A marca "dados de negócio", que só um bot liga (spec da F13, "Marca e Resposta bloqueada").
+   * Ausente no evento guardado antes da F13.
+   */
+  business_data?: boolean;
+  /**
+   * A Resposta bloqueada: a Mensagem tem a marca e quem recebe não tem Permissão de dados. Com ela,
+   * `body` vem vazio e `quick_replies` nulo. Ausente no evento guardado antes da F13.
+   */
+  blocked?: boolean;
 }
 
 /** Os botões da pergunta do bot: os rótulos, quem pode responder, até quando e se já se encerrou. */
@@ -44,7 +54,16 @@ export interface QuickRepliesPayload {
 
 /** A Mensagem citada: o autor e o texto atual, ou só a marca de apagada. */
 export type QuotePayload =
-  | { id: string; deleted: false; author: MessageAuthorPayload; body: string }
+  | {
+      id: string;
+      deleted: false;
+      author: MessageAuthorPayload;
+      body: string;
+      /** A citada tem a marca "dados de negócio" (spec da F13); ausente antes da F13. */
+      business_data?: boolean;
+      /** A citada está bloqueada para quem recebe, com `body` vazio; ausente antes da F13. */
+      blocked?: boolean;
+    }
   | { id: string; deleted: true };
 
 /** Uma Pessoa mencionada numa Mensagem. */

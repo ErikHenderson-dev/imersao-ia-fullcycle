@@ -247,6 +247,10 @@ export type Message = {
   quote: Quote | null;
   // As Respostas prontas da pergunta do Agente, ou nulas (spec da F11, "Envio e Pergunta pendente").
   quickReplies: QuickReplies | null;
+  // A marca "dados de negócio" e a Resposta bloqueada, para quem lê sem Permissão de dados (spec da
+  // F13, "Marca e Resposta bloqueada").
+  businessData: boolean;
+  blocked: boolean;
 };
 
 // Os botões da pergunta do Agente: os rótulos, quem pode responder, até quando e se já se encerrou.

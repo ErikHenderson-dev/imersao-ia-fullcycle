@@ -14,6 +14,8 @@ function message(clientId: string, authorId = "p1"): Message {
     mentions: [],
     quote: null,
     quickReplies: null,
+    businessData: false,
+    blocked: false,
   };
 }
 

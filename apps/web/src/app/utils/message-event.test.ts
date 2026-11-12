@@ -26,6 +26,8 @@ describe("messageFromEvent", () => {
       mentions: [],
       quote: null,
       quickReplies: null,
+      businessData: false,
+      blocked: false,
     });
   });
 
