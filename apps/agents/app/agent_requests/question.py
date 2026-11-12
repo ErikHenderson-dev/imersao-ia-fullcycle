@@ -103,7 +103,10 @@ async def ask_question(
     business_data: bool = False,
 ) -> dict[str, Any]:
     """Grava a pergunta do bot com as Respostas prontas e marca que este Pedido perguntou: o fim do
-    Pedido não grava `reply` (F11-T07; a pergunta de nome e a de período da F13)."""
+    Pedido não grava `reply` (F11-T07; a pergunta de nome e a de período da F13). Numa continuação,
+    que já responde a uma pergunta, não pergunta de novo e devolve o `erro`."""
+    if tool_context.state.get(context.KIND) == "continuation":
+        return {"erro": NAO_PERGUNTE}
     await client.question(
         tool_context.state[context.REQUEST_ID],
         body,

@@ -88,13 +88,7 @@ async def test_a_continuacao_com_o_nome_completo_responde_a_consulta_filtrada(
     parent["requester"]["data_access"] = True
     await request_client.post("/v1/requests", json=parent, headers=AUTH)
     await wait_for_end_log(caplog, parent["request_id"])
-    body = {
-        **parent,
-        "request_id": str(uuid.uuid4()),
-        "kind": "continuation",
-        "parent_request_id": parent["request_id"],
-        "message": {"id": str(uuid.uuid4()), "body": "Ana Paula Ramos"},
-    }
+    body = continuation_of(parent, "Ana Paula Ramos")
 
     response = await request_client.post("/v1/requests", json=body, headers=AUTH)
 
@@ -133,22 +127,6 @@ def continuation_of(parent: dict, text: str) -> dict:
     }
 
 
-async def test_sem_periodo_grava_a_pergunta(
-    loaded_business_test: str,
-    request_client: httpx.AsyncClient,
-    fake_chat_api: FakeChatApi,
-    connected_assistant: None,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    await ask_period(request_client, caplog)
-
-    [question] = [call for call in fake_chat_api.requests if is_question(call)]
-    assert question["body"]["body"] == "De que período?"
-    assert question["body"]["quick_replies"] == ["Este mês", "Mês passado", "Este ano"]
-    assert question["body"]["business_data"] is False
-    assert not any(is_reply(call) for call in fake_chat_api.requests)
-
-
 async def test_a_continuacao_mes_passado_responde(
     loaded_business_test: str,
     request_client: httpx.AsyncClient,
@@ -157,6 +135,10 @@ async def test_a_continuacao_mes_passado_responde(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     parent = await ask_period(request_client, caplog)
+    [question] = [call for call in fake_chat_api.requests if is_question(call)]
+    assert question["body"]["body"] == "De que período?"
+    assert question["body"]["quick_replies"] == ["Este mês", "Mês passado", "Este ano"]
+    assert question["body"]["business_data"] is False
     body = continuation_of(parent, "Mês passado")
 
     response = await request_client.post("/v1/requests", json=body, headers=AUTH)
