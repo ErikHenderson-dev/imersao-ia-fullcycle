@@ -1,6 +1,6 @@
 # 03: Notificações de Tarefa
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o Responsável é notificado quando recebe uma Tarefa, e quem delegou, quando
 ela é concluída ou reaberta, com Alerta na tela ou notificação do navegador, como na F08. As

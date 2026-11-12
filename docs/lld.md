@@ -269,6 +269,11 @@ novas tentativas e idempotência").
   nada a mais ([ADR 0027](adr/0027-notificacoes-calculadas.md)). Os números de Atividade, com o
   "Teto da contagem de não lidas", saem para as abas calculados na hora de publicar, numa fila
   por Pessoa na API, que existe ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seções "Notificações e contagem" e "Tempo real").
+  A Notificação de Tarefa (recebida, concluída, reaberta) é a exceção: gravada numa linha por
+  destinatário, na transação da mudança da Tarefa, e lida pela mesma consulta como mais uma fonte;
+  fica lida com a marca de leitura da linha, gravada quando a Pessoa a abre, ou com a marca de
+  Atividade ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), `planejada` (spec da F12,
+  seção "Atividade").
 
 ### Transações
 
@@ -355,7 +360,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
 | Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem") |
-| Chat | Tarefas | existe (`tasks`): spec da F12, seção "Tarefa"; Notificações de Tarefa gravadas (`task_notifications`) ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), planejada: mesma seção |
+| Chat | Tarefas | existe (`tasks`): spec da F12, seção "Tarefa"; Notificações de Tarefa gravadas (`task_notifications`) ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), planejada: spec da F12, seções "Tarefa" e "Atividade" |
 | Chat | Pedidos aos agentes e ações de bot | existe (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
 | Chat | Perguntas pendentes | existe (`pending_questions`): spec da F11, seção "Envio e Pergunta pendente" |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
@@ -432,6 +437,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/activity/read` | existe | Avançar a marca de Atividade ("Concorrência e idempotência"): spec da F08, seção "Rotas" |
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
+| API do chat: Atividade com as Notificações de Tarefa | planejada | `GET /v1/activity` traz os itens de Tarefa em `kind=all`; `unread` e o `activity.unread` ganham `task_count`; `PUT /v1/activity/read` aceita `task_notification_id`; `PUT /v1/activity/task-notifications/:id/read` marca uma como lida, só para o destinatário: spec da F12, seção "Atividade". BFF: `PUT /api/activity/task-notifications/:id/read` |
 | API do chat: `GET /v1/tasks`, `GET /v1/tasks/:id`, `POST /v1/tasks/:id/complete` e `POST /v1/tasks/:id/reopen` | existe | As Tarefas recebidas e delegadas, com a Sessão, as abertas primeiro e paginadas por cursor; concluir e reabrir só pelo Responsável ("Estados e regras", "Tarefa"): spec da F12, seção "Concluir, reabrir e listar". Eventos `task.created` e `task.updated` por Pessoa: spec da F12, seção "Eventos" |
 | BFF: `GET /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/complete` e `POST /api/tasks/:id/reopen` | existe | As rotas de Tarefa, pedidas pelo cliente: spec da F12, seção "Cliente (web)" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
