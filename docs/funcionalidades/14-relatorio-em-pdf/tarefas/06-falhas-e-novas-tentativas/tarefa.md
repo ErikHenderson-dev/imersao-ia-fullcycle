@@ -1,6 +1,6 @@
 # 06: Falhas e novas tentativas do Relatório
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quando a geração de um Relatório falha por um motivo passageiro (banco de
 negócio, armazenamento de objetos, tempo esgotado), o Worker tenta de novo e entrega o PDF uma vez
