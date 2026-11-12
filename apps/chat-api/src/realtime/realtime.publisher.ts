@@ -88,6 +88,16 @@ export class RealtimePublisher {
     }
   }
 
+  // O registro de Agentes mudou (spec da F10, "Evento agents.changed"): só diz "releia a lista", para
+  // todo o workspace, sem guardar nem reenviar; quem o perde relê na próxima conexão.
+  agentsChanged(): void {
+    try {
+      this.gateway.server.to(WORKSPACE_ROOM).emit('agents.changed');
+    } catch (error) {
+      this.logger.error('Falha ao publicar a mudança de Agentes', error);
+    }
+  }
+
   private async publish<N extends StoredEventName>(
     name: N,
     memberIds: string[],

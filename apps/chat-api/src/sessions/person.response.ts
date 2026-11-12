@@ -10,6 +10,8 @@ export interface PersonResponse {
   username: string;
   time_zone: string | null;
   status: StatusPayload | null;
+  // O papel de administrador (spec da F10, "Papel de administrador").
+  is_admin: boolean;
   presence_choice: Presence;
   theme: Theme;
 }
@@ -22,6 +24,7 @@ export function toPersonResponse(person: Person): PersonResponse {
     username: person.username,
     time_zone: person.timeZone,
     status: toStatusResponse(person),
+    is_admin: person.isAdmin,
     presence_choice: person.presenceChoice,
     theme: person.theme,
   };

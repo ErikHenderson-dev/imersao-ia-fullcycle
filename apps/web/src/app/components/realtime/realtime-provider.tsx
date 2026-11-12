@@ -59,6 +59,8 @@ export type RealtimeListener = {
   onPersonUpdated?: (event: PersonUpdatedEvent) => void;
   // A Presença que mudou, para todo o workspace, sem guardar (spec da F09, "Tempo real").
   onPresenceChanged?: (event: PresenceChangedEvent) => void;
+  // O registro de Agentes mudou: releia a lista (spec da F10, "Evento agents.changed").
+  onAgentsChanged?: () => void;
   // Quem assina depois do sync recebe, por padrão, uma cópia sem reset. Com esta marca, recebe o
   // reset do último sync: é o caso de quem não guarda os eventos que perdeu, como a lista de
   // Conversas da barra lateral.
@@ -188,6 +190,9 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     socket.on("session.ended", endSession);
     socket.on("person.updated", (event) => {
       listeners.current.forEach((listener) => listener.onPersonUpdated?.(event));
+    });
+    socket.on("agents.changed", () => {
+      listeners.current.forEach((listener) => listener.onAgentsChanged?.());
     });
     socket.on("presence.changed", (event) => {
       listeners.current.forEach((listener) => listener.onPresenceChanged?.(event));

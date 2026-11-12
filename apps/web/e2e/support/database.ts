@@ -226,3 +226,9 @@ export async function themeOf(personId: string): Promise<string> {
   ]);
   return result.rows[0].theme;
 }
+
+// O papel de administrador, direto no banco (F10-T02): o contêiner e2e não tem o comando de contas,
+// que o grava pelo `set-admin`.
+export async function setAdminOf(personId: string, isAdmin: boolean): Promise<void> {
+  await pool.query("UPDATE people SET is_admin = $2 WHERE id = $1", [personId, isAdmin]);
+}

@@ -215,6 +215,8 @@ export interface ServerToClientEvents extends StoredServerToClientEvents {
   "typing.stop": (event: TypingEvent) => void;
   "person.updated": (event: PersonUpdatedEvent) => void;
   "presence.changed": (event: PresenceChangedEvent) => void;
+  /** O registro de Agentes mudou: releia a lista (spec da F10). Sem carga, cursor nem reenvio. */
+  "agents.changed": () => void;
 }
 
 /** Eventos que a aba emite para a API. */

@@ -5,6 +5,8 @@ import {
   type TestChannel,
   type TestPerson,
 } from "./support/database";
+import { lockAgents } from "./support/agents";
+import { setAdminOf } from "./support/database";
 import { waitForLoginForm } from "./support/login-page";
 import { waitForRealtime } from "./support/realtime";
 
@@ -17,6 +19,11 @@ type Fixtures = {
   sharedChannel: TestChannel;
   // A segunda Pessoa logada num contexto novo do navegador, com os próprios cookies.
   otherPage: Page;
+  // Dá o papel de administrador e o tira no fim do teste (F10): a lista de administradores do banco
+  // de desenvolvimento não cresce a cada execução.
+  makeAdmin: (person: TestPerson) => Promise<void>;
+  // A trava do estado de conexão dos Agentes, segurada durante o teste (F10).
+  agentsLock: void;
 };
 
 export const test = base.extend<Fixtures>({
@@ -54,6 +61,29 @@ export const test = base.extend<Fixtures>({
     await use(page);
     await context.close();
   },
+
+  makeAdmin: async ({}, use) => {
+    const admins: string[] = [];
+    await use(async (person) => {
+      admins.push(person.id);
+      await setAdminOf(person.id, true);
+    });
+    for (const id of admins) await setAdminOf(id, false);
+  },
+
+  // A espera pela trava tem tempo próprio, fora do tempo do teste: os testes que a usam correm em
+  // fila.
+  agentsLock: [
+    async ({}, use) => {
+      const release = await lockAgents();
+      try {
+        await use();
+      } finally {
+        await release();
+      }
+    },
+    { timeout: 180_000 },
+  ],
 });
 
 // Entra pelo formulário da tela Entrar.

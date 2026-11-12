@@ -14,6 +14,9 @@ services:
       CHAT_API_URL: http://chat-api:3000
       # Endereço em que o navegador abre o WebSocket da API do chat.
       CHAT_API_PUBLIC_URL: http://localhost:3001
+      # Serviço de agentes pela rede interna, com a credencial de serviço de desenvolvimento.
+      AGENTS_SERVICE_URL: http://agents:8000
+      AGENTS_SERVICE_TOKEN: dev-agents-service-token
       SESSION_COOKIE_NAME: fc_session
       SESSION_COOKIE_SECURE: "false"
     ports:
@@ -37,6 +40,8 @@ services:
       BASE_URL: http://localhost:3000
       # As fixtures gravam as Pessoas de teste direto no banco chat (LLD, "Ambiente de desenvolvimento").
       DATABASE_URL: postgres://chat:chat@postgres:5432/chat
+      # Estado de conexão dos Agentes, gravado pelos testes da F10 (support/agents.ts).
+      AGENTS_DATABASE_URL: postgres://agents:agents@postgres:5432/agents
       # A fixture da recuperação apaga a época dos eventos no Redis de desenvolvimento.
       REDIS_URL: redis://redis:6379/0
       PLAYWRIGHT_HTML_OPEN: never
@@ -74,6 +79,39 @@ services:
       # A API sobe mesmo com o Redis fora: a reconexão só passa a recarregar.
       redis:
         condition: service_started
+
+  # Serviço de agentes (Python + Google ADK). Fica parado, como web e chat-api.
+  agents:
+    build:
+      context: ./apps/agents
+      dockerfile: Dockerfile.dev
+    init: true
+    volumes:
+      - .:/home/app/repo
+    # GEMINI_API_KEY, fora do git. Sem o arquivo, o contêiner sobe e o agente não chama o modelo.
+    env_file:
+      - path: ./apps/agents/.env
+        required: false
+    environment:
+      # Sessões do ADK no Banco dos agentes.
+      SESSION_SERVICE_URI: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # Registro de Agentes e Alembic, no mesmo banco (spec da F10, "Registro de Agentes").
+      DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # Credencial de serviço do BFF; segredo fixo, só de desenvolvimento, igual ao da web.
+      AGENTS_SERVICE_TOKEN: dev-agents-service-token
+      # Rotas genéricas e interface web do ADK, só no desenvolvimento.
+      ADK_DEV_ROUTES: "true"
+      # Banco dos testes de integração, recriado a cada execução pelo superusuário local.
+      TEST_DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents_test
+      TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
+      GOOGLE_GENAI_USE_ENTERPRISE: "false"
+      AGENTS_CLI_TELEMETRY: "0"
+    ports:
+      - "3002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:18

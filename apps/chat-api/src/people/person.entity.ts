@@ -92,6 +92,11 @@ export class Person extends BaseEntity {
   @Column({ type: 'text', default: 'light' })
   theme!: Theme;
 
+  // O papel de administrador (spec da F10, "Papel de administrador"), dado e tirado pelo comando de
+  // contas e lido do banco a cada requisição.
+  @Column({ type: 'boolean', default: false })
+  isAdmin!: boolean;
+
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })
   timeZone!: string | null;

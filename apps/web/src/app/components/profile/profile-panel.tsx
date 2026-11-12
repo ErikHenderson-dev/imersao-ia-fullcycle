@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { useOpenDirectConversation } from "@/app/hooks/use-open-direct-conversation";
 import { Avatar } from "@/app/components/ui/avatar";
+import { AdminBadge } from "./admin-badge";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { IconButton } from "@/app/components/ui/icon-button";
@@ -133,6 +134,7 @@ function ProfileContent({
         <p className="text-heading font-black break-words text-fg">{profile.name}</p>
         {profile.title && <p className="text-body break-words text-fg">{profile.title}</p>}
         <p className="text-small text-fg-muted">@{profile.username}</p>
+        {profile.isAdmin && <AdminBadge />}
       </div>
       <ProfilePresence personId={profile.id} presence={profile.presence} />
       <UserStatusLine personId={profile.id} status={profile.status} />

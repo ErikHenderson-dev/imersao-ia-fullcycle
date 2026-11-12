@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { DataSource } from 'typeorm';
 import { authRoutes } from './support/auth-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import { PeopleService } from '../src/people/people.service';
@@ -62,6 +63,26 @@ describe('busca de Pessoas', () => {
     expect(withoutAccent.status).toBe(200);
     expect(names(withoutAccent)).toEqual([`Élida Rocha ${tag}`]);
     expect(names(withAccent)).toEqual([`Elias Prado ${tag}`]);
+  });
+
+  it('não traz os bots', async () => {
+    const { cookie } = await authRoutes.loggedIn(app);
+    const tag = randomUUID().replaceAll('-', '').slice(0, 12);
+    const { person } = await authRoutes.createPerson(app, {
+      name: `Assistente ${tag}`,
+    });
+    await app
+      .get(DataSource)
+      .query('INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)', [
+        randomUUID(),
+        `assistente-${tag}`,
+        `Assistente ${tag}`,
+      ]);
+
+    const response = await search(cookie, { q: tag });
+
+    expect(response.status).toBe(200);
+    expect(ids(response)).toEqual([person.id]);
   });
 
   it('trata %, _ e \\ como literais', async () => {
@@ -240,6 +261,53 @@ describe('busca de Pessoas', () => {
       });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('admin=true', () => {
+    it('traz só os administradores que casam com q, em ordem de nome', async () => {
+      const { cookie } = await authRoutes.loggedIn(app);
+      const tag = randomUUID().replaceAll('-', '').slice(0, 12);
+      const people = app.get(PeopleService);
+      const bia = await authRoutes.createPerson(app, { name: `Bia ${tag}` });
+      const ana = await authRoutes.createPerson(app, { name: `Ana ${tag}` });
+      await authRoutes.createPerson(app, { name: `Caio ${tag}` });
+      await people.setAdmin(bia.person.id, true);
+      await people.setAdmin(ana.person.id, true);
+
+      const response = await search(cookie, { q: tag, admin: 'true' });
+
+      expect(response.status).toBe(200);
+      expect(ids(response)).toEqual([ana.person.id, bia.person.id]);
+      expect((response.body as PeopleBody).people[0]).toMatchObject({
+        name: `Ana ${tag}`,
+        username: ana.person.username,
+        presence: 'away',
+      });
+    });
+
+    it('sem q, traz administradores e ninguém que não administra', async () => {
+      const { cookie } = await authRoutes.loggedIn(app);
+      const admin = await authRoutes.createPerson(app, { name: 'Aaaa Admin' });
+      const other = await authRoutes.createPerson(app, { name: 'Aaaa Comum' });
+      await app.get(PeopleService).setAdmin(admin.person.id, true);
+
+      const response = await search(cookie, { admin: 'true' });
+
+      expect(response.status).toBe(200);
+      expect(ids(response).length).toBeLessThanOrEqual(20);
+      expect(ids(response)).not.toContain(other.person.id);
+      const found = await app.get(PeopleService).findByIds(ids(response));
+      expect(found.every((person) => person.isAdmin)).toBe(true);
+    });
+
+    it('responde 400 com admin fora de true', async () => {
+      const { cookie } = await authRoutes.loggedIn(app);
+
+      const response = await search(cookie, { admin: 'sim' });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({ code: 'validation_failed' });
     });
   });
 });

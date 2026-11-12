@@ -10,7 +10,10 @@ import { parseUsername } from '../people/username';
 import { PersonNotFoundError } from '../people/person-not-found.error';
 import { Person } from '../people/person.entity';
 import { SessionsService } from '../sessions/sessions.service';
+import { BotsService } from '../bots/bots.service';
 import { PasswordPrompt } from './password-prompt';
+import { UsernameAvailability } from './username-availability';
+import { UsernameUnavailableError } from './username-unavailable.error';
 
 const USAGE = `Uso: pnpm accounts <operação> [argumentos]
 
@@ -21,18 +24,27 @@ Operações:
                              Troca o cargo e o telefone; o valor vazio ("") apaga
   reset-password <e-mail>    Troca a senha (lida do terminal) e revoga todas as Sessões
   revoke-sessions <e-mail>   Apaga todas as Sessões da Pessoa
+  set-admin <e-mail|@usuário> on|off
+                             Dá ou tira o papel de administrador
+  create-bot <@usuário> <nome>
+                             Cria o bot de um Agente, que reserva o @usuário dele
   purge-expired-sessions     Apaga as Sessões vencidas`;
 
 // Comando de contas de quem opera a instalação (spec da F01, "Comando de contas").
 // Devolve o código de saída do processo.
 export class AccountsCommand implements Command {
+  private readonly usernames: UsernameAvailability;
+
   constructor(
     private readonly people: PeopleService,
     private readonly conversations: ConversationsService,
     private readonly sessions: SessionsService,
+    private readonly bots: BotsService,
     private readonly prompt: PasswordPrompt,
     private readonly output: CommandOutput,
-  ) {}
+  ) {
+    this.usernames = new UsernameAvailability(people, bots);
+  }
 
   async run(args: string[]): Promise<number> {
     const [operation, ...rest] = args;
@@ -46,6 +58,10 @@ export class AccountsCommand implements Command {
           return await this.resetPassword(rest);
         case 'revoke-sessions':
           return await this.revokeSessions(rest);
+        case 'set-admin':
+          return await this.setAdmin(rest);
+        case 'create-bot':
+          return await this.createBot(rest);
         case 'purge-expired-sessions':
           return await this.purgeExpiredSessions();
         default:
@@ -82,7 +98,9 @@ export class AccountsCommand implements Command {
     }
     // Antes da senha: um valor fora da regra não faz quem opera digitá-la à toa.
     const { username, title, phone } = parsed.options;
-    if (username !== undefined) parseUsername(username);
+    if (username !== undefined) {
+      await this.assertUsernameFree(parseUsername(username));
+    }
     if (title !== undefined) parseTitle(title);
     if (phone !== undefined) parsePhone(phone);
     const password = await this.askNewPassword('Senha: ');
@@ -93,6 +111,8 @@ export class AccountsCommand implements Command {
       name,
       password,
       ...parsed.options,
+      // O @usuário derivado do e-mail também não pode ser o de um bot.
+      isUsernameFree: (candidate) => this.usernames.isFree(candidate),
     });
     this.output.info(
       `Pessoa criada: ${person.email} (@${person.username}, ${person.id}).`,
@@ -146,6 +166,68 @@ export class AccountsCommand implements Command {
     const revoked = await this.sessions.revokeAll(person.id);
     this.output.info(`${revoked} Sessão(ões) revogada(s) de ${person.email}.`);
     return 0;
+  }
+
+  // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Não publica evento: a
+  // mudança aparece na próxima carga da página e na próxima abertura do Perfil.
+  private async setAdmin(args: string[]): Promise<number> {
+    const [identifier, value] = args;
+    if (
+      args.length !== 2 ||
+      !identifier.trim() ||
+      !['on', 'off'].includes(value)
+    ) {
+      this.output.error(
+        'Uso: pnpm accounts set-admin <e-mail|@usuário> on|off',
+      );
+      return 1;
+    }
+    const person = await this.findByEmailOrUsername(identifier.trim());
+    const isAdmin = value === 'on';
+    const changed = await this.people.setAdmin(person.id, isAdmin);
+    this.output.info(
+      changed
+        ? isAdmin
+          ? `${person.name} agora é administrador(a).`
+          : `${person.name} deixou de ser administrador(a).`
+        : isAdmin
+          ? `${person.name} já era administrador(a).`
+          : `${person.name} já não era administrador(a).`,
+    );
+    return 0;
+  }
+
+  // Cria o bot de um Agente (spec da F10, "Comando de contas"), com o @usuário livre nas Pessoas e
+  // nos bots. O `@` do começo é aceito e ignorado.
+  private async createBot(args: string[]): Promise<number> {
+    const [informed, name] = args;
+    if (args.length !== 2 || !informed.trim()) {
+      this.output.error('Uso: pnpm accounts create-bot <@usuário> <nome>');
+      return 1;
+    }
+    const username = parseUsername(informed.trim().replace(/^@/, ''));
+    await this.assertUsernameFree(username);
+    const bot = await this.bots.create({ username, name });
+    this.output.info(`Bot criado: @${bot.username} (${bot.name}, ${bot.id}).`);
+    return 0;
+  }
+
+  private async assertUsernameFree(username: string): Promise<void> {
+    const owner = await this.usernames.ownerOf(username);
+    if (owner) throw new UsernameUnavailableError(username, owner);
+  }
+
+  // Um argumento que começa com `@` é o @usuário; o resto é o e-mail.
+  private async findByEmailOrUsername(identifier: string): Promise<Person> {
+    if (identifier.startsWith('@')) {
+      const username = identifier.slice(1);
+      const person = await this.people.findByUsername(username);
+      if (!person) throw new PersonNotFoundError(null, username);
+      return person;
+    }
+    const person = await this.people.findByEmail(identifier);
+    if (!person) throw new PersonNotFoundError(normalizeEmail(identifier));
+    return person;
   }
 
   private async purgeExpiredSessions(): Promise<number> {

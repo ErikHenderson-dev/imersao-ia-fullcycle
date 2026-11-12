@@ -35,6 +35,9 @@ export interface NewPerson {
   username?: string;
   title?: string;
   phone?: string;
+  // A conferência de "@usuário livre" de quem cria (spec da F10, "Bots"), chamada para cada
+  // candidato derivado do e-mail que `people` não tem. Sem ela, só `people` conta.
+  isUsernameFree?: (username: string) => Promise<boolean>;
 }
 
 // O que o comando de contas troca no Perfil: um campo ausente fica como está, e o vazio apaga.
@@ -101,7 +104,7 @@ export class PeopleService {
     }
     const base = usernameBase(email);
     for (let attempt = 0; attempt < USERNAME_ATTEMPTS; attempt += 1) {
-      const username = await this.freeUsername(base);
+      const username = await this.freeUsername(base, newPerson.isUsernameFree);
       const person = await this.insert({ ...fields, passwordHash, username });
       if (person) return person;
       await this.throwIfEmailTaken(email);
@@ -128,6 +131,7 @@ export class PeopleService {
       | 'statusText'
       | 'presenceChoice'
       | 'theme'
+      | 'isAdmin'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -142,6 +146,7 @@ export class PeopleService {
         'time_zone',
         'presence_choice',
         'theme',
+        'is_admin',
       ])
       .execute();
     const [row] = inserted.raw as {
@@ -150,6 +155,7 @@ export class PeopleService {
       time_zone: string | null;
       presence_choice: Presence;
       theme: Theme;
+      is_admin: boolean;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
@@ -158,6 +164,7 @@ export class PeopleService {
       timeZone: row.time_zone,
       presenceChoice: row.presence_choice,
       theme: row.theme,
+      isAdmin: row.is_admin,
     });
   }
 
@@ -168,8 +175,13 @@ export class PeopleService {
     }
   }
 
-  // O primeiro candidato livre da base, conferido em lotes pelo índice único do @usuário.
-  private async freeUsername(base: string): Promise<string> {
+  // O primeiro candidato livre da base, conferido em lotes pelo índice único do @usuário e, um a um,
+  // pela conferência de quem cria.
+  private async freeUsername(
+    base: string,
+    isUsernameFree: (username: string) => Promise<boolean> = () =>
+      Promise.resolve(true),
+  ): Promise<string> {
     for (let start = 0; ; start += USERNAME_BATCH) {
       const candidates = usernameCandidates(base, start + USERNAME_BATCH).slice(
         start,
@@ -180,8 +192,11 @@ export class PeopleService {
         .where('person.username = ANY(:candidates)', { candidates })
         .getRawMany<{ username: string }>();
       const taken = new Set(rows.map((row) => row.username));
-      const free = candidates.find((candidate) => !taken.has(candidate));
-      if (free) return free;
+      for (const candidate of candidates) {
+        if (!taken.has(candidate) && (await isUsernameFree(candidate))) {
+          return candidate;
+        }
+      }
     }
   }
 
@@ -295,6 +310,23 @@ export class PeopleService {
     return this.people.findOneBy({ email: normalizeEmail(email) });
   }
 
+  // Pelo @usuário, sem o `@` do começo (spec da F10, "Comando de contas").
+  findByUsername(username: string): Promise<Person | null> {
+    return this.people.findOneBy({ username: username.trim().toLowerCase() });
+  }
+
+  // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Devolve se mudou: o
+  // valor que já estava não grava nada.
+  async setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
+    const result = await this.people
+      .createQueryBuilder()
+      .update()
+      .set({ isAdmin })
+      .where('id = :personId AND is_admin <> :isAdmin', { personId, isAdmin })
+      .execute();
+    return (result.affected ?? 0) > 0;
+  }
+
   // O Perfil de qualquer Pessoa (spec da F05, "Busca e Perfil"); um id que não é UUID é uma Pessoa
   // que não existe.
   async getProfile(id: string): Promise<Person> {
@@ -319,26 +351,31 @@ export class PeopleService {
     q: string,
     filter: { excludeIds: string[] } | { onlyIds: string[] },
     limit: number,
+    { onlyAdmins = false }: { onlyAdmins?: boolean } = {},
   ): Promise<Person[]> {
     // %, _ e \ do texto valem como literais no LIKE.
     // Os `@` do começo são do @usuário, e não do texto buscado (spec da F05, "Busca").
     const text = q.trim().replace(/^@+/, '').trim();
     const pattern = `%${text.replace(/[\\%_]/g, '\\$&')}%`;
-    return this.people
-      .createQueryBuilder('person')
-      .where(
-        "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
-        { pattern },
-      )
-      .andWhere(
-        'excludeIds' in filter
-          ? 'NOT (person.id = ANY(:ids))'
-          : 'person.id = ANY(:ids)',
-        { ids: 'excludeIds' in filter ? filter.excludeIds : filter.onlyIds },
-      )
-      .orderBy('unaccent(lower(person.name))', 'ASC')
-      .limit(limit)
-      .getMany();
+    return (
+      this.people
+        .createQueryBuilder('person')
+        .where(
+          "(unaccent(lower(person.name)) LIKE unaccent(lower(:pattern)) ESCAPE '\\' OR person.username LIKE lower(:pattern) ESCAPE '\\')",
+          { pattern },
+        )
+        .andWhere(
+          'excludeIds' in filter
+            ? 'NOT (person.id = ANY(:ids))'
+            : 'person.id = ANY(:ids)',
+          { ids: 'excludeIds' in filter ? filter.excludeIds : filter.onlyIds },
+        )
+        // Só os administradores (spec da F10, "Papel de administrador").
+        .andWhere(onlyAdmins ? 'person.is_admin' : 'TRUE')
+        .orderBy('unaccent(lower(person.name))', 'ASC')
+        .limit(limit)
+        .getMany()
+    );
   }
 
   // O id, o nome, o @usuário e o cargo das Pessoas pedidas, para as listas por nome.

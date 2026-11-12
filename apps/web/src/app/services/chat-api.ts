@@ -40,19 +40,27 @@ type ApiPerson = {
   presence_choice: Presence;
   // O tema escolhido (spec da F09, "Pessoas").
   theme: Theme;
+  // O papel de administrador (spec da F10, "Papel de administrador").
+  is_admin: boolean;
 };
 
 // As iniciais saem aqui, no servidor, e seguem prontas para os componentes do cliente
 // (utils/initials.ts).
-export type Person = Omit<ApiPerson, "time_zone" | "presence_choice"> & {
+export type Person = Omit<ApiPerson, "time_zone" | "presence_choice" | "is_admin"> & {
   initials: string;
   timeZone: string | null;
   // A escolha de presença (spec da F09, "Pessoas").
   presenceChoice: Presence;
+  isAdmin: boolean;
 };
 
-function toPerson({ time_zone: timeZone, presence_choice: presenceChoice, ...person }: ApiPerson): Person {
-  return { ...withInitials(person), timeZone, presenceChoice };
+function toPerson({
+  time_zone: timeZone,
+  presence_choice: presenceChoice,
+  is_admin: isAdmin,
+  ...person
+}: ApiPerson): Person {
+  return { ...withInitials(person), timeZone, presenceChoice, isAdmin };
 }
 
 export type LoginResult =
@@ -485,13 +493,20 @@ export type SearchPeopleResult =
 
 export async function searchPeople(
   token: string,
-  { q, notMemberOf, memberOf }: { q: string; notMemberOf?: string; memberOf?: string },
+  {
+    q,
+    notMemberOf,
+    memberOf,
+    admin = false,
+  }: { q: string; notMemberOf?: string; memberOf?: string; admin?: boolean },
 ): Promise<SearchPeopleResult> {
   // Sem a Conversa, a busca do "Nova conversa" (spec da F05, "Busca"); com member_of, a lista de
   // menções (spec da F06).
   const query = new URLSearchParams({ q });
   if (notMemberOf !== undefined) query.set("not_member_of", notMemberOf);
   if (memberOf !== undefined) query.set("member_of", memberOf);
+  // Só os administradores, para o diálogo "Agentes" (spec da F10, "BFF").
+  if (admin) query.set("admin", "true");
   const response = await request(`/v1/people?${query.toString()}`, {
     method: "GET",
     headers: authenticated(token),
@@ -514,12 +529,17 @@ export type Profile = {
   timeZone: string | null;
   status: Status | null;
   presence?: Presence;
+  // O selo de administrador no painel de perfil (spec da F10, "Selo de administrador").
+  isAdmin: boolean;
 };
 
-type ApiProfile = Omit<Profile, "initials" | "timeZone"> & { time_zone: string | null };
+type ApiProfile = Omit<Profile, "initials" | "timeZone" | "isAdmin"> & {
+  time_zone: string | null;
+  is_admin: boolean;
+};
 
-function toProfile({ time_zone: timeZone, ...person }: ApiProfile): Profile {
-  return { ...withInitials(person), timeZone };
+function toProfile({ time_zone: timeZone, is_admin: isAdmin, ...person }: ApiProfile): Profile {
+  return { ...withInitials(person), timeZone, isAdmin };
 }
 
 export type GetProfileResult =
@@ -805,4 +825,14 @@ export async function markActivityRead(token: string, messageId: string): Promis
   }
   if (response?.status === 400) return { kind: "invalid" };
   return commonFailure(response);
+}
+
+// Avisa o workspace que o registro de Agentes mudou (spec da F10, "BFF", passo 4): a API do chat
+// publica o agents.changed. Devolve se a API confirmou.
+export async function announceAgentsChanged(token: string): Promise<boolean> {
+  const response = await request("/v1/agents/changed", {
+    method: "POST",
+    headers: authenticated(token),
+  });
+  return response?.status === 204;
 }

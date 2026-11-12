@@ -186,6 +186,29 @@ describe('banco de testes', () => {
       await expect(insert).rejects.toThrow(/people_username_key/);
     });
 
+    it('people tem is_admin, falso por padrão', async () => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const [row] = await app
+        .get(DataSource)
+        .query<{ is_admin: boolean }[]>(
+          'SELECT is_admin FROM people WHERE id = $1',
+          [person.id],
+        );
+
+      expect(row).toEqual({ is_admin: false });
+    });
+
+    it('people recusa is_admin nulo', async () => {
+      const { person } = await authRoutes.loggedIn(app);
+
+      const update = app
+        .get(DataSource)
+        .query('UPDATE people SET is_admin = NULL WHERE id = $1', [person.id]);
+
+      await expect(update).rejects.toThrow(/null value in column "is_admin"/);
+    });
+
     it('people tem a marca de Atividade, nula por padrão', async () => {
       const { person } = await authRoutes.loggedIn(app);
 
@@ -212,6 +235,49 @@ describe('banco de testes', () => {
 
       await expect(insert).resolves.toBeDefined();
     });
+  });
+
+  describe('bots', () => {
+    function insertBot(username: string, name = 'Assistente') {
+      return app
+        .get(DataSource)
+        .query('INSERT INTO bots (id, username, name) VALUES ($1, $2, $3)', [
+          randomUUID(),
+          username,
+          name,
+        ]);
+    }
+
+    function botUsername(): string {
+      return `bot-${randomUUID().replaceAll('-', '').slice(0, 20)}`;
+    }
+
+    it('bots recusa um @usuário repetido', async () => {
+      const username = botUsername();
+      await insertBot(username);
+
+      const insert = insertBot(username);
+
+      await expect(insert).rejects.toThrow(/bots_username_key/);
+    });
+
+    it.each([['Assistente'], ['a'], ['-assistente'], ['assis tente']])(
+      'bots recusa o @usuário fora do formato: %s',
+      async (username) => {
+        const insert = insertBot(username);
+
+        await expect(insert).rejects.toThrow(/bots_username_check/);
+      },
+    );
+
+    it.each([[''], ['Assis\ntente'], ['a'.repeat(81)]])(
+      'bots recusa o nome fora da regra: %j',
+      async (name) => {
+        const insert = insertBot(botUsername(), name);
+
+        await expect(insert).rejects.toThrow(/bots_name_check/);
+      },
+    );
   });
 
   describe('conversations', () => {

@@ -23,6 +23,7 @@ const DETAILS: Record<ErrorCode, string> = {
   members_not_editable: 'Só é possível adicionar pessoas a um canal privado.',
   message_not_found: 'Mensagem não encontrada.',
   message_not_owned: 'Só quem escreveu a Mensagem pode mudá-la.',
+  forbidden: 'Só administradores podem fazer isso.',
   quoted_message_not_found: 'A Mensagem citada não existe nesta Conversa.',
   not_found: 'Recurso não encontrado.',
   payload_too_large: 'O corpo da requisição é grande demais.',

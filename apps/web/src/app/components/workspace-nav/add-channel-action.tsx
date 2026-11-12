@@ -1,12 +1,12 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AddPeopleStep } from "@/app/components/conversation/add-people-step";
 import { Dialog, DialogTrigger } from "@/app/components/ui/dialog";
 import type { Conversation } from "@/app/services/chat-api";
 import { CreateChannelDialog } from "./create-channel-dialog";
+import { SidebarAction } from "./sidebar-action";
 
 // SidebarAction "Adicionar canal", no fim da seção "Canais" (Casca / Sidebar / Com dados): abre o
 // diálogo "Criar canal". O conteúdo monta a cada abertura, com o formulário vazio. Criado um Canal
@@ -33,18 +33,7 @@ export function AddChannelAction() {
     <li>
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <button
-            type="button"
-            className="flex h-11 w-full items-center gap-2 rounded-item px-2 text-body text-sidebar-fg hover:bg-sidebar-hover md:h-7"
-          >
-            <span
-              aria-hidden
-              className="flex size-4 shrink-0 items-center justify-center rounded-control bg-sidebar-field"
-            >
-              <Plus size={12} />
-            </span>
-            Adicionar canal
-          </button>
+          <SidebarAction variant="add_channel" />
         </DialogTrigger>
         {isOpen &&
           (privateChannel ? (

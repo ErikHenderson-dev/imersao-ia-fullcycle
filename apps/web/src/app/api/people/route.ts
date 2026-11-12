@@ -3,8 +3,8 @@ import { searchPeople } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
 
 // Busca de Pessoas, lida pelo cliente (spec da F04, "BFF"): para adicionar a uma Conversa, ou no
-// "Nova conversa", sem not_member_of (spec da F05). A resposta já vem no formato da web, com as
-// iniciais.
+// "Nova conversa", sem not_member_of (spec da F05); com admin=true, os administradores do diálogo
+// "Agentes" (spec da F10). A resposta já vem no formato da web, com as iniciais.
 export async function GET(request: NextRequest) {
   const token = await readSessionToken();
   const params = request.nextUrl.searchParams;
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
         // Conversa do "Nova conversa".
         notMemberOf: params.has("not_member_of") ? params.get("not_member_of")! : undefined,
         memberOf: params.has("member_of") ? params.get("member_of")! : undefined,
+        admin: params.get("admin") === "true",
       })
     : ({ kind: "unauthenticated" } as const);
   if (result.kind === "ok") return Response.json(result.people);

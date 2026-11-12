@@ -1,0 +1,108 @@
+"""Banco e app dos testes de integração do registro (F10-T04, CA6).
+
+O `agents_test` é apagado, criado de novo e migrado uma vez por execução, como o `chat_test` da
+API do chat: conectado como o superusuário local, porque o papel `agents` não tem CREATEDB.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import subprocess
+from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
+from urllib.parse import urlparse
+
+import asyncpg
+import httpx
+import pytest
+import pytest_asyncio
+from fastapi import FastAPI
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from app.config import Settings
+
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+SERVICE_TOKEN = "segredo-dos-testes"
+
+
+async def _recreate_database(admin_url: str, name: str) -> None:
+    admin = await asyncpg.connect(admin_url)
+    try:
+        await admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
+        await admin.execute(f'CREATE DATABASE "{name}" OWNER agents')
+        await admin.execute(f'REVOKE CONNECT ON DATABASE "{name}" FROM PUBLIC')
+        await admin.execute(f'GRANT CONNECT ON DATABASE "{name}" TO agents')
+    finally:
+        await admin.close()
+
+
+@pytest.fixture(scope="session")
+def test_database_url() -> Iterator[str]:
+    url = os.environ.get("TEST_DATABASE_URL")
+    admin_url = os.environ.get("TEST_DATABASE_ADMIN_URL")
+    if not url or not admin_url:
+        raise RuntimeError(
+            "TEST_DATABASE_URL e TEST_DATABASE_ADMIN_URL são obrigatórias"
+        )
+    asyncio.run(_recreate_database(admin_url, urlparse(url).path.lstrip("/")))
+    subprocess.run(
+        ["alembic", "upgrade", "head"],
+        cwd=PROJECT_DIR,
+        env={**os.environ, "DATABASE_URL": url},
+        check=True,
+    )
+    yield url
+
+
+def settings_for(url: str, *, adk_dev_routes: bool) -> Settings:
+    return Settings(
+        database_url=url,
+        agents_service_token=SERVICE_TOKEN,
+        adk_dev_routes=adk_dev_routes,
+    )
+
+
+async def _client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://agents"
+        ) as client:
+            yield client
+
+
+@pytest_asyncio.fixture
+async def client(test_database_url: str) -> AsyncIterator[httpx.AsyncClient]:
+    """O app de produção: sem as rotas genéricas do ADK."""
+    from app.fast_api_app import create_app
+
+    async for client in _client(
+        create_app(settings_for(test_database_url, adk_dev_routes=False))
+    ):
+        yield client
+
+
+@pytest_asyncio.fixture
+async def dev_client(test_database_url: str) -> AsyncIterator[httpx.AsyncClient]:
+    """O app de desenvolvimento: com as rotas genéricas do ADK."""
+    from app.fast_api_app import create_app
+
+    async for client in _client(
+        create_app(settings_for(test_database_url, adk_dev_routes=True))
+    ):
+        yield client
+
+
+@pytest_asyncio.fixture
+async def engine(client: httpx.AsyncClient) -> AsyncEngine:
+    transport = client._transport
+    assert isinstance(transport, httpx.ASGITransport)
+    return transport.app.state.engine
+
+
+@pytest_asyncio.fixture
+async def clean_registry(engine: AsyncEngine) -> None:
+    async with engine.begin() as connection:
+        await connection.execute(text("DELETE FROM connected_agents"))

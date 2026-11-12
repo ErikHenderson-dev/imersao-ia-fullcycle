@@ -12,6 +12,8 @@ export interface ProfileResponse {
   phone: string | null;
   time_zone: string | null;
   status: StatusPayload | null;
+  // O papel de administrador (spec da F10, "Papel de administrador").
+  is_admin: boolean;
 }
 
 export function toProfileResponse(person: Person): ProfileResponse {
@@ -24,5 +26,6 @@ export function toProfileResponse(person: Person): ProfileResponse {
     phone: person.phone,
     time_zone: person.timeZone,
     status: toStatusResponse(person),
+    is_admin: person.isAdmin,
   };
 }

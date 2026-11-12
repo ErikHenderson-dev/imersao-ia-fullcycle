@@ -15,6 +15,7 @@ Cada projeto tem o próprio `AGENTS.md`, com os comandos, as particularidades da
 
 - `apps/chat-api/AGENTS.md`: API em NestJS.
 - `apps/web/AGENTS.md`: frontend em Next.js.
+- `apps/agents/AGENTS.md`: Serviço de agentes em Python com o Google ADK.
 
 **Onde cada informação mora**
 
@@ -25,20 +26,21 @@ Cada projeto tem o próprio `AGENTS.md`, com os comandos, as particularidades da
 
 ## Execução no Docker
 
-Tudo roda dentro dos contêineres do Docker Compose: instalação de dependências, servidor de desenvolvimento, testes, lint, compilação do TypeScript e qualquer outro comando do projeto. **Nunca rode `pnpm`, `node` ou `npx` direto na máquina.**
+Tudo roda dentro dos contêineres do Docker Compose: instalação de dependências, servidor de desenvolvimento, testes, lint, compilação do TypeScript e qualquer outro comando do projeto. **Nunca rode `pnpm`, `node`, `npx`, `uv` ou `python` direto na máquina.**
 
-O ambiente de desenvolvimento usa o `compose.yaml`, na raiz, com cinco serviços e um sexto, `e2e`, que só sobe pelo `profile`:
+O ambiente de desenvolvimento usa o `compose.yaml`, na raiz, com seis serviços e um sétimo, `e2e`, que só sobe pelo `profile`:
 
 | Serviço | O que é | Endereço na máquina | Endereço entre contêineres |
 | --- | --- | --- | --- |
 | `web` | Frontend em Next.js | `http://localhost:3000` | `http://web:3000` |
 | `chat-api` | API em NestJS, REST e WebSocket | `http://localhost:3001` | `http://chat-api:3000` |
+| `agents` | Serviço de agentes em Python com o Google ADK | `http://localhost:3002` | `http://agents:8000` |
 | `postgres` | PostgreSQL, com os bancos `chat`, `agents` e `business` | `localhost:5432` | `postgres:5432` |
 | `s3` | Emulador do S3 (`seaweedfs`) | `http://localhost:8333` | `http://s3:8333` |
 | `redis` | Redis, com os eventos por Pessoa da reconexão do WebSocket | `localhost:6379` | `redis:6379` |
 | `e2e` | Playwright: testes de ponta a ponta do `web` e `playwright-cli` | — | — |
 
-Os contêineres `web` e `chat-api` instalam as dependências ao subir e depois ficam parados, sem iniciar a aplicação. Os comandos rodam neles com `docker compose -f compose.yaml exec <serviço> <comando>` e os de cada projeto estão no `AGENTS.md` dele.
+Os contêineres `web`, `chat-api` e `agents` instalam as dependências ao subir e depois ficam parados, sem iniciar a aplicação. Os comandos rodam neles com `docker compose -f compose.yaml exec <serviço> <comando>` e os de cada projeto estão no `AGENTS.md` dele.
 
 ### Subir e derrubar
 
@@ -46,11 +48,19 @@ Os contêineres `web` e `chat-api` instalam as dependências ao subir e depois f
 docker compose -f compose.yaml up -d --build --wait
 docker compose -f compose.yaml exec web pnpm dev --hostname 0.0.0.0
 docker compose -f compose.yaml exec chat-api pnpm start:dev
+docker compose -f compose.yaml exec agents uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000
 ```
 
-O `--wait` segura o primeiro comando só até o `postgres`, o `s3` e o `redis` ficarem prontos. A instalação das dependências continua dentro de `web` e `chat-api` depois disso e, na primeira subida, leva alguns minutos: acompanhe com `docker compose -f compose.yaml logs -f <serviço>` antes de rodar os outros dois. As migrações não rodam na subida. Os outros dois ficam presos ao terminal, então rode cada um em segundo plano. O `--hostname 0.0.0.0` é necessário para que a web aceite conexões de fora do contêiner.
+O `--wait` segura o primeiro comando só até o `postgres`, o `s3` e o `redis` ficarem prontos. A instalação das dependências continua dentro de `web`, `chat-api` e `agents` depois disso e, na primeira subida, leva alguns minutos: acompanhe com `docker compose -f compose.yaml logs -f <serviço>` antes de rodar os outros três. As migrações não rodam na subida. Os outros três ficam presos ao terminal, então rode cada um em segundo plano. O `--hostname 0.0.0.0` é necessário para que a web aceite conexões de fora do contêiner, e o `--host 0.0.0.0`, pelo mesmo motivo, no Serviço de agentes.
 
-**Testes de ponta a ponta.** O serviço `e2e` sobe à parte, com o ambiente acima já de pé (web, API do chat e banco). Ele não roda os testes sozinho: o processo dele só encaminha `localhost:3000` para a web e `localhost:3001` para a API do chat, para o navegador do teste usar os mesmos endereços que o da máquina e o cookie de sessão valer no WebSocket (`docs/lld.md`, "Ambiente de desenvolvimento"). Por isso, no `e2e`, a web é `localhost`, e não o nome do serviço, uma exceção à regra de "Rede entre serviços":
+**Bot e administrador de desenvolvimento.** Depois das migrações, crie o bot do Agente `assistente`, que reserva o `@usuário` dele (`docs/funcionalidades/10-conexao-de-agentes/spec.md`, "Bots"), e dê o papel de administrador a uma Pessoa sua, para conectar Agentes pela tela:
+
+```bash
+docker compose -f compose.yaml exec chat-api pnpm accounts create-bot assistente Assistente
+docker compose -f compose.yaml exec chat-api pnpm accounts set-admin <e-mail> on
+```
+
+**Testes de ponta a ponta.** O serviço `e2e` sobe à parte, com o ambiente acima já de pé (web, API do chat, Serviço de agentes e banco). Ele não roda os testes sozinho: o processo dele só encaminha `localhost:3000` para a web e `localhost:3001` para a API do chat, para o navegador do teste usar os mesmos endereços que o da máquina e o cookie de sessão valer no WebSocket (`docs/lld.md`, "Ambiente de desenvolvimento"). Por isso, no `e2e`, a web é `localhost`, e não o nome do serviço, uma exceção à regra de "Rede entre serviços":
 
 ```bash
 docker compose -f compose.yaml --profile e2e up -d e2e
@@ -74,13 +84,13 @@ docker compose -f compose.yaml down -v
 
 O `-v` apaga os volumes do banco e do armazenamento: na próxima subida, o script de `docker/postgres/init/` recria os bancos e os papéis, sem tabelas. Depois, suba o ambiente como em "Subir e derrubar".
 
-**A instalação falhou.** O contêiner `web` ou `chat-api` fica de pé mesmo quando o `pnpm install` falha, então o erro só aparece no log:
+**A instalação falhou.** O contêiner `web`, `chat-api` ou `agents` fica de pé mesmo quando o `pnpm install` ou o `uv sync` falha, então o erro só aparece no log:
 
 ```bash
 docker compose -f compose.yaml logs chat-api
 ```
 
-Depois do conserto, rode a instalação de novo no contêiner, com `docker compose -f compose.yaml exec chat-api pnpm install`.
+Depois do conserto, rode a instalação de novo no contêiner, com `docker compose -f compose.yaml exec chat-api pnpm install` (no `agents`, `uv sync --frozen --all-extras`).
 
 ### Rede entre serviços
 
@@ -142,7 +152,16 @@ A pasta da tarefa só recebe, além da tarefa e do plano, registros da própria 
 
 ## Consulta à documentação de bibliotecas
 
-Quando precisar consultar a documentação de uma biblioteca, use o context7 para buscar informações atualizadas e precisas.
+Quando precisar consultar a documentação de uma biblioteca, use o context7 para buscar informações atualizadas e precisas. A exceção é o Google ADK, na seção abaixo.
+
+## Agentes e Google ADK
+
+Sempre que a tarefa envolver agentes de IA ou o Google ADK, seja no código, no planejamento ou numa dúvida:
+
+- **Carregue as skills** `google-agents-cli-workflow`, com o ciclo de desenvolvimento de agentes e as regras de código, e `google-agents-cli-adk-code`, com a API do ADK e as receitas de referência.
+- **Consulte a documentação do ADK só pelo MCP `adk-docs`**: primeiro `list_doc_sources`, depois `fetch_docs` no `llms.txt` e nas páginas que ele lista. Nunca consulte de outra forma: nada de context7, busca na web, outro site ou memória do modelo.
+
+As particularidades do projeto de agentes (o que dessas skills não se aplica, a avaliação e os comandos) estão no `apps/agents/AGENTS.md`.
 
 ## Agent Skill Usage
 

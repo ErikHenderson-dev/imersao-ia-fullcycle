@@ -37,7 +37,11 @@ export class MembershipsService {
   // spec da F06) ou sem filtro ("Nova conversa"). Quem busca precisa ser Membro da Conversa.
   async searchPeople(
     personId: string,
-    { notMemberOf, memberOf }: { notMemberOf?: string; memberOf?: string },
+    {
+      notMemberOf,
+      memberOf,
+      onlyAdmins = false,
+    }: { notMemberOf?: string; memberOf?: string; onlyAdmins?: boolean },
     q: string,
   ): Promise<PersonSummary[]> {
     if (notMemberOf !== undefined && memberOf !== undefined) {
@@ -55,6 +59,7 @@ export class MembershipsService {
         ? { onlyIds: memberIds }
         : { excludeIds: memberIds },
       PEOPLE_SEARCH_LIMIT,
+      { onlyAdmins },
     );
     return sortedSummaries(people);
   }

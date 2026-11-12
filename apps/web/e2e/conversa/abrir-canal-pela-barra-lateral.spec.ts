@@ -15,10 +15,10 @@ test.describe("Abrir um Canal", () => {
     const canais = page.getByRole("region", { name: "Canais" });
     await expect(canais.getByRole("link")).toHaveText([first.name, second.name]);
     const barra = page.getByRole("complementary", { name: "Barra lateral" });
-    // "Adicionar canal" entrou com a F04 e "Mensagens diretas" com a F05; Agentes segue fora.
+    // "Adicionar canal" entrou com a F04, "Mensagens diretas" com a F05 e "Agentes" com a F10.
     await expect(barra.getByRole("button", { name: "Adicionar canal" })).toBeVisible();
     await expect(barra.getByRole("region", { name: "Mensagens diretas" })).toBeVisible();
-    await expect(barra.getByText("Agentes")).toHaveCount(0);
+    await expect(barra.getByRole("region", { name: "Agentes" })).toBeVisible();
 
     // 2. Clicar no segundo Canal
     await canais.getByRole("link", { name: second.name }).click();
