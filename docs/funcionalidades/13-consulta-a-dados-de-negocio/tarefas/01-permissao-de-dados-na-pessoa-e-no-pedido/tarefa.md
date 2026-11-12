@@ -1,6 +1,6 @@
 # 01: Permissão de dados na Pessoa e no Pedido
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem opera a instalação liga e desliga a Permissão de dados de uma Pessoa por
 um comando de contas, como faz com o papel de Administrador. A Pessoa da Sessão passa a trazer a
