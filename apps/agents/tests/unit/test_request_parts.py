@@ -95,3 +95,13 @@ def test_as_instrucoes_nao_mostram_a_permissao_de_dados() -> None:
     ]
 
     assert instructions[0] == instructions[1]
+
+
+def test_o_estado_traz_a_data_de_hoje_no_fuso_da_empresa() -> None:
+    request = body(None)
+    # 01/04/2026 01:30 em UTC é 31/03/2026 22:30 em São Paulo.
+    request.message.id = uuid.UUID("019d46a9-65c0-7000-8000-000000000000")
+
+    state = request_state(request)
+
+    assert state[context.BUSINESS_TODAY] == "2026-03-31"

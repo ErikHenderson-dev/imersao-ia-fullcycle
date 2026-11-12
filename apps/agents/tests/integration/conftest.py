@@ -118,6 +118,27 @@ def business_test_admin_url(business_test_database_url: str) -> str:
     )
 
 
+@pytest.fixture(scope="session")
+def loaded_business_test(business_test_admin_url: str) -> str:
+    """O `business_test` carregado com os dados fixos, uma vez por execução, como o dono; devolve a
+    URL do usuário só leitura (F13-T04)."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app.business.load import load
+
+    async def run() -> None:
+        engine = create_async_engine(business_test_admin_url)
+        try:
+            async with engine.begin() as connection:
+                await connection.execute(text("SET LOCAL ROLE business"))
+                await load(connection)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+    return os.environ["BUSINESS_TEST_DATABASE_URL"]
+
+
 def settings_for(
     url: str,
     *,

@@ -21,6 +21,8 @@ from app.agent_requests.question import (
 from app.agent_requests.reading import ChatApiSource, read_recorte
 from app.agent_requests.recorte import Recorte
 from app.agent_requests.task import delegate
+from app.business.consult import consult
+from app.business.db import CURRENT_BUSINESS
 from app.chat_api import CURRENT_CHAT_API
 
 FORA_DE_UM_PEDIDO = "A ferramenta só funciona dentro de um Pedido."
@@ -109,3 +111,30 @@ async def perguntar_delegacao(
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}
     return await ask_delegation(client, tool_context, falta, candidatos)
+
+
+async def consultar_dados(
+    metrica: str,
+    inicio: str,
+    fim: str,
+    tool_context: ToolContext,
+    bruto: bool = False,
+) -> dict[str, Any]:
+    """Consulta um número de vendas do negócio e grava a resposta na Conversa, com o número e o que
+    foi considerado. Depois dela, não escreva nada: a resposta já está na Conversa.
+
+    Args:
+        metrica: "faturamento", "pedidos", "ticket_medio", "clientes_ativos", "clientes_novos" ou
+            "itens_vendidos".
+        inicio: O primeiro dia do período, em AAAA-MM-DD.
+        fim: O último dia do período, em AAAA-MM-DD (inclusive).
+        bruto: Só no faturamento, quando o pedido fala em faturamento bruto.
+
+    Returns:
+        A confirmação de que a resposta foi gravada, ou `erro` com o parâmetro a corrigir.
+    """
+    client = CURRENT_CHAT_API.get()
+    store = CURRENT_BUSINESS.get()
+    if client is None or store is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await consult(client, store, tool_context, metrica, inicio, fim, bruto)

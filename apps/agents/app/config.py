@@ -21,6 +21,9 @@ PROVIDER_KEYS: dict[Provider, str] = {
 }
 
 
+# O fuso da empresa (LLD, "Valores e configuração", "Fuso da empresa").
+DEFAULT_BUSINESS_TIME_ZONE = "America/Sao_Paulo"
+
 # Um segredo ou endereço obrigatório: só espaços conta como ausente.
 Required = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -87,7 +90,7 @@ class Settings(ModelSettings):
     # O Banco de negócio pelo usuário só leitura (spec da F13, "Ambiente de desenvolvimento"; ADR
     # 0013), o fuso da empresa e o tempo limite da consulta (LLD, "Valores e configuração").
     business_database_url: Required
-    business_time_zone: Required = "America/Sao_Paulo"
+    business_time_zone: Required = DEFAULT_BUSINESS_TIME_ZONE
     business_query_timeout_ms: PositiveInt = 3000
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False

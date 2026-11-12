@@ -20,11 +20,16 @@ TIME_ZONE = "time_zone"
 REQUESTED_AT = "requested_at"
 # As Pessoas mencionadas no pedido, `[{username, name}]`, para o modelo citar pelo nome.
 MENTIONS = "mentions"
+# O dia de hoje no fuso da empresa (ISO), calculado de `requested_at`: a base de "este mês" e de
+# "março" nas consultas a Dados de negócio, que as instruções mostram (F13-T04).
+BUSINESS_TODAY = "business_today"
+# O texto do Pedido, que a auditoria da consulta grava (F13-T04).
+QUESTION = "question"
 # `new` ou `continuation`: a continuação não pergunta de novo (F11-T07).
 KIND = "kind"
-# A ferramenta que já gravou o fim do Pedido, `{"pedido": id, "desfecho": "question" | "task"}`:
-# a pergunta com as Respostas prontas (F11-T07) ou a Tarefa com a confirmação (F12-T01). O Pedido
-# termina sem `reply`.
+# A ferramenta que já gravou o fim do Pedido, `{"pedido": id, "desfecho": "question" | "task" |
+# "business"}`: a pergunta com as Respostas prontas (F11-T07), a Tarefa com a confirmação (F12-T01)
+# ou a resposta da consulta a Dados de negócio (F13-T04). O Pedido termina sem outra `reply`.
 ANSWERED_BY_TOOL = "respondido_pela_ferramenta"
 
 

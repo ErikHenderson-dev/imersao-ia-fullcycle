@@ -27,6 +27,7 @@ from app.agent_requests.execution import ExecutionDeps
 from app.agent_requests.rate_limit import RequestRateLimiter
 from app.agent_requests.routes import build_router as build_requests_router
 from app.app_utils import services
+from app.business.db import build_business_store
 from app.chat_api import ChatApiClient
 from app.config import Settings, load_settings
 from app.problems import install_problem_handler
@@ -71,10 +72,14 @@ def create_app(settings: Settings) -> FastAPI:
         settings.redis_url, socket_connect_timeout=1, socket_timeout=1
     )
 
+    # O Banco de negócio, pelo usuário só leitura, e a auditoria no Banco dos agentes (F13-T04).
+    business = build_business_store(settings, engine)
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         yield
         await chat_api.close()
+        await business.dispose()
         await redis.aclose()
         await engine.dispose()
 
@@ -107,7 +112,9 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(
         build_requests_router(
             catalog,
-            ExecutionDeps(session_service=session_service, chat_api=chat_api),
+            ExecutionDeps(
+                session_service=session_service, chat_api=chat_api, business=business
+            ),
             RequestRateLimiter(redis, settings.agent_requests_per_minute),
         )
     )

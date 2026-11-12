@@ -24,3 +24,15 @@ pela rota de envio (`requestByApi`), e o bot responde pela rota `/v1/bot/.../rep
 1. **A Conversa com resposta completa e bloqueada passa no axe nos dois temas:** o Bruno pede duas
    vezes, o bot responde uma sem e uma com a marca, e a Ana, sem Permissão de dados, abre a
    Conversa; o axe em `main` não acusa violações no tema claro nem no escuro.
+
+## F13-T04 · Perguntar um número (`agentes/consulta-a-dados.spec.ts`)
+
+O teste segura o `agentsLock`, cria o bot `assistente` se ele não existe, conecta o `assistente` e,
+no fim, devolve o estado que achou. É o teste da F13 com o modelo real, com tempo limite próprio, e
+precisa do Banco de negócio de desenvolvimento carregado (`scripts.load_business`).
+
+1. **A pergunta de faturamento responde com o número para quem tem permissão e bloqueada para o
+   outro:** a Ana, com Permissão de dados, envia "@assistente quanto faturamos em março de 2026?";
+   ela vê "Faturamento de março de 2026: R$ …" e a linha "Considerado: faturamento líquido, pedidos
+   pagos, de 01/03/2026 a 31/03/2026", e o Bruno vê a Resposta bloqueada, sem o número, sem
+   recarregar.
