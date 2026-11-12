@@ -53,3 +53,10 @@ antes da delegação: o evento que chega no reenvio da reconexão não alerta.
    estão ativos para a Ana e desativados para o Bruno; o clique da Ana vira a Mensagem dela e
    desativa os botões para os dois. A continuação que cria a Tarefa, com o modelo real, é do teste
    de integração do Serviço de agentes.
+
+## F12-T06 · Acessibilidade (`acessibilidade/tarefas-sem-violacoes.spec.ts`)
+
+1. **A aba Tarefas sem violações nos dois temas:** Tarefas recebidas, delegadas, uma concluída e uma
+   delegada a si mesma em destaque pelo link, com o foco nela; o axe nos temas claro e escuro, depois
+   das transições de cor.
+2. **A aba Todas com Notificações de Tarefa sem violações nos dois temas.**

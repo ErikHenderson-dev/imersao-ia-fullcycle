@@ -76,7 +76,8 @@ export function TaskItem({ task, role, timeZone, highlighted, updating, onChange
             ) : (
               <Link
                 href={messageHref(task.conversation.id, task.triggerMessage.id)}
-                className="text-link hover:text-link-hover hover:underline"
+                // No destaque, o tom mais forte do link mantém o contraste sobre o fundo amarelo.
+                className={cn("hover:underline", highlighted ? "text-link-hover" : "text-link hover:text-link-hover")}
               >
                 Ver Pedido
               </Link>
