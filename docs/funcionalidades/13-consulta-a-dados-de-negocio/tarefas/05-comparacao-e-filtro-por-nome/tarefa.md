@@ -1,6 +1,6 @@
 # 05: Comparação entre períodos e filtro por nome
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa com Permissão de dados compara dois períodos ("faturamento de março
 contra fevereiro") e recebe os dois valores e a variação, e pergunta sobre um cliente, vendedor ou
