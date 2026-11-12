@@ -9,7 +9,8 @@ fila. A entrega e a falha chegam depois, pelo Worker. Cada passo que recusa ence
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime
+from collections.abc import Awaitable, Callable
+from datetime import date, datetime
 from typing import Any
 
 from arq import ArqRedis
@@ -19,11 +20,10 @@ from app.agent_requests import context
 from app.business import audit
 from app.business.answer import SEM_PERMISSAO
 from app.business.catalog import Period
-from app.business.consult import DONE
+from app.business.consult import DONE, parse_period
 from app.business.db import BusinessStore
 from app.business.periods import report_periods
 from app.business.report_queue import (
-    ReportFilter,
     ReportJob,
     acquire_lock,
     enqueue_report,
@@ -43,16 +43,6 @@ def notice_text(period: Period, filter_label: str | None = None) -> str:
     dates = f"de {period.start:%d/%m/%Y} a {period.end:%d/%m/%Y}"
     scope = f"{dates}, {filter_label}" if filter_label else dates
     return f"Comecei a gerar o relatório {scope}. Ele chega aqui quando ficar pronto."
-
-
-def _parse(inicio: str, fim: str) -> tuple[date, date] | dict[str, str]:
-    try:
-        start, end = date.fromisoformat(inicio or ""), date.fromisoformat(fim or "")
-    except ValueError:
-        return {"erro": "As datas precisam estar no formato AAAA-MM-DD."}
-    if start > end:
-        return {"erro": "O início precisa ser antes do fim."}
-    return start, end
 
 
 async def request_report(
@@ -90,15 +80,15 @@ async def request_report(
         await record("no_permission")
         return await refuse(SEM_PERMISSAO)
     # 2. Os parâmetros inválidos voltam ao modelo, sem auditoria.
-    parsed = _parse(inicio, fim)
-    if isinstance(parsed, dict):
-        return parsed
+    parsed = parse_period(inicio, fim)
+    if isinstance(parsed, str):
+        return {"erro": parsed}
     # 3. Um Relatório por vez, por Pessoa: sem auditoria, porque não toca o banco.
     if not await acquire_lock(queue, requester_id, request_id):
         return await refuse(REPORT_IN_PROGRESS)
-    # 5. O período anterior, em código, a partir de hoje no fuso da empresa.
+    # 4. O filtro por nome entra na tarefa 05. 5. O período anterior, em código, a partir de hoje no fuso da empresa.
     today = date.fromisoformat(state[context.BUSINESS_TODAY])
-    period, previous = report_periods(*parsed, today)
+    period, previous = report_periods(parsed.start, parsed.end, today)
     job = ReportJob(
         request_id=request_id,
         requester_id=requester_id,
@@ -107,9 +97,9 @@ async def request_report(
         period=period,
         previous_period=previous,
         filter=None,
-        requested_at=_requested_at(state),
+        requested_at=datetime.fromisoformat(state[context.REQUESTED_AT]),
     )
-    return await _start(client, queue, tool_context, job, None, record)
+    return await _start(client, queue, tool_context, job, record)
 
 
 async def _start(
@@ -117,12 +107,11 @@ async def _start(
     queue: ArqRedis,
     tool_context: ToolContext,
     job: ReportJob,
-    filter: ReportFilter | None,
-    record: Any,
+    record: Callable[[audit.Outcome], Awaitable[None]],
 ) -> dict[str, Any]:
     """6. O Aviso de início, que estende a validade do Pedido, e só depois o job na fila: a entrega
     nunca chega antes do aviso. 7. Se enfileirar falha, a falha e a trava solta."""
-    label = f"{filter.type} {filter.name}" if filter else None
+    label = f"{job.filter.type} {job.filter.name}" if job.filter else None
     await client.report_started(job.request_id, notice_text(job.period, label))
     context.mark_answered(tool_context, "report")
     try:
@@ -138,8 +127,3 @@ async def _start(
         await client.report_failed(job.request_id)
         await release_lock(queue, job.requester_id, job.request_id)
     return DONE
-
-
-def _requested_at(state: Any) -> datetime:
-    raw = state.get(context.REQUESTED_AT)
-    return datetime.fromisoformat(raw) if raw else datetime.now(UTC)

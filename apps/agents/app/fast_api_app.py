@@ -21,7 +21,6 @@ from arq import ArqRedis
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.agent_requests.execution import ExecutionDeps
@@ -67,18 +66,15 @@ def create_app(settings: Settings) -> FastAPI:
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
     # O Agente age na Conversa pela API do chat, como bot (spec da F11, "Execução do Pedido").
     chat_api = ChatApiClient(settings.chat_api_url, settings.chat_bot_token)
-    # O limite de pedidos por Pessoa (spec da F11, "Rota de Pedido"). Os tempos curtos fazem o Redis
-    # fora virar 503 bem antes do tempo limite do BFF.
-    redis = Redis.from_url(
+    # O limite de pedidos por Pessoa (spec da F11, "Rota de Pedido") e a fila e a trava do Relatório
+    # em PDF (F14-T04), no mesmo Redis. Os tempos curtos fazem o Redis fora virar 503 bem antes do
+    # tempo limite do BFF.
+    redis = ArqRedis.from_url(
         settings.redis_url, socket_connect_timeout=1, socket_timeout=1
     )
 
     # O Banco de negócio, pelo usuário só leitura, e a auditoria no Banco dos agentes (F13-T04).
     business = build_business_store(settings, engine)
-    # A fila e a trava do Relatório em PDF, no mesmo Redis, com os mesmos tempos curtos (F14-T04).
-    reports = ArqRedis.from_url(
-        settings.redis_url, socket_connect_timeout=1, socket_timeout=1
-    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -86,7 +82,6 @@ def create_app(settings: Settings) -> FastAPI:
         await chat_api.close()
         await business.dispose()
         await redis.aclose()
-        await reports.aclose()
         await engine.dispose()
 
     if settings.adk_dev_routes:
@@ -122,7 +117,7 @@ def create_app(settings: Settings) -> FastAPI:
                 session_service=session_service,
                 chat_api=chat_api,
                 business=business,
-                reports=reports,
+                reports=redis,
             ),
             RequestRateLimiter(redis, settings.agent_requests_per_minute),
         )

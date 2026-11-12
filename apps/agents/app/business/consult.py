@@ -67,7 +67,7 @@ class Params:
     filter_name: str | None
 
 
-def _period(start: str | None, end: str | None) -> Period | str:
+def parse_period(start: str | None, end: str | None) -> Period | str:
     try:
         period = Period(date.fromisoformat(start or ""), date.fromisoformat(end or ""))
     except ValueError:
@@ -94,12 +94,12 @@ def parse_params(
         }
     if bruto and metrica != "faturamento":
         return {"erro": "`bruto` só vale para o faturamento."}
-    period = _period(inicio, fim)
+    period = parse_period(inicio, fim)
     if isinstance(period, str):
         return {"erro": period}
     compared = None
     if comparar_inicio or comparar_fim:
-        compared = _period(comparar_inicio, comparar_fim)
+        compared = parse_period(comparar_inicio, comparar_fim)
         if isinstance(compared, str):
             return {"erro": f"Comparação: {compared}"}
     name = (filtro_nome or "").strip() or None

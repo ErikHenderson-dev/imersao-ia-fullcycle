@@ -49,9 +49,7 @@ REQUEST_GONE = frozenset({404, 409, 410})
 # ferramenta delegou a Tarefa e gravou a confirmação (F12-T01); business: a ferramenta de consulta
 # gravou a resposta (F13-T04); report: a ferramenta do Relatório gravou o aviso ou a recusa
 # (F14-T04); failed: gravou o "não consegui"; discarded: nada foi gravado.
-Outcome = Literal[
-    "reply", "question", "task", "business", "report", "failed", "discarded"
-]
+Outcome = Literal["reply", "failed", "discarded"] | context.AnsweredBy
 
 
 @dataclass(frozen=True)

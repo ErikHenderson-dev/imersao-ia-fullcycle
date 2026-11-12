@@ -8,22 +8,14 @@ mesmos dias antes dele. O fim depois de hoje é cortado em hoje. Tudo em datas d
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import date, timedelta
 
 from app.business.catalog import Period
 
 
-def _month_start(day: date) -> date:
-    return day.replace(day=1)
-
-
-def _quarter_start(day: date) -> date:
-    return date(day.year, (day.month - 1) // 3 * 3 + 1, 1)
-
-
-def _year_start(day: date) -> date:
-    return date(day.year, 1, 1)
+def _unit_start(day: date, months: int) -> date:
+    """O início do mês, do trimestre ou do ano (`months` 1, 3 ou 12) que contém o dia."""
+    return date(day.year, (day.month - 1) // months * months + 1, 1)
 
 
 def _add_months(day: date, months: int) -> date:
@@ -31,12 +23,8 @@ def _add_months(day: date, months: int) -> date:
     return date(index // 12, index % 12 + 1, 1)
 
 
-# Cada unidade: o início dela para um dia e quantos meses ela tem.
-UNITS: tuple[tuple[Callable[[date], date], int], ...] = (
-    (_month_start, 1),
-    (_quarter_start, 3),
-    (_year_start, 12),
-)
+# O mês, o trimestre e o ano, pelo número de meses.
+UNITS = (1, 3, 12)
 
 
 def report_periods(start: date, end: date, today: date) -> tuple[Period, Period]:
@@ -44,8 +32,8 @@ def report_periods(start: date, end: date, today: date) -> tuple[Period, Period]
     in_progress = end >= today
     period = Period(start, min(end, today))
     days = (period.end - period.start).days + 1
-    for unit_start, months in UNITS:
-        if unit_start(start) != start:
+    for months in UNITS:
+        if _unit_start(start, months) != start:
             continue
         unit_end = _add_months(start, months) - timedelta(days=1)
         # Inteira só se nada foi cortado; pedida até o fim, mas em andamento, conta como em andamento.
