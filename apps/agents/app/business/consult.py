@@ -113,7 +113,8 @@ async def consult(
     text = answer_text(
         metrica, period, query.window, value, store.time_zone.key, gross=bruto
     )
-    if not has_lastro(text, allowed_numbers([value], period, query.window)):
+    allowed = allowed_numbers([value], period, query.window, store.time_zone.key)
+    if not has_lastro(text, allowed):
         return await finish(
             "lastro_blocked", NAO_CONSEGUI_RESPONDER, sql=sql, business_data=False
         )

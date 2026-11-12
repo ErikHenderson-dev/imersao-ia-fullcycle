@@ -28,7 +28,7 @@ def test_aceita_o_texto_da_resposta() -> None:
     value = Decimal("1234567.89")
     text = answer_text("faturamento", MARCH, MARCH, value, TZ)
 
-    assert has_lastro(text, allowed_numbers([value], MARCH, MARCH))
+    assert has_lastro(text, allowed_numbers([value], MARCH, MARCH, TZ))
 
 
 def test_recusa_um_numero_sem_lastro() -> None:
@@ -38,4 +38,11 @@ def test_recusa_um_numero_sem_lastro() -> None:
         + " Em fevereiro foi R$ 1.100.000,00."
     )
 
-    assert not has_lastro(text, allowed_numbers([value], MARCH, MARCH))
+    assert not has_lastro(text, allowed_numbers([value], MARCH, MARCH, TZ))
+
+
+def test_aceita_o_fuso_com_numeros_no_nome() -> None:
+    value = Decimal("1234567.89")
+    text = answer_text("faturamento", MARCH, MARCH, value, "Etc/GMT+3")
+
+    assert has_lastro(text, allowed_numbers([value], MARCH, MARCH, "Etc/GMT+3"))

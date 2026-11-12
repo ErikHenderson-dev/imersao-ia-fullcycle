@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.business.catalog import Period
+from app.business.lastro import numbers_in
 
 NAO_CONSEGUI_RESPONDER = "Não consegui responder."
 SEM_PERMISSAO = "Você não tem acesso a dados de negócio. Peça a permissão a quem opera a instalação."
@@ -183,10 +184,15 @@ def answer_text(
 
 
 def allowed_numbers(
-    values: Iterable[Decimal | int | None], period: Period, window: Period
+    values: Iterable[Decimal | int | None],
+    period: Period,
+    window: Period,
+    time_zone: str,
 ) -> set[Decimal]:
-    """O lastro da resposta: os valores do resultado e o dia, o mês e o ano das datas citadas."""
+    """O lastro da resposta: os valores do resultado, o dia, o mês e o ano das datas citadas e os
+    números do nome do fuso (`Etc/GMT+3`), que a linha do que foi considerado cita."""
     allowed = {Decimal(value) for value in values if value is not None}
+    allowed |= {abs(number) for number in numbers_in(time_zone)}
     for day in (period.start, period.end, window.start, window.end):
         allowed |= {Decimal(day.day), Decimal(day.month), Decimal(day.year)}
     return allowed
