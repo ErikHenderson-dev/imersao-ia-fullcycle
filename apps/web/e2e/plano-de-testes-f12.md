@@ -60,3 +60,14 @@ antes da delegação: o evento que chega no reenvio da reconexão não alerta.
    delegada a si mesma em destaque pelo link, com o foco nela; o axe nos temas claro e escuro, depois
    das transições de cor.
 2. **A aba Todas com Notificações de Tarefa sem violações nos dois temas.**
+
+## F12-T06 · Medição (`medicao/delegacao-p95.medicao.ts`)
+
+Fora da suíte, com `npx playwright test --config playwright.medicao.config.ts`, e com o modelo real.
+Segura o `agentsLock`, cria o bot `assistente` se ele não existe, conecta o `assistente` e devolve o
+estado no fim.
+
+1. **p95 da delegação de Tarefa:** em cada uma das 20 amostras, um Canal novo com a Ana e o Bruno; a
+   Ana envia "@assistente delega pra @bruno <tarefa>", e o tempo vai do envio até a confirmação do
+   Agente aparecer na aba dela. Imprime uma linha JSON por amostra e o p50 e o p95 no fim. O
+   resultado fica em `medicao-p95.md`, na pasta da F12-T06.

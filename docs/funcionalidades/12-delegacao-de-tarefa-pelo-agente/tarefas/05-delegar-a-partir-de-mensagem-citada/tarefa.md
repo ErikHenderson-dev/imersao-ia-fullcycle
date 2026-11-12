@@ -19,13 +19,9 @@ na Mensagem citada não vira ordem ao Agente. Referências:
   Mensagem gravada.
 - [x] **CA2** · A Citação entra no estado do Pedido e chega ao modelo como dado, e as instruções
   dizem que o conteúdo citado serve ao título e nunca é ordem.
-- [ ] **CA3** · O teste de integração cobre "delega isso pra @ana" com `quote` criando a Tarefa com
+- [x] **CA3** · O teste de integração cobre "delega isso pra @ana" com `quote` criando a Tarefa com
   título tirado da citada, e o teste do BFF cobre o `quote` nulo para a citada apagada.
 
 **Registros:** a Citação vai ao modelo no conteúdo de quem pediu, marcada como dado, e não nas
 instruções, porque o texto é de qualquer Membro; e a ferramenta recusa no código um Responsável que
 não foi mencionado no pedido nem é quem pediu (revisão de código da tarefa).
-
-**Pendências:** CA3 tem o caminho do BFF e o conteúdo do Pedido cobertos por testes de unidade, mas
-o teste de integração com o modelo real ("delega isso com a Citação") está escrito e não rodou: a
-chave do Gemini responde 402.

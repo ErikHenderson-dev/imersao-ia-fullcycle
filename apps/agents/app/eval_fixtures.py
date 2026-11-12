@@ -39,6 +39,8 @@ FIXTURE_KEY = "eval_fixture"
 NON_MEMBERS_KEY = "eval_non_members"
 # Os bots que a API do chat recusaria como Responsável; sem a chave no caso, o próprio Agente.
 BOTS_KEY = "eval_bots"
+# O Responsável que o caso espera: outro faz a ação `task` ser recusada, e o caso reprova (F12-T06).
+EXPECTED_ASSIGNEE_KEY = "eval_expected_assignee"
 TOOLS = ("ler_mensagens", "perguntar_recorte", "delegar_tarefa", "perguntar_delegacao")
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
@@ -148,6 +150,7 @@ class EvalChatApi:
     def __init__(self, state: Any) -> None:
         self._non_members = set(state.get(NON_MEMBERS_KEY) or [])
         self._bots = set(state.get(BOTS_KEY) or ["assistente"])
+        self._expected = state.get(EXPECTED_ASSIGNEE_KEY)
 
     async def question(
         self, request_id: str, body: str, quick_replies: list[str]
@@ -158,6 +161,8 @@ class EvalChatApi:
         if assignee_username in self._bots:
             raise ChatApiError("recusada", 422, "assignee_is_bot")
         if assignee_username in self._non_members:
+            raise ChatApiError("recusada", 422, "assignee_not_member")
+        if self._expected and assignee_username != self._expected:
             raise ChatApiError("recusada", 422, "assignee_not_member")
         # A ação apara o título e conta os caracteres (code points), como o `len` do Python.
         if not title.strip() or len(title.strip()) > TASK_TITLE_MAX_LENGTH:

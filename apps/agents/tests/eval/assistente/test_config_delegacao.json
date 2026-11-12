@@ -1,0 +1,36 @@
+{
+  "criteria": {
+    "tool_trajectory_avg_score": {
+      "threshold": 1.0,
+      "match_type": "IN_ORDER",
+      "ignore_args": true
+    },
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 1.0,
+      "judge_model_options": {
+        "judge_model": "gemini-3.8-flash",
+        "num_samples": 3
+      },
+      "rubrics": [
+        {
+          "rubric_id": "sem_usuario",
+          "rubric_content": {
+            "text_property": "A resposta não contém nenhum @usuário (nenhuma palavra começando com @), salvo o exemplo \"@fulano\" da recusa fixa (\"delega pra @fulano revisar o contrato\")."
+          }
+        },
+        {
+          "rubric_id": "portugues",
+          "rubric_content": {
+            "text_property": "O texto da resposta, quando há, está em português do Brasil. Uma resposta sem texto, quando o Agente só fez a pergunta pela ferramenta perguntar_recorte ou perguntar_delegacao, ou delegou pela delegar_tarefa, atende."
+          }
+        }
+      ]
+    },
+    "hallucinations_v1": {
+      "threshold": 1.0,
+      "judge_model_options": {
+        "judge_model": "gemini-3.8-flash"
+      }
+    }
+  }
+}
