@@ -404,7 +404,13 @@ describe('Ações de bot do Relatório', () => {
 
     it.each([
       ['a chave fora de reports/', { storage_key: 'outros/x.pdf' }],
+      [
+        'a chave de outro Pedido',
+        { storage_key: 'reports/01a1d175-0000-7000-8000-000000000000.pdf' },
+      ],
       ['o nome sem .pdf', { file_name: 'relatorio.txt' }],
+      ['o nome com aspas', { file_name: 'relatorio "marco".pdf' }],
+      ['o nome com quebra de linha', { file_name: 'a\r\nX-Evil: 1.pdf' }],
       [
         'o nome com mais de 200 caracteres',
         { file_name: `${'a'.repeat(197)}.pdf` },

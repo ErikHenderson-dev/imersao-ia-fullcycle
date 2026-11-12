@@ -1,11 +1,13 @@
 import { getMessageReportUrl } from "@/app/services/chat-api";
 import { readSessionToken } from "@/app/services/session-cookie";
+import { loginPath } from "@/app/utils/return-path";
 
 // O download do PDF do Relatório (spec da F14, "Cliente (web)"): o link do ReportCard chega aqui, a
 // API confere a Permissão de dados no clique, e a URL assinada só vai no 302, nunca no HTML.
 export async function GET(request: Request, { params }: RouteContext<"/api/messages/[id]/report">) {
+  const { id } = await params;
   const token = await readSessionToken();
-  const result = token ? await getMessageReportUrl(token, (await params).id) : { kind: "unauthenticated" as const };
+  const result = token ? await getMessageReportUrl(token, id) : { kind: "unauthenticated" as const };
   switch (result.kind) {
     case "ok":
       return new Response(null, {
@@ -13,7 +15,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/messa
         headers: { location: result.url, "cache-control": "no-store" },
       });
     case "unauthenticated":
-      return Response.redirect(new URL("/login", request.url), 302);
+      // Entra e volta ao download.
+      return Response.redirect(new URL(loginPath(`/api/messages/${encodeURIComponent(id)}/report`), request.url), 302);
     case "forbidden":
       return errorPage(403, "Você não tem permissão para baixar este relatório.");
     case "not_found":

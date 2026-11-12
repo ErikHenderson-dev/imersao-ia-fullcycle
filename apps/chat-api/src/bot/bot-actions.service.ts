@@ -24,6 +24,7 @@ import { partiesOf } from '../tasks/task.entity';
 import { notificationFor, toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
+import { ReportKeyMismatchError } from './report-key-mismatch.error';
 
 // As ações do bot na Conversa, sempre dentro de um Pedido real (ADR 0011; spec da F11, "Rotas do bot
 // e credencial"): a Conversa e o bot vêm do Pedido, e nunca de quem chama.
@@ -269,6 +270,9 @@ export class BotActionsService {
       requestId,
       actionType,
       async (request) => {
+        if (report && report.storageKey !== reportStorageKey(request.id)) {
+          throw new ReportKeyMismatchError();
+        }
         const [{ username }] = await this.people.findByIds([
           request.requesterId,
         ]);
@@ -329,6 +333,11 @@ export class BotActionsService {
     );
     return { message: written.message, written };
   }
+}
+
+// A chave do PDF de um Pedido no armazenamento de objetos (spec da F14, "Armazenamento").
+function reportStorageKey(requestId: string): string {
+  return `reports/${requestId}.pdf`;
 }
 
 // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
