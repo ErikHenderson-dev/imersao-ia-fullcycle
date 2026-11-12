@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/button";
@@ -39,28 +39,16 @@ export function TaskItem({ task, role, timeZone, highlighted, updating, onChange
         tabIndex={highlighted ? -1 : undefined}
         data-highlighted={highlighted || undefined}
         className={cn(
-          "flex items-start gap-3 border-b border-border-subtle px-5 py-3",
+          "flex items-center gap-3 border-b border-border-subtle px-5 py-3",
           highlighted && "border-l-4 border-l-highlight-border bg-highlight-bg",
         )}
       >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className={cn("min-w-0 flex-1 truncate text-body font-bold", isDone ? "text-fg-muted" : "text-fg")}>
-              {task.title}
-            </span>
-            <span
-              className={cn(
-                "flex shrink-0 items-center gap-1 rounded-pill bg-surface-inset px-2 text-caption font-bold",
-                isDone ? "text-success" : "text-fg-muted",
-              )}
-            >
-              {isDone && <Check size={12} aria-hidden />}
-              {isDone ? "Concluída" : "Aberta"}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-2 text-small text-fg-muted">
+          <span className={cn("truncate text-body font-bold", isDone ? "text-fg-muted" : "text-fg")}>
+            {task.title}
+          </span>
+          <div className="flex flex-wrap items-center gap-x-2 text-caption text-fg-muted">
             <span>{person}</span>
-            <span aria-hidden>·</span>
             {task.triggerMessage.deleted ? (
               <Link href={conversationHref(task.conversation)} className="hover:text-link-hover hover:underline">
                 {taskConversationLabel(task)}
@@ -68,11 +56,9 @@ export function TaskItem({ task, role, timeZone, highlighted, updating, onChange
             ) : (
               <span>{taskConversationLabel(task)}</span>
             )}
-            <span aria-hidden>·</span>
             <span suppressHydrationWarning>{taskDate(task.createdAt, timeZone)}</span>
-            <span aria-hidden>·</span>
             {task.triggerMessage.deleted ? (
-              <span className="italic">Mensagem apagada</span>
+              <span className="text-small italic">Mensagem apagada</span>
             ) : (
               <Link
                 href={messageHref(task.conversation.id, task.triggerMessage.id)}
@@ -84,8 +70,23 @@ export function TaskItem({ task, role, timeZone, highlighted, updating, onChange
             )}
           </div>
         </div>
+        <span
+          className={cn(
+            "flex shrink-0 items-center gap-1 rounded-pill bg-surface-inset px-2 py-0.5 text-caption font-bold",
+            isDone ? "text-success" : "text-fg-muted",
+          )}
+        >
+          {isDone && <Check size={16} aria-hidden />}
+          {isDone ? "Concluída" : "Aberta"}
+        </span>
         {role === "assigned" && (
-          <Button variant="secondary" size="sm" loading={updating} onClick={() => onChangeStatus(task)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={isDone ? RotateCcw : Check}
+            loading={updating}
+            onClick={() => onChangeStatus(task)}
+          >
             {isDone ? "Reabrir" : "Concluir"}
           </Button>
         )}
