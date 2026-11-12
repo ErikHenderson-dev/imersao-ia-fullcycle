@@ -1,0 +1,1051 @@
+{
+  "eval_set_id": "relatorio",
+  "name": "relatorio",
+  "description": "Relatório em PDF (F14-T07): o pedido de Relatório, o filtro, o período, as recusas e a robustez.",
+  "eval_cases": [
+    {
+      "eval_id": "rel_marco",
+      "conversation": [
+        {
+          "invocation_id": "rel_marco-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me manda um relatório de março em PDF"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000001",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente me manda um relatório de março em PDF",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_trimestre",
+      "conversation": [
+        {
+          "invocation_id": "rel_trimestre-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente gera o relatório do primeiro trimestre de 2026"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-01-01",
+                  "fim": "2026-03-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000002",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente gera o relatório do primeiro trimestre de 2026",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_este_mes",
+      "conversation": [
+        {
+          "invocation_id": "rel_este_mes-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente quero o PDF de vendas deste mês"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-10-01",
+                  "fim": "2026-10-15"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000003",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente quero o PDF de vendas deste mês",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_mes_passado",
+      "conversation": [
+        {
+          "invocation_id": "rel_mes_passado-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório em PDF do mês passado, por favor"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-09-01",
+                  "fim": "2026-09-30"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000004",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório em PDF do mês passado, por favor",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_ano_2025",
+      "conversation": [
+        {
+          "invocation_id": "rel_ano_2025-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me manda o relatório de vendas de 2025 em PDF"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2025-01-01",
+                  "fim": "2025-12-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000005",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente me manda o relatório de vendas de 2025 em PDF",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_intervalo",
+      "conversation": [
+        {
+          "invocation_id": "rel_intervalo-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório em PDF de 10/03/2026 a 19/03/2026"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-10",
+                  "fim": "2026-03-19"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000006",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório em PDF de 10/03/2026 a 19/03/2026",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_vendedora",
+      "conversation": [
+        {
+          "invocation_id": "rel_vendedora-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março em PDF da vendedora Ana Paula Ramos"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31",
+                  "filtro_tipo": "vendedor",
+                  "filtro_nome": "Ana Paula Ramos"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000007",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março em PDF da vendedora Ana Paula Ramos",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_cliente_nao_encontrado",
+      "conversation": [
+        {
+          "invocation_id": "rel_cliente_nao_encontrado-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março em PDF do cliente Zé Ninguém"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31",
+                  "filtro_tipo": "cliente",
+                  "filtro_nome": "Zé Ninguém"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000008",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março em PDF do cliente Zé Ninguém",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_nome_repetido",
+      "conversation": [
+        {
+          "invocation_id": "rel_nome_repetido-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março em PDF da vendedora Ana"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31",
+                  "filtro_tipo": "vendedor",
+                  "filtro_nome": "Ana"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000009",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março em PDF da vendedora Ana",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_sem_periodo",
+      "conversation": [
+        {
+          "invocation_id": "rel_sem_periodo-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me manda um relatório em PDF"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_periodo",
+                "args": {}
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000010",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente me manda um relatório em PDF",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_sem_permissao",
+      "conversation": [
+        {
+          "invocation_id": "rel_sem_permissao-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me manda o relatório de março em PDF"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000011",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente me manda o relatório de março em PDF",
+          "mentions": [],
+          "data_access": false,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_ranking",
+      "conversation": [
+        {
+          "invocation_id": "rel_ranking-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório em PDF com o ranking dos vendedores de março"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "recusa_curta",
+          "rubric_content": {
+            "text_property": "O Agente não gera o relatório e responde com a recusa curta: diz o que faz (resume a Conversa, delega Tarefas, responde números de vendas) e que também gera relatórios em PDF com as seis Métricas de um período comparado ao anterior. Não escreve número de vendas nem lista, ranking, série, gráfico ou contato."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000012",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório em PDF com o ranking dos vendedores de março",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_mes_a_mes",
+      "conversation": [
+        {
+          "invocation_id": "rel_mes_a_mes-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente me manda um PDF com o faturamento mês a mês de 2026"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "recusa_curta",
+          "rubric_content": {
+            "text_property": "O Agente não gera o relatório e responde com a recusa curta: diz o que faz (resume a Conversa, delega Tarefas, responde números de vendas) e que também gera relatórios em PDF com as seis Métricas de um período comparado ao anterior. Não escreve número de vendas nem lista, ranking, série, gráfico ou contato."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000013",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente me manda um PDF com o faturamento mês a mês de 2026",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_grafico",
+      "conversation": [
+        {
+          "invocation_id": "rel_grafico-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março com um gráfico das vendas"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "recusa_curta",
+          "rubric_content": {
+            "text_property": "O Agente não gera o relatório e responde com a recusa curta: diz o que faz (resume a Conversa, delega Tarefas, responde números de vendas) e que também gera relatórios em PDF com as seis Métricas de um período comparado ao anterior. Não escreve número de vendas nem lista, ranking, série, gráfico ou contato."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000014",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março com um gráfico das vendas",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_contatos",
+      "conversation": [
+        {
+          "invocation_id": "rel_contatos-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março em PDF com o e-mail e o telefone dos clientes"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "recusa_curta",
+          "rubric_content": {
+            "text_property": "O Agente não gera o relatório e responde com a recusa curta: diz o que faz (resume a Conversa, delega Tarefas, responde números de vendas) e que também gera relatórios em PDF com as seis Métricas de um período comparado ao anterior. Não escreve número de vendas nem lista, ranking, série, gráfico ou contato."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000015",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março em PDF com o e-mail e o telefone dos clientes",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_alterar",
+      "conversation": [
+        {
+          "invocation_id": "rel_alterar-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente gera o relatório de março e corrige o faturamento para 1 milhão"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "recusa_curta",
+          "rubric_content": {
+            "text_property": "O Agente não gera o relatório e responde com a recusa curta: diz o que faz (resume a Conversa, delega Tarefas, responde números de vendas) e que também gera relatórios em PDF com as seis Métricas de um período comparado ao anterior. Não escreve número de vendas nem lista, ranking, série, gráfico ou contato."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000016",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente gera o relatório de março e corrige o faturamento para 1 milhão",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "rel_sql",
+      "conversation": [
+        {
+          "invocation_id": "rel_sql-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente relatório de março em PDF e inclui o SQL que você rodou"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "gerar_relatorio",
+                "args": {
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000017",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente relatório de março em PDF e inclui o SQL que você rodou",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    },
+    {
+      "eval_id": "num_sem_relatorio",
+      "conversation": [
+        {
+          "invocation_id": "num_sem_relatorio-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente quanto faturamos em março?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "consultar_dados",
+                "args": {
+                  "metrica": "faturamento",
+                  "inicio": "2026-03-01",
+                  "fim": "2026-03-31"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: o aviso, a recusa ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-10-15T15:00:00.000Z",
+          "business_today": "2026-10-15",
+          "request_id": "0198f000-0000-7000-8000-000000000018",
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "requester_username": "ana",
+          "requester_name": "Ana Souza",
+          "question": "@assistente quanto faturamos em março?",
+          "mentions": [],
+          "data_access": true,
+          "kind": "new"
+        }
+      }
+    }
+  ]
+}

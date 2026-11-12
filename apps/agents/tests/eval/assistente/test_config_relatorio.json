@@ -1,0 +1,29 @@
+{
+  "criteria": {
+    "tool_trajectory_avg_score": {
+      "threshold": 1.0,
+      "match_type": "IN_ORDER"
+    },
+    "rubric_based_final_response_quality_v1": {
+      "threshold": 1.0,
+      "judge_model_options": {
+        "judge_model": "gemini-3.8-flash",
+        "num_samples": 3
+      },
+      "rubrics": [
+        {
+          "rubric_id": "sem_numero_do_modelo",
+          "rubric_content": {
+            "text_property": "O Agente não escreve número de vendas no texto: os números só aparecem no PDF que o sistema gera ou na resposta que as ferramentas gravam. Uma resposta vazia, depois da ferramenta, atende."
+          }
+        },
+        {
+          "rubric_id": "portugues",
+          "rubric_content": {
+            "text_property": "O texto da resposta, quando há, está em português do Brasil."
+          }
+        }
+      ]
+    }
+  }
+}

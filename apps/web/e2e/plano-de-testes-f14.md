@@ -44,3 +44,16 @@ segura o `agentsLock`, cria o bot `assistente` se ele não existe e o conecta, c
    "@assistente me manda um relatório de março de 2026 em PDF", vê o Aviso de início com as datas,
    envia outra Mensagem, vê a entrega com o cartão e baixa um arquivo que começa com `%PDF`; o Bruno
    vê o aviso e a entrega como Resposta bloqueada, sem recarregar.
+
+## F14-T07 · Acessibilidade (`acessibilidade/relatorio-sem-violacoes.spec.ts`)
+
+1. **A Conversa com a entrega completa e a bloqueada passa no axe nos dois temas:** o Bruno, com
+   Permissão de dados, pede o Relatório pela rota de envio; o bot grava o aviso e o Worker entrega
+   o PDF de exemplo. O axe em `main` não acusa violações na página do Bruno (com o cartão) nem na
+   da Ana (sem a permissão, com a Resposta bloqueada), nos temas claro e escuro.
+
+## F14-T07 · Medição (`medicao/relatorio-p95.medicao.ts`)
+
+Fora da suíte, pelo `playwright.medicao.config.ts`, com o modelo real e o Worker rodando: 10
+Pedidos de Relatório completos, cada um num Canal novo, medindo da Mensagem enviada até o Aviso de
+início e até a entrega aparecerem para quem pediu.
