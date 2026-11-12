@@ -459,3 +459,21 @@ async def test_o_nome_completo_responde_com_a_consulta_filtrada(
         "Considerado: pedidos pagos, vendedor Ana Paula Ramos, de 01/06/2026"
         in reply["body"]
     )
+
+
+async def test_a_comparacao_audita_as_duas_consultas(store: BusinessStore) -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    await consult(  # type: ignore[arg-type]
+        client,
+        store,
+        ctx,
+        "pedidos",
+        "2026-03-01",
+        "2026-03-31",
+        comparar_inicio="2026-02-01",
+        comparar_fim="2026-02-28",
+    )
+
+    [row] = await audit_of(store.agents, ctx.state[context.REQUEST_ID])
+    assert row["sql"].count("SELECT count(*)") == 2

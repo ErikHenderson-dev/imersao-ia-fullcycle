@@ -199,7 +199,8 @@ async def consult(
                 metrica, parsed.compared, store.time_zone, gross=bruto, filter=filter
             )
         )
-    sql = compiled_sql(queries[0].statement)
+    # A auditoria grava o SQL de cada consulta que roda, as duas na comparação.
+    sql = ";\n".join(compiled_sql(query.statement) for query in queries)
     try:
         values = [_value(metrica, await _run(store, query)) for query in queries]
     except Exception as error:
