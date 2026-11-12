@@ -30,11 +30,12 @@ QUESTION = "question"
 # `new` ou `continuation`: a continuação não pergunta de novo (F11-T07).
 KIND = "kind"
 # A ferramenta que já gravou o fim do Pedido, `{"pedido": id, "desfecho": "question" | "task" |
-# "business"}`: a pergunta com as Respostas prontas (F11-T07), a Tarefa com a confirmação (F12-T01)
-# ou a resposta da consulta a Dados de negócio (F13-T04). O Pedido termina sem outra `reply`.
+# "business" | "report"}`: a pergunta com as Respostas prontas (F11-T07), a Tarefa com a confirmação
+# (F12-T01), a resposta da consulta a Dados de negócio (F13-T04) ou o Aviso de início do Relatório
+# (F14-T04). O Pedido termina sem outra `reply`.
 ANSWERED_BY_TOOL = "respondido_pela_ferramenta"
 # O desfecho que a ferramenta gravou.
-AnsweredBy = Literal["question", "task", "business"]
+AnsweredBy = Literal["question", "task", "business", "report"]
 
 
 def mark_answered(tool_context: ToolContext, outcome: AnsweredBy) -> None:

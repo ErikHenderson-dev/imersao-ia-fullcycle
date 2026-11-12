@@ -7,6 +7,7 @@ validados, nunca texto do Pedido para consulta: o texto vai só para a auditoria
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
@@ -126,3 +127,10 @@ async def enqueue_report(queue: ArqRedis, job: ReportJob) -> bool:
         JOB_NAME, job.to_payload(), _job_id=job.request_id
     )
     return enqueued is not None
+
+
+# A fila e a trava do Pedido em execução, como o cliente da API do chat: o `execute` a define antes
+# de rodar o agente, e a ferramenta `gerar_relatorio` a lê.
+CURRENT_REPORTS: ContextVar[ArqRedis | None] = ContextVar(
+    "CURRENT_REPORTS", default=None
+)

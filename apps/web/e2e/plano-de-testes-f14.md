@@ -34,3 +34,13 @@ Como na T01, com o PDF de exemplo gravado no S3 do contêiner na chave do Pedido
 3. **O link do relatório responde 403 para quem não tem permissão e 404 sem relatório:** o Bruno
    abre `/api/messages/<id>/report` e vê "Você não tem permissão para baixar este relatório." (403);
    um id sem relatório mostra "Relatório não encontrado." (404).
+
+## F14-T04 · Pedir o Relatório ao Agente (`agentes/relatorio-pdf.spec.ts`)
+
+Com o modelo real, o Serviço de agentes e o Worker rodando e o Banco de negócio carregado. O teste
+segura o `agentsLock`, cria o bot `assistente` se ele não existe e o conecta, como na F13.
+
+1. **A Pessoa com permissão pede o Relatório, segue conversando e baixa o PDF:** a Ana pede
+   "@assistente me manda um relatório de março de 2026 em PDF", vê o Aviso de início com as datas,
+   envia outra Mensagem, vê a entrega com o cartão e baixa um arquivo que começa com `%PDF`; o Bruno
+   vê o aviso e a entrega como Resposta bloqueada, sem recarregar.

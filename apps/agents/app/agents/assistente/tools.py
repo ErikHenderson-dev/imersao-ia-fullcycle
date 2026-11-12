@@ -24,6 +24,8 @@ from app.agent_requests.task import delegate
 from app.business.consult import consult
 from app.business.db import CURRENT_BUSINESS
 from app.business.period_question import ask_period
+from app.business.report_queue import CURRENT_REPORTS
+from app.business.report_request import request_report
 from app.chat_api import CURRENT_CHAT_API
 
 FORA_DE_UM_PEDIDO = "A ferramenta só funciona dentro de um Pedido."
@@ -176,3 +178,26 @@ async def perguntar_periodo(tool_context: ToolContext) -> dict[str, Any]:
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}
     return await ask_period(client, tool_context)
+
+
+async def gerar_relatorio(
+    inicio: str, fim: str, tool_context: ToolContext
+) -> dict[str, Any]:
+    """Gera um Relatório de vendas em PDF de um período, com as seis Métricas do catálogo, o período
+    anterior e as variações, e grava na Conversa o aviso de que começou; o PDF chega depois, na
+    mesma Conversa. Use só quando o pedido pede relatório ou PDF. Depois dela, não escreva nada: o
+    aviso (ou a recusa) já está na Conversa.
+
+    Args:
+        inicio: O primeiro dia do período, em AAAA-MM-DD.
+        fim: O último dia do período, em AAAA-MM-DD (inclusive).
+
+    Returns:
+        A confirmação de que o aviso foi gravado, ou `erro` com o parâmetro a corrigir.
+    """
+    client = CURRENT_CHAT_API.get()
+    store = CURRENT_BUSINESS.get()
+    queue = CURRENT_REPORTS.get()
+    if client is None or store is None or queue is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await request_report(client, store, queue, tool_context, inicio, fim)

@@ -17,6 +17,7 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from arq import ArqRedis
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
@@ -74,6 +75,10 @@ def create_app(settings: Settings) -> FastAPI:
 
     # O Banco de negócio, pelo usuário só leitura, e a auditoria no Banco dos agentes (F13-T04).
     business = build_business_store(settings, engine)
+    # A fila e a trava do Relatório em PDF, no mesmo Redis, com os mesmos tempos curtos (F14-T04).
+    reports = ArqRedis.from_url(
+        settings.redis_url, socket_connect_timeout=1, socket_timeout=1
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
@@ -81,6 +86,7 @@ def create_app(settings: Settings) -> FastAPI:
         await chat_api.close()
         await business.dispose()
         await redis.aclose()
+        await reports.aclose()
         await engine.dispose()
 
     if settings.adk_dev_routes:
@@ -113,7 +119,10 @@ def create_app(settings: Settings) -> FastAPI:
         build_requests_router(
             catalog,
             ExecutionDeps(
-                session_service=session_service, chat_api=chat_api, business=business
+                session_service=session_service,
+                chat_api=chat_api,
+                business=business,
+                reports=reports,
             ),
             RequestRateLimiter(redis, settings.agent_requests_per_minute),
         )
