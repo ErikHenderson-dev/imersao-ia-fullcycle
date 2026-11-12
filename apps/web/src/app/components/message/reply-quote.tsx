@@ -3,7 +3,7 @@
 import { CornerUpLeft, Lock } from "lucide-react";
 import { useKnownPerson } from "@/app/components/people/people-provider";
 import type { Quote } from "@/app/services/chat-api";
-import { quoteDisplayText } from "@/app/utils/business-data";
+import { displayText } from "@/app/utils/business-data";
 
 // A Citação acima do texto da Mensagem (ReplyQuote; spec da F06, "Citação"): o nome do autor e o
 // começo do texto da original, numa linha, ou "Em resposta a uma mensagem apagada". A não apagada é
@@ -19,7 +19,7 @@ export function ReplyQuote({ quote, onGoTo }: { quote: Quote; onGoTo?: () => voi
     );
   }
   return (
-    <QuoteButton author={quote.author} body={quoteDisplayText(quote)} isBlocked={quote.blocked} onGoTo={onGoTo} />
+    <QuoteButton author={quote.author} body={displayText(quote)} isBlocked={quote.blocked} onGoTo={onGoTo} />
   );
 }
 

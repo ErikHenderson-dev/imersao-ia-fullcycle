@@ -59,11 +59,11 @@ describe('Dados de negócio na Mensagem', () => {
     return { ana, bruno, channel, bot, requestId };
   }
 
-  function replyWith(requestId: string, payload: object): request.Test {
-    return request(server)
-      .post(`/v1/bot/requests/${requestId}/reply`)
-      .set('Authorization', `Bearer ${TEST_BOT_TOKEN}`)
-      .send(payload);
+  function replyWith(
+    requestId: string,
+    { body, ...extra }: { body: unknown } & Record<string, unknown>,
+  ): request.Test {
+    return botRoutes.reply(app, requestId, body, TEST_BOT_TOKEN, extra);
   }
 
   async function markedAnswer(requestId: string): Promise<MessageBody> {

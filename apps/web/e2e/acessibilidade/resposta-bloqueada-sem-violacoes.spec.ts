@@ -1,7 +1,7 @@
 // spec: e2e/plano-de-testes-f13.md
 // seed: e2e/seed.spec.ts
-import AxeBuilder from "@axe-core/playwright";
 import { expect, logIn, test } from "../fixtures";
+import { expectNoViolationsInBothThemes } from "../support/accessibility";
 import { botReply, requestByApi } from "../support/bot";
 import { messageItem, readyHistory } from "../support/conversation-page";
 import { insertBot } from "../support/database";
@@ -25,14 +25,6 @@ test.describe("Acessibilidade", () => {
     await expect(messageItem(page, sharedChannel.name, NOTICE)).toBeVisible();
 
     // 2. A Conversa com a resposta completa e a bloqueada, nos dois temas
-    for (const theme of ["light", "dark"]) {
-      await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
-      // A troca de tema anima as cores (transition-colors): o axe mede o contraste depois.
-      await page.waitForFunction(() =>
-        document.getAnimations().every((a) => !(a instanceof CSSTransition) || a.playState !== "running"),
-      );
-      const results = await new AxeBuilder({ page }).include("main").analyze();
-      expect(results.violations).toEqual([]);
-    }
+    await expectNoViolationsInBothThemes(page);
   });
 });

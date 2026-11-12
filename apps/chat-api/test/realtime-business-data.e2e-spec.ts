@@ -57,10 +57,9 @@ describe('Dados de negócio em tempo real', () => {
       bot.username,
     );
     const reply = () =>
-      request(app.getHttpServer() as App)
-        .post(`/v1/bot/requests/${requestId}/reply`)
-        .set('Authorization', `Bearer ${TEST_BOT_TOKEN}`)
-        .send({ body: ANSWER, business_data: true });
+      botRoutes.reply(app, requestId, ANSWER, TEST_BOT_TOKEN, {
+        business_data: true,
+      });
     return { ana, bruno, channel, reply };
   }
 

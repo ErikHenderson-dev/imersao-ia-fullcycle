@@ -3,7 +3,7 @@
 import type { Page } from "@playwright/test";
 import { expect, logIn, test } from "../fixtures";
 import { botReply, requestByApi } from "../support/bot";
-import { messageItem, readyHistory } from "../support/conversation-page";
+import { messageItem, messageList, readyHistory } from "../support/conversation-page";
 import { insertBot, setDataAccessOf, type TestChannel, type TestPerson } from "../support/database";
 import { openSharedChannel, sendFromComposer } from "../support/realtime";
 
@@ -12,8 +12,7 @@ const NOTICE = "Resposta com dados de negócio. Você não tem permissão para v
 
 // A resposta do bot do teste: o item da lista com o nome dele.
 function botMessage(page: Page, channel: TestChannel, botName: string) {
-  return page
-    .getByRole("list", { name: `Mensagens em #${channel.name}` })
+  return messageList(page, channel.name)
     .getByRole("listitem")
     .filter({ has: page.getByRole("button", { name: botName, exact: true }) });
 }

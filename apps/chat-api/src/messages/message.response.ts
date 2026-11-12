@@ -63,13 +63,13 @@ export function toMessageResponse(
   };
 }
 
-// A carga da Mensagem muda de leitor para leitor quando ela ou a citada tem a marca.
-export function dependsOnReader(message: MessageView): boolean {
+// A Mensagem montada tem algo bloqueado: ela mesma ou a citada.
+export function hasBlockedContent(message: MessageResponse): boolean {
   return (
-    message.businessData ||
+    message.blocked ||
     (message.quote !== null &&
       !message.quote.deleted &&
-      message.quote.businessData)
+      !!message.quote.blocked)
   );
 }
 

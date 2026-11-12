@@ -1,11 +1,7 @@
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable, Logger } from '@nestjs/common';
-import type {
-  MentionPayload,
-  MessageAuthorPayload,
-  MessagePayload,
-} from 'chat-events';
+import type { MentionPayload, MessageAuthorPayload } from 'chat-events';
 import { randomUUIDv7 } from 'node:crypto';
 import { isUUID } from 'class-validator';
 import { In, IsNull, LessThan, Not, Repository } from 'typeorm';
@@ -27,7 +23,10 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { MembershipsService } from '../memberships/memberships.service';
 import { ActivityPublisher } from '../notifications/activity.publisher';
 import { PeopleService } from '../people/people.service';
-import { RealtimePublisher } from '../realtime/realtime.publisher';
+import {
+  type MessageForMembers,
+  RealtimePublisher,
+} from '../realtime/realtime.publisher';
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
 import { MessageMention } from './message-mention.entity';
@@ -37,7 +36,7 @@ import { MessageNotOwnedError } from './message-not-owned.error';
 import { QuotedMessageNotFoundError } from './quoted-message-not-found.error';
 import { UnreadPublisher } from './unread.publisher';
 import { KeyedSerialQueue } from '../common/queue/keyed-serial-queue';
-import { dependsOnReader, toMessageResponse } from './message.response';
+import { hasBlockedContent, toMessageResponse } from './message.response';
 
 // Quem escreveu a Mensagem, Pessoa ou bot (spec da F11, "Autor da Mensagem").
 export type MessageAuthor = MessageAuthorPayload;
@@ -459,13 +458,14 @@ export class MessagesService {
   private async payloadForMembers(
     message: MessageView,
     memberIds: string[],
-  ): Promise<MessagePayload | ((personId: string) => MessagePayload)> {
-    if (!dependsOnReader(message)) {
-      return toMessageResponse(message, { dataAccess: false });
-    }
-    const withAccess = await this.people.filterWithDataAccess(memberIds);
-    const full = toMessageResponse(message, { dataAccess: true });
+  ): Promise<MessageForMembers> {
     const blocked = toMessageResponse(message, { dataAccess: false });
+    // Nada bloqueado para quem não tem a permissão: a carga é a mesma para todos, sem leitura.
+    if (!hasBlockedContent(blocked)) return blocked;
+    const withAccess = await this.people.filterWithDataAccess(memberIds);
+    if (withAccess.size === 0) return blocked;
+    const full = toMessageResponse(message, { dataAccess: true });
+    if (withAccess.size === memberIds.length) return full;
     return (personId) => (withAccess.has(personId) ? full : blocked);
   }
 

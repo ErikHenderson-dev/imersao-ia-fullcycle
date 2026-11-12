@@ -76,15 +76,17 @@ export const botRoutes = {
   },
 
   // A resposta do bot ao Pedido, com a credencial de bot, ou com a que o teste passar.
+  // Os campos extras vão no corpo, como a marca `business_data` (spec da F13).
   reply(
     app: INestApplication,
     requestId: string,
     body: unknown,
     token: string | null = TEST_BOT_TOKEN,
+    extra: Record<string, unknown> = {},
   ): request.Test {
     const call = request(app.getHttpServer() as App)
       .post(`/v1/bot/requests/${requestId}/reply`)
-      .send({ body });
+      .send({ body, ...extra });
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
   },
 
