@@ -3,13 +3,10 @@
 import { readFile } from "node:fs/promises";
 import type { Page } from "@playwright/test";
 import { expect, logIn, test } from "../fixtures";
-import { BLOCKED_NOTICE, botReportStarted, REPORT_NOTICE, requestByApi, workerReportDelivered } from "../support/bot";
+import { BLOCKED_NOTICE, deliverReportByApi, REPORT_FILE_NAME as FILE_NAME } from "../support/bot";
 import { messageItem, messageList, readyHistory } from "../support/conversation-page";
 import { insertBot, setDataAccessOf, type TestChannel, type TestPerson } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
-import { putSamplePdf } from "../support/s3";
-
-const FILE_NAME = "relatorio-2026-03-01-a-2026-03-31.pdf";
 
 // A Ana (com Permissão de dados) e o Bruno (sem) no Canal; o bot do teste grava o aviso, o PDF de
 // exemplo vai para o S3 na chave do Pedido e o Worker entrega, pelas rotas, sem o modelo.
@@ -18,10 +15,7 @@ async function deliveredReport(page: Page, otherPage: Page, channel: TestChannel
   await setDataAccessOf(person.id, true);
   await logIn(page, person);
   await openSharedChannel(page, otherPage, channel, person, { history: 0 });
-  const requestId = await requestByApi(page, channel.id, bot.username);
-  await botReportStarted(requestId, REPORT_NOTICE);
-  const sizeBytes = await putSamplePdf(`reports/${requestId}.pdf`);
-  const delivery = await workerReportDelivered(requestId, { fileName: FILE_NAME, sizeBytes });
+  const delivery = await deliverReportByApi(page, channel.id, bot.username);
   return { bot, delivery };
 }
 

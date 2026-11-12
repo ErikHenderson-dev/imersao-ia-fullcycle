@@ -102,8 +102,7 @@ livre e não pode ser comparado por igualdade, então a trajetória confere só 
 ferramentas (`ignore_args`), e o Responsável e o título são conferidos pelo
 `rubric_based_tool_use_quality_v1`, com rubricas `TOOL_USE_QUALITY` por caso. O
 `eval_expected_assignee` do caso também faz a API do chat da avaliação recusar outro Responsável
-(F12-T06). A avaliação
-completa do `assistente` inclui os evalsets abaixo.
+(F12-T06).
 
 O terceiro, `dados.evalset.json`, com `test_config_dados.json`, cobre a consulta a Dados de negócio
 (F13-T07): `consultar_dados` e `perguntar_periodo` rodam de verdade, com o callback da avaliação

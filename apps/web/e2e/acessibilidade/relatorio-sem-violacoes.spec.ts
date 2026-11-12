@@ -2,12 +2,9 @@
 // seed: e2e/seed.spec.ts
 import { expect, logIn, test } from "../fixtures";
 import { expectNoViolationsInBothThemes } from "../support/accessibility";
-import { BLOCKED_NOTICE, botReportStarted, REPORT_NOTICE, requestByApi, workerReportDelivered } from "../support/bot";
+import { BLOCKED_NOTICE, deliverReportByApi, REPORT_FILE_NAME as FILE_NAME } from "../support/bot";
 import { messageItem, messageList, readyHistory } from "../support/conversation-page";
 import { insertBot, setDataAccessOf } from "../support/database";
-import { putSamplePdf } from "../support/s3";
-
-const FILE_NAME = "relatorio-2026-03-01-a-2026-03-31.pdf";
 
 test.describe("Acessibilidade", () => {
   test("a Conversa com a entrega completa e a bloqueada passa no axe nos dois temas", async ({
@@ -22,10 +19,7 @@ test.describe("Acessibilidade", () => {
     const bot = await insertBot("Relator");
     await setDataAccessOf(otherPerson.id, true);
     await otherPage.goto(`/conversas/${sharedChannel.id}`);
-    const requestId = await requestByApi(otherPage, sharedChannel.id, bot.username);
-    await botReportStarted(requestId, REPORT_NOTICE);
-    const sizeBytes = await putSamplePdf(`reports/${requestId}.pdf`);
-    await workerReportDelivered(requestId, { fileName: FILE_NAME, sizeBytes });
+    await deliverReportByApi(otherPage, sharedChannel.id, bot.username);
 
     // 2. A entrega completa, na página de quem tem a permissão, nos dois temas
     await readyHistory(otherPage, sharedChannel.name);

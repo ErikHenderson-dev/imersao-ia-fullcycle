@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { API, postMessageByApi } from "./chat-api";
+import { putSamplePdf } from "./s3";
 
 // Apoio para o teste agir como o bot de um Agente (spec da F11, "Decisões de teste"): o Pedido que o
 // envio criou é lido do banco (`latestAgentRequestOf`, em database.ts), e o bot age pelas rotas
@@ -116,4 +117,20 @@ export async function workerReportDelivered(
     process.env.CHAT_WORKER_TOKEN,
   );
   return result!.message;
+}
+
+// O nome do arquivo do Relatório de março de 2026 dos testes da F14.
+export const REPORT_FILE_NAME = "relatorio-2026-03-01-a-2026-03-31.pdf";
+
+// O Relatório entregue sem o modelo (F14-T02): o Pedido sai da página de quem pede, o bot grava o
+// aviso, o PDF de exemplo vai para o S3 na chave do Pedido e o Worker entrega. Devolve a entrega.
+export async function deliverReportByApi(
+  page: Page,
+  conversationId: string,
+  botUsername: string,
+): Promise<{ id: string; body: string }> {
+  const requestId = await requestByApi(page, conversationId, botUsername);
+  await botReportStarted(requestId, REPORT_NOTICE);
+  const sizeBytes = await putSamplePdf(`reports/${requestId}.pdf`);
+  return workerReportDelivered(requestId, { fileName: REPORT_FILE_NAME, sizeBytes });
 }

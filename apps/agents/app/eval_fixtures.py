@@ -211,31 +211,22 @@ class EvalChatApi:
 
 
 class EvalReportQueue:
-    """A fila e a trava do Relatório na avaliação, em memória (F14-T07): a trava está sempre livre,
-    e o job, em vez de ir ao Worker, fica no estado do caso."""
+    """A fila e a trava do Relatório na avaliação (F14-T07): cada caso é um Pedido só, então a trava
+    está sempre livre, e o job, em vez de ir ao Worker, fica no estado do caso."""
 
     def __init__(self, state: Any) -> None:
         self._state = state
-        self._keys: dict[str, str] = {}
 
-    async def set(self, key: str, value: str, **_: Any) -> bool:
-        if key in self._keys:
-            return False
-        self._keys[key] = value
+    async def set(self, *_: Any, **__: Any) -> bool:
         return True
 
-    async def get(self, key: str) -> str | None:
-        return self._keys.get(key)
+    async def get(self, _key: str) -> None:
+        return None
 
-    async def eval(self, _script: str, _count: int, key: str, value: str) -> int:
-        if self._keys.get(key) == value:
-            del self._keys[key]
-            return 1
+    async def eval(self, *_: Any) -> int:
         return 0
 
-    async def enqueue_job(
-        self, _name: str, payload: dict[str, Any], **_: Any
-    ) -> object:
+    async def enqueue_job(self, _name: str, payload: dict[str, Any], **_: Any) -> object:
         self._state[EVAL_REPORT_KEY] = payload
         return payload
 
