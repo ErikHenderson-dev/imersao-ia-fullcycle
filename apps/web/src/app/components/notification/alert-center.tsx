@@ -9,6 +9,7 @@ import { useRealtime } from "@/app/components/realtime/realtime-provider";
 import { useAnyTabFocused } from "@/app/hooks/use-any-tab-focused";
 import { useBrowserNotifications } from "@/app/hooks/use-browser-notifications";
 import { useTabFocus } from "@/app/hooks/use-tab-focus";
+import { displayText } from "@/app/utils/business-data";
 import { useNotificationItems } from "@/app/hooks/use-notification-items";
 import type { Message, Task } from "@/app/services/chat-api";
 import { markTaskNotificationOpened } from "@/app/services/task-notifications";
@@ -56,7 +57,7 @@ export function AlertCenter({ personId }: { personId: string }) {
       // mostra uma só. O clique traz esta aba para a frente na Mensagem.
       try {
         const notification = new Notification(notificationTitle(item), {
-          body: notificationPreview(message.body),
+          body: notificationPreview(displayText(message)),
           tag: message.id,
         });
         notification.onclick = () => {
@@ -72,7 +73,7 @@ export function AlertCenter({ personId }: { personId: string }) {
     }
     toast(notificationTitle(item), {
       id: message.id,
-      description: message.body,
+      description: displayText(message),
       duration: ALERT_DURATION_MS,
       action: {
         label: "Abrir",

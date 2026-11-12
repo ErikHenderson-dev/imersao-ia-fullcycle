@@ -41,7 +41,9 @@ export interface ActivityCounts {
 
 // As Menções à Pessoa `person.id` em Canais de que ela é Membro hoje, de outro autor e não
 // apagadas, a partir do índice de Menções por Pessoa e Mensagem. `member` é a participação, para a
-// Última leitura. Quem usa acrescenta o filtro de id em `mention.message_id`.
+// Última leitura. Quem usa acrescenta o filtro de id em `mention.message_id`. A Mensagem de bot
+// (autor Pessoa nulo) com Menção entra, pelo `IS DISTINCT FROM`: a entrega e a falha do Relatório
+// mencionam quem pediu (spec da F14, "Ações de bot do Relatório").
 const MENTIONS_OF_PERSON = `
     FROM message_mentions mention
     JOIN messages message ON message.id = mention.message_id
@@ -51,7 +53,7 @@ const MENTIONS_OF_PERSON = `
      AND member.person_id = mention.person_id
    WHERE mention.person_id = person.id
      AND conversation.kind <> 'direct'
-     AND message.author_person_id <> person.id
+     AND message.author_person_id IS DISTINCT FROM person.id
      AND message.deleted_at IS NULL`;
 
 // As Mensagens de outro autor, não apagadas, na Conversa direta `member` de `person.id`, pelo

@@ -7,6 +7,13 @@ import { conversationRoutes } from './conversation-routes';
 // A credencial de bot dos testes, fixada em test/support/test-env.ts.
 export const TEST_BOT_TOKEN = process.env.CHAT_BOT_TOKEN!;
 
+// A credencial do Worker dos testes, fixada em test/support/test-env.ts.
+export const TEST_WORKER_TOKEN = process.env.CHAT_WORKER_TOKEN!;
+
+// O texto do Aviso de início dos testes (spec da F14, "Ferramenta `gerar_relatorio`").
+export const REPORT_NOTICE =
+  'Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.';
+
 export interface AgentRequestRow {
   id: string;
   conversation_id: string;
@@ -98,6 +105,32 @@ export const botRoutes = {
   ): request.Test {
     const call = request(app.getHttpServer() as App).post(
       `/v1/bot/requests/${requestId}/typing`,
+    );
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // O Aviso de início do Relatório (spec da F14), com a credencial de bot, ou com a que o teste
+  // passar.
+  reportStarted(
+    app: INestApplication,
+    requestId: string,
+    body: unknown = REPORT_NOTICE,
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .post(`/v1/bot/requests/${requestId}/report-started`)
+      .send({ body });
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // A falha do Relatório (spec da F14), com a credencial do Worker, ou com a que o teste passar.
+  reportFailed(
+    app: INestApplication,
+    requestId: string,
+    token: string | null = TEST_WORKER_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App).post(
+      `/v1/bot/requests/${requestId}/report-failed`,
     );
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
   },

@@ -46,6 +46,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       # O apoio de bot dos testes da F11 age pelas rotas /v1/bot (support/bot.ts).
       CHAT_BOT_TOKEN: dev-chat-bot-token
+      # O apoio do Relatório da F14 age como o Worker na falha e na entrega (support/bot.ts).
+      CHAT_WORKER_TOKEN: dev-chat-worker-token
       PLAYWRIGHT_HTML_OPEN: never
       HOME: /tmp
     command: ["node", "e2e/support/port-forward.mjs"]
@@ -73,6 +75,9 @@ services:
       TEST_REDIS_URL: redis://redis:6379/1
       # Credencial de bot das rotas /v1/bot; segredo fixo, só de desenvolvimento, igual ao do agents.
       CHAT_BOT_TOKEN: dev-chat-bot-token
+      # Credencial do Worker, aceita só na entrega e na falha do Relatório (spec da F14); segredo fixo,
+      # só de desenvolvimento, igual ao do worker.
+      CHAT_WORKER_TOKEN: dev-chat-worker-token
     ports:
       - "3001:3000"
     depends_on:

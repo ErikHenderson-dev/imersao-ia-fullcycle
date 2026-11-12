@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitMessageBody } from "./message-segments";
+import { splitMentionsOnly, splitMessageBody } from "./message-segments";
 
 const ana = { id: "p1", username: "ana" };
 
@@ -47,5 +47,20 @@ describe("splitMessageBody", () => {
 
   it("sem a lista de Agentes, o @usuário de um Agente é texto", () => {
     expect(splitMessageBody("@assistente", [])).toEqual([{ kind: "text", text: "@assistente" }]);
+  });
+});
+
+describe("splitMentionsOnly", () => {
+  it("destaca a Menção do texto do Agente e deixa o link como texto", () => {
+    expect(
+      splitMentionsOnly("@ana, não consegui gerar o relatório. https://exemplo.com", [ana]),
+    ).toEqual([
+      { kind: "mention", text: "@ana", mention: ana },
+      { kind: "text", text: ", não consegui gerar o relatório. https://exemplo.com" },
+    ]);
+  });
+
+  it("sem Menções, devolve o texto inteiro", () => {
+    expect(splitMentionsOnly("@ana oi", [])).toEqual([{ kind: "text", text: "@ana oi" }]);
   });
 });

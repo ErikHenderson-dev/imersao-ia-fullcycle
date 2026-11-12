@@ -20,6 +20,7 @@ export type ErrorCode =
   | 'request_not_found'
   | 'request_closed'
   | 'request_expired'
+  | 'report_not_started'
   | 'assignee_not_member'
   | 'assignee_is_bot'
   | 'task_not_found'
@@ -48,6 +49,7 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   request_not_found: 404,
   request_closed: 409,
   request_expired: 410,
+  report_not_started: 409,
   assignee_not_member: 422,
   assignee_is_bot: 422,
   task_not_found: 404,

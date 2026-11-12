@@ -23,6 +23,9 @@ export const envSchema = z.object({
   // Credencial de bot que as rotas /v1/bot conferem (LLD, "Segurança"); o mesmo valor do Serviço
   // de agentes.
   CHAT_BOT_TOKEN: z.string().trim().min(1),
+  // Credencial do Worker de agentes, aceita só nas ações de entrega e de falha do Relatório (LLD,
+  // "Segurança"; spec da F14, "Ações de bot do Relatório").
+  CHAT_WORKER_TOKEN: z.string().trim().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

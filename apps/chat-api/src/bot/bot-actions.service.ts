@@ -2,10 +2,15 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
 import type { AgentRequest } from '../agent-requests/agent-request.entity';
-import type { BotActionType } from '../agent-requests/bot-action.entity';
+import {
+  REPORT_TERMINAL_ACTIONS,
+  type BotActionType,
+} from '../agent-requests/bot-action.entity';
+import { ReportNotStartedError } from '../agent-requests/report-not-started.error';
 import { RequestClosedError } from '../agent-requests/request-closed.error';
 import { PendingQuestionsService } from '../agent-requests/pending-questions.service';
 import { BotsService } from '../bots/bots.service';
+import { PeopleService } from '../people/people.service';
 import { MessagesService, toAuthor } from '../messages/messages.service';
 import type {
   BotReadFilter,
@@ -31,6 +36,7 @@ export class BotActionsService {
     private readonly realtime: RealtimePublisher,
     private readonly tasks: TasksService,
     private readonly activity: ActivityPublisher,
+    private readonly people: PeopleService,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -204,6 +210,52 @@ export class BotActionsService {
     return { task: view, message };
   }
 
+  // Grava o Aviso de início do Relatório, com a marca "dados de negócio", estende a validade do
+  // Pedido demorado e emite o fim do "digitando" (spec da F14, "Ações de bot do Relatório").
+  // Repetido, devolve o aviso já gravado, sem estender de novo.
+  async reportStarted(requestId: string, body: string): Promise<MessageView> {
+    const { message, written } = await this.once(
+      requestId,
+      'report_started',
+      async (request) => {
+        const inserted = await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+          { businessData: true },
+        );
+        await this.requests.extendForReport(request);
+        return { message: inserted };
+      },
+    );
+    if (written) this.announceAnswer(message);
+    return message;
+  }
+
+  // Grava o "não consegui gerar o relatório", com a marca e a Menção a quem pediu, que recebe a
+  // Notificação de Menção (spec da F14, "Ações de bot do Relatório"). O corpo é montado aqui, e não
+  // por quem chama, para a Menção ser sempre a quem pediu.
+  async reportFailed(requestId: string): Promise<MessageView> {
+    const { message, written } = await this.once(
+      requestId,
+      'report_failed',
+      async (request) => {
+        const [requester] = await this.people.findByIds([request.requesterId]);
+        const mention = { id: requester.id, username: requester.username };
+        return {
+          message: await this.messages.insertBotMessage(
+            request.botId,
+            request.conversationId,
+            `@${mention.username}, não consegui gerar o relatório.`,
+            { businessData: true, mentions: [mention] },
+          ),
+        };
+      },
+    );
+    if (written) this.announceAnswer(message);
+    return message;
+  }
+
   // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do
   // "digitando" do bot.
   private announceAnswer(message: MessageView): void {
@@ -218,7 +270,9 @@ export class BotActionsService {
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
   // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
   // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Uma ação de outro
-  // tipo num Pedido já respondido recebe `request_closed`.
+  // tipo num Pedido já respondido recebe `request_closed`, com a exceção do Pedido demorado: a
+  // entrega e a falha do Relatório só valem depois do Aviso de início, e só uma delas (spec da F14,
+  // "Ações de bot do Relatório").
   @Transactional()
   private async once<T extends { message: MessageView }>(
     requestId: string,
@@ -236,8 +290,16 @@ export class BotActionsService {
         written: null,
       };
     }
-    // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
-    if (await this.requests.hasAnswer(request.id)) {
+    if (REPORT_TERMINAL_ACTIONS.includes(actionType)) {
+      const recorded = await this.requests.findActionTypes(request.id);
+      if (!recorded.includes('report_started')) {
+        throw new ReportNotStartedError();
+      }
+      if (recorded.some((type) => REPORT_TERMINAL_ACTIONS.includes(type))) {
+        throw new RequestClosedError();
+      }
+    } else if (await this.requests.hasAnswer(request.id)) {
+      // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
       throw new RequestClosedError();
     }
     const written = await write(request);

@@ -7,7 +7,10 @@ import {
   AgentRequest,
   type AgentRequestClosedStatus,
 } from './agent-request.entity';
-import { AGENT_REQUEST_TTL_MS } from './agent-request-values';
+import {
+  AGENT_REQUEST_TTL_MS,
+  LONG_AGENT_REQUEST_TTL_MS,
+} from './agent-request-values';
 import { BotAction, BotActionType } from './bot-action.entity';
 import { RequestClosedError } from './request-closed.error';
 import { RequestExpiredError } from './request-expired.error';
@@ -109,6 +112,22 @@ export class AgentRequestsService {
   // já não está digitando (LLD, "Digitando").
   hasAnswer(requestId: string): Promise<boolean> {
     return this.actions.existsBy({ requestId });
+  }
+
+  // Os tipos de ação já gravados no Pedido.
+  async findActionTypes(requestId: string): Promise<BotActionType[]> {
+    const actions = await this.actions.findBy({ requestId });
+    return actions.map((action) => action.actionType);
+  }
+
+  // O Aviso de início estende a validade do Pedido demorado, contada a partir dele, para a entrega
+  // ou a falha poderem chegar minutos depois (spec da F14, "Ações de bot do Relatório"). Dentro da
+  // transação da ação, com o Pedido travado.
+  async extendForReport(request: AgentRequest): Promise<void> {
+    await this.requests.update(
+      { id: request.id },
+      { expiresAt: new Date(Date.now() + LONG_AGENT_REQUEST_TTL_MS) },
+    );
   }
 
   async recordAction(

@@ -301,9 +301,10 @@ export class MessagesService {
 
   // Grava a Mensagem de um bot na Conversa de um Pedido (spec da F11, "Rotas do bot e
   // credencial"), dentro da transação de quem chama, que confere o Pedido e a ação. O bot não é
-  // Membro: não há Última leitura, Menção nem Citação.
+  // Membro: não há Última leitura nem Citação.
   // Na pergunta, os rótulos das Respostas prontas vão junto, e a Pergunta pendente que dá o resto do
-  // payload é gravada por quem chama.
+  // payload é gravada por quem chama. A Menção só vem de quem chama, já resolvida: a entrega e a
+  // falha do Relatório mencionam quem pediu (spec da F14, "Ações de bot do Relatório").
   async insertBotMessage(
     botId: string,
     conversationId: string,
@@ -311,7 +312,12 @@ export class MessagesService {
     {
       quickReplies = null,
       businessData = false,
-    }: { quickReplies?: string[] | null; businessData?: boolean } = {},
+      mentions = [],
+    }: {
+      quickReplies?: string[] | null;
+      businessData?: boolean;
+      mentions?: MentionView[];
+    } = {},
   ): Promise<MessageView> {
     const message = await this.messages.save(
       this.messages.create({
@@ -325,14 +331,24 @@ export class MessagesService {
         businessData,
       }),
     );
+    if (mentions.length > 0) {
+      await this.mentions.insert(
+        mentions.map((mention) => ({
+          id: randomUUIDv7(),
+          messageId: message.id,
+          personId: mention.id,
+        })),
+      );
+    }
     const [bot] = await this.bots.findByIds([botId]);
-    // Montada sem reler a linha: a Mensagem de bot não tem Menção nem Citação.
-    return toView(message, toAuthor('bot', bot), [], null);
+    // Montada sem reler a linha: a Mensagem de bot não tem Citação.
+    return toView(message, toAuthor('bot', bot), sortMentions(mentions), null);
   }
 
   // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos
-  // Membros. Sem Atividade, porque a Mensagem de bot nunca gera Notificação (spec da F11, "Autor da
-  // Mensagem"). A falha só vai para o log, como no envio.
+  // Membros e, quando ela menciona alguém, os números de Atividade de quem foi mencionado. A
+  // Mensagem de bot sem Menção não gera Notificação (spec da F11, "Autor da Mensagem"; spec da F14,
+  // "Ações de bot do Relatório"). A falha só vai para o log, como no envio.
   publishBotMessage(message: MessageView): void {
     const { conversationId } = message;
     this.queueForMessage(
@@ -340,7 +356,13 @@ export class MessagesService {
       this.toMembers(
         conversationId,
         async (memberIds) => {
-          await this.announceCreated(message, memberIds);
+          const { unread } = await this.announceCreated(message, memberIds);
+          if (message.mentions.length > 0) {
+            this.activityPublisher.publish(
+              message.mentions.map((mention) => mention.id),
+              unread,
+            );
+          }
         },
         'Falha ao publicar a Mensagem do bot',
       ),

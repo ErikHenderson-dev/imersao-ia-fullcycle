@@ -7,12 +7,18 @@ import { API, postMessageByApi } from "./chat-api";
 // teste age antes do Serviço de agentes, e a ação dele depois é a repetição, sem nova Mensagem
 // (bot_actions).
 
-// Uma ação do bot; o corpo da resposta, ou null no 204.
-async function botPost<T>(requestId: string, action: string, payload?: unknown): Promise<T | null> {
+// Uma ação do bot; o corpo da resposta, ou null no 204. Com `token`, age com outra credencial, como
+// a do Worker na falha do Relatório (F14-T01).
+async function botPost<T>(
+  requestId: string,
+  action: string,
+  payload?: unknown,
+  token = process.env.CHAT_BOT_TOKEN,
+): Promise<T | null> {
   const response = await fetch(`${API}/bot/requests/${requestId}/${action}`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${process.env.CHAT_BOT_TOKEN}`,
+      authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: payload === undefined ? undefined : JSON.stringify(payload),
@@ -72,4 +78,22 @@ export async function botTask(
     title,
   });
   return result!.task;
+}
+
+// O Aviso de início do Relatório, com a marca "dados de negócio" (F14-T01). Devolve a Mensagem.
+export async function botReportStarted(requestId: string, body: string): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(requestId, "report-started", { body });
+  return result!.message;
+}
+
+// O "não consegui gerar o relatório", gravado pelo Worker com a credencial dele (F14-T01). Devolve a
+// Mensagem, com a Menção a quem pediu.
+export async function workerReportFailed(requestId: string): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(
+    requestId,
+    "report-failed",
+    undefined,
+    process.env.CHAT_WORKER_TOKEN,
+  );
+  return result!.message;
 }

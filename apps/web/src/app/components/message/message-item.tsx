@@ -123,10 +123,10 @@ export function MessageItem({
       {message.blocked ? (
         <BlockedNotice />
       ) : message.author.kind === "bot" ? (
-        // O texto do Agente em blocos, sem Menção nem link, e as Respostas prontas da pergunta (spec
-        // da F11, "Cliente").
+        // O texto do Agente em blocos, sem link, com as Menções que a API resolveu (spec da F14,
+        // "Cliente (web)"), e as Respostas prontas da pergunta (spec da F11, "Cliente").
         <>
-          <AgentText text={message.body} />
+          <AgentText text={message.body} mentions={message.mentions} currentPersonId={currentPersonId} />
           {message.quickReplies && message.quickReplies.options.length > 0 && (
             <QuickReplies
               quickReplies={message.quickReplies}
