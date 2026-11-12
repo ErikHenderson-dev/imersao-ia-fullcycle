@@ -92,10 +92,12 @@ Cada agente tem uma pasta em `tests/eval/<agente>/`, com:
   `"apagada": true` fica fora da leitura e das contagens, como na rota de leitura do bot.
 
 O `assistente` tem um segundo evalset, `delegacao.evalset.json`, com os casos que chamam
-`delegar_tarefa`, e a configuração dele, `test_config_delegacao.json`, igual à outra com
-`ignore_args` na trajetória: o título da Tarefa é texto livre e não pode ser comparado por
-igualdade. O Responsável é conferido pelo `eval_expected_assignee` do caso, que faz a API do chat da
-avaliação recusar outro Responsável, e pela rubrica `responsavel_certo` (F12-T06). A avaliação
+`delegar_tarefa`, e a configuração dele, `test_config_delegacao.json`: o título da Tarefa é texto
+livre e não pode ser comparado por igualdade, então a trajetória confere só o nome e a ordem das
+ferramentas (`ignore_args`), e o Responsável e o título são conferidos pelo
+`rubric_based_tool_use_quality_v1`, com rubricas `TOOL_USE_QUALITY` por caso. O
+`eval_expected_assignee` do caso também faz a API do chat da avaliação recusar outro Responsável
+(F12-T06). A avaliação
 completa do `assistente` são os dois evalsets, cada um com a sua configuração.
 
 A avaliação chama o modelo e o juiz de verdade: ao iterar, rode só os casos que mudaram, com

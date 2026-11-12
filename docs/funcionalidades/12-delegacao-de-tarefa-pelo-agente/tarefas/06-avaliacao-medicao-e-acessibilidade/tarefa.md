@@ -29,12 +29,10 @@ novas passam na acessibilidade. Referências:
 - [ ] **CA6** · O roteiro manual registra a nota 100 de Acessibilidade do Lighthouse nos dois temas
   na aba Tarefas.
 
-**Registros:** [avaliacao.md](avaliacao.md) (43 de 43, com a conferência da delegação por
-`ignore_args` num evalset próprio, vista no código do ADK porque o MCP `adk-docs` não conectou),
+**Registros:** [avaliacao.md](avaliacao.md) (43 de 43, com a delegação num evalset próprio,
+conferida pelo `rubric_based_tool_use_quality_v1` que a documentação do ADK recomenda),
 [medicao-p95.md](medicao-p95.md) (p95 de 1,86 s), [validacao-visual.md](validacao-visual.md) e
 [roteiro-lighthouse.md](roteiro-lighthouse.md).
 
 **Pendências:**
 - **CA6:** dispensado pelo usuário em 2026-11-12, como na F11; o axe nos dois temas passa na aba Tarefas e na aba Todas (`e2e/acessibilidade/tarefas-sem-violacoes.spec.ts`), e o roteiro fica em `roteiro-lighthouse.md` para quando for rodado.
-- **CA1:** confirmar com o MCP `adk-docs`, quando ele conectar, que `ignore_args` num evalset próprio
-  é a forma recomendada.

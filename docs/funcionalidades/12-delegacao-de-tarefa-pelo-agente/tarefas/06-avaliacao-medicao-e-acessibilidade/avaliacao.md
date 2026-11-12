@@ -16,18 +16,27 @@ A primeira rodada, com todos os casos num evalset só, aprovou 30 de 43: os 13 c
 `delegar_tarefa` reprovaram só no critério de trajetória, com o Responsável certo e as rubricas
 aprovadas. O `tool_trajectory_avg_score` compara todos os argumentos, e o `titulo` é texto livre.
 
-O MCP `adk-docs` não conectou nesta sessão. A opção do critério foi conferida no código do ADK
-instalado (`google/adk/evaluation/trajectory_evaluator.py`): o critério aceita `ignore_args`, que
-vale para a configuração inteira. Como os casos de resumo dependem da comparação exata do Recorte,
-os casos de delegação foram para um evalset próprio, com `ignore_args` na configuração dele. O
-Responsável continua conferido exatamente: a API do chat da avaliação (`EvalChatApi`) recusa a ação
-`task` com outro Responsável que não o `eval_expected_assignee` do caso, e a rubrica
-`responsavel_certo` de cada caso confere a chamada; o título é conferido pela rubrica `titulo_fiel`.
-Falta confirmar com o MCP `adk-docs` que `ignore_args` é a forma recomendada.
+A documentação do ADK (MCP `adk-docs`, "Evaluation Criteria") recomenda o critério
+`rubric_based_tool_use_quality_v1` para avaliar se o agente chamou a ferramenta certa com os
+parâmetros certos, com rubricas por caso do tipo `TOOL_USE_QUALITY`. Os casos de delegação ficam num
+evalset próprio, com a configuração `test_config_delegacao.json`:
+
+- `rubric_based_tool_use_quality_v1`, com a rubrica `responsavel_certo` (a chamada a `delegar_tarefa`
+  com o Responsável do caso) e `titulo_fiel` (o título só com o que está no pedido) em cada caso, e
+  a rubrica geral `ferramenta_da_delegacao`, porque a lista efetiva não pode ficar vazia;
+- `tool_trajectory_avg_score` com `ignore_args`, que confere o nome e a ordem das ferramentas sem os
+  argumentos. A opção existe no código do ADK instalado
+  (`google/adk/evaluation/trajectory_evaluator.py`), mas a página de critérios não a cita;
+- a API do chat da avaliação (`EvalChatApi`) recusa a ação `task` com outro Responsável que não o
+  `eval_expected_assignee` do caso, o que faz o caso reprovar.
+
+Os casos de resumo e de pergunta continuam no evalset de antes, com a comparação exata dos
+argumentos (Recorte, `falta` e `candidatos`).
 
 A segunda rodada aprovou 10 de 13 na delegação: a rubrica `responsavel_certo` valia também para a
 primeira vez dos casos de duas rodadas, que só pergunta. Com o texto da rubrica valendo só na vez em
-que o Agente delega, os três casos passaram.
+que o Agente delega, os três casos passaram. Com as rubricas de título e Responsável no critério de
+uso de ferramenta, a terceira rodada aprovou os 13.
 
 ## Custo
 

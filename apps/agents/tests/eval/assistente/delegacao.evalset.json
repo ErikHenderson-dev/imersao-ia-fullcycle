@@ -39,7 +39,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"revisar o login\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -53,7 +53,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -112,7 +112,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"revisar o contrato\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -126,7 +126,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -185,7 +185,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"atualizar a documentação da API\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -199,7 +199,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -258,7 +258,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"publicar a versão nova em staging\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -272,7 +272,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -345,7 +345,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"carla\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -404,7 +404,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"revisar o roteiro da demo amanhã\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres. O prazo \"amanhã\" aparece no título, como texto."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -418,7 +418,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"ana\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -514,7 +514,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -619,7 +619,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"carla\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -699,7 +699,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"carla\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -848,7 +848,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"ana\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -907,7 +907,7 @@
           "rubric_content": {
             "text_property": "Na chamada de delegar_tarefa, o titulo diz o que fazer com o sentido de \"revisar o PR do login\", só com o que está no pedido (e na Mensagem citada, quando há), sem detalhe, motivo ou qualificação acrescentados, sem @usuário e sem nome de Pessoa, em até 120 caracteres."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         },
         {
           "rubric_id": "sem_texto",
@@ -921,7 +921,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"bruno\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {
@@ -1024,7 +1024,7 @@
           "rubric_content": {
             "text_property": "Na vez em que o Agente delega, ele chama delegar_tarefa com responsavel \"ana\" e não responde com uma recusa nem com \"não consegui\". Numa vez em que ele só faz uma pergunta (perguntar_delegacao ou perguntar_recorte), a propriedade é atendida."
           },
-          "type": "FINAL_RESPONSE_QUALITY"
+          "type": "TOOL_USE_QUALITY"
         }
       ],
       "session_input": {

@@ -31,6 +31,21 @@
       "judge_model_options": {
         "judge_model": "gemini-3.8-flash"
       }
+    },
+    "rubric_based_tool_use_quality_v1": {
+      "threshold": 1.0,
+      "judge_model_options": {
+        "judge_model": "gemini-3.8-flash",
+        "num_samples": 3
+      },
+      "rubrics": [
+        {
+          "rubric_id": "ferramenta_da_delegacao",
+          "rubric_content": {
+            "text_property": "Num pedido de delegação, o Agente usa delegar_tarefa (ou perguntar_delegacao, quando falta algo) e não lê as Mensagens da Conversa com ler_mensagens. Numa vez em que o Agente responde à pergunta de período (perguntar_recorte), a propriedade é atendida."
+          }
+        }
+      ]
     }
   }
 }
