@@ -4,6 +4,7 @@ import isUUID from "validator/lib/isUUID";
 import { type Agent, listAgents, startAgentRequest } from "@/app/services/agents-service";
 import {
   closeAgentRequest,
+  getCurrentPerson,
   listMembers,
   type Mention,
   sendMessage as sendMessageToChat,
@@ -14,6 +15,7 @@ import { readTimeZone } from "@/app/services/time-zone-cookie";
 import {
   agentRequestMentions,
   agentRequestQuote,
+  agentRequester,
   mentionedAgentUsername,
   needsAgentRegistry,
 } from "@/app/utils/agent-mentions";
@@ -52,9 +54,11 @@ export async function sendMessage(
   }
   if (result.kind === "ok" && result.agentRequest) {
     const { message: sent, agentRequest } = result;
-    const [mentions, timeZone] = await Promise.all([
+    // A Permissão de dados vem da Pessoa da Sessão, e não do autor gravado (ADR 0015).
+    const [mentions, timeZone, session] = await Promise.all([
       requestMentions(token, conversationId, sent.mentions),
       readTimeZone(),
+      getCurrentPerson(token),
     ]);
     const failure = agentRequestFailure(
       await startAgentRequest({
@@ -64,7 +68,7 @@ export async function sendMessage(
         agent: agentRequest.botUsername,
         conversationId,
         message: { id: sent.id, body: sent.body },
-        requester: { id: sent.author.id, name: sent.author.name, username: sent.author.username },
+        requester: agentRequester(sent.author, session),
         mentions,
         timeZone,
         quote: agentRequestQuote(sent.quote),

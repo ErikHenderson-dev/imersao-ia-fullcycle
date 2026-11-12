@@ -52,3 +52,17 @@ export function agentRequestQuote(quote: QuotePayload | null): AgentRequestPaylo
   if (!quote || quote.deleted) return null;
   return { id: quote.id, body: quote.body, author: { name: quote.author.name, username: quote.author.username } };
 }
+
+// Quem pediu, com a Permissão de dados lida da Pessoa da Sessão (spec da F13, "Citação enviada ao
+// Agente"; ADR 0015). Sem a Pessoa da Sessão, o Pedido vai sem a permissão: na dúvida, sem acesso.
+export function agentRequester(
+  author: { id: string; name: string; username: string },
+  session: { kind: "ok"; person: { dataAccess: boolean } } | { kind: "unauthenticated" | "failure" },
+): AgentRequestPayload["requester"] {
+  return {
+    id: author.id,
+    name: author.name,
+    username: author.username,
+    dataAccess: session.kind === "ok" && session.person.dataAccess,
+  };
+}

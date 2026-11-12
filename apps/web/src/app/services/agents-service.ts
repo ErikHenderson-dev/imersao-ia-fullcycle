@@ -76,7 +76,8 @@ export type AgentRequestPayload = {
   agent: string;
   conversationId: string;
   message: { id: string; body: string };
-  requester: { id: string; name: string; username: string };
+  // Quem pediu, com a Permissão de dados lida da Pessoa da Sessão (spec da F13).
+  requester: { id: string; name: string; username: string; dataAccess: boolean };
   mentions: { username: string; name: string }[];
   timeZone: string;
   // A Mensagem citada pelo Pedido, ou nula (spec da F12, "Rota de Pedido e execução").
@@ -99,7 +100,12 @@ export async function startAgentRequest(payload: AgentRequestPayload): Promise<S
       agent: payload.agent,
       conversation_id: payload.conversationId,
       message: payload.message,
-      requester: payload.requester,
+      requester: {
+        id: payload.requester.id,
+        name: payload.requester.name,
+        username: payload.requester.username,
+        data_access: payload.requester.dataAccess,
+      },
       mentions: payload.mentions,
       time_zone: payload.timeZone,
       quote: payload.quote,

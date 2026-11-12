@@ -90,6 +90,7 @@ def request_state(request: AgentRequestBody) -> dict[str, object]:
         context.REQUESTER_ID: str(request.requester.id),
         context.REQUESTER_NAME: request.requester.name,
         context.REQUESTER_USERNAME: request.requester.username,
+        context.DATA_ACCESS: request.requester.data_access,
         context.TIME_ZONE: request.time_zone,
         context.REQUESTED_AT: to_api_instant(requested_at(request)),
         context.MENTIONS: [mention.model_dump() for mention in request.mentions],

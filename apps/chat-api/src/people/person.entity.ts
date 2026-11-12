@@ -88,6 +88,11 @@ export class Person extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isAdmin!: boolean;
 
+  // A Permissão de dados (spec da F13, "Permissão de dados"), ligada e desligada pelo comando de
+  // contas e lida do banco a cada requisição. O BFF a envia no Pedido (ADR 0015).
+  @Column({ type: 'boolean', default: false })
+  dataAccess!: boolean;
+
   // Fuso IANA do navegador da Pessoa, gravado por ela (F05-T03).
   @Column({ type: 'text', nullable: true })
   timeZone!: string | null;

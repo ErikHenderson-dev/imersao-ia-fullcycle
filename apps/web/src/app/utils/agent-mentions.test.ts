@@ -4,6 +4,7 @@ import {
   agentMentionOptions,
   agentRequestMentions,
   agentRequestQuote,
+  agentRequester,
   mentionedAgentUsername,
   needsAgentRegistry,
 } from "./agent-mentions";
@@ -121,5 +122,27 @@ describe("agentRequestQuote", () => {
   it("é nula sem Citação ou com a citada apagada", () => {
     expect(agentRequestQuote(null)).toBeNull();
     expect(agentRequestQuote({ id: "m1", deleted: true })).toBeNull();
+  });
+});
+
+describe("agentRequester", () => {
+  const author = { id: "p1", name: "Ana Souza", username: "ana" };
+
+  it("o requester leva a Permissão de dados da Pessoa da Sessão", () => {
+    expect(agentRequester(author, { kind: "ok", person: { dataAccess: true } })).toEqual({
+      id: "p1",
+      name: "Ana Souza",
+      username: "ana",
+      dataAccess: true,
+    });
+  });
+
+  it("sem a Pessoa da Sessão, o requester vai sem Permissão de dados", () => {
+    expect(agentRequester(author, { kind: "failure" })).toEqual({
+      id: "p1",
+      name: "Ana Souza",
+      username: "ana",
+      dataAccess: false,
+    });
   });
 });

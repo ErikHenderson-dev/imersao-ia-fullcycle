@@ -12,6 +12,9 @@ CONVERSATION_ID = "conversation_id"
 REQUESTER_ID = "requester_id"
 REQUESTER_NAME = "requester_name"
 REQUESTER_USERNAME = "requester_username"
+# A Permissão de dados de quem pediu (F13-T01): a ferramenta de consulta a confere no código, e o
+# modelo nunca a vê.
+DATA_ACCESS = "data_access"
 TIME_ZONE = "time_zone"
 # O instante da Mensagem do Pedido, em ISO UTC: o Recorte é calculado contra ele (F11-T04).
 REQUESTED_AT = "requested_at"

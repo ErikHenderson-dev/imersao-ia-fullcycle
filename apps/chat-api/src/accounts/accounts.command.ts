@@ -26,6 +26,8 @@ Operações:
   revoke-sessions <e-mail>   Apaga todas as Sessões da Pessoa
   set-admin <e-mail|@usuário> on|off
                              Dá ou tira o papel de administrador
+  set-data-access <e-mail|@usuário> on|off
+                             Liga ou desliga a Permissão de dados
   create-bot <@usuário> <nome>
                              Cria o bot de um Agente, que reserva o @usuário dele
   purge-expired-sessions     Apaga as Sessões vencidas`;
@@ -60,6 +62,8 @@ export class AccountsCommand implements Command {
           return await this.revokeSessions(rest);
         case 'set-admin':
           return await this.setAdmin(rest);
+        case 'set-data-access':
+          return await this.setDataAccess(rest);
         case 'create-bot':
           return await this.createBot(rest);
         case 'purge-expired-sessions':
@@ -193,6 +197,35 @@ export class AccountsCommand implements Command {
         : isAdmin
           ? `${person.name} já era administrador(a).`
           : `${person.name} já não era administrador(a).`,
+    );
+    return 0;
+  }
+
+  // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"). Não publica evento: a
+  // mudança vale no próximo Pedido e na próxima leitura de cada Mensagem.
+  private async setDataAccess(args: string[]): Promise<number> {
+    const [identifier, value] = args;
+    if (
+      args.length !== 2 ||
+      !identifier.trim() ||
+      !['on', 'off'].includes(value)
+    ) {
+      this.output.error(
+        'Uso: pnpm accounts set-data-access <e-mail|@usuário> on|off',
+      );
+      return 1;
+    }
+    const person = await this.findByEmailOrUsername(identifier.trim());
+    const dataAccess = value === 'on';
+    const changed = await this.people.setDataAccess(person.id, dataAccess);
+    this.output.info(
+      changed
+        ? dataAccess
+          ? `${person.name} agora tem Permissão de dados.`
+          : `${person.name} deixou de ter Permissão de dados.`
+        : dataAccess
+          ? `${person.name} já tinha Permissão de dados.`
+          : `${person.name} já não tinha Permissão de dados.`,
     );
     return 0;
   }

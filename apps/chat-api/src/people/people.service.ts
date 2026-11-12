@@ -132,6 +132,7 @@ export class PeopleService {
       | 'presenceChoice'
       | 'theme'
       | 'isAdmin'
+      | 'dataAccess'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -147,6 +148,7 @@ export class PeopleService {
         'presence_choice',
         'theme',
         'is_admin',
+        'data_access',
       ])
       .execute();
     const [row] = inserted.raw as {
@@ -156,6 +158,7 @@ export class PeopleService {
       presence_choice: Presence;
       theme: Theme;
       is_admin: boolean;
+      data_access: boolean;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
@@ -165,6 +168,7 @@ export class PeopleService {
       presenceChoice: row.presence_choice,
       theme: row.theme,
       isAdmin: row.is_admin,
+      dataAccess: row.data_access,
     });
   }
 
@@ -323,6 +327,20 @@ export class PeopleService {
       .update()
       .set({ isAdmin })
       .where('id = :personId AND is_admin <> :isAdmin', { personId, isAdmin })
+      .execute();
+    return (result.affected ?? 0) > 0;
+  }
+
+  // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"); devolve se mudou.
+  async setDataAccess(personId: string, dataAccess: boolean): Promise<boolean> {
+    const result = await this.people
+      .createQueryBuilder()
+      .update()
+      .set({ dataAccess })
+      .where('id = :personId AND data_access <> :dataAccess', {
+        personId,
+        dataAccess,
+      })
       .execute();
     return (result.affected ?? 0) > 0;
   }

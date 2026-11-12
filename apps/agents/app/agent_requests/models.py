@@ -17,6 +17,9 @@ class Requester(BaseModel):
     id: uuid.UUID
     name: str
     username: str
+    # A Permissão de dados de quem pediu (spec da F13, "Rota de Pedido e execução"; ADR 0015);
+    # falsa quando ausente, para o BFF anterior continuar aceito.
+    data_access: bool = False
 
 
 class Mention(BaseModel):
