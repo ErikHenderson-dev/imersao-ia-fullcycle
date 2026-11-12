@@ -1,6 +1,6 @@
 # 05: Delegar a partir de uma Mensagem citada
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa cita uma Mensagem e pede "@assistente delega isso pra @ana", e a
 Tarefa sai com o título tirado da Mensagem citada, sem detalhe acrescentado. Uma instrução escrita
