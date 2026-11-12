@@ -2,6 +2,7 @@
 // seed: e2e/seed.spec.ts
 import { expect, logIn, test } from "../fixtures";
 import { botQuestion, requestByApi } from "../support/bot";
+import { messageItem } from "../support/conversation-page";
 import { insertBot } from "../support/database";
 import { openSharedChannel } from "../support/realtime";
 
@@ -28,6 +29,6 @@ test.describe("Pergunta de delegação", () => {
     await forAna.click();
     await expect(page.getByRole("button", { name: /^Caio Dias/ }).first()).toBeDisabled();
     await expect(otherPage.getByRole("button", { name: /^Caio Dias/ }).first()).toBeDisabled();
-    await expect(otherPage.getByText("Bruno Lima", { exact: true }).last()).toBeVisible();
+    await expect(messageItem(otherPage, sharedChannel.name, "Bruno Lima")).toHaveCount(1);
   });
 });

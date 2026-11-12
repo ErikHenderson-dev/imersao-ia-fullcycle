@@ -7,12 +7,18 @@ com dois ou mais mencionados, os candidatos.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
+from app.agent_requests.question import (
+    MAX_QUICK_REPLIES,
+    MAX_QUICK_REPLY_LENGTH,
+    NAO_PERGUNTE,
+)
 from app.agent_requests.reading import username_of
 from app.chat_api import ChatApiClient
 
@@ -23,11 +29,6 @@ QUESTIONS: dict[str, str] = {
     "o_que": "O que devo delegar?",
     "qual": "Para quem é a Tarefa?",
 }
-# Os limites das Respostas prontas na API do chat (spec da F11, "Rotas do bot e credencial").
-MAX_OPTIONS = 4
-MAX_LABEL_LENGTH = 64
-
-NAO_PERGUNTE = "Esta Mensagem já responde a uma pergunta; não pergunte de novo."
 
 
 def candidate_labels(
@@ -38,20 +39,26 @@ def candidate_labels(
     leva `@`, para o clique não virar Menção."""
     by_username = {mention["username"]: mention["name"] for mention in mentions}
     picked: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for candidato in candidatos:
         username = username_of(candidato)
-        if (
-            username
-            and username in by_username
-            and username not in {u for _, u in picked}
-        ):
-            picked.append((by_username[username], username))
-    picked = picked[:MAX_OPTIONS]
-    names = [name for name, _ in picked]
+        if not username or username not in by_username or username in seen:
+            continue
+        seen.add(username)
+        picked.append((by_username[username], username))
+        if len(picked) == MAX_QUICK_REPLIES:
+            break
+    repeated = Counter(name for name, _ in picked)
     labels = []
     for name, username in picked:
-        label = f"{name} ({username})" if names.count(name) > 1 else name
-        labels.append((label.replace("@", "")[:MAX_LABEL_LENGTH], username))
+        clean = name.replace("@", "")
+        if repeated[name] > 1:
+            # O nome é cortado antes do @usuário, para os rótulos repetidos continuarem distintos.
+            suffix = f" ({username})"
+            label = clean[: MAX_QUICK_REPLY_LENGTH - len(suffix)] + suffix
+        else:
+            label = clean[:MAX_QUICK_REPLY_LENGTH]
+        labels.append((label, username))
     return labels
 
 
@@ -65,13 +72,14 @@ async def ask_delegation(
     continuação não pergunta: ela já responde a uma pergunta."""
     if tool_context.state.get(context.KIND) == "continuation":
         return {"erro": NAO_PERGUNTE}
-    labels = (
-        candidate_labels(
-            candidatos or [], tool_context.state.get(context.MENTIONS) or []
-        )
-        if falta == "qual"
-        else []
-    )
+    if falta not in QUESTIONS:
+        return {"erro": 'falta precisa ser "responsavel", "o_que" ou "qual".'}
+    mentions = tool_context.state.get(context.MENTIONS) or []
+    labels = candidate_labels(candidatos or [], mentions) if falta == "qual" else []
+    if falta == "qual" and len(labels) < 2:
+        return {
+            "erro": "Com qual, passe em candidatos os @usuário de dois ou mais mencionados."
+        }
     body = QUESTIONS[falta]
     await client.question(
         tool_context.state[context.REQUEST_ID], body, [label for label, _ in labels]

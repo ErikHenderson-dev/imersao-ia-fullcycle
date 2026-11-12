@@ -240,7 +240,6 @@ describe('Contagens e pergunta do bot', () => {
 
   it.each([
     ['sem quick_replies', { body: 'Qual período?' }],
-    ['com a lista vazia', { body: 'Qual período?', quick_replies: [] }],
     [
       'com mais de quatro rótulos',
       { body: 'Qual período?', quick_replies: ['a', 'b', 'c', 'd', 'e'] },
@@ -257,5 +256,23 @@ describe('Contagens e pergunta do bot', () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({ code: 'validation_failed' });
+  });
+
+  // A pergunta sem botões da delegação incompleta (spec da F12, "O Agente `assistente`").
+  it('aceita a pergunta sem Respostas prontas e abre a Pergunta pendente', async () => {
+    const { channel, requestId } = await openRequest();
+
+    const response = await botRoutes.question(app, requestId, {
+      body: 'A quem eu delego?',
+      quick_replies: [],
+    });
+
+    expect(response.status).toBe(201);
+    expect(
+      (response.body as { message: QuestionMessage }).message.quick_replies,
+    ).toMatchObject({ options: [], closed: false });
+    expect(await botRoutes.pendingQuestionRows(app, channel.id)).toHaveLength(
+      1,
+    );
   });
 });

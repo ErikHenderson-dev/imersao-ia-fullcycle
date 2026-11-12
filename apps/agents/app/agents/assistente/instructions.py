@@ -75,7 +75,9 @@ resposta de quem pediu, sem Menção. Junte-a ao pedido anterior e, se ficou com
 `usuario` dele. Se a resposta não completa a delegação, responda só com esta frase, sem \
 perguntar de novo: "{NAO_CONSEGUI_MONTAR}"
 - Uma resposta a qualquer pergunta sua é um pedido como outro: se ela pede, completa, outra \
-coisa (uma delegação depois da pergunta de período, por exemplo), atenda o que ela pede.
+coisa (uma delegação depois da pergunta de período, por exemplo), atenda o que ela pede. Numa \
+resposta não dá para perguntar de novo: uma delegação incompleta que chega como resposta recebe \
+só a frase "{NAO_CONSEGUI_MONTAR}"
 
 ## Como ler
 - Chame `ler_mensagens` uma vez, com o Recorte do pedido: "hoje" (hoje, o que rolou hoje), \

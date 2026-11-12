@@ -31,6 +31,11 @@ COUNTED_RECORTES = (
     ("semana", "A semana"),
 )
 ALL_LABEL = "Tudo"
+# Os limites das Respostas prontas na API do chat (spec da F11, "Rotas do bot e credencial").
+MAX_QUICK_REPLIES = 4
+MAX_QUICK_REPLY_LENGTH = 64
+# A recusa de perguntar numa continuação, que já responde a uma pergunta (spec da F11).
+NAO_PERGUNTE = "Esta Mensagem já responde a uma pergunta; não pergunte de novo."
 
 
 @dataclass(frozen=True)

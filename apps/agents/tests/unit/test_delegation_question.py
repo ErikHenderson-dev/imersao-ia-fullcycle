@@ -99,6 +99,37 @@ def test_os_rotulos_dos_candidatos() -> None:
     assert all("@" not in label for label, _ in labels)
 
 
+def test_os_rotulos_repetidos_continuam_distintos_depois_do_corte() -> None:
+    long_name = "M" * 70
+    mentions = [
+        {"username": "u1", "name": long_name},
+        {"username": "u2", "name": long_name},
+    ]
+
+    labels = [label for label, _ in candidate_labels(["u1", "u2"], mentions)]
+
+    assert labels == ["M" * 59 + " (u1)", "M" * 59 + " (u2)"]
+    assert all(len(label) <= 64 for label in labels)
+
+
+async def test_qual_sem_dois_candidatos_reconhecidos_devolve_erro() -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    result = await ask_delegation(client, ctx, "qual", ["Bruno Lima", "@fora"])  # type: ignore[arg-type]
+
+    assert "erro" in result
+    assert client.questions == []
+
+
+async def test_falta_desconhecida_devolve_erro() -> None:
+    client, ctx = FakeClient(), tool_context()
+
+    result = await ask_delegation(client, ctx, "responsável", None)  # type: ignore[arg-type]
+
+    assert "erro" in result
+    assert client.questions == []
+
+
 async def test_nao_pergunta_numa_continuacao() -> None:
     client, ctx = FakeClient(), tool_context(kind="continuation")
 

@@ -12,7 +12,12 @@ from google.adk.tools import ToolContext
 
 from app.agent_requests import context
 from app.agent_requests.delegation_question import Falta, ask_delegation
-from app.agent_requests.question import QUESTION_BODY, question_asked, recorte_options
+from app.agent_requests.question import (
+    NAO_PERGUNTE,
+    QUESTION_BODY,
+    question_asked,
+    recorte_options,
+)
 from app.agent_requests.reading import ChatApiSource, read_recorte
 from app.agent_requests.recorte import Recorte
 from app.agent_requests.task import delegate
@@ -54,9 +59,7 @@ async def perguntar_recorte(tool_context: ToolContext) -> dict[str, Any]:
     """
     if tool_context.state.get(context.KIND) == "continuation":
         # A continuação já é a resposta a uma pergunta: não pergunta de novo (spec da F11).
-        return {
-            "erro": "Esta Mensagem já responde a uma pergunta; não pergunte de novo."
-        }
+        return {"erro": NAO_PERGUNTE}
     client = CURRENT_CHAT_API.get()
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}
@@ -102,6 +105,8 @@ async def perguntar_delegacao(
     Returns:
         A pergunta gravada e, com "qual", o rótulo e o @usuário de cada candidato.
     """
+    if tool_context.state.get(context.KIND) == "continuation":
+        return {"erro": NAO_PERGUNTE}
     client = CURRENT_CHAT_API.get()
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}

@@ -125,13 +125,24 @@ async def run_agent(
     com a marca mesmo se a execução falhar depois da gravação."""
     runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
     request_id = str(request.request_id)
+    state_delta = request_state(request)
+    # A continuação guarda as Pessoas mencionadas no Pedido que perguntou, para o modelo achar o
+    # @usuário de quem a resposta nomeia (F12-T04).
+    if request.kind == "continuation":
+        current = [mention.model_dump() for mention in request.mentions]
+        known = {mention["username"] for mention in current}
+        earlier = session.state.get(context.MENTIONS) or []
+        state_delta[context.MENTIONS] = [
+            *current,
+            *(mention for mention in earlier if mention["username"] not in known),
+        ]
     async for event in runner.run_async(
         user_id=session.user_id,
         session_id=session.id,
         new_message=types.Content(
             role="user", parts=[types.Part.from_text(text=request.message.body)]
         ),
-        state_delta=request_state(request),
+        state_delta=state_delta,
         run_config=deps.run_config,
     ):
         usage.add(event.usage_metadata)

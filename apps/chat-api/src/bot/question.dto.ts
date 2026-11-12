@@ -1,7 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
-  ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsNotEmpty,
@@ -13,7 +12,8 @@ import { ReplyDto } from './reply.dto';
 import { QUICK_REPLIES_MAX, QUICK_REPLY_MAX_LENGTH } from './bot-values';
 
 // A pergunta do bot: o texto, com as regras da Mensagem, e os rótulos das Respostas prontas, que o
-// clique envia como o texto de uma Mensagem (spec da F11, "Rotas do bot e credencial").
+// clique envia como o texto de uma Mensagem (spec da F11, "Rotas do bot e credencial"). A lista
+// pode vir vazia: a pergunta sem botões da delegação (spec da F12, "O Agente `assistente`").
 export class QuestionDto extends ReplyDto {
   @Transform(({ value }: { value: unknown }) =>
     Array.isArray(value)
@@ -23,7 +23,6 @@ export class QuestionDto extends ReplyDto {
       : value,
   )
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(QUICK_REPLIES_MAX)
   @ArrayUnique()
   @IsString({ each: true })

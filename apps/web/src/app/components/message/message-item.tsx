@@ -124,7 +124,7 @@ export function MessageItem({
         // da F11, "Cliente").
         <>
           <AgentText text={message.body} />
-          {message.quickReplies && (
+          {message.quickReplies && message.quickReplies.options.length > 0 && (
             <QuickReplies
               quickReplies={message.quickReplies}
               currentPersonId={currentPersonId ?? ""}
