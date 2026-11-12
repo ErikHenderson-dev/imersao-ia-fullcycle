@@ -94,6 +94,19 @@ A Mensagem de uma Pessoa que chama um Agente, por Menção ou como resposta a um
 e o atendimento dela pelo Agente.
 _Avoid_: comando, prompt, requisição
 
+**Pedido demorado**:
+Um Pedido cujo resultado o Agente entrega depois, em segundo plano, enquanto a Conversa segue.
+_Avoid_: job, tarefa (Tarefa é outra coisa)
+
+**Aviso de início**:
+A Mensagem em que o Agente diz que começou um Pedido demorado e que o resultado chega na Conversa.
+_Avoid_: confirmação, ack
+
+**Relatório**:
+O PDF que um Agente gera a pedido de uma Pessoa com Permissão de dados, com todas as Métricas num
+período e a comparação com o período anterior, entregue numa Mensagem da Conversa.
+_Avoid_: anexo (é o arquivo que uma Pessoa envia), export
+
 **Recorte**:
 O subconjunto de Mensagens de uma Conversa que um resumo cobre: por período (hoje, desde ontem, a
 semana, tudo), por Pessoa ou por assunto.

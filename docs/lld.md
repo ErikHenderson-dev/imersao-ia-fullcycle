@@ -51,6 +51,8 @@ apps/
                   Métricas, busca por nome, consulta, lastro,
                   conferência de somente leitura e auditoria
                   (spec da F13)
+      worker/     o Worker: job do Relatório, PDF e fontes            planejado
+                  (spec da F14)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 existe
@@ -81,10 +83,10 @@ docs/             HLD, LLD, ADRs, brief
 | Gerenciador do projeto Python | uv | O `agents-cli` gera e opera o projeto com uv (install, lint, eval) |
 | Avaliação dos agentes | `adk eval` do ADK, com evalsets e configurações por agente em `tests/eval/<agente>/` (o `assistente` tem três: resumo, delegação e consulta a Dados de negócio, esta com a ferramenta rodando contra o Banco de negócio com os dados fixos, pelo `before_tool_callback` da avaliação; spec da F13, "Decisões de teste"), e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
-| Fila de pedidos demorados | A definir | — |
+| Fila de pedidos demorados | arq, no Redis do Serviço de agentes, com o id do Pedido como `job_id`, `planejada` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Fila e job") | Assíncrono como o resto do projeto, com novas tentativas e `job_id` que impede o job repetido; descartados: Celery, síncrono e pesado para o servidor de 2 GB, e RQ, síncrono |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini`, sem barra, usa o Gemini nativo do ADK e precisa ser um modelo que aceita o nível de raciocínio mínimo do `teto de custo por pedido` (o `gemini-3.6-flash`, padrão do ambiente, aceita; o `gemini-3.8-flash` e os anteriores ao Gemini 3 o recusam, e com eles todo Pedido falha); `openai/<modelo>` e `anthropic/<modelo>` usam o `LiteLlm` (`litellm>=1.84`); outro valor faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `existe` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
 | Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio`, `existe` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa; cliente oficial do Redis, assíncrono como o app HTTP |
-| Geração do PDF | A definir | — |
+| Geração do PDF | fpdf2, com a Lato embutida; pypdf para extrair o texto no lastro e nos testes, `planejada` (spec da F14, seção "O PDF") | Python puro e leve, faz tabela e texto selecionável; descartados: WeasyPrint, que depende de Pango e Cairo no sistema e pesa na RAM, e ReportLab, mais verboso para um layout fixo |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
 | Validação de entrada na API do chat | `class-validator` e `class-transformer`, no `ValidationPipe` do Nest | Caminho padrão do Nest, e o `@nestjs/swagger` lê os mesmos decorators para gerar o snapshot OpenAPI; descartado: zod com `nestjs-zod` |
@@ -126,7 +128,7 @@ Situação: "Eventos por pessoa (Redis)" e "Contadores (Redis)" `existem`; as de
 
 | Operação | Recebe | Devolve | Garante |
 | --- | --- | --- | --- |
-| Enfileirar | Identificador de pedido e consulta já conferida | Nada | Enfileirar duas vezes o mesmo identificador gera um job só |
+| Enfileirar | Identificador de pedido e os parâmetros do Relatório já validados (períodos e filtro por id) | Nada | Enfileirar duas vezes o mesmo identificador gera um job só |
 | Consumir | — | Um job ao Worker | Se o Worker falha, o job volta à fila até `tentativas do Worker` |
 
 **Eventos por pessoa (Redis)** — usado pela API do chat para a reconexão (HLD 6.2).
@@ -184,9 +186,13 @@ novas tentativas e idempotência").
   `Authorization: Bearer` e a API do chat confere com comparação de tempo constante em toda rota
   `/v1/bot`. O alcance de cada ação vem do identificador de pedido
   ([ADR 0011](adr/0011-identificador-de-pedido.md)): a Conversa e a Pessoa são as do Pedido. Uma
-  credencial por Agente fica para quando houver mais de um processo ou de um Agente. `existe`
+  credencial por Agente fica para quando houver mais de um Agente. `existe`
   ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Rotas do bot e
   credencial").
+- **Credencial do Worker:** um segredo próprio, `CHAT_WORKER_TOKEN`, aceito só nas ações de entrega
+  e de falha do Relatório, com o mesmo alcance pelo identificador de pedido; o Worker não recebe a
+  credencial de bot. `planejada` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção
+  "Ações de bot do Relatório").
 - **Dados de negócio no tempo real:** uma mensagem marcada "dados de negócio" é emitida pelo
   WebSocket pessoa a pessoa. Quem tem permissão de dados recebe o evento com o conteúdo; os outros
   membros recebem o evento com a versão bloqueada. O evento guardado nos eventos de reconexão
@@ -242,13 +248,17 @@ novas tentativas e idempotência").
   edição, a exclusão e as menções existem (spec da F06, seções "Mensagens", "Tempo
   real" e "Cliente").
 - **Ação de bot:** unicidade em (identificador de pedido, tipo de ação). Tipos: resposta (`reply`),
-  pergunta ao usuário (`question`), aviso de início, entrega do PDF, criação de tarefa. A repetição
+  pergunta ao usuário (`question`), Aviso de início (`report_started`), entrega do PDF
+  (`report_delivered`), falha do Relatório (`report_failed`), criação de tarefa. A repetição
   devolve o que já foi gravado, sem nova mensagem, tarefa ou notificação. O "digitando" do bot não é
   ação e não entra na unicidade. `reply` e `question` existem (spec da F11, seção "Pedido e ações de
   bot"). `task`, a criação de tarefa, existe: grava a Tarefa e a confirmação numa transação
   ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Ação `task`").
   Toda ação gravada é a resposta do Pedido: conta para o "digitando" do bot, e uma ação de outro tipo
-  num Pedido já respondido recebe `request_closed`.
+  num Pedido já respondido recebe `request_closed`. A exceção é o Pedido demorado: depois de
+  `report_started`, vale uma só entre `report_delivered` e `report_failed`, e as duas são recusadas
+  sem o `report_started` (`report_not_started`); as três ações são `planejadas` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção
+  "Ações de bot do Relatório").
 - **Pergunta pendente no envio:** resolvida na mesma transação que grava a Mensagem, com a linha da
   Pergunta pendente travada, e no máximo uma pergunta aberta por Pessoa e Conversa. Dois envios
   simultâneos da mesma Pessoa criam um Pedido só, porque o segundo encontra a pergunta encerrada.
@@ -374,10 +384,10 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Tarefas | existe (`tasks`): spec da F12, seção "Tarefa"; Notificações de Tarefa gravadas (`task_notifications`) ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), existe: spec da F12, seções "Tarefa" e "Atividade" |
 | Chat | Pedidos aos agentes e ações de bot | existe (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
 | Chat | Perguntas pendentes | existe (`pending_questions`): spec da F11, seção "Envio e Pergunta pendente" |
-| Chat | Referência ao PDF de uma mensagem | a detalhar |
+| Chat | Referência ao PDF de uma mensagem | planejada (`message_reports`, uma linha por Mensagem de entrega): spec da F14, seção "Referência ao PDF e download" |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
-| Agentes | Auditoria das consultas ao Banco de negócio | existe (`business_queries`): spec da F13, seção "Auditoria" |
+| Agentes | Auditoria das consultas ao Banco de negócio | existe (`business_queries`): spec da F13, seção "Auditoria"; a coluna `kind` e o desfecho `delivered` do Relatório, planejados: spec da F14, seção "Auditoria" |
 | Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | existe, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
 
 ## 5. Interfaces
@@ -423,6 +433,9 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção. Aceita até cinco Respostas prontas, o tamanho da pergunta de nome repetido (spec da F13, seção "O Agente `assistente`"). Ganha `business_data`, para a pergunta de nome repetido (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/task` | existe | Delegação pelo bot, com a credencial de bot e a ação idempotente: cria a Tarefa e a confirmação; recusa o Responsável que não é Membro da Conversa do Pedido (`assignee_not_member`) ou é um bot (`assignee_is_bot`): spec da F12, seção "Ação `task`" |
+| API do chat: `POST /v1/bot/requests/:id/report-started`, `/report-delivered` e `/report-failed` | planejada | Aviso de início, entrega e falha do Relatório, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"); o aviso estende a validade do Pedido, e a entrega e a falha mencionam quem pediu: [spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Ações de bot do Relatório" |
+| API do chat: `GET /v1/messages/:id/report` | planejada | URL assinada do PDF, com a Sessão, só para Membro com Permissão de dados no momento (`data_access_required`): spec da F14, seção "Referência ao PDF e download" |
+| BFF: `GET /api/messages/[id]/report` | planejada | Responde 302 para a URL assinada: spec da F14, seção "Cliente (web)" |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `POST /v1/conversations` | existe | Criar Canal sem duplicar ("Concorrência e idempotência"): [spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Rotas"; abrir Conversa direta: [spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Rotas" |
@@ -709,9 +722,11 @@ instruções mostram sai do instante da Mensagem do Pedido nesse fuso.
 
 | Job | Disparo | O que faz | Na falha | Situação |
 | --- | --- | --- | --- | --- |
-| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | HLD 6.5 | Nova tentativa até `tentativas do Worker`; esgotadas, grava "não consegui" (HLD 6.5) | a detalhar |
+| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | Consulta as seis Métricas nos dois períodos, monta o PDF, confere o lastro no texto dele, grava no S3 pela chave do id do Pedido, audita e entrega por `report_delivered`; solta a trava do Relatório (spec da F14, seção "Worker de agentes") | Nova tentativa até `tentativas do Worker`, com a `espera entre tentativas do Worker` e o `tempo limite da tentativa do Worker`; esgotadas, grava `report_failed`; sem lastro ou com o Pedido recusado, encerra sem nova tentativa (mesma seção) | planejada |
 
-A idempotência do job (chave no S3 e entrega única) e a retenção dos PDFs estão a definir.
+A idempotência do job vem da chave no S3 pelo id do Pedido, regravada numa nova tentativa, e da
+ação de bot única; o PDF fica enquanto a Mensagem existir, sem rotina de limpeza (spec da F14,
+seções "Armazenamento" e "Fila e job").
 Perguntas pendentes vencidas não têm rotina: o `expires_at` é conferido na leitura ("Estados e
 regras", seção "Pedido ao agente e Pergunta pendente"). Sessões vencidas não têm rotina: são apagadas
 quando apresentadas ("Estados e regras", seção "Sessão e login") e pela operação
@@ -817,15 +832,18 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Limite de pedidos por pessoa | 10 por minuto, em janela fixa, somando todas as Conversas (brief, RNF "Custo") | Serviço de agentes | Variável `AGENT_REQUESTS_PER_MINUTE`, padrão 10 |
 | Teto de custo por pedido | 4 chamadas ao modelo por Pedido e 1024 tokens de saída por chamada, contando o raciocínio, que fica no nível mínimo (`ThinkingLevel.MINIMAL`; sem nível, o raciocínio cortava a resposta na avaliação da F11-T08, e no nível baixo ainda cortava 11 de 20 resumos de 500 Mensagens na medição dela; o modelo precisa aceitar o nível, "Acesso ao modelo", e no `LiteLlm` ele vira o esforço de raciocínio do provedor), mais o `teto de Mensagens do resumo` na entrada; o limite em dólar do brief é conferido na avaliação e na medição, e não em tempo real (spec da F11) | Serviço de agentes | Constante |
 | Teto de Mensagens do resumo | 500: as mais recentes do Recorte (PRD da F11) | API do chat (rotas do bot) | Constante |
-| Tentativas do Worker | A definir | Worker | A definir |
-| Validade da URL do PDF | A definir | API do chat | A definir |
+| Tentativas do Worker | 3 (spec da F14) | Worker | Constante |
+| Espera entre tentativas do Worker | 5 s antes da segunda e 15 s antes da terceira (spec da F14) | Worker | Constante |
+| Tempo limite da tentativa do Worker | 20 s: as três tentativas cabem em menos de 1 min (spec da F14) | Worker | Constante |
+| Validade da trava do Relatório | 10 min: solta a Pessoa se o Worker morrer sem apagar a trava (spec da F14) | Serviço de agentes e Worker (Redis) | Constante |
+| Validade da URL do PDF | 5 min (PRD da F14) | API do chat | Constante |
 | Duração da Sessão | 30 dias sem uso (PRD da F01, história 3) | API do chat | Variável `SESSION_TTL_DAYS`, padrão 30 |
 | Intervalo de renovação da Sessão | 1 dia | API do chat | Constante |
 | Validade do cookie de sessão | 400 dias, o teto do Chrome | BFF | Constante |
 | Tentativas de login | 5 (PRD da F01, história 2) | API do chat | Constante |
 | Janela de tentativas de login | 15 min (PRD da F01, história 2) | API do chat | Constante |
 | Bloqueio do login | 15 min (PRD da F01, história 2) | API do chat | Constante |
-| Validade do identificador de pedido | 2 min no Pedido comum (spec da F11); a do Pedido demorado, a definir na F14 | API do chat | Constante |
+| Validade do identificador de pedido | 2 min no Pedido comum (spec da F11); 10 min no Pedido demorado, contados do Aviso de início (spec da F14) | API do chat | Constante |
 | Validade da Pergunta pendente | 1 h (PRD da F11) | API do chat; a web desativa pelo `expires_at` do payload, sem constante própria | Constante |
 | Retenção dos eventos de reconexão | 5 min (PRD da F03, história 5) | API do chat (Redis) | Constante |
 | Intervalo de reconferência da Sessão no WebSocket | 60 s (spec da F03) | API do chat | Constante |
@@ -913,7 +931,7 @@ substitui cada serviço de produção segue o HLD, seção 9, "Implantação e a
 | `agents` | `apps/agents/Dockerfile.dev` (Python 3.13, uv) | 3002 (8000 no contêiner) | Serviço de agentes |
 | `e2e` | Imagem oficial do Playwright, na mesma versão do `@playwright/test` do `web` | — | Roda os testes de ponta a ponta do `web` contra `http://localhost:3000`, encaminhado para a web, e o `playwright-cli`; sobe só pelo `profile` e fica parado, como `web` e `chat-api` |
 
-Entra depois o serviço `worker`, com o Worker de agentes (F14).
+Entra o serviço `worker`, com o Worker de agentes, na mesma imagem do `agents`, `planejado` (spec da F14, seção "Ambiente de desenvolvimento").
 
 **Contêineres dos apps**
 
@@ -1010,9 +1028,9 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 **Estrutura e bibliotecas**
 
-- [ ] Biblioteca da fila no Redis (arq, Celery ou RQ).
+- [x] Biblioteca da fila no Redis: arq (spec da F14).
 - [x] Acesso ao modelo: Gemini nativo e `LiteLlm` para OpenAI e Anthropic (spec da F11).
-- [ ] Biblioteca do PDF (WeasyPrint, ReportLab ou fpdf2).
+- [x] Biblioteca do PDF: fpdf2 (spec da F14).
 - [x] Acesso ao Banco dos agentes e migrações: SQLAlchemy assíncrono com Alembic, dono do schema
       desse banco (spec da F10).
 - [x] Biblioteca de validação das variáveis: zod nos projetos TypeScript e `pydantic-settings` no
@@ -1066,7 +1084,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
       custo em "Valores e configuração" (spec da F11).
 - [x] Subseção de "Estados e regras": consulta a dados de negócio (6.6).
-- [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
+- [x] Idempotência do job do PDF e retenção dos PDFs (spec da F14). Perguntas
       pendentes vencidas não têm rotina (spec da F11).
 
 **Valores, configuração e ambiente**
