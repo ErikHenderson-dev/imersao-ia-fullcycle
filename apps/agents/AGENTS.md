@@ -43,6 +43,7 @@ Subir o Serviço de agentes está no `AGENTS.md` da raiz, seção "Subir e derru
 | `uv run pytest tests/unit` | Testes de unidade |
 | `uv run pytest tests/integration` | Testes de integração, com o modelo real |
 | `uv run --extra eval adk eval app/agents/<agente> tests/eval/<agente>/<agente>.evalset.json --config_file_path tests/eval/<agente>/test_config.json` | Avaliação de um agente (seção "Avaliação") |
+| `uv run arq app.worker.WorkerSettings` | O Worker de agentes, no contêiner `worker` (`docker compose -f compose.yaml exec worker ...`): consome a fila do Relatório em PDF (spec da F14, "Worker de agentes") |
 | `uv run alembic upgrade head` | Roda as migrações pendentes do Banco dos agentes (`DATABASE_URL`) |
 | `uv run alembic revision --autogenerate -m "<nome>"` | Gera uma migração das tabelas do registro; as de sessão do ADK ficam de fora |
 | `uv run python -m scripts.load_business` | Carrega o Banco de negócio com os dados fixos, pelo dono do banco (`BUSINESS_OWNER_DATABASE_URL`); apaga e recria as tabelas |
@@ -59,7 +60,8 @@ Os testes de integração do registro (`tests/integration/test_registry_routes.p
 `TEST_DATABASE_ADMIN_URL` (o superusuário local, porque o papel `agents` não tem `CREATEDB`) e pelo
 `TEST_DATABASE_URL`, os dois no `compose.yaml`. Os testes do Banco de negócio usam o banco `business_test`, que o `conftest.py` recria uma vez por
 execução pelo `TEST_DATABASE_ADMIN_URL`, com os papéis do init, e carregam com `SET ROLE business`;
-o usuário só leitura conecta por `BUSINESS_TEST_DATABASE_URL`. Os testes da rota de Pedido usam o banco lógico 2 do Redis
+o usuário só leitura conecta por `BUSINESS_TEST_DATABASE_URL`. Os testes do Worker (`tests/integration/test_worker_job.py`) gravam no S3 do contêiner pelas
+variáveis `S3_*` do `agents`, no `compose.yaml`, e usam a API do chat falsa. Os testes da rota de Pedido usam o banco lógico 2 do Redis
 (`TEST_REDIS_URL`, no `compose.yaml`) para o limite de pedidos. Os outros testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
 `apps/agents/.env` (copie do `.env.example`). Mudar o `.env` ou o `compose.yaml` pede
 `docker compose -f compose.yaml up -d agents` para as variáveis novas entrarem.

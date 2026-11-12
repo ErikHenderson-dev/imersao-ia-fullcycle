@@ -110,6 +110,36 @@ class Settings(ModelSettings):
         ]
 
 
+class WorkerConfig(BaseSettings):
+    """O Worker de agentes (spec da F14, "Worker de agentes"): sem a chave do modelo, sem a credencial
+    de bot e sem as sessões do ADK, porque ele nunca chama o modelo."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    # A auditoria, no Banco dos agentes.
+    database_url: Required
+    # A API do chat e a credencial do Worker, aceita só na entrega e na falha do Relatório.
+    chat_api_url: Required
+    chat_worker_token: Required
+    # A fila e a trava do Relatório.
+    redis_url: Required
+    business_database_url: Required
+    business_time_zone: Required = DEFAULT_BUSINESS_TIME_ZONE
+    business_query_timeout_ms: PositiveInt = DEFAULT_BUSINESS_QUERY_TIMEOUT_MS
+    # O armazenamento de objetos do PDF, pelo endereço interno, com acesso por caminho; com
+    # `s3_create_bucket`, só no desenvolvimento, o Worker cria o bucket na subida.
+    s3_endpoint: Required
+    s3_bucket: Required
+    s3_access_key_id: Required
+    s3_secret_access_key: Required
+    s3_create_bucket: bool = False
+
+
+def load_worker_settings() -> WorkerConfig:
+    """A configuração do Worker, conferida na subida dele."""
+    return _read(WorkerConfig)
+
+
 class BusinessLoadSettings(BaseSettings):
     """A carga do Banco de negócio, que só o script lê: a credencial do dono fica fora do app."""
 

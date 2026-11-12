@@ -16,6 +16,10 @@ dependencies = [
     # Limite de pedidos por Pessoa (spec da F11, "Rota de Pedido").
     "redis>=8.1",
     "pglast>=8.7",
+    "arq>=0.25.0",
+    "fpdf2>=2.9.0",
+    "boto3>=1.44.1",
+    "pypdf>=7.0.1",
 ]
 requires-python = ">=3.13,<3.14"
 

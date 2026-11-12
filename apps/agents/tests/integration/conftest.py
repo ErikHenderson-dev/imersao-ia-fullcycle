@@ -14,6 +14,7 @@ import threading
 import uuid
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -282,6 +283,8 @@ class FakeChatApi:
                     {
                         "method": "POST",
                         "path": self.path,
+                        # O instante da chamada: o Worker audita antes de entregar (F14-T03).
+                        "received_at": datetime.now(UTC),
                         "authorization": self.headers.get("authorization"),
                         "body": json.loads(self.rfile.read(length) or b"null"),
                     }

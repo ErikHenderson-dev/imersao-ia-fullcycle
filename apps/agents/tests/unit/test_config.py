@@ -1,4 +1,5 @@
-"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3; F11-T03; F11-T06, CA2)."""
+"""Configuração do Serviço de agentes (F10-T04, CA1; F11-T02, CA3; F11-T03; F11-T06, CA2) e do
+Worker (F14-T03, CA1)."""
 
 import pytest
 
@@ -7,6 +8,7 @@ from app.config import (
     load_business_load_settings,
     load_model_settings,
     load_settings,
+    load_worker_settings,
 )
 
 REQUIRED = {
@@ -149,3 +151,48 @@ def test_a_carga_le_a_url_do_dono(env: pytest.MonkeyPatch) -> None:
     assert settings.business_owner_database_url.startswith(
         "postgresql+asyncpg://business:"
     )
+
+
+# O Worker de agentes (F14-T03, CA1): só o que ele exige, sem a chave do modelo nem a credencial de
+# bot.
+WORKER_REQUIRED = {
+    "DATABASE_URL": "postgresql+asyncpg://agents:agents@postgres:5432/agents",
+    "CHAT_API_URL": "http://chat-api:3000",
+    "CHAT_WORKER_TOKEN": "segredo-do-worker",
+    "REDIS_URL": "redis://redis:6379/0",
+    "BUSINESS_DATABASE_URL": "postgresql+asyncpg://business_readonly:x@postgres:5432/business",
+    "S3_ENDPOINT": "http://s3:8333",
+    "S3_BUCKET": "reports",
+    "S3_ACCESS_KEY_ID": "chave",
+    "S3_SECRET_ACCESS_KEY": "segredo",
+}
+
+
+@pytest.fixture
+def worker_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
+    for name in [*REQUIRED, *OPTIONAL, *WORKER_REQUIRED, "S3_CREATE_BUCKET"]:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in WORKER_REQUIRED.items():
+        monkeypatch.setenv(name, value)
+    return monkeypatch
+
+
+def test_a_configuracao_do_worker_nao_exige_a_chave_do_modelo_nem_a_credencial_de_bot(
+    worker_env: pytest.MonkeyPatch,
+) -> None:
+    settings = load_worker_settings()
+
+    assert settings.chat_worker_token == "segredo-do-worker"
+    assert settings.s3_create_bucket is False
+    assert not hasattr(settings, "chat_bot_token")
+    assert not hasattr(settings, "agent_model")
+
+
+@pytest.mark.parametrize("name", sorted(WORKER_REQUIRED))
+def test_a_configuracao_do_worker_falha_sem_a_variavel_obrigatoria(
+    worker_env: pytest.MonkeyPatch, name: str
+) -> None:
+    worker_env.delenv(name)
+
+    with pytest.raises(ConfigError, match=name):
+        load_worker_settings()
