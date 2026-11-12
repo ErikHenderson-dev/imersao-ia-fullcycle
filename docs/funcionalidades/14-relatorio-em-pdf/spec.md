@@ -60,8 +60,9 @@ aceite de lá. Do ponto de vista de quem constrói e opera:
   permissão, uma linha de auditoria com `kind = 'report'`:
   1. sem Permissão de dados, a recusa sem permissão da F13 como `reply` sem a marca
      (`no_permission`), sem tocar a trava nem o banco;
-  2. parâmetros inválidos (datas ISO, início antes do fim, `filtro_tipo` em `customer`, `seller`
-     ou `product`, nome não vazio quando há tipo) voltam ao modelo como erro, sem auditoria;
+  2. parâmetros inválidos (datas ISO, início antes do fim, `filtro_tipo` em `cliente`,
+     `vendedor` ou `produto`, os valores da `consultar_dados` da F13, nome não vazio quando há tipo)
+     voltam ao modelo como erro, sem auditoria;
   3. a trava de um Relatório por vez ("Trava de um Relatório por vez"): já presa, grava como `reply`
      sem a marca "Já tem um relatório seu sendo gerado. Ele chega na conversa onde foi pedido.",
      sem auditoria, porque não toca o banco;

@@ -1,6 +1,6 @@
 # 05: Relatório filtrado por cliente, vendedor ou produto
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** uma Pessoa com Permissão de dados pede o Relatório de um período filtrado por
 um cliente, vendedor ou produto citado pelo nome ("relatório de março da vendedora Ana") e recebe o
