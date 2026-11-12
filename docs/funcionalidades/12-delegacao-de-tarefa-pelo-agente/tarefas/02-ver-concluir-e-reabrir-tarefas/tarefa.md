@@ -1,6 +1,6 @@
 # 02: Ver, concluir e reabrir Tarefas em Atividade → Tarefas
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** a Pessoa abre Atividade → Tarefas e vê as Tarefas recebidas e as delegadas,
 com as abertas primeiro. O Responsável conclui e reabre as recebidas, e a mudança aparece na hora

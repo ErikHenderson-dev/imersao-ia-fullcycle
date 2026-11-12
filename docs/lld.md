@@ -432,6 +432,8 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/activity/read` | existe | Avançar a marca de Atividade ("Concorrência e idempotência"): spec da F08, seção "Rotas" |
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
+| API do chat: `GET /v1/tasks`, `GET /v1/tasks/:id`, `POST /v1/tasks/:id/complete` e `POST /v1/tasks/:id/reopen` | planejada | As Tarefas recebidas e delegadas, com a Sessão, as abertas primeiro e paginadas por cursor; concluir e reabrir só pelo Responsável ("Estados e regras", "Tarefa"): spec da F12, seção "Concluir, reabrir e listar". Eventos `task.created` e `task.updated` por Pessoa: spec da F12, seção "Eventos" |
+| BFF: `GET /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/complete` e `POST /api/tasks/:id/reopen` | planejada | As rotas de Tarefa, pedidas pelo cliente: spec da F12, seção "Cliente (web)" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Orquestra o Pedido (registro, envio e `POST /v1/requests`): spec da F11, seção "Disparo pelo BFF". Na falha, encerra o Pedido (`failed` ou `cancelled`) e devolve o erro do Agente: mesma seção |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
@@ -457,10 +459,12 @@ decididas ficam abaixo.
 
 Dois estados: aberta e concluída (HLD 6.6).
 
-- Só o responsável conclui e reabre a tarefa. Outra pessoa, inclusive quem delegou, recebe um
-  erro do catálogo.
+- Só o responsável conclui e reabre a tarefa. Quem delegou recebe `task_not_assignee`; quem não é
+  parte dela recebe `task_not_found`, como se ela não existisse.
 - Ao concluir ou reabrir, quem delegou é avisado (HLD 6.6).
-- Concluir uma tarefa já concluída, ou reabrir uma aberta: a definir.
+- Concluir uma tarefa já concluída, ou reabrir uma aberta, não muda nada nem publica: a mudança de
+  estado trava a linha da tarefa, e duas abas concluindo juntas mudam uma vez só (spec da F12,
+  seção "Tarefa").
 
 ### 6.2 Sessão e login
 
@@ -668,7 +672,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
 | `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); a Mensagem do Agente, com o AgentAvatar, o AgentTag e o nome que abre o diálogo "Agentes" ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Cliente"), com o texto no AgentText a partir do subconjunto de Markdown, e o "digitando" do Agente, com o nome dele, e o erro do Agente ao lado da Mensagem enviada, e as Respostas prontas da pergunta do Agente, ativas só para quem pediu e desativadas no encerramento e no vencimento (spec da F11, seção "Cliente"); o resto a detalhar |
 | Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta (spec da F08, seção "Cliente") |
-| `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
+| `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); aba Tarefas, com Recebidas e Delegadas, concluir e reabrir e o destaque por `?tarefa=`, planejada ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Cliente (web)") |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
 | Seção Agentes da barra lateral e diálogo "Agentes" (sobre as telas logadas) | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão; administradores | Conectar e desconectar agente; abrir o perfil de um administrador | existe: as variantes por papel, o diálogo, a Menção a Agente no autocompletar e no destaque, e o selo de administrador no painel de perfil ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Cliente") |
@@ -1001,7 +1005,6 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
       custo em "Valores e configuração" (spec da F11).
 - [ ] Subseção de "Estados e regras": consulta a dados de negócio (comparação do lastro).
-- [ ] Tarefa: concluir uma já concluída, ou reabrir uma aberta.
 - [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
       pendentes vencidas não têm rotina (spec da F11).
 
