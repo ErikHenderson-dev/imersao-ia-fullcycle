@@ -38,8 +38,8 @@ apps/
   chat-api/       API do chat (NestJS): REST, WebSocket e o comando   existe
                   de contas e permissões (HLD, seção 2)
     migrations/   migrações do Banco do chat                          existe
-  agents/         Serviço de agentes e Worker (Python + ADK),         existe (Worker
-                  dois processos do mesmo projeto                     planejado)
+  agents/         Serviço de agentes e Worker (Python + ADK),         existe
+                  dois processos do mesmo projeto
     app/          o Serviço de agentes: o app HTTP (fast_api_app)     existe
       agents/     um agente por pasta (seção "Componentes e           existe
                   dependências")
@@ -51,7 +51,7 @@ apps/
                   Métricas, busca por nome, consulta, lastro,
                   conferência de somente leitura e auditoria
                   (spec da F13)
-      worker/     o Worker: job do Relatório, PDF e fontes            planejado
+      worker/     o Worker: job do Relatório, PDF e fontes            existe
                   (spec da F14)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
@@ -83,10 +83,10 @@ docs/             HLD, LLD, ADRs, brief
 | Gerenciador do projeto Python | uv | O `agents-cli` gera e opera o projeto com uv (install, lint, eval) |
 | Avaliação dos agentes | `adk eval` do ADK, com evalsets e configurações por agente em `tests/eval/<agente>/` (o `assistente` tem três: resumo, delegação e consulta a Dados de negócio, esta com a ferramenta rodando contra o Banco de negócio com os dados fixos, pelo `before_tool_callback` da avaliação; spec da F13, "Decisões de teste"), e o juiz LLM pelo Google AI Studio | O `agents-cli eval grade` exige credencial padrão do Google Cloud (ADC) mesmo com métrica local, e o projeto não usa o Google Cloud; os critérios que delegam ao Vertex (`safety_v1`, `multi_turn_*`) ficam de fora |
 | Sessões do ADK | `DatabaseSessionService` do ADK no Banco dos agentes, pela variável `SESSION_SERVICE_URI` (driver asyncpg) | O ADK cria e mantém as tabelas de sessão; sem a variável, as sessões ficam em memória |
-| Fila de pedidos demorados | arq, no Redis do Serviço de agentes, com o id do Pedido como `job_id`, `planejada` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Fila e job") | Assíncrono como o resto do projeto, com novas tentativas e `job_id` que impede o job repetido; descartados: Celery, síncrono e pesado para o servidor de 2 GB, e RQ, síncrono |
+| Fila de pedidos demorados | arq, no Redis do Serviço de agentes, com o id do Pedido como `job_id`, `existe` ([spec da F14](funcionalidades/14-relatorio-em-pdf/spec.md), seção "Fila e job") | Assíncrono como o resto do projeto, com novas tentativas e `job_id` que impede o job repetido; descartados: Celery, síncrono e pesado para o servidor de 2 GB, e RQ, síncrono |
 | Acesso ao modelo, trocável por configuração (HLD, seção 2) | A variável `AGENT_MODEL`: um valor começando com `gemini`, sem barra, usa o Gemini nativo do ADK e precisa ser um modelo que aceita o nível de raciocínio mínimo do `teto de custo por pedido` (o `gemini-3.6-flash`, padrão do ambiente, aceita; o `gemini-3.8-flash` e os anteriores ao Gemini 3 o recusam, e com eles todo Pedido falha); `openai/<modelo>` e `anthropic/<modelo>` usam o `LiteLlm` (`litellm>=1.84`); outro valor faz a configuração falhar com `AGENT_MODEL`. Todo agente pega o modelo do `build_model()` de `app/model.py`, `existe` ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Modelo de IA") | O caminho principal fica nativo e com as tentativas do ADK; no Python, OpenAI e Anthropic só existem pelo `LiteLlm`; descartado: `LiteLlm` para os três |
 | Cliente do Redis no Serviço de agentes | `redis` (redis-py), pelo `redis.asyncio`, `existe` (spec da F11, seção "Rota de Pedido") | O limite de pedidos por pessoa; cliente oficial do Redis, assíncrono como o app HTTP |
-| Geração do PDF | fpdf2, com a Lato embutida; pypdf para extrair o texto no lastro e nos testes, `planejada` (spec da F14, seção "O PDF") | Python puro e leve, faz tabela e texto selecionável; descartados: WeasyPrint, que depende de Pango e Cairo no sistema e pesa na RAM, e ReportLab, mais verboso para um layout fixo |
+| Geração do PDF | fpdf2, com a Lato embutida; pypdf para extrair o texto no lastro e nos testes, `existe` (spec da F14, seção "O PDF") | Python puro e leve, faz tabela e texto selecionável; descartados: WeasyPrint, que depende de Pango e Cairo no sistema e pesa na RAM, e ReportLab, mais verboso para um layout fixo |
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
 | Validação de entrada na API do chat | `class-validator` e `class-transformer`, no `ValidationPipe` do Nest | Caminho padrão do Nest, e o `@nestjs/swagger` lê os mesmos decorators para gerar o snapshot OpenAPI; descartado: zod com `nestjs-zod` |
@@ -115,7 +115,7 @@ modelo do `root_agent` de cada pasta vem do `build_model()` de `app/model.py`, f
 
 ### Integrações externas
 
-Situação: "Eventos por pessoa (Redis)" e "Contadores (Redis)" `existem`, e "Gerar URL de download" do S3 também (F14-T02); as demais, `planejada`.
+Situação: "Eventos por pessoa (Redis)" e "Contadores (Redis)" `existem`, e o S3 e a fila de pedidos demorados também (F14-T02 e F14-T03); as demais, `planejada`.
 
 **Armazenamento de objetos (S3)** — usado pelo Worker (gravar) e pela API do chat (URL).
 
@@ -388,7 +388,7 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Referência ao PDF de uma mensagem | existe (`message_reports`, uma linha por Mensagem de entrega): spec da F14, seção "Referência ao PDF e download" |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
-| Agentes | Auditoria das consultas ao Banco de negócio | existe (`business_queries`): spec da F13, seção "Auditoria"; a coluna `kind` e o desfecho `delivered` do Relatório, planejados: spec da F14, seção "Auditoria" |
+| Agentes | Auditoria das consultas ao Banco de negócio | existe (`business_queries`): spec da F13, seção "Auditoria"; com a coluna `kind` e o desfecho `delivered` do Relatório: spec da F14, seção "Auditoria" |
 | Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | existe, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
 
 ## 5. Interfaces
@@ -724,7 +724,7 @@ instruções mostram sai do instante da Mensagem do Pedido nesse fuso.
 
 | Job | Disparo | O que faz | Na falha | Situação |
 | --- | --- | --- | --- | --- |
-| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | Consulta as seis Métricas nos dois períodos, monta o PDF, confere o lastro no texto dele, grava no S3 pela chave do id do Pedido, audita e entrega por `report_delivered`; solta a trava do Relatório (spec da F14, seção "Worker de agentes") | Nova tentativa até `tentativas do Worker`, com a `espera entre tentativas do Worker` e o `tempo limite da tentativa do Worker`; esgotadas, grava `report_failed`; sem lastro ou com o Pedido recusado, encerra sem nova tentativa (mesma seção) | planejada |
+| Relatório em PDF (Worker) | Pedido na fila (HLD 6.5) | Consulta as seis Métricas nos dois períodos, monta o PDF, confere o lastro no texto dele, grava no S3 pela chave do id do Pedido, audita e entrega por `report_delivered`; solta a trava do Relatório (spec da F14, seção "Worker de agentes") | Nova tentativa até `tentativas do Worker`, com a `espera entre tentativas do Worker` e o `tempo limite da tentativa do Worker`; esgotadas, grava `report_failed`; sem lastro ou com o Pedido recusado, encerra sem nova tentativa (mesma seção) | existe; as novas tentativas e o encerramento pelo Pedido recusado, `planejados` (F14-T06) |
 
 A idempotência do job vem da chave no S3 pelo id do Pedido, regravada numa nova tentativa, e da
 ação de bot única; o PDF fica enquanto a Mensagem existir, sem rotina de limpeza (spec da F14,
@@ -933,7 +933,7 @@ substitui cada serviço de produção segue o HLD, seção 9, "Implantação e a
 | `agents` | `apps/agents/Dockerfile.dev` (Python 3.13, uv) | 3002 (8000 no contêiner) | Serviço de agentes |
 | `e2e` | Imagem oficial do Playwright, na mesma versão do `@playwright/test` do `web` | — | Roda os testes de ponta a ponta do `web` contra `http://localhost:3000`, encaminhado para a web, e o `playwright-cli`; sobe só pelo `profile` e fica parado, como `web` e `chat-api` |
 
-Entra o serviço `worker`, com o Worker de agentes, na mesma imagem do `agents`, `planejado` (spec da F14, seção "Ambiente de desenvolvimento").
+O serviço `worker`, com o Worker de agentes, na mesma imagem e no mesmo volume do `agents`, `existe` (spec da F14, seção "Ambiente de desenvolvimento"); o comando dele está no `AGENTS.md` raiz.
 
 **Contêineres dos apps**
 
