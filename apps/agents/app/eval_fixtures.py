@@ -10,6 +10,13 @@ Formato da fixture: `{"mensagens": [{"autor", "usuario", "texto", "quando", "bot
 com `quando` em ISO UTC. As Mensagens com `bot` ou `apagada` verdadeiro ficam fora da leitura e das
 contagens, como na rota (F11-T08). A `perguntar_recorte` (F11-T07) recebe as contagens da mesma
 Conversa, e a pergunta não é gravada: o estado e o fim do turno ficam como na produção.
+
+A delegação (F12-T06) também responde sem a API do chat, pelo mesmo código de produção:
+`delegar_tarefa` normaliza e confere o Responsável pela `assignee_or_refusal` (uma Menção do pedido
+ou quem pediu) e o título pelo limite da ação `task`; `perguntar_delegacao` monta a pergunta e os
+rótulos pela `delegation_question`. As duas marcam o Pedido como respondido, como a produção, e nada
+é gravado. Para a recusa de quem não é Membro, que na produção vem da API, o caso lista em
+`eval_non_members` os @usuário que a API recusaria.
 """
 
 from __future__ import annotations
@@ -23,10 +30,18 @@ from typing import Any
 
 from google.adk.tools import BaseTool, ToolContext
 
+from app.agent_requests import context
+from app.agent_requests.delegation_question import delegation_question
 from app.agent_requests.question import question_asked, recorte_options
 from app.agent_requests.reading import read_recorte
+from app.agent_requests.task import REFUSALS, assignee_or_refusal
 
 FIXTURE_KEY = "eval_fixture"
+# Os @usuário que a API do chat recusaria como Responsável por não serem Membros (F12-T06).
+NON_MEMBERS_KEY = "eval_non_members"
+# O limite do título na ação `task` da API do chat ("Tarefa").
+MAX_TITLE_LENGTH = 120
+TOOLS = ("ler_mensagens", "perguntar_recorte", "delegar_tarefa", "perguntar_delegacao")
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
 # O teto da rota de leitura do bot ("Teto de Mensagens do resumo").
@@ -102,8 +117,19 @@ async def fixture_tool_callback(
 ) -> dict[str, Any] | None:
     """Responde à ferramenta com a fixture do caso; fora da avaliação, deixa a ferramenta rodar."""
     name = tool_context.state.get(FIXTURE_KEY)
-    if not name or tool.name not in ("ler_mensagens", "perguntar_recorte"):
+    if not name or tool.name not in TOOLS:
         return None
+    if tool.name == "delegar_tarefa":
+        return fixture_delegate(
+            tool_context, args.get("responsavel", ""), args.get("titulo", "")
+        )
+    if tool.name == "perguntar_delegacao":
+        result = delegation_question(
+            tool_context.state, args.get("falta", ""), args.get("candidatos")
+        )
+        if "erro" not in result:
+            context.mark_answered(tool_context, "question")
+        return result
     source = fixture_source(tool_context.agent_name, name)
     if tool.name == "perguntar_recorte":
         options = await recorte_options(source, tool_context.state)
@@ -111,3 +137,20 @@ async def fixture_tool_callback(
     return await read_recorte(
         source, tool_context.state, args.get("recorte", ""), args.get("pessoa")
     )
+
+
+def fixture_delegate(
+    tool_context: ToolContext, responsavel: str, titulo: str
+) -> dict[str, Any]:
+    """A `delegate` de produção sem a ação `task`: as recusas que a API daria vêm do caso e do
+    limite do título."""
+    username = assignee_or_refusal(tool_context.state, responsavel)
+    if isinstance(username, dict):
+        return username
+    if username in (tool_context.state.get(NON_MEMBERS_KEY) or []):
+        return {"erro": REFUSALS["assignee_not_member"]}
+    # A ação apara o título e conta os caracteres (code points), como o `len` do Python.
+    if not titulo.strip() or len(titulo.strip()) > MAX_TITLE_LENGTH:
+        return {"erro": REFUSALS["validation_failed"]}
+    context.mark_answered(tool_context, "task")
+    return {"tarefa": titulo, "responsavel": username}

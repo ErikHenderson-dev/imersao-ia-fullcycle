@@ -38,12 +38,9 @@ async def delegate(
 ) -> dict[str, Any]:
     """Chama a ação `task` e marca o Pedido como respondido; na recusa do Responsável, devolve o
     motivo, sem marcar."""
-    username = username_of(responsavel)
-    if username is None:
-        return {"erro": REFUSALS["assignee_not_member"]}
-    # O Responsável vem do pedido: uma Menção ou quem pediu, nunca do texto citado (F12-T05).
-    if username not in allowed_assignees(tool_context.state):
-        return {"erro": NOT_MENTIONED}
+    username = assignee_or_refusal(tool_context.state, responsavel)
+    if isinstance(username, dict):
+        return username
     request_id = tool_context.state[context.REQUEST_ID]
     for attempt in range(1, ATTEMPTS + 1):
         try:
@@ -59,6 +56,20 @@ async def delegate(
     # A confirmação já está na Conversa, como a pergunta (`context.mark_answered`).
     context.mark_answered(tool_context, "task")
     return {"tarefa": titulo, "responsavel": username}
+
+
+def assignee_or_refusal(
+    state: Mapping[str, Any], responsavel: str
+) -> str | dict[str, str]:
+    """O @usuário normalizado do Responsável, ou o `erro` quando ele não pode ser o Responsável.
+    Também é o que a avaliação confere antes de responder sem a API do chat (`eval_fixtures`)."""
+    username = username_of(responsavel)
+    if username is None:
+        return {"erro": REFUSALS["assignee_not_member"]}
+    # O Responsável vem do pedido: uma Menção ou quem pediu, nunca do texto citado (F12-T05).
+    if username not in allowed_assignees(state):
+        return {"erro": NOT_MENTIONED}
+    return username
 
 
 def allowed_assignees(state: Mapping[str, Any]) -> set[str]:

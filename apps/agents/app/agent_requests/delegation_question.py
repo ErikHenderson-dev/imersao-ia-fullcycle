@@ -62,6 +62,29 @@ def candidate_labels(
     return labels
 
 
+def delegation_question(
+    state: Mapping[str, Any], falta: str, candidatos: Sequence[str] | None
+) -> dict[str, Any]:
+    """A pergunta do que falta e os rótulos dos candidatos, ou o `erro` quando não dá para
+    perguntar. Também é o que a avaliação monta, sem a API do chat (`eval_fixtures`)."""
+    if state.get(context.KIND) == "continuation":
+        return {"erro": NAO_PERGUNTE}
+    if falta not in QUESTIONS:
+        return {"erro": 'falta precisa ser "responsavel", "o_que" ou "qual".'}
+    mentions = state.get(context.MENTIONS) or []
+    labels = candidate_labels(candidatos or [], mentions) if falta == "qual" else []
+    if falta == "qual" and len(labels) < 2:
+        return {
+            "erro": "Com qual, passe em candidatos os @usuário de dois ou mais mencionados."
+        }
+    return {
+        "pergunta": QUESTIONS[falta],
+        "candidatos": [
+            {"rotulo": label, "usuario": username} for label, username in labels
+        ],
+    }
+
+
 async def ask_delegation(
     client: ChatApiClient,
     tool_context: ToolContext,
@@ -70,24 +93,13 @@ async def ask_delegation(
 ) -> dict[str, Any]:
     """Grava a pergunta do que falta e marca o Pedido como respondido pela ferramenta. Numa
     continuação não pergunta: ela já responde a uma pergunta."""
-    if tool_context.state.get(context.KIND) == "continuation":
-        return {"erro": NAO_PERGUNTE}
-    if falta not in QUESTIONS:
-        return {"erro": 'falta precisa ser "responsavel", "o_que" ou "qual".'}
-    mentions = tool_context.state.get(context.MENTIONS) or []
-    labels = candidate_labels(candidatos or [], mentions) if falta == "qual" else []
-    if falta == "qual" and len(labels) < 2:
-        return {
-            "erro": "Com qual, passe em candidatos os @usuário de dois ou mais mencionados."
-        }
-    body = QUESTIONS[falta]
+    result = delegation_question(tool_context.state, falta, candidatos)
+    if "erro" in result:
+        return result
     await client.question(
-        tool_context.state[context.REQUEST_ID], body, [label for label, _ in labels]
+        tool_context.state[context.REQUEST_ID],
+        result["pergunta"],
+        [candidato["rotulo"] for candidato in result["candidatos"]],
     )
     context.mark_answered(tool_context, "question")
-    return {
-        "pergunta": body,
-        "candidatos": [
-            {"rotulo": label, "usuario": username} for label, username in labels
-        ],
-    }
+    return result
