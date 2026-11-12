@@ -36,7 +36,7 @@ from app.agent_requests.reading import read_recorte
 from app.agent_requests.task import TASK_TITLE_MAX_LENGTH, delegate
 from app.business.db import CURRENT_BUSINESS, BusinessStore, business_engine
 from app.chat_api import CURRENT_CHAT_API, ChatApiError
-from app.config import DEFAULT_BUSINESS_TIME_ZONE
+from app.config import DEFAULT_BUSINESS_QUERY_TIMEOUT_MS, DEFAULT_BUSINESS_TIME_ZONE
 
 FIXTURE_KEY = "eval_fixture"
 # Os @usuário que a API do chat recusaria como Responsável por não serem Membros (F12-T06).
@@ -52,8 +52,6 @@ BUSINESS_TOOLS = ("consultar_dados", "perguntar_periodo")
 EVAL_ANSWER_KEY = "eval_resposta"
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
-# O `Tempo limite da consulta ao Banco de negócio` (LLD, "Valores e configuração").
-DEFAULT_QUERY_TIMEOUT_MS = 3000
 # O teto da rota de leitura do bot ("Teto de Mensagens do resumo").
 SUMMARY_MESSAGE_LIMIT = 500
 
@@ -217,7 +215,7 @@ def eval_business_store() -> EvalBusinessStore:
         raise RuntimeError(
             "BUSINESS_DATABASE_URL é obrigatória na avaliação da consulta"
         )
-    engine = business_engine(url, DEFAULT_QUERY_TIMEOUT_MS)
+    engine = business_engine(url, DEFAULT_BUSINESS_QUERY_TIMEOUT_MS)
     return EvalBusinessStore(
         business=engine, agents=engine, time_zone=ZoneInfo(DEFAULT_BUSINESS_TIME_ZONE)
     )

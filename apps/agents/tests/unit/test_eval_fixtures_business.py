@@ -25,12 +25,16 @@ def cases(name: str) -> list[dict]:
     return json.loads((EVAL_DIR / name).read_text(encoding="utf-8"))["eval_cases"]
 
 
-def tools_of(case: dict) -> list[str]:
+def uses_of(case: dict) -> list[dict]:
     return [
-        use["name"]
+        use
         for turn in case["conversation"]
         for use in turn["intermediate_data"]["tool_uses"]
     ]
+
+
+def tools_of(case: dict) -> list[str]:
+    return [use["name"] for use in uses_of(case)]
 
 
 def test_o_evalset_de_dados_tem_os_30_casos_das_categorias_da_spec() -> None:
@@ -42,11 +46,7 @@ def test_o_evalset_de_dados_tem_os_30_casos_das_categorias_da_spec() -> None:
     )
     kinds = Counter()
     for case in dados:
-        args = [
-            use["args"]
-            for turn in case["conversation"]
-            for use in turn["intermediate_data"]["tool_uses"]
-        ]
+        args = [use["args"] for use in uses_of(case)]
         state = case["session_input"]["state"]
         if not args:
             kinds["sem ferramenta"] += 1
