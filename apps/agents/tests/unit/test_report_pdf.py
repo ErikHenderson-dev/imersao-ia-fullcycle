@@ -6,15 +6,15 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from app.business.catalog import Filter, Period
+from app.business.lastro import has_lastro
 from app.worker.metrics import report_rows
 from app.worker.pdf import (
     ReportContent,
     allowed_numbers,
     build_pdf,
     file_name,
-    has_pdf_lastro,
-    page_count,
     pdf_text,
+    read_pdf,
 )
 
 MARCH = Period(date(2026, 3, 1), date(2026, 3, 31))
@@ -112,11 +112,11 @@ def test_o_nome_do_arquivo_segue_a_spec() -> None:
 
 def test_o_lastro_aceita_o_pdf_com_os_numeros_do_resultado() -> None:
     report = content()
-    pdf = build_pdf(report, REQUESTED)
+    text, pages = read_pdf(build_pdf(report, REQUESTED))
 
-    allowed = allowed_numbers(report, None, page_count(pdf))
+    allowed = allowed_numbers(report, None, pages)
 
-    assert has_pdf_lastro(pdf, allowed)
+    assert has_lastro(text, allowed)
 
 
 def test_o_lastro_recusa_um_numero_adulterado() -> None:
@@ -125,8 +125,8 @@ def test_o_lastro_recusa_um_numero_adulterado() -> None:
         truthful,
         rows=content({**CURRENT, "pedidos": 399}).rows,
     )
-    pdf = build_pdf(tampered, REQUESTED)
+    text, pages = read_pdf(build_pdf(tampered, REQUESTED))
 
-    allowed = allowed_numbers(truthful, None, page_count(pdf))
+    allowed = allowed_numbers(truthful, None, pages)
 
-    assert not has_pdf_lastro(pdf, allowed)
+    assert not has_lastro(text, allowed)

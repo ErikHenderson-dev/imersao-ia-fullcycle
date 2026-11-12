@@ -14,7 +14,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 from app.business.catalog import Period
-from app.business.lastro import numbers_in
+from app.business.lastro import date_numbers, numbers_in
 
 NAO_CONSEGUI_RESPONDER = "Não consegui responder."
 SEM_PERMISSAO = "Você não tem acesso a dados de negócio. Peça a permissão a quem opera a instalação."
@@ -306,6 +306,4 @@ def allowed_numbers(
     números do nome do fuso (`Etc/GMT+3`), que a linha do que foi considerado cita."""
     allowed = {Decimal(value) for value in values if value is not None}
     allowed |= {abs(number) for number in numbers_in(time_zone)}
-    for day in (period.start, period.end, window.start, window.end):
-        allowed |= {Decimal(day.day), Decimal(day.month), Decimal(day.year)}
-    return allowed
+    return allowed | date_numbers(period.start, period.end, window.start, window.end)

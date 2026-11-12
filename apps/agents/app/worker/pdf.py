@@ -22,7 +22,7 @@ from pypdf import PdfReader
 
 from app.business.answer import WORDING, period_label
 from app.business.catalog import Period
-from app.business.lastro import has_lastro, numbers_in
+from app.business.lastro import date_numbers, numbers_in
 from app.worker.metrics import REPORT_METRICS, MetricRow
 
 FONTS = Path(__file__).parent / "fonts"
@@ -147,14 +147,16 @@ def _table_row(pdf: FPDF, cells: Iterable[str], *, header: bool) -> None:
     pdf.ln(ROW_HEIGHT)
 
 
-def pdf_text(pdf_bytes: bytes) -> str:
-    """O texto do PDF, como o pypdf o extrai, página a página."""
+def read_pdf(pdf_bytes: bytes) -> tuple[str, int]:
+    """O texto do PDF, como o pypdf o extrai, página a página, e o número de páginas."""
     reader = PdfReader(BytesIO(pdf_bytes))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
+    return "\n".join(page.extract_text() or "" for page in reader.pages), len(
+        reader.pages
+    )
 
 
-def page_count(pdf_bytes: bytes) -> int:
-    return len(PdfReader(BytesIO(pdf_bytes)).pages)
+def pdf_text(pdf_bytes: bytes) -> str:
+    return read_pdf(pdf_bytes)[0]
 
 
 def allowed_numbers(
@@ -164,30 +166,17 @@ def allowed_numbers(
     variações, o dia, o mês e o ano das datas dos dois períodos e da geração, a hora e o minuto da
     geração, os números do nome do fuso e os da paginação. O nome do filtro vem do cadastro."""
     allowed = {number for row in content.rows for number in row.numbers}
-    for period in (content.period, content.previous_period):
-        for day in (period.start, period.end):
-            allowed |= {Decimal(day.day), Decimal(day.month), Decimal(day.year)}
+    periods = (content.period, content.previous_period)
     generated = content.generated_at
-    allowed |= {
-        Decimal(part)
-        for part in (
-            generated.day,
-            generated.month,
-            generated.year,
-            generated.hour,
-            generated.minute,
-        )
-    }
+    allowed |= date_numbers(
+        *(day for period in periods for day in (period.start, period.end)), generated
+    )
+    allowed |= {Decimal(generated.hour), Decimal(generated.minute)}
     allowed |= {abs(number) for number in numbers_in(content.time_zone)}
     if filter_name:
         allowed |= {abs(number) for number in numbers_in(filter_name)}
     allowed |= {Decimal(page) for page in range(1, pages + 1)}
     return allowed
-
-
-def has_pdf_lastro(pdf_bytes: bytes, allowed: set[Decimal]) -> bool:
-    """Todo número do texto extraído do PDF tem lastro."""
-    return has_lastro(pdf_text(pdf_bytes), allowed)
 
 
 def file_name(period: Period, filter_type: str | None, filter_name: str | None) -> str:

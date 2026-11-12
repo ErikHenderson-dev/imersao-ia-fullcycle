@@ -7,6 +7,7 @@ falha e não entrega nada. Os logs levam o id do Pedido, nunca o resultado nem o
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -18,6 +19,7 @@ from sqlalchemy import Select
 from app.business import audit
 from app.business.catalog import compiled_sql
 from app.business.db import BusinessStore
+from app.business.lastro import has_lastro
 from app.business.readonly import assert_read_only
 from app.business.report_queue import ReportJob, release_lock
 from app.chat_api import ChatApiClient
@@ -27,8 +29,7 @@ from app.worker.pdf import (
     allowed_numbers,
     build_pdf,
     file_name,
-    has_pdf_lastro,
-    page_count,
+    read_pdf,
 )
 from app.worker.storage import ReportStorage, report_key
 
@@ -47,26 +48,30 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
     """O Relatório do job, do banco à entrega. `now` é o instante da geração."""
     log = {"extra": {"request_id": job.request_id}}
     catalog_filter = job.filter.catalog() if job.filter else None
+    filter_type = job.filter.type if job.filter else None
+    filter_name = job.filter.name if job.filter else None
     queries = [
         metrics_query(period, deps.business.time_zone, catalog_filter)
         for period in (job.period, job.previous_period)
     ]
+    compiled = [compiled_sql(query) for query in queries]
     # Os dois SQLs compilados, separados por uma linha em branco (spec da F14, "Auditoria").
-    sql = "\n\n".join(compiled_sql(query) for query in queries)
+    sql = "\n\n".join(compiled)
     current, previous = [
-        values_of(await _run(deps.business, query), catalog_filter) for query in queries
+        values_of(await _run(deps.business, query, text), catalog_filter)
+        for query, text in zip(queries, compiled, strict=True)
     ]
     content = ReportContent(
         period=job.period,
         previous_period=job.previous_period,
-        filter_label=f"{job.filter.type} {job.filter.name}" if job.filter else None,
+        filter_label=f"{filter_type} {filter_name}" if job.filter else None,
         generated_at=now.astimezone(deps.business.time_zone),
         time_zone=deps.business.time_zone.key,
         rows=report_rows(current, previous, catalog_filter),
     )
-    pdf = build_pdf(content, job.requested_at)
-    allowed = allowed_numbers(
-        content, job.filter.name if job.filter else None, page_count(pdf)
+    # Montar o PDF e extrair o texto dele pesam na CPU: fora do laço do Worker.
+    pdf, has_lastro = await asyncio.to_thread(
+        _build_and_check, content, job.requested_at, filter_name
     )
 
     async def record(outcome: audit.Outcome) -> None:
@@ -81,7 +86,7 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
             kind="report",
         )
 
-    if not has_pdf_lastro(pdf, allowed):
+    if not has_lastro:
         # Um número sem lastro barra o PDF inteiro, sem nova tentativa (ADR 0014).
         logger.warning(
             "Relatório do Pedido %s barrado pelo lastro", job.request_id, **log
@@ -97,20 +102,25 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
     await deps.chat.report_delivered(
         job.request_id,
         storage_key=key,
-        file_name=file_name(
-            job.period,
-            job.filter.type if job.filter else None,
-            job.filter.name if job.filter else None,
-        ),
+        file_name=file_name(job.period, filter_type, filter_name),
         size_bytes=len(pdf),
     )
     await release_lock(deps.redis, job.requester_id, job.request_id)
     logger.info("Relatório do Pedido %s entregue", job.request_id, **log)
 
 
-async def _run(business: BusinessStore, query: Select) -> Any:
-    """A conferência de somente leitura e a consulta, pelo usuário só leitura."""
-    assert_read_only(compiled_sql(query))
+def _build_and_check(
+    content: ReportContent, created_at: datetime, filter_name: str | None
+) -> tuple[bytes, bool]:
+    """O PDF e se todo número do texto extraído dele tem lastro."""
+    pdf = build_pdf(content, created_at)
+    text, pages = read_pdf(pdf)
+    return pdf, has_lastro(text, allowed_numbers(content, filter_name, pages))
+
+
+async def _run(business: BusinessStore, query: Select, sql: str) -> Any:
+    """A conferência de somente leitura do SQL compilado e a consulta, pelo usuário só leitura."""
+    assert_read_only(sql)
     return await business.fetch_one(query)
 
 

@@ -97,6 +97,20 @@ async def deps(
     await business.dispose()
 
 
+async def seller(url: str, name: str | None = None) -> tuple[int, str]:
+    """Um vendedor dos dados fixos: o de nome dado, ou o primeiro."""
+    engine = create_async_engine(url)
+    try:
+        async with engine.connect() as connection:
+            query = "SELECT id, name FROM sellers " + (
+                "WHERE name = :name" if name else "ORDER BY id LIMIT 1"
+            )
+            found = (await connection.execute(text(query), {"name": name})).one()
+            return found.id, found.name
+    finally:
+        await engine.dispose()
+
+
 def new_job(
     period: Period = MARCH,
     previous: Period = FEBRUARY,
@@ -234,14 +248,7 @@ async def test_o_pdf_de_marco_traz_as_seis_metricas_do_gabarito(
 async def test_com_filtro_de_vendedor_clientes_novos_nao_se_aplica(
     deps: WorkerDeps, loaded_business_test: str
 ) -> None:
-    engine = create_async_engine(loaded_business_test)
-    async with engine.connect() as connection:
-        seller_id, seller_name = (
-            await connection.execute(
-                text("SELECT id, name FROM sellers ORDER BY id LIMIT 1")
-            )
-        ).one()
-    await engine.dispose()
+    seller_id, seller_name = await seller(loaded_business_test)
     job = new_job(filter=ReportFilter("vendedor", seller_id, seller_name))
 
     await run_report(deps, job, NOW)
@@ -259,14 +266,7 @@ async def test_um_periodo_sem_pedidos_pagos_mostra_zero_e_sem_pedidos_pagos(
     deps: WorkerDeps, loaded_business_test: str
 ) -> None:
     # A vendedora sem pedidos em julho de 2026, de propósito, nos dados fixos (app/business/load.py).
-    engine = create_async_engine(loaded_business_test)
-    async with engine.connect() as connection:
-        seller_id = (
-            await connection.execute(
-                text("SELECT id FROM sellers WHERE name = 'Ana Paula Ramos'")
-            )
-        ).scalar_one()
-    await engine.dispose()
+    seller_id, _ = await seller(loaded_business_test, "Ana Paula Ramos")
     job = new_job(JULY, JUNE, ReportFilter("vendedor", seller_id, "Ana Paula Ramos"))
 
     await run_report(deps, job, NOW)

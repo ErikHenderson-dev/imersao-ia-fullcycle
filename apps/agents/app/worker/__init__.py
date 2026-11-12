@@ -58,6 +58,4 @@ class WorkerSettings:
     functions: ClassVar[list[Any]] = [generate_report]
     on_startup = startup
     on_shutdown = shutdown
-    redis_settings = RedisSettings.from_dsn(
-        os.environ.get("REDIS_URL", "redis://redis:6379/0")
-    )
+    redis_settings = RedisSettings.from_dsn(os.environ["REDIS_URL"])
