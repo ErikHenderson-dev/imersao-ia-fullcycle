@@ -73,6 +73,9 @@
   ativos, Clientes novos, Itens vendidos), cada uma com o valor no período, o valor no período
   anterior e a variação percentual, com uma casa decimal e sinal ("+12,5%"). O Faturamento bruto
   não entra.
+- Com filtro, cada Métrica é filtrada onde o filtro se aplica a ela, como na F13, e as outras
+  aparecem na tabela com "não se aplica" no lugar dos valores: Clientes novos e Clientes ativos
+  num relatório por vendedor, por exemplo. A tabela tem sempre as mesmas seis linhas.
 - O período anterior é o imediatamente anterior, com a mesma duração: março → fevereiro; o
   trimestre → o trimestre anterior; um intervalo de datas → o mesmo número de dias antes dele.
   Para um período em andamento ("este mês", "este ano"), o anterior é o mesmo trecho do período
@@ -229,8 +232,9 @@ flowchart TD
 
 **História 2, filtro**
 
-- "Relatório de março da vendedora Ana" gera o PDF com todas as Métricas filtradas pela vendedora,
-  iguais às do gabarito, e o título diz o filtro.
+- "Relatório de março da vendedora Ana" gera o PDF com as Métricas em que o filtro se aplica
+  filtradas pela vendedora, iguais às do gabarito, as outras com "não se aplica", e o título diz o
+  filtro.
 - Um nome que bate com dois a cinco cadastros gera a Pergunta pendente com um botão por nome
   completo; nenhum achado recebe "não encontrei", sem aviso de início.
 
