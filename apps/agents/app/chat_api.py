@@ -14,6 +14,10 @@ import httpx
 
 TIMEOUT_S = 10.0
 
+# Os status em que a API do chat diz que o Pedido acabou (inexistente, encerrado ou vencido): quem
+# age nele para, sem nova tentativa.
+REQUEST_GONE = frozenset({404, 409, 410})
+
 
 class ChatApiError(Exception):
     """A API do chat recusou a ação do bot ou não respondeu; `status` é nulo sem resposta."""

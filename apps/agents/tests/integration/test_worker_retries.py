@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
+from dataclasses import replace
 
 import pytest
 from arq import Retry
@@ -44,9 +45,7 @@ class FlakyStorage(ReportStorage):
 
 
 def with_storage(deps: WorkerDeps, storage: ReportStorage) -> WorkerDeps:
-    return WorkerDeps(
-        business=deps.business, chat=deps.chat, storage=storage, redis=deps.redis
-    )
+    return replace(deps, storage=storage)
 
 
 def posts(fake: FakeChatApi, suffix: str) -> list[dict]:
