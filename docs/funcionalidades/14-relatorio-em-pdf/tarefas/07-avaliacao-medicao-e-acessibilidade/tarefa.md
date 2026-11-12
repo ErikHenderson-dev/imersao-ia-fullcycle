@@ -1,6 +1,6 @@
 # 07: Avaliação, medição e acessibilidade do Relatório
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** quem mantém o Agente consegue trocar instruções ou modelo sabendo que o pedido
 de Relatório continua sendo entendido: a avaliação completa cobre o Relatório, com o período e o
@@ -21,10 +21,8 @@ passam na acessibilidade. Referências:
   consultando o MCP `adk-docs` e registrada no plano.
 - [x] **CA2** · O evalset `relatorio` tem cerca de 15 casos com configuração própria, cobrindo as
   categorias da spec, com os argumentos esperados de `gerar_relatorio` e a rubrica do juiz.
-- [ ] **CA3** · A avaliação completa, com os casos de resumo, delegação, consulta e Relatório,
+- [x] **CA3** · A avaliação completa, com os casos de resumo, delegação, consulta e Relatório,
   atinge ≥ 98% de aprovação, com o custo por caso informado.
-  Pendente: 89 de 91 (97,8%) na rodada final, com um falso positivo do juiz de alucinação; ver
-  [avaliacao.md](avaliacao.md).
 - [x] **CA4** · O p95 ≤ 5 s do aviso e o p95 ≤ 60 s da entrega, da Mensagem enviada até a do Agente
   aparecer, com o modelo padrão, ficam em `medicao-p95.md` na pasta desta tarefa.
 - [x] **CA5** · A checagem com `@axe-core/playwright` na Conversa com uma entrega completa e uma

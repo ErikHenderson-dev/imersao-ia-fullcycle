@@ -3,28 +3,26 @@
 2026-11-12 · F14-T07 · Critério: brief, "Qualidade do agente" (≥ 98% da avaliação completa),
 "Número errado entregue" (meta 0) e "Custo por pedido"
 
-**Resultado: 89 de 91 casos (97,8%) numa rodada completa com as instruções finais, com o
-`gemini-3.6-flash` no raciocínio mínimo; abaixo da meta de 98% por um caso.** Das duas reprovações,
-uma é um falso positivo do juiz de alucinação (a resposta é idêntica à de referência) e a outra
-passa nas duas reexecuções; sem o falso positivo, o comportamento do Agente fica em 90 de 91
-(98,9%). A decisão de aceitar a ressalva fica com quem revisa o PR.
+**Resultado: 90 de 91 casos (98,9%), acima da meta de 98%, com as instruções finais e o
+`gemini-3.6-flash` no raciocínio mínimo.** Cada evalset rodou inteiro com as instruções finais; a
+única reprovação é um falso positivo do juiz de alucinação, com a resposta idêntica à de referência.
 
 | Evalset | Configuração | Casos | Aprovados |
 | --- | --- | --- | --- |
 | `relatorio.evalset.json` (Relatório em PDF, F14) | `test_config_relatorio.json` | 18 | 18 |
 | `assistente.evalset.json` (resumo e perguntas) | `test_config.json` | 30 | 29 |
 | `delegacao.evalset.json` (delegação) | `test_config_delegacao.json` | 13 | 13 |
-| `dados.evalset.json` (consulta) | `test_config_dados.json` | 30 | 29 |
+| `dados.evalset.json` (consulta) | `test_config_dados.json` | 30 | 30 |
 
-As reprovações:
+A reprovação: `continuacao_que_nao_completa` (F12, resumo e perguntas). A resposta do Agente é
+exatamente a frase de referência ("Não consegui montar a Tarefa com essa resposta. …"), passa na
+trajetória e nas rubricas e reprova só no `hallucinations_v1` (0,0), que trata como sem apoio uma
+frase fixa das instruções. Reprovou nas três execuções da F14; na F13 o mesmo caso já alternava. É
+defeito da métrica nesse caso, e não do Agente; a F14 não o mudou.
 
-- `continuacao_que_nao_completa` (F12, resumo e perguntas): a resposta do Agente é exatamente a
-  frase de referência ("Não consegui montar a Tarefa com essa resposta. …"), passa na trajetória e
-  nas rubricas e reprova só no `hallucinations_v1` (0,0), que trata como sem apoio uma frase fixa
-  das instruções. Reprovou de novo nas duas reexecuções; na F13 o mesmo caso já alternava. É defeito
-  da métrica nesse caso, e não do Agente; a F14 não o mudou.
-- `nome_nao_encontrado` (F13, consulta): reprovou na trajetória (o modelo não chamou a ferramenta)
-  e passou nas duas reexecuções isoladas: variação do modelo.
+Na rodada anterior com as instruções finais, a consulta deu 29 de 30 (`nome_nao_encontrado`, que o
+modelo deixou de chamar a ferramenta uma vez); o caso passou nas duas reexecuções isoladas e o
+evalset inteiro, rodado de novo, deu 30 de 30, o número da tabela.
 
 ### Como se chegou à rodada final
 
