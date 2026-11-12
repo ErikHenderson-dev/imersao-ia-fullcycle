@@ -18,7 +18,7 @@ O Figma tem as fundações, os componentes e as telas; o código tem os tokens e
 | Item | Figma | Código |
 | --- | --- | --- |
 | Tokens | 3 coleções de variables (`Primitives`, `Semantic`, `Layout`), 14 estilos de texto, 3 de elevação | `globals.css` com o conjunto completo, nos temas claro e escuro |
-| Componentes | 57 componentes em 3 seções, mais 42 ícones | Os da F01: Button, Input, Field, Spinner, Avatar, EmptyState, DropdownMenu, Rail, Sidebar e UserMenu |
+| Componentes | 58 componentes em 3 seções, mais 42 ícones | Os da F01: Button, Input, Field, Spinner, Avatar, EmptyState, DropdownMenu, Rail, Sidebar e UserMenu |
 | Telas | 129 frames de 1440 × 900, em 10 seções | As da F01: Login, Home / Vazio, o menu do usuário e as portas de carregamento e de erro de sessão |
 | Bibliotecas | Desenho pensado para `lucide-react`, Radix, CVA e Sonner | `lucide-react`, `radix-ui` e CVA instalados; Sonner a instalar |
 
@@ -445,7 +445,7 @@ A página **Components** tem quatro seções:
 | --- | --- |
 | Ícones | 42 componentes `icon/<nome-lucide>` |
 | Primitivos | Spinner, Avatar, Button, IconButton, CountBadge, PresenceDot, Kbd, Skeleton, Input, Textarea, Field, Switch, TabsTrigger, DropdownMenuItem, DropdownMenuSeparator, Tooltip, Toast, EmptyState, DialogHeader, ConfirmDialog |
-| Entities | UserAvatar, UserStatus, AgentAvatar, AgentTag, ChannelIcon, MentionChip, DayDivider, UnreadDivider, MessageSkeleton, NotificationItem, TaskItem, ReplyQuote, MessageActions, MessageEditor, AgentText, MessageItem, AgentRuns |
+| Entities | UserAvatar, UserStatus, AgentAvatar, AgentTag, ChannelIcon, MentionChip, DayDivider, UnreadDivider, MessageSkeleton, NotificationItem, TaskItem, TaskGroupHeader, ReplyQuote, MessageActions, MessageEditor, AgentText, MessageItem, AgentRuns |
 | Features e widgets | SidebarRow, SidebarSection, SidebarAction, Sidebar, Rail, ThemeToggle, ConnectionBanner, ConversationHeader, ActivityHeader, ConversationIntro, MessageComposer, MentionOption, NewMessagesPill, JumpStatusPill, PersonRow, AgentRow, ContactRow, ProfilePanel, UserMenu, MessageMenu |
 
 A descrição de cada componente no Figma registra o comportamento que o código precisa reproduzir: atalhos de teclado, limites, o que some e quando. Leia a descrição antes de implementar.
@@ -546,8 +546,8 @@ Estes detalhes não aparecem só olhando o desenho:
 - **ReplyQuote:** normal, apagada e restrita; clicar leva à mensagem original.
 - **AgentText:** blocos de cabeçalho, lista, tabela mono e parágrafo. **Nunca vira HTML**: o texto do agente é renderizado como dados, sem `dangerouslySetInnerHTML`.
 - **MentionChip:** amarelo (`mention-self-*`) para o próprio usuário e para `@canal` e `@aqui`.
-- **NotificationItem:** não lida tem fundo `highlight-bg`, título bold e ponto vermelho.
-- **TaskItem:** concluída tem título riscado e botão Reabrir.
+- **NotificationItem:** não lida tem fundo `highlight-bg`, título bold e ponto vermelho. Serve também à Notificação de Tarefa (recebida, concluída ou reaberta), sem variant própria: o avatar é de quem agiu, o título diz a ação e o `Excerpt` traz o título da Tarefa. Frames: "Atividade / Todas / Com Notificações de Tarefa", "Alerta / Tarefa / Recebida" e "Alerta / Tarefa / Concluída", na seção "Tarefas (F12)".
+- **TaskItem:** pílula de estado (Aberta; Concluída com check em `success`) e título em `fg-muted` quando concluída. `Show action` só nas Recebidas (Concluir ou Reabrir); nas Delegadas, só o estado. Pedido apagado: `Show link` desligado e `Show deleted` com "Mensagem apagada", e o link leva à Conversa. `Tone=highlighted` (aberta por `?tarefa=`) usa `highlight-bg` e borda à esquerda. **TaskGroupHeader:** rótulo dos grupos Recebidas e Delegadas da aba Tarefas.
 - **SidebarRow:** `h-7`, `rounded-item`; não lida em `font-black`; ativa com `sidebar-active`. **SidebarSection:** recolhida, o chevron gira -90°.
 - **SidebarAction (Agentes):** muda com o papel: `connect` (admin, nenhum conectado), `add` (admin, parte conectada), `manage` (admin, todos conectados), `view` (não admin).
 - **ConversationHeader:** `h-header`; o tópico some abaixo de 640 px. A propriedade `Menu` mostra o IconButton "Abrir navegação" no começo, só abaixo de 768 px (`md:hidden`).

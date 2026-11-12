@@ -3,6 +3,7 @@ import type { Agent } from "@/app/services/agents-service";
 import {
   agentMentionOptions,
   agentRequestMentions,
+  agentRequestQuote,
   mentionedAgentUsername,
   needsAgentRegistry,
 } from "./agent-mentions";
@@ -103,5 +104,22 @@ describe("agentRequestMentions", () => {
 
   it("sem Menção, não leva nenhuma", () => {
     expect(agentRequestMentions([], null)).toEqual([]);
+  });
+});
+
+describe("agentRequestQuote", () => {
+  const author = { kind: "person" as const, id: "ana", name: "Ana Souza", username: "ana" };
+
+  it("traz a Mensagem citada, com o texto atual e o autor", () => {
+    expect(agentRequestQuote({ id: "m1", deleted: false, author, body: "Revisar o contrato" })).toEqual({
+      id: "m1",
+      body: "Revisar o contrato",
+      author: { name: "Ana Souza", username: "ana" },
+    });
+  });
+
+  it("é nula sem Citação ou com a citada apagada", () => {
+    expect(agentRequestQuote(null)).toBeNull();
+    expect(agentRequestQuote({ id: "m1", deleted: true })).toBeNull();
   });
 });

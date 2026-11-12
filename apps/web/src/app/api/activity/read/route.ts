@@ -8,9 +8,16 @@ export async function PUT(request: NextRequest) {
   // A Sessão vem antes do corpo: sem ela, a resposta é 401 qualquer que seja o corpo.
   const token = await readSessionToken();
   if (!token) return Response.json({ kind: "unauthenticated" }, { status: 401 });
-  const body = (await request.json().catch(() => null)) as { messageId?: unknown } | null;
-  if (typeof body?.messageId !== "string") return Response.json({ kind: "invalid" }, { status: 400 });
-  const result = await markActivityRead(token, body.messageId);
+  const body = (await request.json().catch(() => null)) as { messageId?: unknown; taskNotificationId?: unknown } | null;
+  // A posição é a Mensagem ou a Notificação de Tarefa mais nova (spec da F12, "Atividade").
+  const position =
+    typeof body?.messageId === "string"
+      ? { messageId: body.messageId }
+      : typeof body?.taskNotificationId === "string"
+        ? { taskNotificationId: body.taskNotificationId }
+        : null;
+  if (!position) return Response.json({ kind: "invalid" }, { status: 400 });
+  const result = await markActivityRead(token, position);
   if (result.kind === "ok") return Response.json(result.unread);
   return Response.json({ kind: result.kind }, { status: ERROR_STATUS[result.kind] });
 }

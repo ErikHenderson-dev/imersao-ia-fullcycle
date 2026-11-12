@@ -1,4 +1,5 @@
-import type { Agent } from "@/app/services/agents-service";
+import type { QuotePayload } from "chat-events";
+import type { Agent, AgentRequestPayload } from "@/app/services/agents-service";
 import { splitMessageBody } from "./message-segments";
 
 function normalized(value: string): string {
@@ -43,4 +44,11 @@ export function agentRequestMentions(
 ): { username: string; name: string }[] {
   const names = new Map((members ?? []).map((member) => [member.id, member.name]));
   return mentions.map(({ id, username }) => ({ username, name: names.get(id) ?? username }));
+}
+
+// A Mensagem citada pelo Pedido, para o Agente tirar dela a Tarefa (spec da F12, "Rota de Pedido e
+// execução"): o texto atual e o autor, ou nula sem Citação ou com a citada apagada.
+export function agentRequestQuote(quote: QuotePayload | null): AgentRequestPayload["quote"] {
+  if (!quote || quote.deleted) return null;
+  return { id: quote.id, body: quote.body, author: { name: quote.author.name, username: quote.author.username } };
 }

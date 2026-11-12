@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Param,
   Put,
   Query,
   UseGuards,
@@ -55,7 +56,22 @@ export class ActivityController {
     @Body() body: ReadActivityDto,
   ): Promise<ActivityUnreadResponse> {
     return toActivityUnreadResponse(
-      await this.activity.markRead(person.id, body.message_id),
+      await this.activity.markRead(
+        person.id,
+        body.message_id !== undefined
+          ? { messageId: body.message_id }
+          : { taskNotificationId: body.task_notification_id! },
+      ),
     );
+  }
+
+  // Abre uma Notificação de Tarefa (spec da F12, "Atividade").
+  @Put('task-notifications/:id/read')
+  @HttpCode(204)
+  async readTaskNotification(
+    @CurrentPerson() person: Person,
+    @Param('id') notificationId: string,
+  ): Promise<void> {
+    await this.activity.markTaskNotificationRead(person.id, notificationId);
   }
 }

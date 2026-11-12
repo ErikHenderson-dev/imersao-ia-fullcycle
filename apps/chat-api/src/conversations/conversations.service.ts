@@ -144,6 +144,13 @@ export class ConversationsService {
     return this.conversations.existsBy({ id: conversationId, kind: 'direct' });
   }
 
+  // As Conversas desses ids, sem ordem garantida e sem os números: a Conversa da Tarefa (spec da
+  // F12, "Concluir, reabrir e listar").
+  findByIds(ids: string[]): Promise<Conversation[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.conversations.findBy({ id: In(ids) });
+  }
+
   // As Conversas desses ids, com a quantidade de Membros, sem ordem garantida: a Conversa dos itens
   // de Atividade (spec da F08, "Rotas").
   async summariesByIds(ids: string[]): Promise<ConversationSummary[]> {
@@ -271,6 +278,22 @@ export class ConversationsService {
         await this.listMemberIds(conversationId),
       ),
     );
+  }
+
+  // O Membro da Conversa com esse @usuário, com o nome, ou null: o Responsável da Tarefa (spec da
+  // F12, "Ação `task`").
+  async findMemberByUsername(
+    conversationId: string,
+    username: string,
+  ): Promise<{ id: string; name: string } | null> {
+    const [member] = await this.txHost.tx.query<{ id: string; name: string }[]>(
+      `SELECT p.id, p.name FROM people p
+         JOIN conversation_members m
+           ON m.person_id = p.id AND m.conversation_id = $1
+        WHERE p.username = $2`,
+      [conversationId, username],
+    );
+    return member ?? null;
   }
 
   // Ids das Pessoas que são Membros da Conversa: os destinatários dos eventos dela.

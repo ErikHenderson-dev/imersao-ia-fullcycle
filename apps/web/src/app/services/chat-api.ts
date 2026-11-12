@@ -1,4 +1,7 @@
 import type {
+  TaskNotificationKind,
+  TaskPayload,
+  TaskPersonPayload,
   ConversationPayload,
   MentionPayload,
   MessageAuthorPayload,
@@ -22,6 +25,7 @@ import type { AgentErrorReason, AgentRequestFailure } from "@/app/utils/agent-re
 import { initials } from "@/app/utils/initials";
 import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
+import { taskFromPayload } from "@/app/utils/tasks";
 import { activityUnreadFromPayload, type ActivityUnreadPayload } from "@/app/utils/activity-unread";
 
 // Service HTTP da API do chat, usado só no servidor (Server Actions, Server Components e
@@ -811,8 +815,17 @@ export async function listMembers(token: string, conversationId: string): Promis
 export type ActivityFilter = "all" | "mentions" | "direct";
 export type NotificationKind = "mention" | "direct";
 
-// Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela.
-export type ActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
+// Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela, ou a
+// Notificação de Tarefa, com a Tarefa e quem agiu (spec da F12, "Atividade").
+export type MessageActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
+export type { TaskNotificationKind } from "chat-events";
+export type TaskActivityItem = {
+  kind: "task";
+  notification: { id: string; kind: TaskNotificationKind; read: boolean };
+  task: Task;
+  actor: TaskPerson;
+};
+export type ActivityItem = MessageActivityItem | TaskActivityItem;
 
 export type ActivityPage = { items: ActivityItem[]; hasMore: boolean };
 
@@ -822,6 +835,7 @@ export type ActivityUnread = {
   totalCount: number;
   mentionCount: number;
   directCount: number;
+  taskCount: number;
 };
 
 export type ActivityPageResult =
@@ -834,7 +848,14 @@ export type ActivityUnreadResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
-type ApiActivityItem = { kind: NotificationKind; message: ApiMessage; conversation: ApiConversation };
+type ApiActivityItem =
+  | { kind: NotificationKind; message: ApiMessage; conversation: ApiConversation }
+  | {
+      kind: "task";
+      notification: { id: string; kind: TaskNotificationKind; read: boolean };
+      task: TaskPayload;
+      actor: TaskPerson;
+    };
 
 // Uma página de Atividade: as anteriores a `before`, ou as mais novas sem ele, em ordem cronológica.
 export async function listActivity(
@@ -851,11 +872,16 @@ export async function listActivity(
   return {
     kind: "ok",
     page: {
-      items: result.body.items.map((item) => ({
-        kind: item.kind,
-        message: messageFromEvent(item.message),
-        conversation: conversationFromPayload(item.conversation),
-      })),
+      items: result.body.items.map(
+        (item): ActivityItem =>
+          item.kind === "task"
+            ? { kind: "task", notification: item.notification, task: taskFromPayload(item.task), actor: item.actor }
+            : {
+                kind: item.kind,
+                message: messageFromEvent(item.message),
+                conversation: conversationFromPayload(item.conversation),
+              },
+      ),
       hasMore: result.body.has_more,
     },
   };
@@ -878,12 +904,19 @@ export type MarkActivityReadResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
-// Marca tudo como lido até a Mensagem (spec da F08, "Rotas"): só avança.
-export async function markActivityRead(token: string, messageId: string): Promise<MarkActivityReadResult> {
+// A posição de "Marcar tudo como lido": a Mensagem ou a Notificação de Tarefa mais nova.
+export type ActivityPosition = { messageId: string } | { taskNotificationId: string };
+
+// Marca tudo como lido até a posição (spec da F08, "Rotas"; spec da F12, "Atividade"): só avança.
+export async function markActivityRead(token: string, position: ActivityPosition): Promise<MarkActivityReadResult> {
   const response = await request("/v1/activity/read", {
     method: "PUT",
     headers: { ...authenticated(token), "content-type": "application/json" },
-    body: JSON.stringify({ message_id: messageId }),
+    body: JSON.stringify(
+      "messageId" in position
+        ? { message_id: position.messageId }
+        : { task_notification_id: position.taskNotificationId },
+    ),
   });
   if (response?.status === 200) {
     const body = await jsonBody<ActivityUnreadPayload>(response);
@@ -901,4 +934,84 @@ export async function announceAgentsChanged(token: string): Promise<boolean> {
     headers: authenticated(token),
   });
   return response?.status === 204;
+}
+
+// Tarefas (spec da F12, "Concluir, reabrir e listar").
+export type TaskRole = "assigned" | "delegated";
+export type TaskPerson = TaskPersonPayload;
+
+export type Task = {
+  id: string;
+  title: string;
+  status: "open" | "done";
+  createdAt: string;
+  completedAt: string | null;
+  assignee: TaskPerson;
+  delegator: TaskPerson;
+  conversation: { id: string; name: string | null; kind: ConversationKind };
+  triggerMessage: { id: string; deleted: boolean };
+};
+
+export type TaskPage = { tasks: Task[]; nextCursor: string | null };
+
+export type TaskPageResult = { kind: "ok"; page: TaskPage } | { kind: "unauthenticated" } | { kind: "failure" };
+
+export type TaskResult =
+  | { kind: "ok"; task: Task }
+  | { kind: "not_found" }
+  | { kind: "not_assignee" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Uma página das Tarefas recebidas ou delegadas, a partir do cursor da anterior.
+export async function listTasks(
+  token: string,
+  { role, cursor }: { role: TaskRole; cursor?: string },
+): Promise<TaskPageResult> {
+  const params = new URLSearchParams({ role });
+  if (cursor) params.set("cursor", cursor);
+  const result = await getJson<{ tasks: TaskPayload[]; next_cursor: string | null }>(
+    token,
+    `/v1/tasks?${params.toString()}`,
+  );
+  if (result.kind !== "ok") return result.kind === "unauthenticated" ? result : { kind: "failure" };
+  return {
+    kind: "ok",
+    page: { tasks: result.body.tasks.map(taskFromPayload), nextCursor: result.body.next_cursor },
+  };
+}
+
+// Uma Tarefa, para o Responsável ou quem delegou.
+export async function getTask(token: string, taskId: string): Promise<TaskResult> {
+  const result = await getJson<{ task: TaskPayload }>(token, `/v1/tasks/${encodeURIComponent(taskId)}`);
+  return result.kind === "ok" ? { kind: "ok", task: taskFromPayload(result.body.task) } : result;
+}
+
+// Conclui ou reabre a Tarefa do Responsável; a repetição devolve a Tarefa como está.
+export async function changeTaskStatus(
+  token: string,
+  taskId: string,
+  action: "complete" | "reopen",
+): Promise<TaskResult> {
+  const response = await request(`/v1/tasks/${encodeURIComponent(taskId)}/${action}`, {
+    method: "POST",
+    headers: authenticated(token),
+  });
+  if (response?.status === 200) {
+    const body = await jsonBody<{ task: TaskPayload }>(response);
+    return body ? { kind: "ok", task: taskFromPayload(body.task) } : { kind: "failure" };
+  }
+  if (response?.status === 403) return { kind: "not_assignee" };
+  return commonFailure(response);
+}
+
+export type MarkTaskNotificationResult = { kind: "ok" } | { kind: "not_found" } | { kind: "unauthenticated" } | { kind: "failure" };
+
+// Abre uma Notificação de Tarefa: ela fica lida (spec da F12, "Atividade").
+export async function markTaskNotificationRead(token: string, notificationId: string): Promise<MarkTaskNotificationResult> {
+  const response = await request(`/v1/activity/task-notifications/${encodeURIComponent(notificationId)}/read`, {
+    method: "PUT",
+    headers: authenticated(token),
+  });
+  return response?.status === 204 ? { kind: "ok" } : commonFailure(response);
 }

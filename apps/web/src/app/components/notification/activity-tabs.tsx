@@ -5,20 +5,20 @@ import { useEffect } from "react";
 import { useSWRConfig } from "swr";
 import { CountBadge } from "@/app/components/ui/count-badge";
 import { useActivityUnread } from "@/app/hooks/use-activity-unread";
-import type { ActivityFilter, ActivityUnread } from "@/app/services/chat-api";
-import { ACTIVITY_TABS, activityTabHref, unreadSuffix } from "@/app/utils/activity";
+import type { ActivityUnread } from "@/app/services/chat-api";
+import { ACTIVITY_TABS, type ActivityTab, activityTabHref, unreadSuffix } from "@/app/utils/activity";
 import { activityUnreadKey } from "@/app/utils/activity-cache";
 import { cn } from "@/app/utils/cn";
 
-// As abas Todas, Menções e Mensagens diretas (TabsTrigger, design system), cada uma uma URL, com o
-// contador das suas Notificações não lidas. A aba Tarefas entra na F12.
+// As abas Todas, Menções, Mensagens diretas e Tarefas (TabsTrigger, design system), cada uma uma
+// URL, com o contador das suas Notificações não lidas.
 export function ActivityTabs({
   personId,
   active,
   initialUnread,
 }: {
   personId: string;
-  active: ActivityFilter;
+  active: ActivityTab;
   initialUnread: ActivityUnread | undefined;
 }) {
   const unread = useActivityUnread(personId, initialUnread);
@@ -32,7 +32,7 @@ export function ActivityTabs({
     <nav aria-label="Tipos de atividade" className="flex shrink-0 gap-4 border-b border-border-subtle px-5">
       {ACTIVITY_TABS.map((tab) => {
         const isActive = tab.filter === active;
-        const count = unread[tab.count];
+        const count = tab.count === null ? 0 : unread[tab.count];
         return (
           <Link
             key={tab.filter}

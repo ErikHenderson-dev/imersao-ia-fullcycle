@@ -1,7 +1,41 @@
-import { IsUUID } from 'class-validator';
+import {
+  IsUUID,
+  Validate,
+  ValidateIf,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
+} from 'class-validator';
 
-// A marca de Atividade: a Notificação mais nova que a Pessoa viu (spec da F08, "Rotas").
+// Recusa o corpo com os dois ids, ou com nenhum.
+@ValidatorConstraint({ name: 'exactlyOnePosition' })
+class ExactlyOnePosition implements ValidatorConstraintInterface {
+  validate(_: unknown, { object }: ValidationArguments): boolean {
+    const dto = object as ReadActivityDto;
+    return (
+      (dto.message_id === undefined) !==
+      (dto.task_notification_id === undefined)
+    );
+  }
+
+  defaultMessage(): string {
+    return 'Mande message_id ou task_notification_id, e só um deles.';
+  }
+}
+
+// A marca de Atividade: a Notificação mais nova que a Pessoa viu (spec da F08, "Rotas"), uma
+// Mensagem ou uma Notificação de Tarefa (spec da F12, "Atividade"), exatamente uma das duas.
 export class ReadActivityDto {
+  @ValidateIf((dto: ReadActivityDto) => dto.task_notification_id === undefined)
   @IsUUID()
-  message_id!: string;
+  message_id?: string;
+
+  // Validado também quando os dois vêm, ou nenhum: aí a regra de um só recusa o corpo.
+  @ValidateIf(
+    (dto: ReadActivityDto) =>
+      dto.task_notification_id !== undefined || dto.message_id === undefined,
+  )
+  @Validate(ExactlyOnePosition)
+  @IsUUID()
+  task_notification_id?: string;
 }

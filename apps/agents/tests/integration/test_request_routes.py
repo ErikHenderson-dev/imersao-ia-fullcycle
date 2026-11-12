@@ -203,6 +203,26 @@ async def test_um_pedido_com_recorte_le_o_recorte_certo_e_grava_o_resumo(
     assert "@" not in reply["body"]["body"]
 
 
+async def test_aceita_o_pedido_com_a_citacao(
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+) -> None:
+    body = {
+        **pedido(),
+        "quote": {
+            "id": str(uuid.uuid4()),
+            "body": "Revisar o contrato",
+            "author": {"name": "Bruno Lima", "username": "bruno"},
+        },
+    }
+
+    response = await request_client.post("/v1/requests", json=body, headers=AUTH)
+
+    # F12-T05, CA1: o corpo com a Citação é aceito, como o sem ela (nula por padrão).
+    assert response.status_code == 202
+
+
 async def test_responde_409_com_o_agente_desconectado(
     request_client: httpx.AsyncClient, fake_chat_api: FakeChatApi
 ) -> None:

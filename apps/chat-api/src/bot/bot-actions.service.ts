@@ -1,7 +1,9 @@
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
+import type { AgentRequest } from '../agent-requests/agent-request.entity';
 import type { BotActionType } from '../agent-requests/bot-action.entity';
+import { RequestClosedError } from '../agent-requests/request-closed.error';
 import { PendingQuestionsService } from '../agent-requests/pending-questions.service';
 import { BotsService } from '../bots/bots.service';
 import { MessagesService, toAuthor } from '../messages/messages.service';
@@ -11,6 +13,10 @@ import type {
   MessageView,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
+import { ActivityPublisher } from '../notifications/activity.publisher';
+import { partiesOf } from '../tasks/task.entity';
+import { notificationFor, toTaskResponse } from '../tasks/task.response';
+import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
 
 // As ações do bot na Conversa, sempre dentro de um Pedido real (ADR 0011; spec da F11, "Rotas do bot
@@ -23,6 +29,8 @@ export class BotActionsService {
     private readonly messages: MessagesService,
     private readonly bots: BotsService,
     private readonly realtime: RealtimePublisher,
+    private readonly tasks: TasksService,
+    private readonly activity: ActivityPublisher,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -71,8 +79,18 @@ export class BotActionsService {
   // Grava a resposta do bot ao Pedido e emite o fim do "digitando". Repetida, devolve a Mensagem já
   // gravada, sem gravar nem publicar (LLD, "Concorrência e idempotência", "Ação de bot").
   async reply(requestId: string, body: string): Promise<MessageView> {
-    const { message, created } = await this.record(requestId, 'reply', body);
-    if (created) this.announceAnswer(message);
+    const { message, written } = await this.once(
+      requestId,
+      'reply',
+      async (request) => ({
+        message: await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+        ),
+      }),
+    );
+    if (written) this.announceAnswer(message);
     return message;
   }
 
@@ -84,24 +102,103 @@ export class BotActionsService {
     body: string,
     quickReplies: string[],
   ): Promise<MessageView> {
-    const { message, created, closedQuestion } = await this.record(
+    const { message, written } = await this.once(
       requestId,
       'question',
-      body,
-      quickReplies,
+      async (request) => {
+        const inserted = await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+          quickReplies,
+        );
+        const { opened, closed } = await this.pendingQuestions.open(
+          request,
+          inserted.id,
+        );
+        return {
+          // Com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
+          message: {
+            ...inserted,
+            quickReplies: {
+              options: quickReplies,
+              ownerId: opened.personId,
+              expiresAt: opened.expiresAt,
+              closed: false,
+            },
+          },
+          closedQuestion: closed?.questionMessageId ?? null,
+        };
+      },
     );
-    if (!created) return message;
+    if (!written) return message;
     this.announceAnswer(message);
-    if (closedQuestion) {
+    if (written.closedQuestion) {
       this.messages.publishQuestionClosed(
-        closedQuestion,
+        written.closedQuestion,
         message.conversationId,
       );
     }
     return message;
   }
 
-  // A resposta ou a pergunta gravada: publica a Mensagem e emite o fim do "digitando" do bot.
+  // Delega a Tarefa ao Membro da Conversa do Pedido e grava a confirmação do bot, numa transação
+  // (spec da F12, "Ação `task`"). Repetida, devolve a Tarefa e a confirmação já gravadas, sem
+  // conferir o Responsável de novo nem publicar. A Tarefa é montada depois do commit, fora da
+  // trava do Pedido.
+  async task(
+    requestId: string,
+    assigneeUsername: string,
+    title: string,
+  ): Promise<{ task: TaskView; message: MessageView }> {
+    const { message, written } = await this.once(
+      requestId,
+      'task',
+      async (request) => {
+        const assignee = await this.tasks.resolveAssignee(
+          request.conversationId,
+          assigneeUsername,
+        );
+        const { task, notification } = await this.tasks.create({
+          requestId: request.id,
+          conversationId: request.conversationId,
+          triggerMessageId: request.triggerMessageId,
+          assigneeId: assignee.id,
+          delegatorId: request.requesterId,
+          title,
+        });
+        return {
+          task,
+          notification,
+          message: await this.messages.insertBotMessage(
+            request.botId,
+            request.conversationId,
+            `Tarefa delegada a ${assignee.name}: ${title}`,
+          ),
+        };
+      },
+    );
+    if (written) this.announceAnswer(message);
+    const task =
+      written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
+    const view = await this.tasks.view(task);
+    // Também na repetição: uma falha entre o commit e a publicação não deixa as Pessoas sem o
+    // evento nem sem os números. Na repetição a Notificação não vai no evento, para não alertar de
+    // novo; ela está em Atividade.
+    const notification = written?.notification ?? null;
+    const payload = toTaskResponse(view);
+    void this.realtime.taskCreated(partiesOf(task), (recipientId) => ({
+      task: payload,
+      notification: notificationFor(notification, recipientId),
+    }));
+    if (task.assigneeId !== task.delegatorId) {
+      this.activity.publish([task.assigneeId]);
+    }
+    return { task: view, message };
+  }
+
+  // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do
+  // "digitando" do bot.
   private announceAnswer(message: MessageView): void {
     this.messages.publishBotMessage(message);
     this.realtime.botTyping(
@@ -112,19 +209,15 @@ export class BotActionsService {
   }
 
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
-  // com o Pedido travado. A pergunta leva os rótulos e abre a Pergunta pendente, e devolve a
-  // Mensagem da pergunta anterior que ela encerrou.
+  // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
+  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Uma ação de outro
+  // tipo num Pedido já respondido recebe `request_closed`.
   @Transactional()
-  private async record(
+  private async once<T extends { message: MessageView }>(
     requestId: string,
     actionType: BotActionType,
-    body: string,
-    quickReplies: string[] | null = null,
-  ): Promise<{
-    message: MessageView;
-    created: boolean;
-    closedQuestion: string | null;
-  }> {
+    write: (request: AgentRequest) => Promise<T>,
+  ): Promise<{ message: MessageView; written: T | null }> {
     const request = await this.requests.lockForAction(requestId);
     const existingId = await this.requests.findActionMessageId(
       request.id,
@@ -133,37 +226,19 @@ export class BotActionsService {
     if (existingId) {
       return {
         message: await this.messages.viewById(existingId),
-        created: false,
-        closedQuestion: null,
+        written: null,
       };
     }
-    const inserted = await this.messages.insertBotMessage(
-      request.botId,
-      request.conversationId,
-      body,
-      quickReplies,
-    );
-    await this.requests.recordAction(request.id, actionType, inserted.id);
-    if (!quickReplies) {
-      return { message: inserted, created: true, closedQuestion: null };
+    // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
+    if (await this.requests.hasAnswer(request.id)) {
+      throw new RequestClosedError();
     }
-    const { opened, closed } = await this.pendingQuestions.open(
-      request,
-      inserted.id,
+    const written = await write(request);
+    await this.requests.recordAction(
+      request.id,
+      actionType,
+      written.message.id,
     );
-    return {
-      // Com a Pergunta pendente que acabou de abrir, que dá o resto das Respostas prontas.
-      message: {
-        ...inserted,
-        quickReplies: {
-          options: quickReplies,
-          ownerId: opened.personId,
-          expiresAt: opened.expiresAt,
-          closed: false,
-        },
-      },
-      created: true,
-      closedQuestion: closed?.questionMessageId ?? null,
-    };
+    return { message: written.message, written };
   }
 }

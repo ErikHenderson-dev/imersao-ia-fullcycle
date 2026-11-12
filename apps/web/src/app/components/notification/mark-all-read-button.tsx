@@ -29,7 +29,9 @@ export function MarkAllReadButton({ personId }: { personId: string }) {
       const response = await fetch("/api/activity/read", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messageId: newest.message.id }),
+        body: JSON.stringify(
+          newest.kind === "task" ? { taskNotificationId: newest.notification.id } : { messageId: newest.message.id },
+        ),
       });
       if (response.status === 401) return redirectToExpiredSession();
       if (!response.ok) throw new Error("Falha ao marcar como lido.");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ActivityItem, ActivityPage, Message } from "@/app/services/chat-api";
+import type { ActivityPage, Message, MessageActivityItem } from "@/app/services/chat-api";
+import { activityItemId } from "./activity";
 import { applyCreated, applyDeleted, applyUpdated, notificationKindFor } from "./activity-cache";
 
 const ME = "me";
@@ -20,7 +21,7 @@ function message(id: string, overrides: Partial<Message> = {}): Message {
   };
 }
 
-function item(id: string, kind: ActivityItem["kind"] = "mention"): ActivityItem {
+function item(id: string, kind: MessageActivityItem["kind"] = "mention"): MessageActivityItem {
   return {
     kind,
     message: message(id),
@@ -39,7 +40,7 @@ function item(id: string, kind: ActivityItem["kind"] = "mention"): ActivityItem 
 }
 
 function ids(pages: ActivityPage[]): string[][] {
-  return pages.map((page) => page.items.map((entry) => entry.message.id));
+  return pages.map((page) => page.items.map(activityItemId));
 }
 
 describe("Atividade no cache", () => {
@@ -79,7 +80,8 @@ describe("Atividade no cache", () => {
     ];
     const edited = message("7", { body: "Editada" });
 
-    expect(applyUpdated(pages, edited, { ...item("7"), message: edited }, "all")[0].items[1].message.body).toBe(
+    const updated = applyUpdated(pages, edited, { ...item("7"), message: edited }, "all")[0].items[1];
+    expect(updated.kind !== "task" && updated.message.body).toBe(
       "Editada",
     );
     expect(ids(applyUpdated(pages, message("7"), null, "all"))).toEqual([["5"], ["2", "3"]]);

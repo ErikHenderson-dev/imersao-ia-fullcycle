@@ -117,6 +117,33 @@ describe('Resposta e digitando do bot em tempo real', () => {
     expect(await waitForCount(stopped, 1)).toEqual([expected]);
   });
 
+  // A confirmação da Tarefa (spec da F12, "Ação `task`"; F12-T01, CA2).
+  it('a confirmação da Tarefa chega como message.created aos Membros, com o fim do digitando', async () => {
+    const { author, requestId, socket, expected } =
+      await botRequestWithReader();
+    await botRoutes.typing(app, requestId).expect(204);
+    const created = collectEvents(socket, 'message.created');
+    const stopped = collectEvents(socket, 'typing.stop');
+
+    await botRoutes
+      .task(app, requestId, {
+        assignee_username: author.person.username,
+        title: 'revisar o contrato',
+      })
+      .expect(201);
+
+    await waitForCount(stopped, 1);
+    await settle();
+    // Só os eventos do bot: o da Mensagem do Pedido pode chegar a este socket já conectado.
+    const fromBot = created.filter((e) => e.message.author.kind === 'bot');
+    expect(fromBot).toHaveLength(1);
+    expect(fromBot[0].message).toMatchObject({
+      ...expected,
+      body: `Tarefa delegada a ${author.person.name}: revisar o contrato`,
+    });
+    expect(stopped).toEqual([expected]);
+  });
+
   // A pergunta e o encerramento dela (F11-T07, CA2 e CA4).
   it('a pergunta do bot chega com as Respostas prontas e encerra o digitando', async () => {
     const { author, requestId, socket, expected } =

@@ -1,4 +1,4 @@
-"""As ferramentas do `assistente` (spec da F11, "O Agente `assistente`").
+"""As ferramentas do `assistente` (specs da F11 e da F12, "O Agente `assistente`").
 
 O modelo escolhe o Recorte e, com a Menção no pedido, a Pessoa; a data, a leitura, a contagem e os
 botões são do código. O Pedido, o fuso e o instante vêm do estado da sessão, que o modelo não vê.
@@ -11,9 +11,16 @@ from typing import Any
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
-from app.agent_requests.question import QUESTION_BODY, question_asked, recorte_options
+from app.agent_requests.delegation_question import Falta, ask_delegation
+from app.agent_requests.question import (
+    NAO_PERGUNTE,
+    QUESTION_BODY,
+    question_asked,
+    recorte_options,
+)
 from app.agent_requests.reading import ChatApiSource, read_recorte
 from app.agent_requests.recorte import Recorte
+from app.agent_requests.task import delegate
 from app.chat_api import CURRENT_CHAT_API
 
 FORA_DE_UM_PEDIDO = "A ferramenta só funciona dentro de um Pedido."
@@ -52,9 +59,7 @@ async def perguntar_recorte(tool_context: ToolContext) -> dict[str, Any]:
     """
     if tool_context.state.get(context.KIND) == "continuation":
         # A continuação já é a resposta a uma pergunta: não pergunta de novo (spec da F11).
-        return {
-            "erro": "Esta Mensagem já responde a uma pergunta; não pergunte de novo."
-        }
+        return {"erro": NAO_PERGUNTE}
     client = CURRENT_CHAT_API.get()
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}
@@ -64,3 +69,43 @@ async def perguntar_recorte(tool_context: ToolContext) -> dict[str, Any]:
     )
     await client.question(request_id, QUESTION_BODY, options)
     return question_asked(tool_context, options)
+
+
+async def delegar_tarefa(
+    responsavel: str, titulo: str, tool_context: ToolContext
+) -> dict[str, Any]:
+    """Delega uma Tarefa a um Membro desta Conversa e grava a confirmação na Conversa. Depois dela,
+    não escreva nada: a confirmação já está na Conversa.
+
+    Args:
+        responsavel: O @usuário do Responsável, sem a arroba (por exemplo, "bruno"). Para "mim",
+            "me" ou "eu", o @usuário de quem pediu.
+        titulo: O que fazer, em até 120 caracteres, só com o que está no pedido, sem @usuário.
+
+    Returns:
+        A Tarefa delegada, ou `erro` com o motivo da recusa do Responsável.
+    """
+    client = CURRENT_CHAT_API.get()
+    if client is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await delegate(client, tool_context, responsavel, titulo)
+
+
+async def perguntar_delegacao(
+    falta: Falta, tool_context: ToolContext, candidatos: list[str] | None = None
+) -> dict[str, Any]:
+    """Pergunta a quem pediu o que falta para delegar a Tarefa. Depois dela, não escreva nada: a
+    pergunta já está na Conversa.
+
+    Args:
+        falta: "responsavel" (sem Responsável), "o_que" (sem o que fazer, inclusive "isso" sem
+            Citação) ou "qual" (dois ou mais mencionados como possíveis Responsáveis).
+        candidatos: Só com "qual": os @usuário dos mencionados que podem ser o Responsável.
+
+    Returns:
+        A pergunta gravada e, com "qual", o rótulo e o @usuário de cada candidato.
+    """
+    client = CURRENT_CHAT_API.get()
+    if client is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await ask_delegation(client, tool_context, falta, candidatos)

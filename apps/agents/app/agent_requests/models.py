@@ -24,6 +24,19 @@ class Mention(BaseModel):
     name: str
 
 
+class QuoteAuthor(BaseModel):
+    name: str
+    username: str
+
+
+class RequestQuote(BaseModel):
+    """A Mensagem citada pelo Pedido (spec da F12, "Rota de Pedido e execução")."""
+
+    id: uuid.UUID
+    body: str
+    author: QuoteAuthor
+
+
 class AgentRequestBody(BaseModel):
     request_id: uuid.UUID
     kind: Literal["new", "continuation"]
@@ -37,3 +50,5 @@ class AgentRequestBody(BaseModel):
     mentions: list[Mention]
     # O fuso IANA de quem pediu.
     time_zone: str
+    # A Mensagem citada, ou nula; opcional, para o BFF anterior continuar aceito.
+    quote: RequestQuote | None = None

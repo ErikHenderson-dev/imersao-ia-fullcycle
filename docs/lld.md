@@ -235,7 +235,10 @@ novas tentativas e idempotência").
   pergunta ao usuário (`question`), aviso de início, entrega do PDF, criação de tarefa. A repetição
   devolve o que já foi gravado, sem nova mensagem, tarefa ou notificação. O "digitando" do bot não é
   ação e não entra na unicidade. `reply` e `question` existem (spec da F11, seção "Pedido e ações de
-  bot").
+  bot"). `task`, a criação de tarefa, existe: grava a Tarefa e a confirmação numa transação
+  ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Ação `task`").
+  Toda ação gravada é a resposta do Pedido: conta para o "digitando" do bot, e uma ação de outro tipo
+  num Pedido já respondido recebe `request_closed`.
 - **Pergunta pendente no envio:** resolvida na mesma transação que grava a Mensagem, com a linha da
   Pergunta pendente travada, e no máximo uma pergunta aberta por Pessoa e Conversa. Dois envios
   simultâneos da mesma Pessoa criam um Pedido só, porque o segundo encontra a pergunta encerrada.
@@ -266,6 +269,12 @@ novas tentativas e idempotência").
   nada a mais ([ADR 0027](adr/0027-notificacoes-calculadas.md)). Os números de Atividade, com o
   "Teto da contagem de não lidas", saem para as abas calculados na hora de publicar, numa fila
   por Pessoa na API, que existe ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seções "Notificações e contagem" e "Tempo real").
+  A Notificação de Tarefa (recebida, concluída, reaberta) é a exceção: gravada numa linha por
+  destinatário, na transação da mudança da Tarefa, e lida pela mesma consulta como mais uma fonte;
+  fica lida com a marca de leitura da linha, gravada quando a Pessoa a abre, ou com a marca de
+  Atividade ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), existe (spec da F12, seção
+  "Atividade"). A marca de Atividade é uma posição, e não uma referência: o id da Mensagem ou da
+  Notificação de Tarefa mais nova vista, sem chave estrangeira.
 
 ### Transações
 
@@ -351,8 +360,8 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor pessoa ou bot (`author_person_id`, `author_bot_id`) ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Autor da Mensagem"); Respostas prontas (`quick_replies`) (spec da F11, seção "Envio e Pergunta pendente"); marca a detalhar |
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
-| Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem") |
-| Chat | Tarefas | a detalhar |
+| Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people`, uma posição sem chave estrangeira desde a F12 ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem"); as de Tarefa ficam em `task_notifications` (ADR 0029) |
+| Chat | Tarefas | existe (`tasks`): spec da F12, seção "Tarefa"; Notificações de Tarefa gravadas (`task_notifications`) ([ADR 0029](adr/0029-notificacoes-de-tarefa-gravadas.md)), existe: spec da F12, seções "Tarefa" e "Atividade" |
 | Chat | Pedidos aos agentes e ações de bot | existe (`agent_requests`, `bot_actions`): spec da F11, seção "Pedido e ações de bot" |
 | Chat | Perguntas pendentes | existe (`pending_questions`): spec da F11, seção "Envio e Pergunta pendente" |
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
@@ -401,7 +410,8 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/bot/requests/:id/message-counts` | existe | Contagem dos Recortes pelo bot, com a credencial de bot; aceita o mesmo `until` exclusivo da leitura, para as contagens serem as que a leitura devolveria: mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
-| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas, com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/task` | existe | Delegação pelo bot, com a credencial de bot e a ação idempotente: cria a Tarefa e a confirmação; recusa o Responsável que não é Membro da Conversa do Pedido (`assignee_not_member`) ou é um bot (`assignee_is_bot`): spec da F12, seção "Ação `task`" |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `POST /v1/conversations` | existe | Criar Canal sem duplicar ("Concorrência e idempotência"): [spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Rotas"; abrir Conversa direta: [spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Rotas" |
@@ -428,13 +438,16 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `PUT /v1/activity/read` | existe | Avançar a marca de Atividade ("Concorrência e idempotência"): spec da F08, seção "Rotas" |
 | BFF: `GET /api/activity` e `GET /api/activity/unread` | existe | Páginas anteriores de Atividade e os números na reconexão com `reset`, pedidos pelo cliente; rotas, e não Server Actions: spec da F08, seção "BFF" |
 | BFF: `PUT /api/activity/read` | existe | A marca de Atividade, pedida pelo cliente: spec da F08, seção "BFF" |
+| API do chat: Atividade com as Notificações de Tarefa | existe | `GET /v1/activity` traz os itens de Tarefa em `kind=all`; `unread` e o `activity.unread` ganham `task_count`; `PUT /v1/activity/read` aceita `task_notification_id`; `PUT /v1/activity/task-notifications/:id/read` marca uma como lida, só para o destinatário: spec da F12, seção "Atividade". BFF: `PUT /api/activity/task-notifications/:id/read` |
+| API do chat: `GET /v1/tasks`, `GET /v1/tasks/:id`, `POST /v1/tasks/:id/complete` e `POST /v1/tasks/:id/reopen` | existe | As Tarefas recebidas e delegadas, com a Sessão, as abertas primeiro e paginadas por cursor; concluir e reabrir só pelo Responsável ("Estados e regras", "Tarefa"): spec da F12, seção "Concluir, reabrir e listar". Eventos `task.created` e `task.updated` por Pessoa: spec da F12, seção "Eventos" |
+| BFF: `GET /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/complete` e `POST /api/tasks/:id/reopen` | existe | As rotas de Tarefa, pedidas pelo cliente: spec da F12, seção "Cliente (web)" |
 | BFF: `PUT /api/conversations/:id/read` | existe | Avançar a Última leitura, pedido pelo cliente; rota, e não Server Action, porque estes rodam em série: spec da F07, seção "BFF" |
 | Envio de mensagem no BFF (Server Action) | existe | Mensagem gravada e agente sem receber o pedido: "Conceitos transversais de implementação", seção "Erros". Orquestra o Pedido (registro, envio e `POST /v1/requests`): spec da F11, seção "Disparo pelo BFF". Na falha, encerra o Pedido (`failed` ou `cancelled`) e devolve o erro do Agente: mesma seção |
 | Serviço de agentes: rotas genéricas do ADK (`/list-apps`, `/apps/...`, `/run`, `/run_sse`) e a interface web | existe | Servidas pelo `get_fast_api_app`, fora do prefixo `/v1`; só com `ADK_DEV_ROUTES` verdadeiro, desligadas em produção ("Estrutura do código", "HTTP do Serviço de agentes") |
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `DELETE /v1/agents/:slug/connection` | existe | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Antes do aceite, confere a conexão (`agent_not_connected`) e o `limite de pedidos por pessoa` (`rate_limited`; `agents_unavailable` com o Redis fora): mesmas seções |
+| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Antes do aceite, confere a conexão (`agent_not_connected`) e o `limite de pedidos por pessoa` (`rate_limited`; `agents_unavailable` com o Redis fora): mesmas seções. O corpo ganha `quote`, a Mensagem citada pelo Pedido, que vai ao modelo no conteúdo de quem pediu, marcada como dado, e nunca nas instruções ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Rota de Pedido e execução") |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | existe | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
@@ -453,10 +466,12 @@ decididas ficam abaixo.
 
 Dois estados: aberta e concluída (HLD 6.6).
 
-- Só o responsável conclui e reabre a tarefa. Outra pessoa, inclusive quem delegou, recebe um
-  erro do catálogo.
+- Só o responsável conclui e reabre a tarefa. Quem delegou recebe `task_not_assignee`; quem não é
+  parte dela recebe `task_not_found`, como se ela não existisse.
 - Ao concluir ou reabrir, quem delegou é avisado (HLD 6.6).
-- Concluir uma tarefa já concluída, ou reabrir uma aberta: a definir.
+- Concluir uma tarefa já concluída, ou reabrir uma aberta, não muda nada nem publica: a mudança de
+  estado trava a linha da tarefa, e duas abas concluindo juntas mudam uma vez só (spec da F12,
+  seção "Tarefa").
 
 ### 6.2 Sessão e login
 
@@ -546,10 +561,10 @@ Situação: `existe`.
 - O bot avisa pelo Serviço de agentes, na rota de digitando do bot, ao começar o Pedido e a cada
   `intervalo do aviso de digitando` enquanto ele roda. A rota passa pelas mesmas recusas de Pedido
   da ação de bot ("Concorrência e idempotência", "Ação de bot"), sem entrar na unicidade, e emite o
-  aviso a todas as abas com a Conversa do Pedido aberta. A gravação da resposta ou da pergunta conta
-  como aviso de que parou, e a `expiração do digitando` tira o bot da lista se o Serviço de agentes
-  cair.
-- O aviso do bot num Pedido que já tem resposta ou pergunta gravada é aceito sem emitir nada: um
+  aviso a todas as abas com a Conversa do Pedido aberta. A gravação de qualquer ação de bot (a
+  resposta, a pergunta ou a confirmação da Tarefa) conta como aviso de que parou, e a `expiração do
+  digitando` tira o bot da lista se o Serviço de agentes cair.
+- O aviso do bot num Pedido que já tem uma ação gravada é aceito sem emitir nada: um
   aviso atrasado, que cruzou com a gravação, não põe o bot de volta na lista depois da resposta.
 
 ### 6.4 Presença
@@ -664,7 +679,7 @@ quando apresentadas ("Estados e regras", seção "Sessão e login") e pela opera
 | `/` (Home) | Sessão | Pessoa da Sessão, lista de Conversas e cookie da última Conversa | Sair | existe: redireciona para a última Conversa ("Cookies do cliente"), se ela está na lista da Pessoa, ou para a primeira da lista; sem Conversas, a Home vazia; com a lista em falha, o erro com "Tentar de novo" |
 | `/conversas/[id]` | Sessão; só Membro | Conversa e histórico | Enviar (F02); editar, apagar, citar; "digitando"; botões de resposta pronta | existe: ler e enviar; tempo real e "digitando" planejados (F03); copiar, editar, apagar, mencionar, citar e ir até a Mensagem citada ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Cliente"); informar a leitura com a aba em foco e abrir na primeira não lida, com o divisor (spec da F07, seção "Cliente"); abrir na Mensagem pedida em `?mensagem=` (spec da F08, seção "Cliente"); a Mensagem do Agente, com o AgentAvatar, o AgentTag e o nome que abre o diálogo "Agentes" ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Cliente"), com o texto no AgentText a partir do subconjunto de Markdown, e o "digitando" do Agente, com o nome dele, e o erro do Agente ao lado da Mensagem enviada, e as Respostas prontas da pergunta do Agente, ativas só para quem pediu e desativadas no encerramento e no vencimento (spec da F11, seção "Cliente"); o resto a detalhar |
 | Layout das telas logadas (barra lateral) | Sessão | Conversas; não lidas e menções na F07 | Abrir conversa; criar Canal; abrir Conversa direta | existe: a lista, no cliente e atualizada pelo tempo real, o diálogo "Criar canal" e "Mensagens diretas", com o diálogo "Nova conversa"; não lidas e menções na barra lateral, com a seção recolhida e a Conversa aberta em foco sem nada de novo (spec da F07, seção "Cliente"); o título da aba e o marcador do Início no rail (spec da F07, seção "Cliente"); o Alerta, a notificação do navegador e a opção no menu da conta (spec da F08, seção "Cliente") |
-| `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); Tarefas a detalhar |
+| `/atividade` | Sessão | Atividade: Menções e Mensagens diretas (F08); Tarefas (F12) | Abrir a mensagem; marcar tudo como lido; concluir e reabrir tarefa | existe: abas Todas, Menções e Mensagens diretas, ícone Atividade no rail com o número, ao carregar a página ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Cliente"); o tempo real e marcar tudo como lido (mesma seção); aba Tarefas, com Recebidas e Delegadas, concluir e reabrir e o destaque por `?tarefa=` ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Cliente (web)") |
 | Painel de perfil (sobre as telas logadas) | Sessão | Perfil próprio e de outras Pessoas | Abrir Conversa direta (F05); editar o próprio Perfil e a presença (F09) | existe: ler o Perfil e abrir a Conversa direta (spec da F05, seção "Cliente"), o diálogo "Editar perfil" com nome, cargo, telefone e Status, e o Status no painel (spec da F09, seção "Cliente"); e a Presença no painel e a escolha de presença no menu do avatar (mesma seção) |
 | Lista de Membros e passo "Adicionar pessoas" (diálogos sobre a Conversa) | Sessão; só Membro; adicionar só em Canal privado | Membros; busca de Pessoas | Adicionar ao Canal privado | existe |
 | Seção Agentes da barra lateral e diálogo "Agentes" (sobre as telas logadas) | Sessão; conectar e desconectar só para administrador | Agentes e estado de conexão; administradores | Conectar e desconectar agente; abrir o perfil de um administrador | existe: as variantes por papel, o diálogo, a Menção a Agente no autocompletar e no destaque, e o selo de administrador no painel de perfil ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Cliente") |
@@ -934,6 +949,7 @@ usuário conecta num banco que não é o seu. Senhas iguais ao nome do usuário,
 | [0026](adr/0026-nao-lidas-calculadas-da-ultima-leitura.md) | Não lidas e menções calculadas a partir da Última leitura | aceita |
 | [0027](adr/0027-notificacoes-calculadas.md) | Notificações calculadas a partir das Menções, das Conversas diretas e da Última leitura | aceita |
 | [0028](adr/0028-bots-numa-tabela-propria.md) | Bots numa tabela própria no Banco do chat | aceita |
+| [0029](adr/0029-notificacoes-de-tarefa-gravadas.md) | Notificações de Tarefa gravadas, como mais uma fonte da consulta de Atividade | aceita |
 
 As decisões que mudam o desenho estão no HLD, seção 10.
 
@@ -996,7 +1012,6 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
       custo em "Valores e configuração" (spec da F11).
 - [ ] Subseção de "Estados e regras": consulta a dados de negócio (comparação do lastro).
-- [ ] Tarefa: concluir uma já concluída, ou reabrir uma aberta.
 - [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
       pendentes vencidas não têm rotina (spec da F11).
 

@@ -11,15 +11,15 @@ import {
 import { Message } from '../messages/message.entity';
 import { AgentRequest } from './agent-request.entity';
 
-export type BotActionType = 'reply' | 'question';
+export type BotActionType = 'reply' | 'question' | 'task';
 
 // Uma ação de bot vale uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de
-// bot"): a repetição devolve a Mensagem já gravada. O CHECK fica também na migração
-// AddAgentRequests.
+// bot"): a repetição devolve a Mensagem já gravada. O CHECK fica também nas migrações
+// AddAgentRequests e AddTasks.
 @Entity('bot_actions')
 @Check(
   'bot_actions_action_type_check',
-  `"action_type" IN ('reply', 'question')`,
+  `"action_type" IN ('reply', 'question', 'task')`,
 )
 export class BotAction {
   @PrimaryColumn('uuid')

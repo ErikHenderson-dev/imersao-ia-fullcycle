@@ -31,6 +31,11 @@ COUNTED_RECORTES = (
     ("semana", "A semana"),
 )
 ALL_LABEL = "Tudo"
+# Os limites das Respostas prontas na API do chat (spec da F11, "Rotas do bot e credencial").
+MAX_QUICK_REPLIES = 4
+MAX_QUICK_REPLY_LENGTH = 64
+# A recusa de perguntar numa continuação, que já responde a uma pergunta (spec da F11).
+NAO_PERGUNTE = "Esta Mensagem já responde a uma pergunta; não pergunte de novo."
 
 
 @dataclass(frozen=True)
@@ -84,8 +89,6 @@ async def recorte_options(
 
 
 def question_asked(tool_context: ToolContext, options: list[str]) -> dict[str, Any]:
-    """Marca que este Pedido perguntou, e não responde com texto: o evento da ferramenta vira a
-    resposta final, sem nova chamada ao modelo (`skip_summarization`)."""
-    tool_context.state[context.QUESTION_FOR] = tool_context.state[context.REQUEST_ID]
-    tool_context.actions.skip_summarization = True
+    """Marca que este Pedido perguntou (`context.mark_answered`)."""
+    context.mark_answered(tool_context, "question")
     return {"pergunta": QUESTION_BODY, "opcoes": options}

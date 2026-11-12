@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useKnownPerson } from "@/app/components/people/people-provider";
 import { PersonAvatar } from "@/app/components/people/person-display";
-import type { ActivityItem } from "@/app/services/chat-api";
+import type { MessageActivityItem } from "@/app/services/chat-api";
 import { notificationSuffix, notificationTitle } from "@/app/utils/activity";
 import { messageHref } from "@/app/utils/conversation-list";
 import { cn } from "@/app/utils/cn";
 
 type NotificationItemProps = {
-  item: ActivityItem;
+  item: MessageActivityItem;
   isRead: boolean;
   // O tempo relativo já formatado, que muda entre o servidor e o cliente no limite de um minuto.
   time: string;

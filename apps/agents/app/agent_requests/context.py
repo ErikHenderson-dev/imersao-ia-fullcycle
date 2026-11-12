@@ -5,6 +5,8 @@ chega ao modelo, pelas instruções do Agente; o resto ele não vê, então não
 Conversa nem de Pedido.
 """
 
+from google.adk.tools import ToolContext
+
 REQUEST_ID = "request_id"
 CONVERSATION_ID = "conversation_id"
 REQUESTER_ID = "requester_id"
@@ -17,5 +19,17 @@ REQUESTED_AT = "requested_at"
 MENTIONS = "mentions"
 # `new` ou `continuation`: a continuação não pergunta de novo (F11-T07).
 KIND = "kind"
-# O Pedido que gravou a pergunta com as Respostas prontas: ele termina sem `reply` (F11-T07).
-QUESTION_FOR = "pergunta_do_pedido"
+# A ferramenta que já gravou o fim do Pedido, `{"pedido": id, "desfecho": "question" | "task"}`:
+# a pergunta com as Respostas prontas (F11-T07) ou a Tarefa com a confirmação (F12-T01). O Pedido
+# termina sem `reply`.
+ANSWERED_BY_TOOL = "respondido_pela_ferramenta"
+
+
+def mark_answered(tool_context: ToolContext, outcome: str) -> None:
+    """Marca que a ferramenta gravou o fim deste Pedido, e não responde com texto: o evento da
+    ferramenta vira a resposta final, sem nova chamada ao modelo (`skip_summarization`)."""
+    tool_context.state[ANSWERED_BY_TOOL] = {
+        "pedido": tool_context.state[REQUEST_ID],
+        "desfecho": outcome,
+    }
+    tool_context.actions.skip_summarization = True

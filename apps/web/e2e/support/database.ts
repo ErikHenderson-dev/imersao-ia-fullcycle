@@ -160,6 +160,23 @@ export async function latestAgentRequestOf(channel: TestChannel): Promise<TestAg
   return result.rows[0] ?? null;
 }
 
+export type TestTask = {
+  id: string;
+  assignee_id: string;
+  delegator_id: string;
+  title: string;
+  status: string;
+};
+
+// A Tarefa mais nova da Conversa (spec da F12, "Tarefa"), ou null.
+export async function latestTaskOf(channel: TestChannel): Promise<TestTask | null> {
+  const result = await pool.query<TestTask>(
+    "SELECT id, assignee_id, delegator_id, title, status FROM tasks WHERE conversation_id = $1 ORDER BY id DESC LIMIT 1",
+    [channel.id],
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function countMessagesWithBody(channel: TestChannel, body: string): Promise<number> {
   const result = await pool.query<{ count: string }>(
     "SELECT count(*) FROM messages WHERE conversation_id = $1 AND body = $2",

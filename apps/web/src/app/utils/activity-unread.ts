@@ -11,6 +11,7 @@ export function activityUnreadFromPayload(payload: ActivityUnreadPayload): Activ
     totalCount: payload.total_count,
     mentionCount: payload.mention_count,
     directCount: payload.direct_count,
+    taskCount: payload.task_count,
   };
 }
 

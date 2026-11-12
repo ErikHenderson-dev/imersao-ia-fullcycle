@@ -9,6 +9,7 @@ const NONE: ActivityUnread = {
   totalCount: 0,
   mentionCount: 0,
   directCount: 0,
+  taskCount: 0,
 };
 
 // Os números de Atividade no cache global do SWR, por Pessoa (spec da F08, "Números de

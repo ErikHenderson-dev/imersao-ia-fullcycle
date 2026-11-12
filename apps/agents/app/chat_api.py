@@ -17,9 +17,13 @@ TIMEOUT_S = 10.0
 class ChatApiError(Exception):
     """A API do chat recusou a ação do bot ou não respondeu; `status` é nulo sem resposta."""
 
-    def __init__(self, message: str, status: int | None = None) -> None:
+    def __init__(
+        self, message: str, status: int | None = None, code: str | None = None
+    ) -> None:
         super().__init__(message)
         self.status = status
+        # O `code` do corpo problem+json, quando a API do chat o mandou (F12-T01).
+        self.code = code
 
 
 class ChatApiClient:
@@ -75,6 +79,15 @@ class ChatApiClient:
             json={"body": body, "quick_replies": quick_replies},
         )
 
+    async def task(self, request_id: str, assignee_username: str, title: str) -> None:
+        """Delega a Tarefa e grava a confirmação do bot; a repetição devolve as mesmas (spec da
+        F12, "Ação `task`")."""
+        await self._request(
+            "POST",
+            f"/v1/bot/requests/{request_id}/task",
+            json={"assignee_username": assignee_username, "title": title},
+        )
+
     async def typing(self, request_id: str) -> None:
         """Avisa que o bot está digitando na Conversa do Pedido."""
         await self._request("POST", f"/v1/bot/requests/{request_id}/typing")
@@ -100,8 +113,19 @@ class ChatApiClient:
             raise ChatApiError(
                 f"{method} {path} respondeu {response.status_code}",
                 response.status_code,
+                _problem_code(response),
             )
         return response
+
+
+def _problem_code(response: httpx.Response) -> str | None:
+    """O `code` do corpo problem+json da recusa, ou nulo se o corpo não o tem."""
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    code = body.get("code") if isinstance(body, dict) else None
+    return code if isinstance(code, str) else None
 
 
 # O cliente do Pedido em execução: o `run_request` o define antes de rodar o agente, e as

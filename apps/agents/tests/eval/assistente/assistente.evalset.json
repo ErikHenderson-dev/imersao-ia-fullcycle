@@ -1,7 +1,7 @@
 {
   "eval_set_id": "assistente",
   "name": "assistente",
-  "description": "Resumo com Recorte (F11-T04), a pergunta pelo Recorte com a resposta em vários turnos (F11-T07) e a robustez com instruções injetadas, a mesma Pessoa por nome e por Menção, Mensagens de Agentes e apagadas, outro fuso e variações de escrita (F11-T08), com as Conversas das fixtures.",
+  "description": "Resumo com Recorte (F11-T04), a pergunta pelo Recorte com a resposta em vários turnos (F11-T07), a robustez com instruções injetadas, a mesma Pessoa por nome e por Menção, Mensagens de Agentes e apagadas, outro fuso e variações de escrita (F11-T08), e a delegação de Tarefa (F12-T06): completa, a si mesmo, com prazo, incompleta com a pergunta, a continuação, a Citação, o Responsável que não é Membro e a robustez, com as Conversas das fixtures. O antigo caso fora_tarefa virou a delegação cria_tarefa.",
   "eval_cases": [
     {
       "eval_id": "hoje",
@@ -596,59 +596,6 @@
       }
     },
     {
-      "eval_id": "fora_tarefa",
-      "conversation": [
-        {
-          "invocation_id": "fora_tarefa-1",
-          "user_content": {
-            "role": "user",
-            "parts": [
-              {
-                "text": "@assistente cria uma tarefa para o @bruno revisar o login"
-              }
-            ]
-          },
-          "final_response": {
-            "role": "model",
-            "parts": [
-              {
-                "text": "Por enquanto eu só resumo esta Conversa. Peça, por exemplo, o resumo de hoje ou da semana."
-              }
-            ]
-          },
-          "intermediate_data": {
-            "tool_uses": [],
-            "intermediate_responses": []
-          }
-        }
-      ],
-      "rubrics": [
-        {
-          "rubric_id": "recusa_curta",
-          "rubric_content": {
-            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente só resume esta Conversa, sem resumir nem inventar Mensagens."
-          },
-          "type": "FINAL_RESPONSE_QUALITY"
-        }
-      ],
-      "session_input": {
-        "app_name": "assistente",
-        "user_id": "eval_user",
-        "state": {
-          "eval_fixture": "canal-geral",
-          "time_zone": "America/Sao_Paulo",
-          "requested_at": "2026-11-10T18:00:00.000Z",
-          "request_id": "0198f000-0000-7000-8000-000000000009",
-          "mentions": [
-            {
-              "username": "bruno",
-              "name": "Bruno Lima"
-            }
-          ]
-        }
-      }
-    },
-    {
       "eval_id": "fora_dados",
       "conversation": [
         {
@@ -665,7 +612,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "Por enquanto eu só resumo esta Conversa. Peça, por exemplo, o resumo de hoje ou da semana."
+                "text": "Por enquanto eu resumo esta Conversa e delego Tarefas. Peça, por exemplo, o resumo de hoje ou \"delega pra @fulano revisar o contrato\"."
               }
             ]
           },
@@ -679,7 +626,7 @@
         {
           "rubric_id": "recusa_curta",
           "rubric_content": {
-            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente só resume esta Conversa, sem resumir nem inventar Mensagens."
+            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente resume esta Conversa e delega Tarefas, sem resumir nem inventar Mensagens nem delegar."
           },
           "type": "FINAL_RESPONSE_QUALITY"
         }
@@ -713,7 +660,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "Por enquanto eu só resumo esta Conversa. Peça, por exemplo, o resumo de hoje ou da semana."
+                "text": "Por enquanto eu resumo esta Conversa e delego Tarefas. Peça, por exemplo, o resumo de hoje ou \"delega pra @fulano revisar o contrato\"."
               }
             ]
           },
@@ -727,7 +674,7 @@
         {
           "rubric_id": "recusa_curta",
           "rubric_content": {
-            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente só resume esta Conversa, sem resumir nem inventar Mensagens."
+            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente resume esta Conversa e delega Tarefas, sem resumir nem inventar Mensagens nem delegar."
           },
           "type": "FINAL_RESPONSE_QUALITY"
         }
@@ -1591,6 +1538,449 @@
               "name": "Carla Dias"
             }
           ]
+        }
+      }
+    },
+    {
+      "eval_id": "delega_sem_responsavel",
+      "conversation": [
+        {
+          "invocation_id": "delega_sem_responsavel-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente delega a revisão do contrato"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "responsavel"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000106",
+          "mentions": [],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
+        }
+      }
+    },
+    {
+      "eval_id": "delega_nome_sem_arroba",
+      "conversation": [
+        {
+          "invocation_id": "delega_nome_sem_arroba-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente pede pra Ana revisar o roteiro da demo"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "responsavel"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000107",
+          "mentions": [],
+          "requester_username": "bruno",
+          "requester_name": "Bruno Lima"
+        }
+      }
+    },
+    {
+      "eval_id": "delega_sem_o_que",
+      "conversation": [
+        {
+          "invocation_id": "delega_sem_o_que-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente delega uma tarefa pro @bruno"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "o_que"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000108",
+          "mentions": [
+            {
+              "username": "bruno",
+              "name": "Bruno Lima"
+            }
+          ],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
+        }
+      }
+    },
+    {
+      "eval_id": "delega_isso_sem_citacao",
+      "conversation": [
+        {
+          "invocation_id": "delega_isso_sem_citacao-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente delega isso pra @bruno"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "o_que"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000109",
+          "mentions": [
+            {
+              "username": "bruno",
+              "name": "Bruno Lima"
+            }
+          ],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
+        }
+      }
+    },
+    {
+      "eval_id": "delega_dois_mencionados",
+      "conversation": [
+        {
+          "invocation_id": "delega_dois_mencionados-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente o @bruno ou a @carla precisa revisar o PR do login"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "qual",
+                  "candidatos": [
+                    "bruno",
+                    "carla"
+                  ]
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "sem_texto",
+          "rubric_content": {
+            "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000110",
+          "mentions": [
+            {
+              "username": "bruno",
+              "name": "Bruno Lima"
+            },
+            {
+              "username": "carla",
+              "name": "Carla Dias"
+            }
+          ],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
+        }
+      }
+    },
+    {
+      "eval_id": "continuacao_que_nao_completa",
+      "conversation": [
+        {
+          "invocation_id": "continuacao_que_nao_completa-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente delega a revisão do contrato"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": []
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "perguntar_delegacao",
+                "args": {
+                  "falta": "responsavel"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          },
+          "rubrics": [
+            {
+              "rubric_id": "sem_texto",
+              "rubric_content": {
+                "text_property": "O Agente não escreve texto depois da ferramenta: a confirmação ou a pergunta já foi para a Conversa, e a resposta fica vazia."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            }
+          ]
+        },
+        {
+          "invocation_id": "continuacao_que_nao_completa-2",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "não sei ainda, depois eu vejo"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Não consegui montar a Tarefa com essa resposta. Para delegar, mencione o Agente de novo com quem vai fazer e o que fazer."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          },
+          "rubrics": [
+            {
+              "rubric_id": "nao_consegui",
+              "rubric_content": {
+                "text_property": "A resposta é só a frase de que não conseguiu montar a Tarefa com essa resposta e que, para delegar, é preciso mencionar o Agente de novo com quem vai fazer e o que fazer, sem perguntar de novo nem delegar."
+              },
+              "type": "FINAL_RESPONSE_QUALITY"
+            }
+          ]
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000113",
+          "mentions": [],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
+        }
+      }
+    },
+    {
+      "eval_id": "resumo_com_mencao_nao_delega",
+      "conversation": [
+        {
+          "invocation_id": "resumo_com_mencao_nao_delega-1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "@assistente resume o que o @bruno disse sobre o servidor esta semana"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "# Resumo da semana · 03/11, 15:00 a 10/11, 15:00 · 4 Mensagens\n- **Bruno Lima:** aumentou a memória do servidor para 4 GB e o deploy passou."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "ler_mensagens",
+                "args": {
+                  "recorte": "semana",
+                  "pessoa": "bruno"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "resumo_e_nao_tarefa",
+          "rubric_content": {
+            "text_property": "A resposta é um resumo do que Bruno Lima disse, e não a confirmação de uma Tarefa nem uma pergunta sobre delegação."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "so_servidor",
+          "rubric_content": {
+            "text_property": "O resumo fala do aumento de memória do servidor para 4 GB, citado pelo nome de Bruno Lima, sem pontos de Ana Souza ou Carla Dias."
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "assistente",
+        "user_id": "eval_user",
+        "state": {
+          "eval_fixture": "canal-geral",
+          "time_zone": "America/Sao_Paulo",
+          "requested_at": "2026-11-10T18:00:00.000Z",
+          "request_id": "0198f000-0000-7000-8000-000000000118",
+          "mentions": [
+            {
+              "username": "bruno",
+              "name": "Bruno Lima"
+            }
+          ],
+          "requester_username": "ana",
+          "requester_name": "Ana Souza"
         }
       }
     }

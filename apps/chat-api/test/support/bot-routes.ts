@@ -20,6 +20,18 @@ export interface AgentRequestRow {
   created_at: Date;
 }
 
+export interface TaskRow {
+  id: string;
+  request_id: string;
+  conversation_id: string;
+  trigger_message_id: string;
+  assignee_id: string;
+  delegator_id: string;
+  title: string;
+  status: string;
+  completed_at: Date | null;
+}
+
 export interface PendingQuestionRow {
   id: string;
   request_id: string;
@@ -130,6 +142,46 @@ export const botRoutes = {
       `/v1/bot/requests/${requestId}/message-counts${query ? `?${query}` : ''}`,
     );
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // A delegação pelo bot (spec da F12, "Ação `task`"), com a credencial de bot, ou com a que o
+  // teste passar.
+  task(
+    app: INestApplication,
+    requestId: string,
+    payload: unknown,
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .post(`/v1/bot/requests/${requestId}/task`)
+      .send(payload as object);
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // As Tarefas da Conversa, direto no banco.
+  async taskRows(
+    app: INestApplication,
+    conversationId: string,
+  ): Promise<TaskRow[]> {
+    return app
+      .get(DataSource)
+      .query<TaskRow[]>(
+        'SELECT * FROM tasks WHERE conversation_id = $1 ORDER BY id',
+        [conversationId],
+      );
+  },
+
+  // A ação gravada no Pedido, com o tipo dela.
+  async actionRows(
+    app: INestApplication,
+    requestId: string,
+  ): Promise<{ action_type: string; message_id: string }[]> {
+    return app
+      .get(DataSource)
+      .query<{ action_type: string; message_id: string }[]>(
+        'SELECT action_type, message_id FROM bot_actions WHERE request_id = $1',
+        [requestId],
+      );
   },
 
   // A pergunta do bot com as Respostas prontas, com a credencial de bot.

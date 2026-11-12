@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRealtime } from "@/app/components/realtime/realtime-provider";
-import type { ActivityItem, Conversation, Message } from "@/app/services/chat-api";
+import type { Conversation, Message, MessageActivityItem } from "@/app/services/chat-api";
 import { notificationKindFor } from "@/app/utils/activity-cache";
 import { useVisibleUnread } from "./use-visible-unread";
 
@@ -18,7 +18,7 @@ export function useNotificationItems(
   conversations: readonly Conversation[];
   // A regra da Conversa aberta com a aba em foco, a mesma da barra lateral (F07).
   isOpenAndFocused: (conversation: Pick<Conversation, "id">) => boolean;
-  itemFor: (message: Message) => ActivityItem | null;
+  itemFor: (message: Message) => MessageActivityItem | null;
   joinedIds: ReadonlySet<string>;
 } {
   const { conversations, isOpenAndFocused } = useVisibleUnread(personId, initialConversations);
@@ -49,7 +49,7 @@ export function useNotificationItems(
     latest.current = conversations;
   }, [conversations]);
   const itemFor = useCallback(
-    (message: Message): ActivityItem | null => {
+    (message: Message): MessageActivityItem | null => {
       const conversation =
         latest.current.find((entry) => entry.id === message.conversationId) ??
         joined.current.get(message.conversationId);

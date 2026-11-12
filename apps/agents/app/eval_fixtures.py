@@ -10,6 +10,11 @@ Formato da fixture: `{"mensagens": [{"autor", "usuario", "texto", "quando", "bot
 com `quando` em ISO UTC. As Mensagens com `bot` ou `apagada` verdadeiro ficam fora da leitura e das
 contagens, como na rota (F11-T08). A `perguntar_recorte` (F11-T07) recebe as contagens da mesma
 Conversa, e a pergunta não é gravada: o estado e o fim do turno ficam como na produção.
+
+A delegação (F12-T06) roda as funções de produção (`delegate` e `ask_delegation`) com a API do
+chat da avaliação (`EvalChatApi`), que não grava nada: a conferência do Responsável, a montagem da
+pergunta e a marca de Pedido respondido são as mesmas. Para a recusa de quem não é Membro, que vem da
+API, o caso lista em `eval_non_members` os @usuário que a API recusaria.
 """
 
 from __future__ import annotations
@@ -23,10 +28,20 @@ from typing import Any
 
 from google.adk.tools import BaseTool, ToolContext
 
+from app.agent_requests.delegation_question import ask_delegation
 from app.agent_requests.question import question_asked, recorte_options
 from app.agent_requests.reading import read_recorte
+from app.agent_requests.task import TASK_TITLE_MAX_LENGTH, delegate
+from app.chat_api import ChatApiError
 
 FIXTURE_KEY = "eval_fixture"
+# Os @usuário que a API do chat recusaria como Responsável por não serem Membros (F12-T06).
+NON_MEMBERS_KEY = "eval_non_members"
+# Os bots que a API do chat recusaria como Responsável; sem a chave no caso, o próprio Agente.
+BOTS_KEY = "eval_bots"
+# O Responsável que o caso espera: outro faz a ação `task` ser recusada, e o caso reprova (F12-T06).
+EXPECTED_ASSIGNEE_KEY = "eval_expected_assignee"
+TOOLS = ("ler_mensagens", "perguntar_recorte", "delegar_tarefa", "perguntar_delegacao")
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
 # O teto da rota de leitura do bot ("Teto de Mensagens do resumo").
@@ -102,8 +117,22 @@ async def fixture_tool_callback(
 ) -> dict[str, Any] | None:
     """Responde à ferramenta com a fixture do caso; fora da avaliação, deixa a ferramenta rodar."""
     name = tool_context.state.get(FIXTURE_KEY)
-    if not name or tool.name not in ("ler_mensagens", "perguntar_recorte"):
+    if not name or tool.name not in TOOLS:
         return None
+    if tool.name == "delegar_tarefa":
+        return await delegate(
+            EvalChatApi(tool_context.state),  # type: ignore[arg-type]
+            tool_context,
+            args.get("responsavel", ""),
+            args.get("titulo", ""),
+        )
+    if tool.name == "perguntar_delegacao":
+        return await ask_delegation(
+            EvalChatApi(tool_context.state),  # type: ignore[arg-type]
+            tool_context,
+            args.get("falta", ""),
+            args.get("candidatos"),
+        )
     source = fixture_source(tool_context.agent_name, name)
     if tool.name == "perguntar_recorte":
         options = await recorte_options(source, tool_context.state)
@@ -111,3 +140,30 @@ async def fixture_tool_callback(
     return await read_recorte(
         source, tool_context.state, args.get("recorte", ""), args.get("pessoa")
     )
+
+
+class EvalChatApi:
+    """A API do chat da avaliação: as ferramentas de delegação rodam o código de produção, e só as
+    ações chegam aqui. A pergunta não é gravada; a ação `task` recusa como a API, pelo caso
+    (`eval_non_members`) e pelo limite do título."""
+
+    def __init__(self, state: Any) -> None:
+        self._non_members = set(state.get(NON_MEMBERS_KEY) or [])
+        self._bots = set(state.get(BOTS_KEY) or ["assistente"])
+        self._expected = state.get(EXPECTED_ASSIGNEE_KEY)
+
+    async def question(
+        self, request_id: str, body: str, quick_replies: list[str]
+    ) -> None:
+        return None
+
+    async def task(self, request_id: str, assignee_username: str, title: str) -> None:
+        if assignee_username in self._bots:
+            raise ChatApiError("recusada", 422, "assignee_is_bot")
+        if assignee_username in self._non_members:
+            raise ChatApiError("recusada", 422, "assignee_not_member")
+        if self._expected and assignee_username != self._expected:
+            raise ChatApiError("recusada", 422, "assignee_not_member")
+        # A ação apara o título e conta os caracteres (code points), como o `len` do Python.
+        if not title.strip() or len(title.strip()) > TASK_TITLE_MAX_LENGTH:
+            raise ChatApiError("recusada", 400, "validation_failed")

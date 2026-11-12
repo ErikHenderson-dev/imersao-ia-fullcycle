@@ -48,6 +48,7 @@ export class ActivityPublisher {
           total_count: counts.totalCount,
           mention_count: counts.mentionCount,
           direct_count: counts.directCount,
+          task_count: counts.taskCount,
         }));
       } catch (error) {
         this.logger.error('Falha ao publicar a Atividade', error);
