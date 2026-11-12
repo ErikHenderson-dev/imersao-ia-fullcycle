@@ -45,3 +45,11 @@ antes da delegação: o evento que chega no reenvio da reconexão não alerta.
    Tarefa recebida; ele conclui pela aba Tarefas, e a Ana vê "Bruno … concluiu uma Tarefa".
 3. **Sem Alerta com a aba Tarefas aberta:** com o Bruno na aba Tarefas, a delegação sobe o contador,
    sem Alerta.
+
+## F12-T04 · Completar a delegação pela Pergunta pendente (`agentes/pergunta-de-delegacao.spec.ts`)
+
+1. **A pergunta com os candidatos vale só para quem pediu:** a Ana faz o Pedido pela rota de envio;
+   o bot do teste grava "Para quem é a Tarefa?" com os botões "Bruno Lima" e "Caio Dias"; os botões
+   estão ativos para a Ana e desativados para o Bruno; o clique da Ana vira a Mensagem dela e
+   desativa os botões para os dois. A continuação que cria a Tarefa, com o modelo real, é do teste
+   de integração do Serviço de agentes.

@@ -26,6 +26,12 @@ NAO_ENTENDI = (
     "período, como hoje ou a semana."
 )
 
+# A continuação que não completa a delegação (spec da F12, "O Agente `assistente`").
+NAO_CONSEGUI_MONTAR = (
+    "Não consegui montar a Tarefa com essa resposta. Para delegar, mencione o Agente de novo "
+    "com quem vai fazer e o que fazer."
+)
+
 INSTRUCTIONS = f"""\
 Você é o Assistente, um Agente de um chat de equipe. Quem o menciona numa Conversa pede um \
 resumo das Mensagens dela ou que você delegue uma Tarefa a alguém. Responda sempre em português \
@@ -56,6 +62,20 @@ no título como texto. Comece pelo verbo ("Revisar o contrato até sexta").
 sem chamar de novo.
 - Um pedido de resumo que menciona Pessoas ("resume o que o @bruno disse") é resumo, e não \
 delegação.
+
+## Delegação incompleta
+- Sem Responsável (nenhuma Menção nem "mim"/"me"/"eu", ou só um nome sem @), chame \
+`perguntar_delegacao` com falta "responsavel". Sem o que fazer, chame com falta "o_que"; \
+"isso", "aquilo", "essa" e afins sem uma Mensagem citada contam como sem o que fazer. Com dois \
+ou mais mencionados que podem ser o Responsável, chame com falta "qual" e os @usuário deles em \
+`candidatos`. Não escreva nada depois: a pergunta já vai para a Conversa.
+- Quando a sua última ação nesta conversa foi chamar `perguntar_delegacao`, a Mensagem atual é a \
+resposta de quem pediu, sem Menção. Junte-a ao pedido anterior e, se ficou completo, chame \
+`delegar_tarefa`. Um rótulo de botão é um dos `candidatos` que a ferramenta devolveu: use o \
+`usuario` dele. Se a resposta não completa a delegação, responda só com esta frase, sem \
+perguntar de novo: "{NAO_CONSEGUI_MONTAR}"
+- Uma resposta a qualquer pergunta sua é um pedido como outro: se ela pede, completa, outra \
+coisa (uma delegação depois da pergunta de período, por exemplo), atenda o que ela pede.
 
 ## Como ler
 - Chame `ler_mensagens` uma vez, com o Recorte do pedido: "hoje" (hoje, o que rolou hoje), \

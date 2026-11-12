@@ -11,6 +11,7 @@ from typing import Any
 from google.adk.tools import ToolContext
 
 from app.agent_requests import context
+from app.agent_requests.delegation_question import Falta, ask_delegation
 from app.agent_requests.question import QUESTION_BODY, question_asked, recorte_options
 from app.agent_requests.reading import ChatApiSource, read_recorte
 from app.agent_requests.recorte import Recorte
@@ -85,3 +86,23 @@ async def delegar_tarefa(
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}
     return await delegate(client, tool_context, responsavel, titulo)
+
+
+async def perguntar_delegacao(
+    falta: Falta, tool_context: ToolContext, candidatos: list[str] | None = None
+) -> dict[str, Any]:
+    """Pergunta a quem pediu o que falta para delegar a Tarefa. Depois dela, não escreva nada: a
+    pergunta já está na Conversa.
+
+    Args:
+        falta: "responsavel" (sem Responsável), "o_que" (sem o que fazer, inclusive "isso" sem
+            Citação) ou "qual" (dois ou mais mencionados como possíveis Responsáveis).
+        candidatos: Só com "qual": os @usuário dos mencionados que podem ser o Responsável.
+
+    Returns:
+        A pergunta gravada e, com "qual", o rótulo e o @usuário de cada candidato.
+    """
+    client = CURRENT_CHAT_API.get()
+    if client is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await ask_delegation(client, tool_context, falta, candidatos)

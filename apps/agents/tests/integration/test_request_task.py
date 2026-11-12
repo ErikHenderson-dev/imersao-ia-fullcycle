@@ -7,6 +7,7 @@ Com o app real, o modelo real e a API do chat falsa do conftest.py.
 from __future__ import annotations
 
 import logging
+import uuid
 
 import httpx
 import pytest
@@ -100,3 +101,38 @@ async def test_responsavel_recusado_vira_recusa(
     assert end.desfecho == "reply"
     [reply] = [call for call in fake_chat_api.requests if is_reply(call)]
     assert reply["body"]["body"].strip()
+
+
+# F12-T04, CA5: a delegação sem Responsável pergunta, e a continuação cria a Tarefa.
+async def test_sem_responsavel_pergunta_e_a_continuacao_cria_a_tarefa(
+    request_client: httpx.AsyncClient,
+    fake_chat_api: FakeChatApi,
+    connected_assistant: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    asked, end = await run(
+        request_client, caplog, "@assistente delega a revisão do contrato"
+    )
+    assert end.desfecho == "question"
+    [question] = [
+        call for call in fake_chat_api.requests if call["path"].endswith("/question")
+    ]
+    assert question["body"]["body"] == "A quem eu delego?"
+    answer = {
+        **asked,
+        "request_id": str(uuid.uuid4()),
+        "kind": "continuation",
+        "parent_request_id": asked["request_id"],
+        "message": {"id": str(uuid.uuid4()), "body": "@ana"},
+        "mentions": [{"username": "ana", "name": "Ana Souza"}],
+    }
+
+    response = await request_client.post("/v1/requests", json=answer, headers=AUTH)
+
+    assert response.status_code == 202
+    finished = await wait_for_end_log(caplog, answer["request_id"])
+    assert finished.desfecho == "task"
+    [task] = [call for call in fake_chat_api.requests if is_task(call)]
+    assert task["path"] == f"/v1/bot/requests/{answer['request_id']}/task"
+    assert task["body"]["assignee_username"] == "ana"
+    assert "contrato" in task["body"]["title"].lower()
