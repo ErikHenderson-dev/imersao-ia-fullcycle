@@ -26,12 +26,16 @@ class ExactlyOnePosition implements ValidatorConstraintInterface {
 // A marca de Atividade: a Notificação mais nova que a Pessoa viu (spec da F08, "Rotas"), uma
 // Mensagem ou uma Notificação de Tarefa (spec da F12, "Atividade"), exatamente uma das duas.
 export class ReadActivityDto {
-  @Validate(ExactlyOnePosition)
   @ValidateIf((dto: ReadActivityDto) => dto.task_notification_id === undefined)
   @IsUUID()
   message_id?: string;
 
-  @ValidateIf((dto: ReadActivityDto) => dto.task_notification_id !== undefined)
+  // Validado também quando os dois vêm, ou nenhum: aí a regra de um só recusa o corpo.
+  @ValidateIf(
+    (dto: ReadActivityDto) =>
+      dto.task_notification_id !== undefined || dto.message_id === undefined,
+  )
+  @Validate(ExactlyOnePosition)
   @IsUUID()
   task_notification_id?: string;
 }

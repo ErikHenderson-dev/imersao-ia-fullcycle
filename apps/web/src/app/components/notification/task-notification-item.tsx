@@ -13,12 +13,14 @@ type TaskNotificationItemProps = {
   item: TaskActivityItem;
   isRead: boolean;
   time: string;
+  // Avisa a lista de que a Notificação foi aberta.
+  onOpen: () => void;
 };
 
 // A Notificação de Tarefa em Atividade (NotificationItem, design system): quem agiu, o que fez e o
 // título da Tarefa. É um link para a aba Tarefas com a Tarefa em destaque, e abrir a deixa lida
 // (spec da F12, "Cliente (web)").
-export function TaskNotificationItem({ item, isRead, time }: TaskNotificationItemProps) {
+export function TaskNotificationItem({ item, isRead, time, onOpen }: TaskNotificationItemProps) {
   const router = useRouter();
   const actorName = useKnownPerson(item.actor.id)?.name ?? item.actor.name;
   const href = taskHref(item.task.id);
@@ -28,9 +30,16 @@ export function TaskNotificationItem({ item, isRead, time }: TaskNotificationIte
         href={href}
         data-read={isRead}
         onClick={(event) => {
-          event.preventDefault();
           void markTaskNotificationOpened(item.notification.id);
+          onOpen();
+          // Com Ctrl, Cmd, Shift ou outro botão, o navegador abre o link noutra aba.
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+          event.preventDefault();
           router.push(href);
+        }}
+        onAuxClick={() => {
+          void markTaskNotificationOpened(item.notification.id);
+          onOpen();
         }}
         className={cn(
           "flex items-start gap-3 border-b border-border-subtle px-5 py-3 hover:bg-surface-subtle",

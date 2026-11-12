@@ -217,4 +217,22 @@ describe('Notificações de Tarefa', () => {
     expect(foreign.status).toBe(404);
     expect(foreign.body).toMatchObject({ code: 'message_not_found' });
   });
+
+  it.each([
+    ['com os dois ids', 'both'],
+    ['sem nenhum', 'none'],
+  ])('marcar tudo responde 400 %s', async (_, scenario) => {
+    const { bruno, delegate } = await setup();
+    await delegate(bruno.person.username);
+    const id = await firstTaskNotificationId(bruno.cookie);
+    const body =
+      scenario === 'both'
+        ? { message_id: 'abc', task_notification_id: id }
+        : {};
+
+    const response = await readAll(bruno.cookie, body);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({ code: 'validation_failed' });
+  });
 });

@@ -18,7 +18,8 @@ export type ActivityFilter = 'all' | 'mentions' | 'direct';
 // Notificação de Tarefa, que traz a Tarefa, o tipo e se está lida.
 export interface NotificationRef {
   id: string;
-  conversationId: string;
+  // Nula na Notificação de Tarefa: a Conversa vem da Tarefa.
+  conversationId: string | null;
   kind: NotificationKind;
   task?: { taskId: string; kind: TaskNotificationKind; isRead: boolean };
 }
@@ -119,13 +120,11 @@ export class NotificationFinder {
        ${OF_PERSON})`;
     // As de Tarefa só entram em Todas (spec da F12, "Atividade").
     const tasks = `(
-      SELECT notification.id AS message_id, task.conversation_id, 'task' AS kind,
+      SELECT notification.id AS message_id, NULL::uuid AS conversation_id, 'task' AS kind,
              notification.task_id, notification.kind AS task_kind,
              (notification.read_at IS NOT NULL
                OR notification.id <= person.activity_read_message_id) AS is_read
-        FROM task_notifications notification
-        JOIN tasks task ON task.id = notification.task_id
-       WHERE notification.recipient_id = person.id
+        ${TASK_NOTIFICATIONS_OF_PERSON}
          AND ($2::uuid IS NULL OR notification.id < $2::uuid)
        ORDER BY notification.id DESC
        LIMIT $3)`;
@@ -137,7 +136,7 @@ export class NotificationFinder {
     const rows = await this.txHost.tx.query<
       {
         message_id: string;
-        conversation_id: string;
+        conversation_id: string | null;
         kind: NotificationKind;
         task_id: string | null;
         task_kind: TaskNotificationKind | null;

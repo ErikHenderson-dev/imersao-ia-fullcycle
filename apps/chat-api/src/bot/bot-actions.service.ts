@@ -14,9 +14,8 @@ import type {
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ActivityPublisher } from '../notifications/activity.publisher';
-import { notificationFor } from '../tasks/task-status.service';
 import { partiesOf } from '../tasks/task.entity';
-import { toTaskResponse } from '../tasks/task.response';
+import { notificationFor, toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
 
@@ -182,19 +181,18 @@ export class BotActionsService {
     if (written) this.announceAnswer(message);
     const task =
       written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
-    const notification = written
-      ? written.notification
-      : await this.tasks.findReceived(task.id);
     const view = await this.tasks.view(task);
     // Também na repetição: uma falha entre o commit e a publicação não deixa as Pessoas sem o
-    // evento, e o cliente que já tem a Tarefa só a substitui.
+    // evento nem sem os números. Na repetição a Notificação não vai no evento, para não alertar de
+    // novo; ela está em Atividade.
+    const notification = written?.notification ?? null;
     const payload = toTaskResponse(view);
     void this.realtime.taskCreated(partiesOf(task), (recipientId) => ({
       task: payload,
       notification: notificationFor(notification, recipientId),
     }));
-    if (written && notification) {
-      this.activity.publish([notification.recipientId]);
+    if (task.assigneeId !== task.delegatorId) {
+      this.activity.publish([task.assigneeId]);
     }
     return { task: view, message };
   }

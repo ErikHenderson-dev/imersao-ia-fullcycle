@@ -73,7 +73,7 @@ export class ActivityService {
     const [messages, conversations, tasks] = await Promise.all([
       this.messages.viewsByIds(messageRefs.map((ref) => ref.id)),
       this.conversations.summariesByIds([
-        ...new Set(messageRefs.map((ref) => ref.conversationId)),
+        ...new Set(messageRefs.flatMap((ref) => ref.conversationId ?? [])),
       ]),
       this.tasks.viewsByIds([...new Set(taskRefs.map((ref) => ref.taskId))]),
     ]);
@@ -105,7 +105,8 @@ export class ActivityService {
         ];
       }
       const message = messageById.get(ref.id);
-      const conversation = conversationById.get(ref.conversationId);
+      const conversation =
+        ref.conversationId && conversationById.get(ref.conversationId);
       return message && conversation && ref.kind !== 'task'
         ? [{ kind: ref.kind, message, conversation }]
         : [];

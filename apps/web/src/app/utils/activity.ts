@@ -8,6 +8,7 @@ import type {
   TaskActivityItem,
   TaskNotificationKind,
 } from "@/app/services/chat-api";
+import type { TaskNotificationPayload } from "chat-events";
 import { cachedFormatter } from "./date-formatters";
 import { spoken } from "./unread";
 
@@ -133,7 +134,7 @@ export function taskHref(taskId: string): string {
 
 // O item de Atividade da Notificação de Tarefa que chegou pelo evento: quem agiu é quem delegou, na
 // recebida, e o Responsável, na concluída e na reaberta (spec da F12, "Atividade").
-export function taskItemFromEvent(task: Task, notification: { id: string; kind: TaskNotificationKind }): TaskActivityItem {
+export function taskItemFromEvent(task: Task, notification: TaskNotificationPayload): TaskActivityItem {
   return {
     kind: "task",
     notification: { ...notification, read: false },

@@ -112,6 +112,20 @@ export function ActivityList({
     return !joinedIds.has(id) || isNotificationRead(item.message.id, null, activityReadMessageId);
   };
   const items = pages.flatMap((page) => page.items.toReversed());
+  // A Notificação de Tarefa aberta fica lida na lista na hora, sem esperar outra leitura.
+  const markOpened = (notificationId: string) =>
+    void mutate(
+      (current) =>
+        current?.map((page) => ({
+          ...page,
+          items: page.items.map((entry) =>
+            entry.kind === "task" && entry.notification.id === notificationId
+              ? { ...entry, notification: { ...entry.notification, read: true } }
+              : entry,
+          ),
+        })),
+      { revalidate: false },
+    );
   const hasMore = pages.at(-1)?.hasMore ?? false;
   const isLoadingMore = isValidating && size > pages.length;
   const sentinel = useRef<HTMLDivElement>(null);
@@ -147,7 +161,8 @@ export function ActivityList({
               key={item.notification.id}
               item={item}
               isRead={isItemRead(item)}
-              time={relativeTime(notificationCreatedAt(item.notification.id), now, timeZone)}
+              time={relativeTime(uuidV7Instant(item.notification.id).toISOString(), now, timeZone)}
+              onOpen={() => markOpened(item.notification.id)}
             />
           ) : (
             <NotificationItem
@@ -171,9 +186,4 @@ export function ActivityList({
       {hasMore && !error && <div ref={sentinel} className="h-px" />}
     </div>
   );
-}
-
-// A hora da Notificação de Tarefa, pelo UUID v7 dela (ADR 0022).
-function notificationCreatedAt(id: string): string {
-  return uuidV7Instant(id).toISOString();
 }

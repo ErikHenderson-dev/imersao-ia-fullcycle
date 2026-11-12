@@ -1,4 +1,5 @@
 import type {
+  TaskNotificationKind,
   TaskPayload,
   TaskPersonPayload,
   ConversationPayload,
@@ -817,7 +818,7 @@ export type NotificationKind = "mention" | "direct";
 // Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela, ou a
 // Notificação de Tarefa, com a Tarefa e quem agiu (spec da F12, "Atividade").
 export type MessageActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
-export type TaskNotificationKind = "received" | "completed" | "reopened";
+export type { TaskNotificationKind } from "chat-events";
 export type TaskActivityItem = {
   kind: "task";
   notification: { id: string; kind: TaskNotificationKind; read: boolean };

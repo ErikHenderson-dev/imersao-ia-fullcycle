@@ -83,7 +83,7 @@ export function AlertCenter({ personId }: { personId: string }) {
 
   // A Notificação de Tarefa (spec da F12, "Cliente (web)"): o mesmo destino, com a aba Tarefas
   // aberta e em foco no lugar da Conversa aberta. "Abrir" e o clique levam à Tarefa e a deixam lida.
-  const alertForTask = useEffectEvent(async (task: Task, notification: { id: string; kind: TaskNotificationPayload["kind"] }) => {
+  const alertForTask = useEffectEvent(async (task: Task, notification: TaskNotificationPayload) => {
     const item = taskItemFromEvent(task, notification);
     const isBrowserEnabled = browser.state === "on";
     const isTasksTabOpen =
@@ -95,6 +95,9 @@ export function AlertCenter({ personId }: { personId: string }) {
       isAnyTabFocused: isTabFocused || !isBrowserEnabled ? isTabFocused : await isAnyTabFocused(),
       isBrowserEnabled,
     });
+    // Chegando com a aba Tarefas aberta e em foco, ela já nasce lida, como a Mensagem na Conversa
+    // aberta (spec da F08, "Notificações e contagem").
+    if (isTabFocused && isTasksTabOpen) void markTaskNotificationOpened(notification.id);
     if (destination === "none") return;
     const title = taskNotificationTitle(notification.kind, item.actor.name);
     const open = () => {

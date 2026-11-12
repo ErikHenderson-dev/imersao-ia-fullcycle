@@ -104,13 +104,6 @@ export class TasksService {
     );
   }
 
-  // A Notificação `received` da Tarefa, ou null: a repetição da ação `task` a publica de novo.
-  findReceived(taskId: string): Promise<TaskNotification | null> {
-    return this.txHost.tx
-      .getRepository(TaskNotification)
-      .findOneBy({ taskId, kind: 'received' });
-  }
-
   // A Tarefa que o Pedido criou: quem chama sabe que a ação `task` dele foi gravada.
   findByRequestOrFail(requestId: string): Promise<Task> {
     return this.tasks.findOneByOrFail({ requestId });

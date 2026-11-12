@@ -8,6 +8,7 @@ import { Task } from './task.entity';
 // 0029; spec da F12, "Tarefa"). O CHECK fica também na migração AddTaskNotifications.
 @Entity('task_notifications')
 @Index('task_notifications_recipient_idx', ['recipientId', 'id'])
+@Index('task_notifications_task_idx', ['taskId'])
 @Check(
   'task_notifications_kind_check',
   `"kind" IN ('received', 'completed', 'reopened')`,

@@ -1,4 +1,5 @@
 import type { TaskPayload } from 'chat-events';
+import type { TaskNotification } from './task-notification.entity';
 import type { TaskView } from './tasks.service';
 
 // A Tarefa no payload, a mesma das rotas e dos eventos (spec da F12, "Concluir, reabrir e listar").
@@ -16,4 +17,14 @@ export function toTaskResponse(task: TaskView): TaskResponse {
     conversation: task.conversation,
     trigger_message: task.triggerMessage,
   };
+}
+
+// A Notificação na carga do evento de Tarefa de quem recebe: a dele, ou nula (spec da F12, "Eventos").
+export function notificationFor(
+  notification: Pick<TaskNotification, 'id' | 'kind' | 'recipientId'> | null,
+  recipientId: string,
+): { id: string; kind: TaskNotification['kind'] } | null {
+  return notification?.recipientId === recipientId
+    ? { id: notification.id, kind: notification.kind }
+    : null;
 }

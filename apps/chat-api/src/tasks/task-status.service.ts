@@ -8,7 +8,7 @@ import { RealtimePublisher } from '../realtime/realtime.publisher';
 import type { TaskNotification } from './task-notification.entity';
 import type { ListTasksQuery } from './list-tasks.query';
 import { partiesOf, Task, type TaskStatus } from './task.entity';
-import { toTaskResponse } from './task.response';
+import { notificationFor, toTaskResponse } from './task.response';
 import { TaskNotAssigneeError } from './task-not-assignee.error';
 import { TaskNotFoundError } from './task-not-found.error';
 import { TasksService, TaskView } from './tasks.service';
@@ -135,14 +135,4 @@ export class TaskStatusService {
     }
     return task;
   }
-}
-
-// A Notificação na carga do evento de quem recebe: a dele, ou nula.
-export function notificationFor(
-  notification: TaskNotification | null,
-  recipientId: string,
-): { id: string; kind: TaskNotification['kind'] } | null {
-  return notification?.recipientId === recipientId
-    ? { id: notification.id, kind: notification.kind }
-    : null;
 }
