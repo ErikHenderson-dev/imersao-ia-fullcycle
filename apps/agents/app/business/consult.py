@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 from datetime import date
-from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from google.adk.tools import ToolContext
@@ -23,6 +22,7 @@ from app.business.answer import (
     SEM_PERMISSAO,
     allowed_numbers,
     answer_text,
+    rounded,
 )
 from app.business.catalog import METRICS, Period, compiled_sql, query_for
 from app.business.db import BusinessStore
@@ -32,7 +32,6 @@ from app.chat_api import ChatApiClient
 
 logger = logging.getLogger(__name__)
 
-CENTS = Decimal("0.01")
 # A ferramenta gravou a resposta: o fim do Pedido não grava outra `reply`.
 DONE = {"resposta": "gravada na Conversa; não escreva nada"}
 
@@ -54,13 +53,6 @@ def parse_params(
     if bruto and metrica != "faturamento":
         return {"erro": "`bruto` só vale para o faturamento."}
     return period
-
-
-def rounded(metric: str, value: Any) -> Decimal | int:
-    """O valor como sai no texto: moeda com duas casas, contagem inteira."""
-    if metric in ("faturamento", "ticket_medio"):
-        return Decimal(value).quantize(CENTS, rounding=ROUND_HALF_UP)
-    return int(value)
 
 
 async def consult(
@@ -118,7 +110,9 @@ async def consult(
             "error", NAO_CONSEGUI_RESPONDER, sql=sql, business_data=False
         )
     value = None if row.base == 0 or row.value is None else rounded(metrica, row.value)
-    text = answer_text(metrica, period, query.window, value, gross=bruto)
+    text = answer_text(
+        metrica, period, query.window, value, store.time_zone.key, gross=bruto
+    )
     if not has_lastro(text, allowed_numbers([value], period, query.window)):
         return await finish(
             "lastro_blocked", NAO_CONSEGUI_RESPONDER, sql=sql, business_data=False

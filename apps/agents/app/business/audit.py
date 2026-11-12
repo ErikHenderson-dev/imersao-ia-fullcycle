@@ -7,10 +7,8 @@ Alembic gera e aplica.
 
 from __future__ import annotations
 
-import os
-import time
 import uuid
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from sqlalchemy import (
     CheckConstraint,
@@ -25,6 +23,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.agent_requests.recorte import uuid7
 from app.registry.store import REGISTRY_METADATA
 
 Outcome = Literal[
@@ -52,20 +51,13 @@ business_queries = Table(
         "created_at", DateTime(timezone=True), nullable=False, server_default=func.now()
     ),
     CheckConstraint(
-        "outcome IN ('answered', 'no_permission', 'not_found', 'ambiguous_name', "
-        "'too_generic', 'lastro_blocked', 'error')",
+        "outcome IN ("
+        + ", ".join(f"'{outcome}'" for outcome in get_args(Outcome))
+        + ")",
         name="business_queries_outcome_check",
     ),
     Index("business_queries_request_id_idx", "request_id"),
 )
-
-
-def uuid7() -> uuid.UUID:
-    """Um UUID v7 (ADR 0022): 48 bits de milissegundos e o resto aleatório."""
-    value = (time.time_ns() // 1_000_000) << 80 | int.from_bytes(os.urandom(10))
-    value = (value & ~(0xF << 76)) | (0x7 << 76)
-    value = (value & ~(0x3 << 62)) | (0x2 << 62)
-    return uuid.UUID(int=value)
 
 
 async def record(

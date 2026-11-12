@@ -5,6 +5,8 @@ chega ao modelo, pelas instruções do Agente; o resto ele não vê, então não
 Conversa nem de Pedido.
 """
 
+from typing import Literal
+
 from google.adk.tools import ToolContext
 
 REQUEST_ID = "request_id"
@@ -31,9 +33,11 @@ KIND = "kind"
 # "business"}`: a pergunta com as Respostas prontas (F11-T07), a Tarefa com a confirmação (F12-T01)
 # ou a resposta da consulta a Dados de negócio (F13-T04). O Pedido termina sem outra `reply`.
 ANSWERED_BY_TOOL = "respondido_pela_ferramenta"
+# O desfecho que a ferramenta gravou.
+AnsweredBy = Literal["question", "task", "business"]
 
 
-def mark_answered(tool_context: ToolContext, outcome: str) -> None:
+def mark_answered(tool_context: ToolContext, outcome: AnsweredBy) -> None:
     """Marca que a ferramenta gravou o fim deste Pedido, e não responde com texto: o evento da
     ferramenta vira a resposta final, sem nova chamada ao modelo (`skip_summarization`)."""
     tool_context.state[ANSWERED_BY_TOOL] = {

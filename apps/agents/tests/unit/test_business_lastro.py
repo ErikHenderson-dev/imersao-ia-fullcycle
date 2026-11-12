@@ -9,6 +9,7 @@ from app.business.answer import allowed_numbers, answer_text
 from app.business.catalog import Period
 from app.business.lastro import has_lastro, numbers_in
 
+TZ = "America/Sao_Paulo"
 MARCH = Period(date(2026, 3, 1), date(2026, 3, 31))
 
 
@@ -25,7 +26,7 @@ def test_le_os_numeros_em_pt_br() -> None:
 
 def test_aceita_o_texto_da_resposta() -> None:
     value = Decimal("1234567.89")
-    text = answer_text("faturamento", MARCH, MARCH, value)
+    text = answer_text("faturamento", MARCH, MARCH, value, TZ)
 
     assert has_lastro(text, allowed_numbers([value], MARCH, MARCH))
 
@@ -33,7 +34,7 @@ def test_aceita_o_texto_da_resposta() -> None:
 def test_recusa_um_numero_sem_lastro() -> None:
     value = Decimal("1234567.89")
     text = (
-        answer_text("faturamento", MARCH, MARCH, value)
+        answer_text("faturamento", MARCH, MARCH, value, TZ)
         + " Em fevereiro foi R$ 1.100.000,00."
     )
 

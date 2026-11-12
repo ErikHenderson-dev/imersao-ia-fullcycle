@@ -8,13 +8,12 @@ do que foi considerado: a Métrica, os filtros, as datas e o fuso. O modelo não
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.business.catalog import Period
-from app.config import DEFAULT_BUSINESS_TIME_ZONE
 
-TIME_ZONE_NAME = DEFAULT_BUSINESS_TIME_ZONE
 NAO_CONSEGUI_RESPONDER = "Não consegui responder."
 SEM_PERMISSAO = "Você não tem acesso a dados de negócio. Peça a permissão a quem opera a instalação."
 
@@ -32,42 +31,79 @@ MONTHS = [
     "novembro",
     "dezembro",
 ]
-MONEY_METRICS = frozenset({"faturamento", "ticket_medio"})
 
-# Por Métrica: o começo da frase (com a preposição do período), o começo da frase vazia e o que foi
-# considerado.
-TEMPLATES: dict[str, tuple[str, str, str]] = {
-    "faturamento": (
+
+@dataclass(frozen=True)
+class Wording:
+    """Como a Métrica sai no texto."""
+
+    # O começo da frase e a preposição do período nela.
+    title: str
+    preposition: str
+    # O começo da frase do resultado vazio.
+    empty: str
+    # O que foi considerado.
+    considered: str
+    # Moeda (R$ e duas casas) ou contagem inteira.
+    money: bool = False
+
+
+WORDING: dict[str, Wording] = {
+    "faturamento": Wording(
         "Faturamento",
+        "de",
         "Nenhum pedido pago",
         "faturamento líquido, pedidos pagos",
+        True,
     ),
-    "pedidos": ("Pedidos pagos", "Nenhum pedido pago", "pedidos pagos"),
-    "ticket_medio": (
+    "pedidos": Wording("Pedidos pagos", "em", "Nenhum pedido pago", "pedidos pagos"),
+    "ticket_medio": Wording(
         "Ticket médio",
+        "de",
         "Nenhum pedido pago",
         "faturamento líquido por pedido, pedidos pagos",
+        True,
     ),
-    "clientes_ativos": (
+    "clientes_ativos": Wording(
         "Clientes ativos",
+        "em",
         "Nenhum cliente ativo",
         "clientes distintos com pedido pago",
     ),
-    "clientes_novos": (
+    "clientes_novos": Wording(
         "Clientes novos",
+        "em",
         "Nenhum cliente novo",
         "clientes com conta criada no período",
     ),
-    "itens_vendidos": (
+    "itens_vendidos": Wording(
         "Itens vendidos",
+        "em",
         "Nenhum item vendido",
         "unidades vendidas em pedidos pagos",
     ),
 }
-# A preposição do período no título (sempre "em" na frase vazia).
-PREPOSITIONS = {"faturamento": "de", "ticket_medio": "de"}
+GROSS = Wording(
+    "Faturamento bruto",
+    "de",
+    "Nenhum pedido pago",
+    "faturamento bruto, pedidos pagos",
+    True,
+)
+
+
+def wording(metric: str, *, gross: bool = False) -> Wording:
+    return GROSS if metric == "faturamento" and gross else WORDING[metric]
+
 
 CENTS = Decimal("0.01")
+
+
+def rounded(metric: str, value: object) -> Decimal | int:
+    """O valor como sai no texto: moeda com duas casas, contagem inteira."""
+    if WORDING[metric].money:
+        return Decimal(str(value)).quantize(CENTS, rounding=ROUND_HALF_UP)
+    return int(value)  # type: ignore[call-overload]
 
 
 def format_money(value: Decimal) -> str:
@@ -112,18 +148,17 @@ def period_span(period: Period, preposition: str) -> str:
 def format_value(metric: str, value: Decimal | int) -> str:
     return (
         format_money(Decimal(value))
-        if metric in MONEY_METRICS
+        if WORDING[metric].money
         else format_count(int(value))
     )
 
 
-def considered_line(metric: str, window: Period, *, gross: bool = False) -> str:
-    considered = TEMPLATES[metric][2]
-    if metric == "faturamento" and gross:
-        considered = "faturamento bruto, pedidos pagos"
+def considered_line(
+    metric: str, window: Period, time_zone: str, *, gross: bool = False
+) -> str:
     return (
-        f"Considerado: {considered}, de {_date(window.start)} a {_date(window.end)}, "
-        f"fuso {TIME_ZONE_NAME}."
+        f"Considerado: {wording(metric, gross=gross).considered}, de {_date(window.start)} "
+        f"a {_date(window.end)}, fuso {time_zone}."
     )
 
 
@@ -132,20 +167,19 @@ def answer_text(
     period: Period,
     window: Period,
     value: Decimal | int | None,
+    time_zone: str,
     *,
     gross: bool = False,
 ) -> str:
     """A resposta da Métrica no período, ou a frase do resultado vazio, com a linha do que foi
-    considerado. O valor já vem arredondado como sai no texto."""
-    title, empty, _ = TEMPLATES[metric]
+    considerado. O valor já vem arredondado como sai no texto (`rounded`)."""
+    words = wording(metric, gross=gross)
     if value is None:
-        first = f"{empty} {period_span(period, 'em')}."
+        first = f"{words.empty} {period_span(period, 'em')}."
     else:
-        if metric == "faturamento" and gross:
-            title = "Faturamento bruto"
-        span = period_span(period, PREPOSITIONS.get(metric, "em"))
-        first = f"{title} {span}: {format_value(metric, value)}."
-    return f"{first}\n\n{considered_line(metric, window, gross=gross)}"
+        span = period_span(period, words.preposition)
+        first = f"{words.title} {span}: {format_value(metric, value)}."
+    return f"{first}\n\n{considered_line(metric, window, time_zone, gross=gross)}"
 
 
 def allowed_numbers(

@@ -8,6 +8,8 @@ conversão para as contagens.
 
 from __future__ import annotations
 
+import os
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -59,6 +61,14 @@ def recorte_interval(recorte: str, time_zone: str, requested_at: datetime) -> In
         case _:
             raise ValueError(f"Recorte desconhecido: {recorte}")
     return Interval(since=since, until=until)
+
+
+def uuid7() -> uuid.UUID:
+    """Um UUID v7 (ADR 0022): 48 bits de milissegundos e o resto aleatório."""
+    value = (time.time_ns() // 1_000_000) << 80 | int.from_bytes(os.urandom(10))
+    value = (value & ~(0xF << 76)) | (0x7 << 76)
+    value = (value & ~(0x3 << 62)) | (0x2 << 62)
+    return uuid.UUID(int=value)
 
 
 def uuid7_instant(value: uuid.UUID) -> datetime:

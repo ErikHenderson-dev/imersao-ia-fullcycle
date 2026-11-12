@@ -11,7 +11,6 @@ from __future__ import annotations
 import functools
 import importlib
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -88,15 +87,17 @@ def agent_app(slug: str) -> App:
     return importlib.import_module(f"app.agents.{slug}.agent").app
 
 
-@functools.cache
-def business_time_zone() -> ZoneInfo:
-    """O fuso da empresa (`BUSINESS_TIME_ZONE`), lido do ambiente sem exigir o resto da
-    configuração, como o modelo no agent.py."""
-    return ZoneInfo(os.environ.get("BUSINESS_TIME_ZONE") or DEFAULT_BUSINESS_TIME_ZONE)
+# O fuso da empresa quando a execução não tem o Banco de negócio (a avaliação, por exemplo).
+DEFAULT_ZONE = ZoneInfo(DEFAULT_BUSINESS_TIME_ZONE)
 
 
-def request_state(request: AgentRequestBody) -> dict[str, object]:
-    """O contexto do Pedido que as ferramentas e as instruções leem do estado da sessão."""
+def request_state(
+    request: AgentRequestBody,
+    business_time_zone: ZoneInfo = DEFAULT_ZONE,
+) -> dict[str, object]:
+    """O contexto do Pedido que as ferramentas e as instruções leem do estado da sessão. O dia de
+    hoje sai no fuso da empresa, o mesmo do Banco de negócio (`BusinessStore.time_zone`)."""
+    instant = requested_at(request)
     return {
         context.REQUEST_ID: str(request.request_id),
         context.CONVERSATION_ID: str(request.conversation_id),
@@ -105,9 +106,8 @@ def request_state(request: AgentRequestBody) -> dict[str, object]:
         context.REQUESTER_USERNAME: request.requester.username,
         context.DATA_ACCESS: request.requester.data_access,
         context.TIME_ZONE: request.time_zone,
-        context.REQUESTED_AT: to_api_instant(requested_at(request)),
-        context.BUSINESS_TODAY: requested_at(request)
-        .astimezone(business_time_zone())
+        context.REQUESTED_AT: to_api_instant(instant),
+        context.BUSINESS_TODAY: instant.astimezone(business_time_zone)
         .date()
         .isoformat(),
         context.QUESTION: request.message.body,
@@ -152,7 +152,7 @@ class RunResult:
 
     text: str | None = None
     # O desfecho que a ferramenta já gravou (`context.ANSWERED_BY_TOOL`), ou nenhum.
-    answered: Literal["question", "task", "business"] | None = None
+    answered: context.AnsweredBy | None = None
 
 
 async def run_agent(
@@ -167,7 +167,10 @@ async def run_agent(
     com a marca mesmo se a execução falhar depois da gravação."""
     runner = Runner(app=agent_app(request.agent), session_service=deps.session_service)
     request_id = str(request.request_id)
-    state_delta = request_state(request)
+    state_delta = request_state(
+        request,
+        *([deps.business.time_zone] if deps.business else []),
+    )
     # A continuação guarda as Pessoas mencionadas no Pedido que perguntou, para o modelo achar o
     # @usuário de quem a resposta nomeia (F12-T04).
     if request.kind == "continuation":

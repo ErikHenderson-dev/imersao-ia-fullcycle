@@ -10,6 +10,8 @@ import pytest
 from app.business.answer import answer_text, format_count, format_money
 from app.business.catalog import Period
 
+TZ = "America/Sao_Paulo"
+
 MARCH = Period(date(2026, 3, 1), date(2026, 3, 31))
 CONSIDERADO = "de 01/03/2026 a 31/03/2026, fuso America/Sao_Paulo."
 
@@ -69,13 +71,13 @@ def test_formata_moeda_e_contagem_em_pt_br() -> None:
 def test_a_resposta_tem_o_numero_em_pt_br_e_a_linha_do_que_foi_considerado(
     metric: str, value: Decimal | int, gross: bool, expected: str
 ) -> None:
-    assert answer_text(metric, MARCH, MARCH, value, gross=gross) == expected
+    assert answer_text(metric, MARCH, MARCH, value, TZ, gross=gross) == expected
 
 
 def test_clientes_ativos_mostram_a_janela_na_linha() -> None:
     window = Period(date(2026, 1, 1), date(2026, 3, 31))
 
-    text = answer_text("clientes_ativos", MARCH, window, 180)
+    text = answer_text("clientes_ativos", MARCH, window, 180, TZ)
 
     assert text == (
         "Clientes ativos em março de 2026: 180.\n\n"
@@ -85,7 +87,7 @@ def test_clientes_ativos_mostram_a_janela_na_linha() -> None:
 
 
 def test_o_resultado_vazio_e_dito_como_tal() -> None:
-    text = answer_text("pedidos", MARCH, MARCH, None)
+    text = answer_text("pedidos", MARCH, MARCH, None, TZ)
 
     assert text.startswith("Nenhum pedido pago em março de 2026.")
 
@@ -93,6 +95,6 @@ def test_o_resultado_vazio_e_dito_como_tal() -> None:
 def test_o_periodo_que_nao_e_um_mes_vai_com_as_datas() -> None:
     period = Period(date(2026, 3, 1), date(2026, 3, 15))
 
-    text = answer_text("pedidos", period, period, 120)
+    text = answer_text("pedidos", period, period, 120, TZ)
 
     assert text.startswith("Pedidos pagos de 01/03/2026 a 15/03/2026: 120.")

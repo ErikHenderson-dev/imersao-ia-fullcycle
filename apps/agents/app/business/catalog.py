@@ -56,39 +56,36 @@ class Query:
 def query_for(
     metric: str, period: Period, time_zone: ZoneInfo, *, gross: bool = False
 ) -> Query:
-    """A consulta da Métrica no período."""
+    """A consulta da Métrica no período: o agregado da Métrica (`value`) e a contagem da base."""
     window = (
         Period(period.end - timedelta(days=ACTIVE_DAYS - 1), period.end)
         if metric == "clientes_ativos"
         else period
     )
     start, end = window.bounds(time_zone)
-    paid_in_window = (
-        orders.c.status == PAID,
-        orders.c.ordered_at >= start,
-        orders.c.ordered_at < end,
-    )
+    if metric == "clientes_novos":
+        return Query(
+            statement=select(
+                func.count().label("value"), func.count().label("base")
+            ).where(customers.c.created_at >= start, customers.c.created_at < end),
+            window=window,
+        )
     amount = orders.c.gross_amount if gross else orders.c.net_amount
-    count = func.count().label("base")
-    statements: dict[str, Select] = {
-        "faturamento": select(func.sum(amount).label("value"), count).where(
-            *paid_in_window
-        ),
-        "pedidos": select(func.count().label("value"), count).where(*paid_in_window),
-        "ticket_medio": select(func.avg(amount).label("value"), count).where(
-            *paid_in_window
-        ),
-        "clientes_ativos": select(
-            func.count(distinct(orders.c.customer_id)).label("value"), count
-        ).where(*paid_in_window),
-        "clientes_novos": select(func.count().label("value"), count).where(
-            customers.c.created_at >= start, customers.c.created_at < end
-        ),
-        "itens_vendidos": select(func.sum(order_items.c.quantity).label("value"), count)
-        .select_from(order_items.join(orders, order_items.c.order_id == orders.c.id))
-        .where(*paid_in_window),
-    }
-    return Query(statement=statements[metric], window=window)
+    value = {
+        "faturamento": func.sum(amount),
+        "pedidos": func.count(),
+        "ticket_medio": func.avg(amount),
+        "clientes_ativos": func.count(distinct(orders.c.customer_id)),
+        "itens_vendidos": func.sum(order_items.c.quantity),
+    }[metric]
+    statement = select(value.label("value"), func.count().label("base")).where(
+        orders.c.status == PAID, orders.c.ordered_at >= start, orders.c.ordered_at < end
+    )
+    if metric == "itens_vendidos":
+        statement = statement.select_from(
+            order_items.join(orders, order_items.c.order_id == orders.c.id)
+        )
+    return Query(statement=statement, window=window)
 
 
 def compiled_sql(statement: Select) -> str:
