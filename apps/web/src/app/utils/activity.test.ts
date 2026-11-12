@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ActivityItem } from "@/app/services/chat-api";
 import {
   activityFilterFromParam,
-  activityFilterFromTab,
+  activityTabFromParam,
   activityTabHref,
   isNotificationRead,
   notificationSuffix,
@@ -70,14 +70,17 @@ describe("Atividade", () => {
   });
 
   it("a aba da URL e o caminho de cada aba", () => {
-    expect(activityFilterFromTab(undefined)).toBe("all");
-    expect(activityFilterFromTab("mencoes")).toBe("mentions");
-    expect(activityFilterFromTab("diretas")).toBe("direct");
-    expect(activityFilterFromTab("tarefas")).toBe("all");
+    expect(activityTabFromParam(undefined)).toBe("all");
+    expect(activityTabFromParam("mencoes")).toBe("mentions");
+    expect(activityTabFromParam("diretas")).toBe("direct");
+    expect(activityTabFromParam("tarefas")).toBe("tasks");
+    expect(activityTabFromParam("outra")).toBe("all");
     expect(activityTabHref("all")).toBe("/atividade");
     expect(activityTabHref("direct")).toBe("/atividade?aba=diretas");
+    expect(activityTabHref("tasks")).toBe("/atividade?aba=tarefas");
     expect(activityFilterFromParam(null)).toBe("all");
     expect(activityFilterFromParam("mentions")).toBe("mentions");
     expect(activityFilterFromParam("tarefas")).toBeNull();
+    expect(activityFilterFromParam("tasks")).toBeNull();
   });
 });

@@ -52,3 +52,16 @@ export async function botQuestion(requestId: string, body: string, quickReplies:
   });
   return result!.message.id;
 }
+
+// A delegação pelo bot (F12-T01): cria a Tarefa e a confirmação. Devolve a Tarefa, no formato da API.
+export async function botTask(
+  requestId: string,
+  assigneeUsername: string,
+  title: string,
+): Promise<{ id: string; trigger_message: { id: string } }> {
+  const result = await botPost<{ task: { id: string; trigger_message: { id: string } } }>(requestId, "task", {
+    assignee_username: assigneeUsername,
+    title,
+  });
+  return result!.task;
+}

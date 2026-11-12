@@ -1,4 +1,5 @@
 import type {
+  TaskPayload,
   ConversationPayload,
   MentionPayload,
   MessageAuthorPayload,
@@ -22,6 +23,7 @@ import type { AgentErrorReason, AgentRequestFailure } from "@/app/utils/agent-re
 import { initials } from "@/app/utils/initials";
 import type { Theme } from "@/app/utils/theme";
 import { messageFromEvent } from "@/app/utils/message-event";
+import { taskFromPayload } from "@/app/utils/tasks";
 import { activityUnreadFromPayload, type ActivityUnreadPayload } from "@/app/utils/activity-unread";
 
 // Service HTTP da API do chat, usado só no servidor (Server Actions, Server Components e
@@ -901,4 +903,73 @@ export async function announceAgentsChanged(token: string): Promise<boolean> {
     headers: authenticated(token),
   });
   return response?.status === 204;
+}
+
+// Tarefas (spec da F12, "Concluir, reabrir e listar").
+export type TaskRole = "assigned" | "delegated";
+export type TaskPerson = { id: string; name: string; username: string };
+
+export type Task = {
+  id: string;
+  title: string;
+  status: "open" | "done";
+  createdAt: string;
+  completedAt: string | null;
+  assignee: TaskPerson;
+  delegator: TaskPerson;
+  conversation: { id: string; name: string | null; kind: "public_channel" | "private_channel" | "direct" };
+  triggerMessage: { id: string; deleted: boolean };
+};
+
+export type TaskPage = { tasks: Task[]; nextCursor: string | null };
+
+export type TaskPageResult = { kind: "ok"; page: TaskPage } | { kind: "unauthenticated" } | { kind: "failure" };
+
+export type TaskResult =
+  | { kind: "ok"; task: Task }
+  | { kind: "not_found" }
+  | { kind: "not_assignee" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// Uma página das Tarefas recebidas ou delegadas, a partir do cursor da anterior.
+export async function listTasks(
+  token: string,
+  { role, cursor }: { role: TaskRole; cursor?: string },
+): Promise<TaskPageResult> {
+  const params = new URLSearchParams({ role });
+  if (cursor) params.set("cursor", cursor);
+  const result = await getJson<{ tasks: TaskPayload[]; next_cursor: string | null }>(
+    token,
+    `/v1/tasks?${params.toString()}`,
+  );
+  if (result.kind !== "ok") return result.kind === "unauthenticated" ? result : { kind: "failure" };
+  return {
+    kind: "ok",
+    page: { tasks: result.body.tasks.map(taskFromPayload), nextCursor: result.body.next_cursor },
+  };
+}
+
+// Uma Tarefa, para o Responsável ou quem delegou.
+export async function getTask(token: string, taskId: string): Promise<TaskResult> {
+  const result = await getJson<{ task: TaskPayload }>(token, `/v1/tasks/${encodeURIComponent(taskId)}`);
+  return result.kind === "ok" ? { kind: "ok", task: taskFromPayload(result.body.task) } : result;
+}
+
+// Conclui ou reabre a Tarefa do Responsável; a repetição devolve a Tarefa como está.
+export async function changeTaskStatus(
+  token: string,
+  taskId: string,
+  action: "complete" | "reopen",
+): Promise<TaskResult> {
+  const response = await request(`/v1/tasks/${encodeURIComponent(taskId)}/${action}`, {
+    method: "POST",
+    headers: authenticated(token),
+  });
+  if (response?.status === 200) {
+    const body = await jsonBody<{ task: TaskPayload }>(response);
+    return body ? { kind: "ok", task: taskFromPayload(body.task) } : { kind: "failure" };
+  }
+  if (response?.status === 403) return { kind: "not_assignee" };
+  return commonFailure(response);
 }

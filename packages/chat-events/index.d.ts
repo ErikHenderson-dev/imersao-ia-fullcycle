@@ -132,6 +132,39 @@ export interface ActivityUnreadEvent {
   direct_count: number;
 }
 
+/** Uma Pessoa da Tarefa: o Responsável ou quem delegou. */
+export interface TaskPersonPayload {
+  id: string;
+  name: string;
+  username: string;
+}
+
+/** A Tarefa como as rotas a mostram (spec da F12, "Concluir, reabrir e listar"). */
+export interface TaskPayload {
+  id: string;
+  title: string;
+  status: "open" | "done";
+  created_at: string;
+  completed_at: string | null;
+  assignee: TaskPersonPayload;
+  delegator: TaskPersonPayload;
+  conversation: {
+    id: string;
+    name: string | null;
+    kind: "public_channel" | "private_channel" | "direct";
+  };
+  trigger_message: { id: string; deleted: boolean };
+}
+
+/**
+ * A Tarefa criada ou que mudou de estado, para o Responsável e quem delegou (spec da F12, "Eventos").
+ */
+export interface TaskEvent {
+  /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
+  event_id?: string;
+  task: TaskPayload;
+}
+
 /**
  * Os eventos guardados por Pessoa e reenviados na reconexão, com a carga de cada um sem o cursor,
  * que é de cada Pessoa (spec da F03, "Eventos por Pessoa e reconexão").
@@ -143,6 +176,8 @@ export interface StoredEventPayloads {
   "conversation.member_added": Omit<ConversationMemberAddedEvent, "event_id">;
   "conversation.unread": Omit<ConversationUnreadEvent, "event_id">;
   "activity.unread": Omit<ActivityUnreadEvent, "event_id">;
+  "task.created": Omit<TaskEvent, "event_id">;
+  "task.updated": Omit<TaskEvent, "event_id">;
 }
 
 export type StoredEventName = keyof StoredEventPayloads;

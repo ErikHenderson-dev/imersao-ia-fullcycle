@@ -171,6 +171,9 @@ test.describe("Atividade ao carregar a página", () => {
     await expect(abas.getByRole("link", { name: /^Menções/ })).toBeFocused();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
+    // A aba Tarefas (F12-T02) vem depois de Mensagens diretas.
+    await expect(abas.getByRole("link", { name: /^Tarefas/ })).toBeFocused();
+    await page.keyboard.press("Tab");
     const primeiroItem = activityList(page).getByRole("link").first();
     await expect(primeiroItem).toBeFocused();
     await page.keyboard.press("Enter");

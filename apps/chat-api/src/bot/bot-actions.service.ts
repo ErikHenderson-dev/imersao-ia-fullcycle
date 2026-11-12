@@ -13,6 +13,8 @@ import type {
   MessageView,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
+import { partiesOf } from '../tasks/task-status.service';
+import { toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
 
@@ -176,7 +178,13 @@ export class BotActionsService {
     if (written) this.announceAnswer(message);
     const task =
       written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
-    return { task: await this.tasks.view(task), message };
+    const view = await this.tasks.view(task);
+    if (written) {
+      void this.realtime.taskCreated(partiesOf(task), {
+        task: toTaskResponse(view),
+      });
+    }
+    return { task: view, message };
   }
 
   // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do

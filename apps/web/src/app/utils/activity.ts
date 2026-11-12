@@ -7,36 +7,43 @@ import type {
 import { cachedFormatter } from "./date-formatters";
 import { spoken } from "./unread";
 
+// Uma aba da tela Atividade: um filtro da lista de Notificações, ou a aba Tarefas (spec da F12,
+// "Cliente (web)").
+export type ActivityTab = ActivityFilter | "tasks";
+
 // As abas da tela Atividade (spec da F08, "Tela Atividade"): o valor de `?aba=` e o filtro da API.
 // Todas fica sem query.
-// `count` é o número de ActivityUnread que o contador da aba mostra.
+// `count` é o número de ActivityUnread que o contador da aba mostra; a aba Tarefas ainda não tem.
 export const ACTIVITY_TABS = [
   { filter: "all", param: null, label: "Todas", count: "totalCount" },
   { filter: "mentions", param: "mencoes", label: "Menções", count: "mentionCount" },
   { filter: "direct", param: "diretas", label: "Mensagens diretas", count: "directCount" },
+  { filter: "tasks", param: "tarefas", label: "Tarefas", count: null },
 ] as const satisfies readonly {
-  filter: ActivityFilter;
+  filter: ActivityTab;
   param: string | null;
   label: string;
-  count: keyof ActivityUnread;
+  count: keyof ActivityUnread | null;
 }[];
 
-// O filtro da aba pedida em `?aba=`; uma aba desconhecida vale como Todas.
-export function activityFilterFromTab(tab: string | string[] | undefined): ActivityFilter {
+const NOTIFICATION_FILTERS: readonly ActivityFilter[] = ["all", "mentions", "direct"];
+
+// A aba pedida em `?aba=`; uma aba desconhecida vale como Todas.
+export function activityTabFromParam(tab: string | string[] | undefined): ActivityTab {
   const value = Array.isArray(tab) ? tab[0] : tab;
   return ACTIVITY_TABS.find((entry) => entry.param !== null && entry.param === value)?.filter ?? "all";
 }
 
 // O caminho de cada aba.
-export function activityTabHref(filter: ActivityFilter): string {
-  const param = ACTIVITY_TABS.find((entry) => entry.filter === filter)?.param;
+export function activityTabHref(tab: ActivityTab): string {
+  const param = ACTIVITY_TABS.find((entry) => entry.filter === tab)?.param;
   return param ? `/atividade?aba=${param}` : "/atividade";
 }
 
 // O filtro vindo da rota do BFF (`?kind=`), ou nulo quando é inválido; sem ele, Todas.
 export function activityFilterFromParam(value: string | null): ActivityFilter | null {
   if (value === null) return "all";
-  return ACTIVITY_TABS.some((entry) => entry.filter === value) ? (value as ActivityFilter) : null;
+  return NOTIFICATION_FILTERS.find((filter) => filter === value) ?? null;
 }
 
 // O título do item, que o Alerta reaproveita (F08-T05): "Rafael Trevisani mencionou você em #geral"

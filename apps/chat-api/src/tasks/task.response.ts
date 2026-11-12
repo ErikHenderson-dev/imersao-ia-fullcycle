@@ -1,17 +1,8 @@
+import type { TaskPayload } from 'chat-events';
 import type { TaskView } from './tasks.service';
 
-// A Tarefa no payload (spec da F12, "Concluir, reabrir e listar").
-export interface TaskResponse {
-  id: string;
-  title: string;
-  status: TaskView['status'];
-  created_at: string;
-  completed_at: string | null;
-  assignee: TaskView['assignee'];
-  delegator: TaskView['delegator'];
-  conversation: TaskView['conversation'];
-  trigger_message: TaskView['triggerMessage'];
-}
+// A Tarefa no payload, a mesma das rotas e dos eventos (spec da F12, "Concluir, reabrir e listar").
+export type TaskResponse = TaskPayload;
 
 export function toTaskResponse(task: TaskView): TaskResponse {
   return {

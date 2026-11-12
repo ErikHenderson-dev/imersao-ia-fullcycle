@@ -4,7 +4,11 @@ import { BotsModule } from '../bots/bots.module';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { MessagesModule } from '../messages/messages.module';
 import { PeopleModule } from '../people/people.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { SessionsModule } from '../sessions/sessions.module';
 import { Task } from './task.entity';
+import { TaskStatusService } from './task-status.service';
+import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 
 @Module({
@@ -15,8 +19,11 @@ import { TasksService } from './tasks.service';
     ConversationsModule,
     MessagesModule,
     PeopleModule,
+    RealtimeModule,
+    SessionsModule,
   ],
-  providers: [TasksService],
+  controllers: [TasksController],
+  providers: [TasksService, TaskStatusService],
   exports: [TasksService],
 })
 export class TasksModule {}

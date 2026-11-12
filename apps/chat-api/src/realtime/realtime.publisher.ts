@@ -82,6 +82,22 @@ export class RealtimePublisher {
     return this.publish('activity.unread', personIds, payloadFor);
   }
 
+  // A Tarefa criada ou que mudou de estado, para o Responsável e quem delegou (spec da F12,
+  // "Eventos").
+  taskCreated(
+    personIds: string[],
+    event: StoredEventPayloads['task.created'],
+  ): Promise<void> {
+    return this.publish('task.created', personIds, event);
+  }
+
+  taskUpdated(
+    personIds: string[],
+    event: StoredEventPayloads['task.updated'],
+  ): Promise<void> {
+    return this.publish('task.updated', personIds, event);
+  }
+
   // O Perfil que mudou, para todo o workspace, sem guardar: quem perde o evento numa queda vê o nome
   // novo ao recarregar (spec da F09, "Tempo real"). O nome também muda no "digitando".
   personUpdated(person: PersonUpdatedEvent): void {

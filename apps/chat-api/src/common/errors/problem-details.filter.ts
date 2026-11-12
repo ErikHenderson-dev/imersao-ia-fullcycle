@@ -36,6 +36,8 @@ const DETAILS: Record<ErrorCode, string> = {
   assignee_not_member:
     'O Responsável precisa ser Membro da Conversa do Pedido.',
   assignee_is_bot: 'Uma Tarefa não pode ser delegada a um Agente.',
+  task_not_found: 'Tarefa não encontrada.',
+  task_not_assignee: 'Só o Responsável conclui e reabre a Tarefa.',
   internal_error: 'Erro interno. Tente novamente mais tarde.',
 };
 
