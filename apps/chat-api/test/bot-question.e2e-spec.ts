@@ -241,8 +241,8 @@ describe('Contagens e pergunta do bot', () => {
   it.each([
     ['sem quick_replies', { body: 'Qual período?' }],
     [
-      'com mais de quatro rótulos',
-      { body: 'Qual período?', quick_replies: ['a', 'b', 'c', 'd', 'e'] },
+      'com mais de cinco rótulos',
+      { body: 'Qual período?', quick_replies: ['a', 'b', 'c', 'd', 'e', 'f'] },
     ],
     ['com um rótulo vazio', { body: 'Qual período?', quick_replies: ['  '] }],
     [

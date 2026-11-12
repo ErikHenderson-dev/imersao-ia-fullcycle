@@ -36,15 +36,33 @@ BOT_TOKEN = "credencial-de-bot-dos-testes"
 NO_CHAT_API = "http://127.0.0.1:9"
 
 
-async def _recreate_database(admin_url: str, name: str) -> None:
+async def _recreate_database(
+    admin_url: str, name: str, owner: str = "agents", readers: tuple[str, ...] = ()
+) -> None:
+    """Recria o banco com o dono dado; os `readers` conectam e leem as tabelas que o dono criar,
+    como o `business_readonly` no init (docker/postgres/init)."""
     admin = await asyncpg.connect(admin_url)
     try:
         await admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
-        await admin.execute(f'CREATE DATABASE "{name}" OWNER agents')
+        await admin.execute(f'CREATE DATABASE "{name}" OWNER {owner}')
         await admin.execute(f'REVOKE CONNECT ON DATABASE "{name}" FROM PUBLIC')
-        await admin.execute(f'GRANT CONNECT ON DATABASE "{name}" TO agents')
+        await admin.execute(
+            f'GRANT CONNECT ON DATABASE "{name}" TO {", ".join((owner, *readers))}'
+        )
     finally:
         await admin.close()
+    if not readers:
+        return
+    database = await asyncpg.connect(_with_database(admin_url, name))
+    try:
+        for reader in readers:
+            await database.execute(f"GRANT USAGE ON SCHEMA public TO {reader}")
+            await database.execute(
+                f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA public "
+                f"GRANT SELECT ON TABLES TO {reader}"
+            )
+    finally:
+        await database.close()
 
 
 @pytest.fixture(scope="session")
@@ -65,6 +83,62 @@ def test_database_url() -> Iterator[str]:
     yield url
 
 
+def _with_database(url: str, name: str) -> str:
+    return urlparse(url)._replace(path=f"/{name}").geturl()
+
+
+@pytest.fixture(scope="session")
+def business_test_database_url() -> Iterator[str]:
+    """A URL do usuário só leitura no `business_test`, recriado uma vez por execução (F13-T03)."""
+    url = os.environ.get("BUSINESS_TEST_DATABASE_URL")
+    admin_url = os.environ.get("TEST_DATABASE_ADMIN_URL")
+    if not url or not admin_url:
+        raise RuntimeError(
+            "BUSINESS_TEST_DATABASE_URL e TEST_DATABASE_ADMIN_URL são obrigatórias"
+        )
+    asyncio.run(
+        _recreate_database(
+            admin_url,
+            urlparse(url).path.lstrip("/"),
+            owner="business",
+            readers=("business_readonly",),
+        )
+    )
+    yield url
+
+
+@pytest.fixture(scope="session")
+def business_test_admin_url(business_test_database_url: str) -> str:
+    """O superusuário no `business_test`, pelo SQLAlchemy assíncrono: a carga roda com
+    `SET ROLE business`."""
+    admin_url = os.environ["TEST_DATABASE_ADMIN_URL"]
+    name = urlparse(business_test_database_url).path.lstrip("/")
+    return _with_database(admin_url, name).replace(
+        "postgresql://", "postgresql+asyncpg://", 1
+    )
+
+
+@pytest.fixture(scope="session")
+def loaded_business_test(business_test_admin_url: str) -> str:
+    """O `business_test` carregado com os dados fixos, uma vez por execução, como o dono; devolve a
+    URL do usuário só leitura (F13-T04)."""
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from app.business.load import load
+
+    async def run() -> None:
+        engine = create_async_engine(business_test_admin_url)
+        try:
+            async with engine.begin() as connection:
+                await connection.execute(text("SET LOCAL ROLE business"))
+                await load(connection)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
+    return os.environ["BUSINESS_TEST_DATABASE_URL"]
+
+
 def settings_for(
     url: str,
     *,
@@ -83,6 +157,8 @@ def settings_for(
         redis_url=redis_url or redis_url_for_tests(),
         # Sessões do ADK em memória: os testes não gravam no banco de desenvolvimento.
         session_service_uri=None,
+        # O Banco de negócio de teste, pelo usuário só leitura (F13-T03).
+        business_database_url=os.environ.get("BUSINESS_TEST_DATABASE_URL", ""),
     )
 
 

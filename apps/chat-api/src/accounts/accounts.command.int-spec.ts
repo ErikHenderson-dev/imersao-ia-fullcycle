@@ -653,6 +653,132 @@ describe('comando de contas', () => {
     });
   });
 
+  describe('set-data-access', () => {
+    async function person() {
+      return people.create({
+        email: uniqueEmail(),
+        name: 'Ana Souza',
+        password: 'senha-antiga',
+      });
+    }
+
+    async function dataAccessOf(personId: string): Promise<boolean> {
+      return (await people.findById(personId))!.dataAccess;
+    }
+
+    it('set-data-access on liga a Permissão de dados pelo e-mail e escreve o resultado', async () => {
+      const ana = await person();
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'set-data-access',
+        ana.email.toUpperCase(),
+        'on',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(output.infos).toEqual(['Ana Souza agora tem Permissão de dados.']);
+      expect(await dataAccessOf(ana.id)).toBe(true);
+    });
+
+    it('set-data-access off desliga a Permissão de dados pelo @usuário', async () => {
+      const ana = await person();
+      await people.setDataAccess(ana.id, true);
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run([
+        'set-data-access',
+        `@${ana.username}`,
+        'off',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(output.infos).toEqual([
+        'Ana Souza deixou de ter Permissão de dados.',
+      ]);
+      expect(await dataAccessOf(ana.id)).toBe(false);
+    });
+
+    it.each([
+      [true, 'on', 'Ana Souza já tinha Permissão de dados.'],
+      [false, 'off', 'Ana Souza já não tinha Permissão de dados.'],
+    ])(
+      'set-data-access diz "já tinha" sem mudar nada quando a permissão já é %s',
+      async (current, value, message) => {
+        const ana = await person();
+        await people.setDataAccess(ana.id, current);
+        const before = (await people.findById(ana.id))!.updatedAt;
+        const output = recordingOutput();
+
+        const exitCode = await command(undefined, output).run([
+          'set-data-access',
+          ana.email,
+          value,
+        ]);
+
+        expect(exitCode).toBe(0);
+        expect(output.infos).toEqual([message]);
+        const after = await people.findById(ana.id);
+        expect(after).toMatchObject({
+          dataAccess: current,
+          updatedAt: before,
+        });
+      },
+    );
+
+    it.each([
+      ['e-mail', () => uniqueEmail(), /Nenhuma Pessoa com o e-mail/],
+      [
+        '@usuário',
+        () => '@ninguem-aqui-1234',
+        /Nenhuma Pessoa com o @usuário ninguem-aqui-1234/,
+      ],
+    ])(
+      'set-data-access recusa a Pessoa inexistente pelo %s',
+      async (_, identifier, message) => {
+        const output = recordingOutput();
+
+        const exitCode = await command(undefined, output).run([
+          'set-data-access',
+          identifier(),
+          'on',
+        ]);
+
+        expect(exitCode).toBe(1);
+        expect(output.errors.join('\n')).toMatch(message);
+      },
+    );
+
+    it.each([
+      [['set-data-access']],
+      [['set-data-access', 'a@b.c']],
+      [['set-data-access', 'a@b.c', 'sim']],
+    ])(
+      'set-data-access mostra o uso com argumentos inválidos: %j',
+      async (argv) => {
+        const output = recordingOutput();
+
+        const exitCode = await command(undefined, output).run(argv);
+
+        expect(exitCode).toBe(1);
+        expect(output.errors.join('\n')).toMatch(
+          /Uso: pnpm accounts set-data-access/,
+        );
+      },
+    );
+
+    it('o uso geral mostra a operação set-data-access', async () => {
+      const output = recordingOutput();
+
+      const exitCode = await command(undefined, output).run(['desconhecida']);
+
+      expect(exitCode).toBe(1);
+      expect(output.errors.join('\n')).toMatch(
+        /set-data-access <e-mail\|@usuário> on\|off/,
+      );
+    });
+  });
+
   describe('create-bot', () => {
     function uniqueUsername(): string {
       return `bot-${randomUUID().replaceAll('-', '').slice(0, 20)}`;

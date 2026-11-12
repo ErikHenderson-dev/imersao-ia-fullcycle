@@ -78,6 +78,11 @@ export class Message extends BaseEntity {
   @Column({ type: 'jsonb', nullable: true })
   quickReplies!: string[] | null;
 
+  // A marca "dados de negócio" (spec da F13, "Marca e Resposta bloqueada"): só a ação de bot a
+  // liga, e quem lê sem Permissão de dados recebe a Resposta bloqueada.
+  @Column({ type: 'boolean', default: false })
+  businessData!: boolean;
+
   // A hora da exclusão; a linha fica só para as Citações (spec da F06, "Apagar").
   @Column({ type: 'timestamptz', nullable: true })
   deletedAt!: Date | null;

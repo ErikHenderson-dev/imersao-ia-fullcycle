@@ -21,6 +21,11 @@ PROVIDER_KEYS: dict[Provider, str] = {
 }
 
 
+# O fuso da empresa (LLD, "Valores e configuração", "Fuso da empresa").
+DEFAULT_BUSINESS_TIME_ZONE = "America/Sao_Paulo"
+# O tempo limite da consulta ao Banco de negócio, em milissegundos (LLD, "Valores e configuração").
+DEFAULT_BUSINESS_QUERY_TIMEOUT_MS = 3000
+
 # Um segredo ou endereço obrigatório: só espaços conta como ausente.
 Required = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -84,6 +89,11 @@ class Settings(ModelSettings):
     # Pedido"; LLD, "Valores e configuração").
     redis_url: Required
     agent_requests_per_minute: PositiveInt = 10
+    # O Banco de negócio pelo usuário só leitura (spec da F13, "Ambiente de desenvolvimento"; ADR
+    # 0013), o fuso da empresa e o tempo limite da consulta (LLD, "Valores e configuração").
+    business_database_url: Required
+    business_time_zone: Required = DEFAULT_BUSINESS_TIME_ZONE
+    business_query_timeout_ms: PositiveInt = DEFAULT_BUSINESS_QUERY_TIMEOUT_MS
     # true liga as rotas genéricas do ADK e a interface web, só no desenvolvimento.
     adk_dev_routes: bool = False
     # Lidas também pelo código gerado (app_utils/services.py e fast_api_app.py).
@@ -100,7 +110,20 @@ class Settings(ModelSettings):
         ]
 
 
-def _read[T: ModelSettings](cls: type[T]) -> T:
+class BusinessLoadSettings(BaseSettings):
+    """A carga do Banco de negócio, que só o script lê: a credencial do dono fica fora do app."""
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    business_owner_database_url: Required
+
+
+def load_business_load_settings() -> BusinessLoadSettings:
+    """A URL do dono do Banco de negócio, com o nome da variável no erro quando falta."""
+    return _read(BusinessLoadSettings)
+
+
+def _read[T: BaseSettings](cls: type[T]) -> T:
     """Lê a configuração do ambiente, com o nome da variável que faltar no erro."""
     try:
         settings = cls()
@@ -108,7 +131,8 @@ def _read[T: ModelSettings](cls: type[T]) -> T:
         raise _missing(
             *(str(issue["loc"][0]).upper() for issue in error.errors() if issue["loc"])
         ) from error
-    settings.check_model()
+    if isinstance(settings, ModelSettings):
+        settings.check_model()
     return settings
 
 

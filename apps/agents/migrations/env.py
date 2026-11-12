@@ -9,6 +9,7 @@ from alembic import context
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 
+import app.business.audit  # noqa: F401  (registra a business_queries nos metadados)
 from app.registry.store import REGISTRY_METADATA, include_registry_object
 
 config = context.config

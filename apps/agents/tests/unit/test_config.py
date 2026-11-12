@@ -2,7 +2,12 @@
 
 import pytest
 
-from app.config import ConfigError, load_model_settings, load_settings
+from app.config import (
+    ConfigError,
+    load_business_load_settings,
+    load_model_settings,
+    load_settings,
+)
 
 REQUIRED = {
     "DATABASE_URL": "postgresql+asyncpg://agents:agents@postgres:5432/agents",
@@ -11,6 +16,7 @@ REQUIRED = {
     "CHAT_API_URL": "http://chat-api:3000",
     "CHAT_BOT_TOKEN": "segredo-do-bot",
     "REDIS_URL": "redis://redis:6379/0",
+    "BUSINESS_DATABASE_URL": "postgresql+asyncpg://business_readonly:x@postgres:5432/business",
 }
 OPTIONAL = [
     "ADK_DEV_ROUTES",
@@ -19,6 +25,9 @@ OPTIONAL = [
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "AGENT_REQUESTS_PER_MINUTE",
+    "BUSINESS_TIME_ZONE",
+    "BUSINESS_QUERY_TIMEOUT_MS",
+    "BUSINESS_OWNER_DATABASE_URL",
 ]
 
 
@@ -114,3 +123,29 @@ def test_aceita_a_chave_do_provedor_escolhido(
     env.setenv(key, "sk-teste")
 
     assert load_settings().agent_model == agent_model
+
+
+def test_os_padroes_do_banco_de_negocio(env: pytest.MonkeyPatch) -> None:
+    settings = load_settings()
+
+    assert settings.business_database_url == REQUIRED["BUSINESS_DATABASE_URL"]
+    assert settings.business_time_zone == "America/Sao_Paulo"
+    assert settings.business_query_timeout_ms == 3000
+
+
+def test_a_carga_exige_a_url_do_dono(env: pytest.MonkeyPatch) -> None:
+    with pytest.raises(ConfigError, match="BUSINESS_OWNER_DATABASE_URL"):
+        load_business_load_settings()
+
+
+def test_a_carga_le_a_url_do_dono(env: pytest.MonkeyPatch) -> None:
+    env.setenv(
+        "BUSINESS_OWNER_DATABASE_URL",
+        "postgresql+asyncpg://business:x@postgres/business",
+    )
+
+    settings = load_business_load_settings()
+
+    assert settings.business_owner_database_url.startswith(
+        "postgresql+asyncpg://business:"
+    )

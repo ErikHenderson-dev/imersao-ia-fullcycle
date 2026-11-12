@@ -21,10 +21,12 @@ from __future__ import annotations
 
 import functools
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from google.adk.tools import BaseTool, ToolContext
 
@@ -32,7 +34,9 @@ from app.agent_requests.delegation_question import ask_delegation
 from app.agent_requests.question import question_asked, recorte_options
 from app.agent_requests.reading import read_recorte
 from app.agent_requests.task import TASK_TITLE_MAX_LENGTH, delegate
-from app.chat_api import ChatApiError
+from app.business.db import CURRENT_BUSINESS, BusinessStore, business_engine
+from app.chat_api import CURRENT_CHAT_API, ChatApiError
+from app.config import DEFAULT_BUSINESS_QUERY_TIMEOUT_MS, DEFAULT_BUSINESS_TIME_ZONE
 
 FIXTURE_KEY = "eval_fixture"
 # Os @usuário que a API do chat recusaria como Responsável por não serem Membros (F12-T06).
@@ -42,6 +46,10 @@ BOTS_KEY = "eval_bots"
 # O Responsável que o caso espera: outro faz a ação `task` ser recusada, e o caso reprova (F12-T06).
 EXPECTED_ASSIGNEE_KEY = "eval_expected_assignee"
 TOOLS = ("ler_mensagens", "perguntar_recorte", "delegar_tarefa", "perguntar_delegacao")
+# As ferramentas da consulta (F13-T07): rodam de verdade, contra o Banco de negócio com os dados fixos.
+BUSINESS_TOOLS = ("consultar_dados", "perguntar_periodo")
+# A última resposta ou pergunta que a API do chat da avaliação recebeu, no estado do caso.
+EVAL_ANSWER_KEY = "eval_resposta"
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
 # O teto da rota de leitura do bot ("Teto de Mensagens do resumo").
@@ -117,6 +125,12 @@ async def fixture_tool_callback(
 ) -> dict[str, Any] | None:
     """Responde à ferramenta com a fixture do caso; fora da avaliação, deixa a ferramenta rodar."""
     name = tool_context.state.get(FIXTURE_KEY)
+    if name and tool.name in BUSINESS_TOOLS:
+        # A ferramenta de produção roda (o callback devolve None): só a API do chat e a auditoria
+        # são as da avaliação, e o Banco de negócio é o real, só leitura (F13-T07).
+        CURRENT_CHAT_API.set(EvalChatApi(tool_context.state))  # type: ignore[arg-type]
+        CURRENT_BUSINESS.set(eval_business_store())
+        return None
     if not name or tool.name not in TOOLS:
         return None
     if tool.name == "delegar_tarefa":
@@ -148,14 +162,29 @@ class EvalChatApi:
     (`eval_non_members`) e pelo limite do título."""
 
     def __init__(self, state: Any) -> None:
+        self._state = state
         self._non_members = set(state.get(NON_MEMBERS_KEY) or [])
         self._bots = set(state.get(BOTS_KEY) or ["assistente"])
         self._expected = state.get(EXPECTED_ASSIGNEE_KEY)
 
     async def question(
-        self, request_id: str, body: str, quick_replies: list[str]
+        self,
+        request_id: str,
+        body: str,
+        quick_replies: list[str],
+        *,
+        business_data: bool = False,
     ) -> None:
-        return None
+        self._state[EVAL_ANSWER_KEY] = {"pergunta": body, "opcoes": quick_replies}
+
+    async def reply(
+        self, request_id: str, body: str, *, business_data: bool = False
+    ) -> None:
+        """A resposta da consulta, guardada no estado do caso em vez de gravada."""
+        self._state[EVAL_ANSWER_KEY] = {
+            "resposta": body,
+            "business_data": business_data,
+        }
 
     async def task(self, request_id: str, assignee_username: str, title: str) -> None:
         if assignee_username in self._bots:
@@ -167,3 +196,26 @@ class EvalChatApi:
         # A ação apara o título e conta os caracteres (code points), como o `len` do Python.
         if not title.strip() or len(title.strip()) > TASK_TITLE_MAX_LENGTH:
             raise ChatApiError("recusada", 400, "validation_failed")
+
+
+class EvalBusinessStore(BusinessStore):
+    """O Banco de negócio real, só leitura, sem a auditoria: o `adk eval` não tem o Banco dos
+    agentes."""
+
+    async def record(self, **fields: Any) -> None:
+        return None
+
+
+@functools.cache
+def eval_business_store() -> EvalBusinessStore:
+    """O Banco de negócio de `BUSINESS_DATABASE_URL`, carregado com os dados fixos, uma vez por
+    execução da avaliação."""
+    url = os.environ.get("BUSINESS_DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "BUSINESS_DATABASE_URL é obrigatória na avaliação da consulta"
+        )
+    engine = business_engine(url, DEFAULT_BUSINESS_QUERY_TIMEOUT_MS)
+    return EvalBusinessStore(
+        business=engine, agents=engine, time_zone=ZoneInfo(DEFAULT_BUSINESS_TIME_ZONE)
+    )

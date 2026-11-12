@@ -76,7 +76,8 @@ export type AgentRequestPayload = {
   agent: string;
   conversationId: string;
   message: { id: string; body: string };
-  requester: { id: string; name: string; username: string };
+  // Quem pediu, com a Permissão de dados lida da Pessoa da Sessão (spec da F13).
+  requester: { id: string; name: string; username: string; dataAccess: boolean };
   mentions: { username: string; name: string }[];
   timeZone: string;
   // A Mensagem citada pelo Pedido, ou nula (spec da F12, "Rota de Pedido e execução").
@@ -89,6 +90,7 @@ export type StartAgentRequestResult = { kind: "accepted" } | { kind: "failure"; 
 // Entrega o Pedido e espera só o aceite (spec da F11, "Disparo pelo BFF"): o Agente responde na
 // Conversa pela API do chat, depois.
 export async function startAgentRequest(payload: AgentRequestPayload): Promise<StartAgentRequestResult> {
+  const { dataAccess, ...requester } = payload.requester;
   const response = await request("/v1/requests", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -99,7 +101,7 @@ export async function startAgentRequest(payload: AgentRequestPayload): Promise<S
       agent: payload.agent,
       conversation_id: payload.conversationId,
       message: payload.message,
-      requester: payload.requester,
+      requester: { ...requester, data_access: dataAccess },
       mentions: payload.mentions,
       time_zone: payload.timeZone,
       quote: payload.quote,

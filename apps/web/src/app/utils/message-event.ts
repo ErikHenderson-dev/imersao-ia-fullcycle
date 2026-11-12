@@ -31,5 +31,8 @@ export function messageFromEvent(payload: MessagePayload): Message {
           closed: payload.quick_replies.closed,
         }
       : null,
+    // O evento guardado antes da F13 não traz a marca.
+    businessData: payload.business_data ?? false,
+    blocked: payload.blocked ?? false,
   };
 }

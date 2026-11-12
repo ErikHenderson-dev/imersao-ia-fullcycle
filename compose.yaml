@@ -116,6 +116,12 @@ services:
       # Banco dos testes de integração, recriado a cada execução pelo superusuário local.
       TEST_DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents_test
       TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      # Banco de negócio (spec da F13, "Ambiente de desenvolvimento"): a consulta usa o usuário só
+      # leitura (ADR 0013); só o script de carga usa o dono; os testes de integração, o business_test,
+      # criado pelo próprio teste como o agents_test.
+      BUSINESS_DATABASE_URL: postgresql+asyncpg://business_readonly:business_readonly@postgres:5432/business
+      BUSINESS_OWNER_DATABASE_URL: postgresql+asyncpg://business:business@postgres:5432/business
+      BUSINESS_TEST_DATABASE_URL: postgresql+asyncpg://business_readonly:business_readonly@postgres:5432/business_test
       # Modelo dos Agentes (spec da F11, "Modelo de IA"). Este environment vence o env_file: para
       # trocar, AGENT_MODEL=openai/<modelo> docker compose -f compose.yaml up -d agents.
       AGENT_MODEL: ${AGENT_MODEL:-gemini-3.6-flash}

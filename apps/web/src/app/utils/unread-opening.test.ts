@@ -16,6 +16,8 @@ function message(n: number, authorId = "outra"): Message {
     mentions: [],
     quote: null,
     quickReplies: null,
+    businessData: false,
+    blocked: false,
   };
 }
 

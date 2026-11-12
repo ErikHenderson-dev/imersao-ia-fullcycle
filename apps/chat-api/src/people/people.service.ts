@@ -132,6 +132,7 @@ export class PeopleService {
       | 'presenceChoice'
       | 'theme'
       | 'isAdmin'
+      | 'dataAccess'
     >,
   ): Promise<Person | null> {
     const person = this.people.create({ ...values, id: randomUUIDv7() });
@@ -147,6 +148,7 @@ export class PeopleService {
         'presence_choice',
         'theme',
         'is_admin',
+        'data_access',
       ])
       .execute();
     const [row] = inserted.raw as {
@@ -156,6 +158,7 @@ export class PeopleService {
       presence_choice: Presence;
       theme: Theme;
       is_admin: boolean;
+      data_access: boolean;
     }[];
     if (!row) return null;
     return this.people.merge(person, {
@@ -165,6 +168,7 @@ export class PeopleService {
       presenceChoice: row.presence_choice,
       theme: row.theme,
       isAdmin: row.is_admin,
+      dataAccess: row.data_access,
     });
   }
 
@@ -317,14 +321,40 @@ export class PeopleService {
 
   // Dá ou tira o papel de administrador (spec da F10, "Comando de contas"). Devolve se mudou: o
   // valor que já estava não grava nada.
-  async setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
+  setAdmin(personId: string, isAdmin: boolean): Promise<boolean> {
+    return this.setFlag(personId, 'isAdmin', isAdmin);
+  }
+
+  // Liga ou desliga a Permissão de dados (spec da F13, "Permissão de dados"), com a mesma regra.
+  setDataAccess(personId: string, dataAccess: boolean): Promise<boolean> {
+    return this.setFlag(personId, 'dataAccess', dataAccess);
+  }
+
+  private async setFlag(
+    personId: string,
+    flag: 'isAdmin' | 'dataAccess',
+    value: boolean,
+  ): Promise<boolean> {
+    const column = flag === 'isAdmin' ? 'is_admin' : 'data_access';
     const result = await this.people
       .createQueryBuilder()
       .update()
-      .set({ isAdmin })
-      .where('id = :personId AND is_admin <> :isAdmin', { personId, isAdmin })
+      .set({ [flag]: value })
+      .where(`id = :personId AND ${column} <> :value`, { personId, value })
       .execute();
     return (result.affected ?? 0) > 0;
+  }
+
+  // Das Pessoas dadas, as que têm Permissão de dados agora, numa consulta só: a entrega de uma
+  // Mensagem com a marca lê a permissão de cada Membro no momento (spec da F13, "Conferência do
+  // bloqueio").
+  async filterWithDataAccess(personIds: string[]): Promise<Set<string>> {
+    if (personIds.length === 0) return new Set();
+    const people = await this.people.find({
+      select: { id: true },
+      where: { id: In(personIds), dataAccess: true },
+    });
+    return new Set(people.map((person) => person.id));
   }
 
   // O Perfil de qualquer Pessoa (spec da F05, "Busca e Perfil"); um id que não é UUID é uma Pessoa

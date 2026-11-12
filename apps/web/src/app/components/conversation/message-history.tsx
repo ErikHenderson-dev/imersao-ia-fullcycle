@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { useKnownPerson } from "@/app/components/people/people-provider";
+import { displayText } from "@/app/utils/business-data";
 import { composerLabel, conversationTitle } from "@/app/utils/conversation-title";
 import { toast } from "sonner";
 import { SWRConfig } from "swr";
@@ -600,7 +601,7 @@ function History({
         quoting={
           quoting && {
             authorName: knownQuotingAuthor?.name ?? quoting.author.name,
-            body: quoting.body,
+            body: displayText(quoting),
           }
         }
         onCancelQuote={() => setQuoting(null)}

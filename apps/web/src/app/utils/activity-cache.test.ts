@@ -17,6 +17,8 @@ function message(id: string, overrides: Partial<Message> = {}): Message {
     mentions: [],
     quote: null,
     quickReplies: null,
+    businessData: false,
+    blocked: false,
     ...overrides,
   };
 }

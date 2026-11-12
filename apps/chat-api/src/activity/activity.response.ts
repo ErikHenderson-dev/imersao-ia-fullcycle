@@ -3,6 +3,7 @@ import {
   toConversationResponse,
 } from '../conversations/conversation.response';
 import {
+  type MessageReader,
   type MessageResponse,
   toMessageResponse,
 } from '../messages/message.response';
@@ -41,7 +42,7 @@ export interface ActivityUnreadResponse {
 
 export function toActivityItemResponse(
   item: ActivityItem,
-  viewerId: string,
+  viewer: MessageReader & { id: string },
 ): ActivityItemResponse {
   if (item.kind === 'task') {
     return {
@@ -57,8 +58,8 @@ export function toActivityItemResponse(
   }
   return {
     kind: item.kind,
-    message: toMessageResponse(item.message),
-    conversation: toConversationResponse(item.conversation, viewerId),
+    message: toMessageResponse(item.message, viewer),
+    conversation: toConversationResponse(item.conversation, viewer.id),
   };
 }
 

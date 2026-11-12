@@ -14,6 +14,8 @@ function message(id: string): Message {
     mentions: [],
     quote: null,
     quickReplies: null,
+    businessData: false,
+    blocked: false,
   };
 }
 

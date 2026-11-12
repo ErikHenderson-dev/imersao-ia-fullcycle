@@ -16,6 +16,10 @@ import {
   WORKSPACE_ROOM,
 } from './realtime-socket';
 
+// A Mensagem de um evento: a mesma para todos os Membros, ou montada para cada um.
+export type MessageForMembers =
+  MessagePayload | ((personId: string) => MessagePayload);
+
 // Emite os eventos guardados por Pessoa para as abas dela (spec da F03, "Eventos por Pessoa e
 // reconexão"). Quem chama publica depois da gravação. Cada evento entra antes no stream de cada
 // Pessoa, e cada sala recebe o cursor da sua; com o Redis fora, o evento sai sem cursor, e a
@@ -29,8 +33,13 @@ export class RealtimePublisher {
     private readonly events: EventsStore,
   ) {}
 
-  messageCreated(memberIds: string[], message: MessagePayload): Promise<void> {
-    return this.publish('message.created', memberIds, { message });
+  // A Mensagem nova, a mesma para todos, ou montada para cada Membro quando depende de quem lê
+  // (spec da F13, "Marca e Resposta bloqueada", item "WebSocket").
+  messageCreated(
+    memberIds: string[],
+    message: MessageForMembers,
+  ): Promise<void> {
+    return this.publishMessage('message.created', memberIds, message);
   }
 
   // A Mensagem apagada, pelo id, para os Membros (spec da F06, "Tempo real").
@@ -42,8 +51,11 @@ export class RealtimePublisher {
   }
 
   // A Mensagem editada, inteira, para os Membros (spec da F06, "Tempo real").
-  messageUpdated(memberIds: string[], message: MessagePayload): Promise<void> {
-    return this.publish('message.updated', memberIds, { message });
+  messageUpdated(
+    memberIds: string[],
+    message: MessageForMembers,
+  ): Promise<void> {
+    return this.publishMessage('message.updated', memberIds, message);
   }
 
   // Pessoas que entraram numa Conversa: vai para todos os Membros dela depois da gravação (spec da
@@ -136,6 +148,20 @@ export class RealtimePublisher {
     } catch (error) {
       this.logger.error('Falha ao publicar o digitando do bot', error);
     }
+  }
+
+  private publishMessage(
+    name: 'message.created' | 'message.updated',
+    memberIds: string[],
+    message: MessageForMembers,
+  ): Promise<void> {
+    return this.publish(
+      name,
+      memberIds,
+      typeof message === 'function'
+        ? (personId) => ({ message: message(personId) })
+        : { message },
+    );
   }
 
   private async publish<N extends StoredEventName>(

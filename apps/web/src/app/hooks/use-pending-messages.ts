@@ -80,9 +80,14 @@ export function usePendingMessages(
                   username: quoted.author.username,
                 },
                 body: quoted.body,
+                // A citação da Resposta bloqueada segue bloqueada enquanto envia (spec da F13).
+                business_data: quoted.businessData,
+                blocked: quoted.blocked,
               }
             : null,
           quickReplies: null,
+          businessData: false,
+          blocked: false,
           status: "sending",
         },
       ]);

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   MessageResponse,
+  BOT_READER,
   toMessageResponse,
 } from '../messages/message.response';
 import { BotActionsService } from './bot-actions.service';
@@ -71,8 +72,12 @@ export class BotController {
     @Param('requestId') requestId: string,
     @Body() body: ReplyDto,
   ): Promise<{ message: MessageResponse }> {
-    const message = await this.actions.reply(requestId, body.body);
-    return { message: toMessageResponse(message) };
+    const message = await this.actions.reply(
+      requestId,
+      body.body,
+      body.business_data,
+    );
+    return { message: toMessageResponse(message, BOT_READER) };
   }
 
   @Post('question')
@@ -84,8 +89,9 @@ export class BotController {
       requestId,
       body.body,
       body.quick_replies,
+      body.business_data,
     );
-    return { message: toMessageResponse(message) };
+    return { message: toMessageResponse(message, BOT_READER) };
   }
 
   @Post('task')
@@ -98,6 +104,9 @@ export class BotController {
       body.assignee_username,
       body.title,
     );
-    return { task: toTaskResponse(task), message: toMessageResponse(message) };
+    return {
+      task: toTaskResponse(task),
+      message: toMessageResponse(message, BOT_READER),
+    };
   }
 }
