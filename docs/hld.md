@@ -1,6 +1,6 @@
 # HLD — Full Cycle Chat
 
-2026-11-11 · Luiz Carlos · Status: rascunho · LLD: A definir
+2026-11-12 · Luiz Carlos · Status: rascunho · LLD: A definir
 
 ## 1. Contexto e objetivos
 
@@ -236,17 +236,21 @@ o Serviço de agentes recebe o pedido, o BFF mostra o erro a quem pediu. Nunca h
 O Serviço de agentes confere a permissão de dados recebida do BFF
 ([ADR 0015](adr/0015-permissoes-enviadas-pelo-bff.md)). Sem permissão, o agente responde na
 conversa que a pessoa não tem acesso a dados de negócio, sem consultar o banco, e a tentativa é
-auditada com o desfecho "sem permissão". Com permissão, o agente monta a consulta, que passa pela
-conferência de somente leitura no código e roda com o usuário só leitura do Banco de negócio
-([ADR 0013](adr/0013-somente-leitura-banco-e-codigo.md)). Antes de gravar, o agente confere que
-cada número do texto aparece no resultado ([ADR 0014](adr/0014-lastro-antes-de-gravar.md)).
+auditada com o desfecho "sem permissão". Com permissão, o modelo só escolhe os parâmetros de uma
+ferramenta (uma métrica de um catálogo fixo, o período e um filtro por nome), e o código monta a
+consulta ([ADR 0030](adr/0030-catalogo-fixo-de-metricas.md)). Ela passa pela conferência de
+somente leitura no código e roda com o usuário só leitura do Banco de negócio
+([ADR 0013](adr/0013-somente-leitura-banco-e-codigo.md)). O código também escreve o texto da
+resposta e, antes de gravar, confere que cada número dele aparece no resultado
+([ADR 0014](adr/0014-lastro-antes-de-gravar.md)).
 
 O agente grava a resposta marcada como "dados de negócio". Na entrega, no histórico e no
 WebSocket, a API do chat manda o conteúdo só para quem tem permissão de dados; os outros membros
 veem a mensagem bloqueada. O link do PDF segue a mesma regra (6.5).
 
-O mecanismo que impede o conteúdo da conversa de influenciar a consulta e o lugar da auditoria
-estão a definir (seção 12).
+O conteúdo da conversa não chega à consulta: o modelo só escolhe valores dentro do catálogo, e o
+SQL nunca sai do texto do modelo (ADR 0030). A auditoria de cada consulta fica no Banco dos
+agentes, gravada pelo Serviço de agentes, sem o resultado; a retenção está a definir (seção 12).
 
 ### 6.5 Relatório em PDF em segundo plano
 
@@ -273,8 +277,8 @@ chat avisa quem delegou.
 | Onde | O que guarda |
 | --- | --- |
 | Banco do chat (Postgres) | Pessoas, com perfil, papel de administrador e permissão de dados; sessões; canais e membros; conversas diretas; mensagens, com autor pessoa ou bot, citação e a marca "dados de negócio"; menções; última leitura por pessoa e conversa (de onde saem as não lidas, as menções por conversa e as notificações); a marca de Atividade lida por pessoa; tarefas; pedidos aos agentes, com o identificador; perguntas pendentes; referência ao PDF de uma mensagem |
-| Banco dos agentes (Postgres, mesma instância) | Registro de agentes conectados; sessões do ADK |
-| Banco de negócio (Postgres, mesma instância) | Dados de vendas (pedidos, clientes, vendedores), carregados por script; o sistema só lê |
+| Banco dos agentes (Postgres, mesma instância) | Registro de agentes conectados; sessões do ADK; auditoria das consultas ao Banco de negócio |
+| Banco de negócio (Postgres, mesma instância) | Dados de vendas (pedidos, clientes, vendedores, produtos), carregados por script; o sistema só lê |
 | Redis | Fila de pedidos demorados; eventos recentes por pessoa para a reconexão; contadores do limite de pedidos. O teto de custo é por pedido, dentro do Serviço de agentes (LLD, "Valores e configuração") |
 | Armazenamento de objetos | PDFs gerados |
 
@@ -351,7 +355,8 @@ configuração (seção 2).
 ### Idioma e fuso
 
 Interface e respostas em português do Brasil. O "hoje" de um resumo segue o fuso de quem pediu, que
-o BFF envia junto com a identidade (6.3).
+o BFF envia junto com a identidade (6.3). Os períodos de uma consulta a dados de negócio seguem o
+fuso da empresa, uma configuração, para que a mesma pergunta dê o mesmo número a qualquer pessoa.
 
 ### Acessibilidade
 
@@ -406,13 +411,14 @@ implantação, está a definir.
 | [0014](adr/0014-lastro-antes-de-gravar.md) | Lastro de cada número conferido antes de gravar | aceita |
 | [0015](adr/0015-permissoes-enviadas-pelo-bff.md) | O BFF envia identidade e permissões no pedido ao agente | aceita |
 | [0016](adr/0016-sessao-na-api-do-chat.md) | A API do chat é dona da sessão | aceita |
+| [0030](adr/0030-catalogo-fixo-de-metricas.md) | Consulta a dados de negócio por um catálogo fixo de métricas, com o SQL montado pelo código | aceita |
 
 ## 11. Riscos e dívida técnica
 
 | Risco ou dívida | Impacto | Mitigação ou plano |
 | --- | --- | --- |
-| Isolamento entre a conversa e a consulta não definido | Um texto plantado na conversa pode desviar a consulta para outros dados de negócio; o objetivo d fica sustentado só pelo somente leitura | Decidir o mecanismo (seção 12) |
-| Auditoria das consultas sem lugar definido | Consultas sem registro enquanto não houver decisão; o objetivo f fica sem rastreio posterior | Decidir onde fica e por quanto tempo (seção 12) |
+| Catálogo fixo de métricas | Pergunta fora do catálogo (lista, série, outra métrica) recebe recusa; cada métrica nova é código e avaliação | Medir as recusas pela auditoria e ampliar o catálogo pelo roadmap (ADR 0030) |
+| Auditoria das consultas sem retenção definida | Os registros crescem sem limite e guardam perguntas de pessoas | Decidir por quanto tempo (seção 12) |
 | Três bancos na mesma instância de Postgres | Consulta pesada de negócio disputa recursos com o chat; erro de permissão expõe o chat ao agente | Usuário só leitura com acesso apenas ao Banco de negócio; limite de tempo de consulta no LLD |
 | Sem staging | A primeira execução na PaaS já é em produção | Pipeline com testes e volta automática da PaaS |
 | Avaliação do agente fora do processo | Troca de modelo ou de prompt sem conferência pode piorar a qualidade | Decidir quando ela roda (seção 12) |
@@ -428,9 +434,7 @@ implantação, está a definir.
 - [ ] Hipóteses de dimensionamento (contas, pessoas conectadas no pico, mensagens por dia, pedidos
       aos agentes e PDFs por dia, tamanho do banco de negócio), o número de instâncias de cada
       contêiner e o que faria o desenho ser revisto (seções 3 e 9).
-- [ ] Mecanismo que impede o conteúdo da conversa de influenciar a consulta ao banco (6.4). Trava
-      o objetivo d.
-- [ ] Onde fica a auditoria das consultas e por quanto tempo (6.4). Trava o objetivo f.
+- [ ] Por quanto tempo a auditoria das consultas fica no Banco dos agentes (6.4).
 - [ ] Retenção dos PDFs no armazenamento (seção 7).
 - [ ] O que a LGPD impõe ao desenho: onde os dados ficam, retenção, direito de apagar (seção 8).
 - [ ] Alertas: quem é avisado e de quê (seção 8).
