@@ -728,7 +728,11 @@ período anterior, o Aviso de início e só depois o job na fila; se enfileirar 
 a trava solta e a auditoria `error`. O período anterior é calculado em código (seção "Período
 anterior" da mesma spec): o mês, o trimestre e o ano inteiros contra os anteriores inteiros, em
 andamento contra o mesmo trecho do anterior, e o resto contra os mesmos dias antes, com o fim cortado
-em hoje. O filtro por nome do Relatório é `planejado` (F14-T05).
+em hoje, e um início depois de hoje volta ao modelo como erro. O filtro por nome do Relatório usa a
+mesma busca e as mesmas saídas da consulta (`not_found`, `ambiguous_name`, `too_generic`, com a
+marca), e cada saída solta a trava antes de gravar; com um achado, o job leva o filtro pelo id. Até
+o Aviso de início, qualquer falha solta a trava; a segunda chamada da ferramenta no mesmo Pedido
+encontra a trava dele e não recusa o próprio Relatório.
 
 ## 7. Processos de segundo plano
 
