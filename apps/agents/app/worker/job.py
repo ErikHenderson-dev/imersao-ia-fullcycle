@@ -57,10 +57,13 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
     compiled = [compiled_sql(query) for query in queries]
     # Os dois SQLs compilados, separados por uma linha em branco (spec da F14, "Auditoria").
     sql = "\n\n".join(compiled)
-    current, previous = [
-        values_of(await _run(deps.business, query, text), catalog_filter)
-        for query, text in zip(queries, compiled, strict=True)
-    ]
+    rows = await asyncio.gather(
+        *(
+            _run(deps.business, query, text)
+            for query, text in zip(queries, compiled, strict=True)
+        )
+    )
+    current, previous = [values_of(row, catalog_filter) for row in rows]
     content = ReportContent(
         period=job.period,
         previous_period=job.previous_period,

@@ -21,7 +21,7 @@ from fpdf import FPDF
 from pypdf import PdfReader
 
 from app.business.answer import WORDING, period_label
-from app.business.catalog import Period
+from app.business.catalog import ACTIVE_DAYS, Period
 from app.business.lastro import date_numbers, numbers_in
 from app.worker.metrics import REPORT_METRICS, MetricRow
 
@@ -39,12 +39,16 @@ COLUMNS = (175, 110, 120, 110)
 ROW_HEIGHT = 22
 HEADERS = ("Métrica", "Período", "Período anterior", "Variação")
 
-# O que cada Métrica considera: a linha do que foi considerado da F13, sem números, para nenhum
-# número sem lastro entrar no PDF.
+# O que cada Métrica considera: a linha do que foi considerado da F13; a dos Clientes ativos diz a
+# janela do catálogo, cujo número entra no lastro.
 DEFINITIONS = {
     **{metric: WORDING[metric].considered for metric, _ in REPORT_METRICS},
-    "clientes_ativos": "clientes distintos com pedido pago nos três meses até o fim do período",
+    "clientes_ativos": (
+        f"clientes distintos com pedido pago nos {ACTIVE_DAYS} dias até o fim do período"
+    ),
 }
+# O menor corpo de uma célula: um texto mais largo que a coluna diminui até caber.
+MIN_CELL_SIZE = 8
 
 
 @dataclass(frozen=True)
@@ -135,11 +139,19 @@ def _table_row(pdf: FPDF, cells: Iterable[str], *, header: bool) -> None:
     pdf.set_text_color(*FG)
     pdf.set_fill_color(*SURFACE_INSET)
     pdf.set_draw_color(*BORDER_SUBTLE)
+    style = "B" if header else ""
     for index, (text, width) in enumerate(zip(cells, COLUMNS, strict=True)):
+        cell = f" {text} "
+        size = 13.0
+        pdf.set_font("Lato", style, size)
+        # "sem variação percentual" não cabe na coluna no corpo 13: diminui até caber.
+        while pdf.get_string_width(cell) > width and size > MIN_CELL_SIZE:
+            size -= 0.5
+            pdf.set_font("Lato", style, size)
         pdf.cell(
             width,
             ROW_HEIGHT,
-            f" {text} ",
+            cell,
             border="B",
             fill=header,
             align="L" if index == 0 else "R",
@@ -166,6 +178,7 @@ def allowed_numbers(
     variações, o dia, o mês e o ano das datas dos dois períodos e da geração, a hora e o minuto da
     geração, os números do nome do fuso e os da paginação. O nome do filtro vem do cadastro."""
     allowed = {number for row in content.rows for number in row.numbers}
+    allowed.add(Decimal(ACTIVE_DAYS))
     periods = (content.period, content.previous_period)
     generated = content.generated_at
     allowed |= date_numbers(

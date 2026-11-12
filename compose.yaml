@@ -193,6 +193,9 @@ services:
       S3_SECRET_ACCESS_KEY: fullcycle-secret
       S3_CREATE_BUCKET: "true"
     depends_on:
+      # O .venv é o do agents: o worker sobe depois dele.
+      agents:
+        condition: service_started
       postgres:
         condition: service_healthy
       redis:

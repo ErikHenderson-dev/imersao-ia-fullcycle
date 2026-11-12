@@ -52,7 +52,13 @@ class ReportStorage:
         def ensure() -> None:
             try:
                 self._client.head_bucket(Bucket=self._bucket)
-            except ClientError:
+            except ClientError as error:
+                # Só o bucket que não existe é criado; credencial errada ou outra recusa sobe.
+                if error.response.get("Error", {}).get("Code") not in (
+                    "404",
+                    "NoSuchBucket",
+                ):
+                    raise
                 self._client.create_bucket(Bucket=self._bucket)
 
         await asyncio.to_thread(ensure)
