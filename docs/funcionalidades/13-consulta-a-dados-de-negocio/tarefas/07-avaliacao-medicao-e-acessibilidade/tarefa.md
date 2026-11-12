@@ -1,6 +1,6 @@
 # 07: Avaliação, medição e acessibilidade da consulta
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem mantém o Agente consegue trocar instruções ou modelo sabendo que a
 consulta continua certa: a avaliação completa cobre a consulta, com o número conferido contra o
