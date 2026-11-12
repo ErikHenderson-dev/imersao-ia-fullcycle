@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { MentionChip } from "@/app/components/message/mention-chip";
 import type { Mention } from "@/app/services/chat-api";
 import { parseAgentText, type AgentSpan } from "@/app/utils/agent-text";
@@ -66,12 +67,13 @@ function Spans({
         segment.text
       ) : null,
     );
+    // O texto comum vai sem invólucro, como antes das Menções: o bloco segura o estilo dele.
     return span.bold ? (
       <strong key={index} className="font-bold">
         {content}
       </strong>
     ) : (
-      <span key={index}>{content}</span>
+      <Fragment key={index}>{content}</Fragment>
     );
   });
 }
