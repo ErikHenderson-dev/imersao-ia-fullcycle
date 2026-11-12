@@ -139,8 +139,7 @@ async def consult(
     }
 
     async def record(outcome: audit.Outcome, sql: str | None) -> None:
-        await audit.record(
-            store.agents,
+        await store.record(
             request_id=request_id,
             requester_id=state[context.REQUESTER_ID],
             conversation_id=state[context.CONVERSATION_ID],

@@ -10,11 +10,13 @@ from __future__ import annotations
 
 from contextvars import ContextVar
 from dataclasses import dataclass
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Row, Select
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from app.business import audit
 from app.config import Settings
 
 
@@ -24,6 +26,10 @@ class BusinessStore:
     # O Banco dos agentes, onde mora a auditoria.
     agents: AsyncEngine
     time_zone: ZoneInfo
+
+    async def record(self, **fields: Any) -> None:
+        """Grava a linha de auditoria da consulta no Banco dos agentes (`audit.record`)."""
+        await audit.record(self.agents, **fields)
 
     async def fetch_one(self, statement: Select) -> Row:
         async with self.business.connect() as connection:

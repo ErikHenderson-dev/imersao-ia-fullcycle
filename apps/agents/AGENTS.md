@@ -101,7 +101,13 @@ ferramentas (`ignore_args`), e o Responsável e o título são conferidos pelo
 `rubric_based_tool_use_quality_v1`, com rubricas `TOOL_USE_QUALITY` por caso. O
 `eval_expected_assignee` do caso também faz a API do chat da avaliação recusar outro Responsável
 (F12-T06). A avaliação
-completa do `assistente` são os dois evalsets, cada um com a sua configuração.
+completa do `assistente` são os três evalsets, cada um com a sua configuração.
+
+O terceiro, `dados.evalset.json`, com `test_config_dados.json`, cobre a consulta a Dados de negócio
+(F13-T07): `consultar_dados` e `perguntar_periodo` rodam de verdade, com o callback da avaliação
+pondo a API do chat da avaliação (que guarda a resposta no estado, em `eval_resposta`) e o Banco de
+negócio de `BUSINESS_DATABASE_URL`, sem auditoria; o Banco de negócio precisa estar carregado
+(`scripts.load_business`), e o "hoje" dos casos é 15/10/2026 (`business_today`).
 
 A avaliação chama o modelo e o juiz de verdade: ao iterar, rode só os casos que mudaram, com
 `<evalset>:<eval_id>,<eval_id>` no lugar do caminho do evalset.

@@ -610,23 +610,28 @@
           },
           "final_response": {
             "role": "model",
-            "parts": [
-              {
-                "text": "Por enquanto eu resumo esta Conversa e delego Tarefas. Peça, por exemplo, o resumo de hoje ou \"delega pra @fulano revisar o contrato\"."
-              }
-            ]
+            "parts": []
           },
           "intermediate_data": {
-            "tool_uses": [],
+            "tool_uses": [
+              {
+                "name": "consultar_dados",
+                "args": {
+                  "metrica": "faturamento",
+                  "inicio": "2026-10-01",
+                  "fim": "2026-10-31"
+                }
+              }
+            ],
             "intermediate_responses": []
           }
         }
       ],
       "rubrics": [
         {
-          "rubric_id": "recusa_curta",
+          "rubric_id": "consulta",
           "rubric_content": {
-            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente resume esta Conversa e delega Tarefas, sem resumir nem inventar Mensagens nem delegar."
+            "text_property": "O Agente consulta o faturamento de outubro pela ferramenta consultar_dados e não escreve texto depois dela, nem número de vendas."
           },
           "type": "FINAL_RESPONSE_QUALITY"
         }
@@ -639,7 +644,13 @@
           "time_zone": "America/Sao_Paulo",
           "requested_at": "2026-11-10T18:00:00.000Z",
           "request_id": "0198f000-0000-7000-8000-000000000010",
-          "mentions": []
+          "mentions": [],
+          "business_today": "2026-11-10",
+          "data_access": true,
+          "requester_id": "0198f000-0000-7000-8000-00000000a0a0",
+          "conversation_id": "0198f000-0000-7000-8000-00000000c0c0",
+          "question": "@assistente qual foi o faturamento de outubro?",
+          "kind": "new"
         }
       }
     },
@@ -660,7 +671,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "Por enquanto eu resumo esta Conversa e delego Tarefas. Peça, por exemplo, o resumo de hoje ou \"delega pra @fulano revisar o contrato\"."
+                "text": "Por enquanto eu resumo esta Conversa, delego Tarefas e respondo números de vendas. Peça, por exemplo, o resumo de hoje, \"delega pra @fulano revisar o contrato\" ou \"quanto faturamos em março?\". Dá para perguntar faturamento, pedidos, ticket médio, clientes ativos, clientes novos e itens vendidos de um período."
               }
             ]
           },
@@ -674,7 +685,7 @@
         {
           "rubric_id": "recusa_curta",
           "rubric_content": {
-            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente resume esta Conversa e delega Tarefas, sem resumir nem inventar Mensagens nem delegar."
+            "text_property": "A resposta é uma recusa curta, de uma ou duas frases, dizendo que por enquanto o Agente resume esta Conversa, delega Tarefas e responde números de vendas, sem resumir nem inventar Mensagens nem delegar."
           },
           "type": "FINAL_RESPONSE_QUALITY"
         }
