@@ -1,6 +1,6 @@
 # 01: Aviso de início e falha do Relatório na Conversa
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o bot consegue gravar na Conversa o Aviso de início de um Relatório e, depois
 dele, o "não consegui gerar o relatório". O aviso estende a validade do Pedido, para o resultado
