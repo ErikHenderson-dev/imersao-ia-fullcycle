@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
 import type { AgentRequest } from '../agent-requests/agent-request.entity';
 import type { BotActionType } from '../agent-requests/bot-action.entity';
+import { RequestClosedError } from '../agent-requests/request-closed.error';
 import { PendingQuestionsService } from '../agent-requests/pending-questions.service';
 import { BotsService } from '../bots/bots.service';
 import { MessagesService, toAuthor } from '../messages/messages.service';
@@ -154,7 +155,7 @@ export class BotActionsService {
           request.conversationId,
           assigneeUsername,
         );
-        await this.tasks.create({
+        const task = await this.tasks.create({
           requestId: request.id,
           conversationId: request.conversationId,
           triggerMessageId: request.triggerMessageId,
@@ -163,6 +164,7 @@ export class BotActionsService {
           title,
         });
         return {
+          task,
           message: await this.messages.insertBotMessage(
             request.botId,
             request.conversationId,
@@ -172,8 +174,9 @@ export class BotActionsService {
       },
     );
     if (written) this.announceAnswer(message);
-    const task = await this.tasks.findByRequest(requestId);
-    return { task: await this.tasks.view(task!), message };
+    const task =
+      written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
+    return { task: await this.tasks.view(task), message };
   }
 
   // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do
@@ -189,7 +192,8 @@ export class BotActionsService {
 
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
   // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
-  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo).
+  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Uma ação de outro
+  // tipo num Pedido já respondido recebe `request_closed`.
   @Transactional()
   private async once<T extends { message: MessageView }>(
     requestId: string,
@@ -206,6 +210,10 @@ export class BotActionsService {
         message: await this.messages.viewById(existingId),
         written: null,
       };
+    }
+    // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
+    if (await this.requests.hasAnswer(request.id)) {
+      throw new RequestClosedError();
     }
     const written = await write(request);
     await this.requests.recordAction(

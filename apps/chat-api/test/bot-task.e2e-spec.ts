@@ -259,4 +259,32 @@ describe('Ação task do bot', () => {
       expect.objectContaining({ assignee_id: ana.id, delegator_id: ana.id }),
     ]);
   });
+
+  it('responde 409 request_closed quando o Pedido já tem outra ação gravada', async () => {
+    const { bruno, channel, requestId } = await openRequest();
+    await botRoutes.reply(app, requestId, 'Resumo de hoje').expect(201);
+
+    const response = await botRoutes.task(app, requestId, {
+      assignee_username: bruno.username,
+      title: TITLE,
+    });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toMatchObject({ code: 'request_closed' });
+    expect(await botRoutes.taskRows(app, channel.id)).toEqual([]);
+  });
+
+  it('acha o Responsável com o @usuário em maiúsculas', async () => {
+    const { bruno, channel, requestId } = await openRequest();
+
+    const response = await botRoutes.task(app, requestId, {
+      assignee_username: bruno.username.toUpperCase(),
+      title: TITLE,
+    });
+
+    expect(response.status).toBe(201);
+    expect(await botRoutes.taskRows(app, channel.id)).toEqual([
+      expect.objectContaining({ assignee_id: bruno.id }),
+    ]);
+  });
 });

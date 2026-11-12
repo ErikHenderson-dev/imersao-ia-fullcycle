@@ -76,9 +76,9 @@ export class TasksService {
     return this.tasks.save(this.tasks.create(task));
   }
 
-  // A Tarefa que o Pedido criou, ou null.
-  findByRequest(requestId: string): Promise<Task | null> {
-    return this.tasks.findOneBy({ requestId });
+  // A Tarefa que o Pedido criou: quem chama sabe que a ação `task` dele foi gravada.
+  findByRequestOrFail(requestId: string): Promise<Task> {
+    return this.tasks.findOneByOrFail({ requestId });
   }
 
   // As Tarefas montadas para as rotas, na mesma ordem, com as Pessoas, a Conversa e se a Mensagem

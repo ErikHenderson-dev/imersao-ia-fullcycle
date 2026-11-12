@@ -280,7 +280,6 @@ export class ConversationsService {
     );
   }
 
-  // Ids das Pessoas que são Membros da Conversa: os destinatários dos eventos dela.
   // O Membro da Conversa com esse @usuário, com o nome, ou null: o Responsável da Tarefa (spec da
   // F12, "Ação `task`").
   async findMemberByUsername(
@@ -297,6 +296,7 @@ export class ConversationsService {
     return member ?? null;
   }
 
+  // Ids das Pessoas que são Membros da Conversa: os destinatários dos eventos dela.
   // Os Membros da Conversa com os @usuário dados, para as Menções (spec da F06, "Menções, ao
   // gravar"): uma consulta só, e nada sem @usuário.
   async findMembersByUsernames(

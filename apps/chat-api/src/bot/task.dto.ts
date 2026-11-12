@@ -7,10 +7,12 @@ import { TASK_TITLE_MAX_LENGTH } from '../tasks/task-values';
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
-// A delegação pelo bot: o @usuário do Responsável, sem a arroba, e o título da Tarefa (spec da F12,
-// "Ação `task`").
+// A delegação pelo bot: o @usuário do Responsável, sem a arroba e em minúsculas, como o @usuário é
+// guardado, e o título da Tarefa (spec da F12, "Ação `task`").
 export class TaskDto {
-  @Transform(trim)
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
   @IsString()
   @IsNotEmpty()
   @Matches(/^[^@]/, { message: 'assignee_username vem sem @' })

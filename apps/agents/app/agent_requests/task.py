@@ -16,11 +16,15 @@ from app.agent_requests import context
 from app.agent_requests.reading import username_of
 from app.chat_api import ChatApiClient, ChatApiError
 
-# O motivo de cada recusa do Responsável, para o modelo escrever a recusa curta.
-ASSIGNEE_REFUSALS = {
+# O motivo de cada recusa da ação, para o modelo escrever a recusa curta ou corrigir o título.
+REFUSALS = {
     "assignee_not_member": "Essa Pessoa não é Membro desta Conversa.",
     "assignee_is_bot": "Uma Tarefa não pode ser delegada a um Agente.",
+    "validation_failed": "O título precisa ter de 1 a 120 caracteres; escreva um mais curto.",
 }
+# Sem resposta ou com erro do servidor, a ação pode ter sido gravada: repetir é seguro, porque a
+# ação `task` é idempotente, e evita um "não consegui" ao lado de uma Tarefa já criada.
+ATTEMPTS = 2
 
 
 async def delegate(
@@ -30,14 +34,19 @@ async def delegate(
     motivo, sem marcar."""
     username = username_of(responsavel)
     if username is None:
-        return {"erro": ASSIGNEE_REFUSALS["assignee_not_member"]}
-    try:
-        await client.task(tool_context.state[context.REQUEST_ID], username, titulo)
-    except ChatApiError as error:
-        reason = ASSIGNEE_REFUSALS.get(error.code or "")
-        if reason is None:
-            raise
-        return {"erro": reason}
+        return {"erro": REFUSALS["assignee_not_member"]}
+    request_id = tool_context.state[context.REQUEST_ID]
+    for attempt in range(1, ATTEMPTS + 1):
+        try:
+            await client.task(request_id, username, titulo)
+            break
+        except ChatApiError as error:
+            reason = REFUSALS.get(error.code or "")
+            if reason is not None:
+                return {"erro": reason}
+            retriable = error.status is None or error.status >= 500
+            if not retriable or attempt == ATTEMPTS:
+                raise
     # A confirmação já está na Conversa, como a pergunta (`context.mark_answered`).
     context.mark_answered(tool_context, "task")
     return {"tarefa": titulo, "responsavel": username}
