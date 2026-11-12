@@ -1,6 +1,6 @@
 # 05: Comparação entre períodos e filtro por nome
 
-**Status:** em andamento
+**Status:** concluída
 
 **O que construir:** a Pessoa com Permissão de dados compara dois períodos ("faturamento de março
 contra fevereiro") e recebe os dois valores e a variação, e pergunta sobre um cliente, vendedor ou
@@ -18,16 +18,24 @@ pronta por nome completo; com mais, o pedido de um nome mais específico. Refer�
 
 **Bloqueada por:** 04
 
-- [ ] **CA1** · Com `comparar_inicio` e `comparar_fim`, o código consulta os dois períodos e
+- [x] **CA1** · Com `comparar_inicio` e `comparar_fim`, o código consulta os dois períodos e
   escreve os dois valores e a variação percentual com uma casa e sinal; com a base zero, diz que não
   há variação percentual. A comparação vale para todas as Métricas e com o mesmo filtro.
-- [ ] **CA2** · O nome é procurado por trecho, sem diferença de maiúsculas e acentos, na tabela do
+- [x] **CA2** · O nome é procurado por trecho, sem diferença de maiúsculas e acentos, na tabela do
   tipo pedido.
-- [ ] **CA3** · Nenhum achado grava "Não encontrei {tipo} {nome}." como `reply` com a marca
+- [x] **CA3** · Nenhum achado grava "Não encontrei {tipo} {nome}." como `reply` com a marca
   (`not_found`); dois a cinco gravam a Pergunta pendente de nome com a marca e uma Resposta pronta
   por nome completo (`ambiguous_name`); mais de cinco gravam o pedido de nome mais específico com a
   marca (`too_generic`).
 - [ ] **CA4** · A continuação com um dos nomes responde com a consulta filtrada.
 - [ ] **CA5** · Testes de unidade (variação, base zero, busca sem acento) e de integração (comparação
   e filtro contra números à mão, os três desfechos de nome e a continuação) cobrem CA1 a CA4.
-- [ ] **CA6** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
+- [x] **CA6** · O LLD é atualizado pela skill `lld` nas seções que esta tarefa toca.
+
+**Pendências:** CA4 e CA5 têm os testes sem o modelo verdes (a consulta filtrada pelo nome completo,
+a comparação e o filtro contra o SQL à mão e os três desfechos de nome, em
+`tests/integration/test_business_query.py`), mas o de integração da continuação com o modelo real
+(`tests/integration/test_request_business.py`, "a continuação com o nome completo responde a
+consulta filtrada") está escrito e não rodou: a chave do Gemini responde 402. A rota de pergunta da
+API do chat passou a aceitar até cinco Respostas prontas, o tamanho da pergunta de nome que a spec
+pede (LLD, "Interfaces").

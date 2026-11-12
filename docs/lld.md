@@ -47,9 +47,10 @@ apps/
       agent_requests/
                   rota de Pedido e execução do Pedido (spec da F11)   existe
       chat_api.py cliente da API do chat, com a credencial de bot     existe
-      business/   schema e carga do Banco de negócio; catálogo de     existe (a busca
-                  Métricas, consulta, lastro, conferência de          por nome,
-                  somente leitura e auditoria (spec da F13)           planejada)
+      business/   schema e carga do Banco de negócio; catálogo de     existe
+                  Métricas, busca por nome, consulta, lastro,
+                  conferência de somente leitura e auditoria
+                  (spec da F13)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 existe
@@ -420,7 +421,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `GET /v1/bot/requests/:id/message-counts` | existe | Contagem dos Recortes pelo bot, com a credencial de bot; aceita o mesmo `until` exclusivo da leitura, para as contagens serem as que a leitura devolveria: mesma seção |
 | API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção. Ganha `business_data`, que marca a resposta com Dados de negócio (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
-| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção. Ganha `business_data`, para a pergunta de nome repetido (spec da F13, seção "Marca e Resposta bloqueada") |
+| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção. Aceita até cinco Respostas prontas, o tamanho da pergunta de nome repetido (spec da F13, seção "O Agente `assistente`"). Ganha `business_data`, para a pergunta de nome repetido (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/task` | existe | Delegação pelo bot, com a credencial de bot e a ação idempotente: cria a Tarefa e a confirmação; recusa o Responsável que não é Membro da Conversa do Pedido (`assignee_not_member`) ou é um bot (`assignee_is_bot`): spec da F12, seção "Ação `task`" |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
@@ -669,8 +670,8 @@ continua `open` no banco, mas recusa as ações do bot.
 
 ### 6.6 Consulta a dados de negócio
 
-Situação: existe a consulta de uma Métrica num período (F13-T04); a comparação, o filtro por nome e
-a pergunta de período são das tarefas seguintes da F13.
+Situação: existem a consulta de uma Métrica num período (F13-T04), a comparação entre dois
+períodos e o filtro por nome (F13-T05); a pergunta de período é da F13-T06.
 
 A ferramenta `consultar_dados` segue esta ordem, e cada passo que recusa encerra o Pedido com uma
 `reply` e uma linha de auditoria ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md),
@@ -681,9 +682,18 @@ seções "O Agente `assistente`", "Catálogo e consulta" e "Auditoria"):
 2. parâmetros inválidos voltam ao modelo como erro, sem consulta e sem auditoria;
 3. o SQL do catálogo passa pela conferência de somente leitura e roda com o usuário só leitura e o
    `Tempo limite da consulta ao Banco de negócio`; a falha grava "Não consegui responder." sem a
-   marca (`error`);
-4. o texto sai do código e passa pelo lastro, que aceita só os números do resultado e o dia, o mês
-   e o ano das datas citadas; sem lastro, "Não consegui responder." (`lastro_blocked`);
+   marca (`error`). Antes dela, um filtro por nome é resolvido pela busca sem acentos nem
+   maiúsculas, com o nome igual vencendo os trechos: nenhum achado grava "não encontrei"
+   (`not_found`); de dois a cinco, a Pergunta pendente com uma Resposta pronta por nome completo
+   (`ambiguous_name`), e numa continuação, sem perguntar de novo, "não consegui identificar"; mais
+   de cinco, o pedido de um nome mais completo (`too_generic`), todos com a marca. O filtro vale
+   onde faz sentido nos dados: vendedor nas Métricas de pedidos, cliente em faturamento, pedidos,
+   ticket médio e itens vendidos, produto em pedidos e itens vendidos;
+4. o texto sai do código e passa pelo lastro, que aceita só os números do resultado (na comparação,
+   os dois valores e o módulo da variação), o dia, o mês e o ano das datas citadas e os números do
+   nome do fuso; sem lastro, "Não consegui responder." (`lastro_blocked`). A comparação consulta os
+   dois períodos com a mesma Métrica e o mesmo filtro, e a variação é `(atual − base) / base` com
+   uma casa e sinal; com a base zero, não há variação, e o texto diz isso;
 5. a auditoria é gravada antes da `reply` com a marca (`answered`); se a auditoria falha, o Pedido
    termina no "não consegui" geral.
 
