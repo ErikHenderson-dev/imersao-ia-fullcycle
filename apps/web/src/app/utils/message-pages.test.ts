@@ -23,6 +23,7 @@ function message(id: string): Message {
     quickReplies: null,
     businessData: false,
     blocked: false,
+    report: null,
   };
 }
 

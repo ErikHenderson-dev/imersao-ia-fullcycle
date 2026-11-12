@@ -26,6 +26,12 @@ export const envSchema = z.object({
   // Credencial do Worker de agentes, aceita só nas ações de entrega e de falha do Relatório (LLD,
   // "Segurança"; spec da F14, "Ações de bot do Relatório").
   CHAT_WORKER_TOKEN: z.string().trim().min(1),
+  // Armazenamento de objetos do PDF do Relatório (spec da F14, "Armazenamento"): a API só assina a
+  // URL de download, com o endereço público, que o navegador alcança.
+  S3_PUBLIC_ENDPOINT: z.url({ protocol: /^https?$/ }),
+  S3_BUCKET: z.string().trim().min(1),
+  S3_ACCESS_KEY_ID: z.string().trim().min(1),
+  S3_SECRET_ACCESS_KEY: z.string().trim().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

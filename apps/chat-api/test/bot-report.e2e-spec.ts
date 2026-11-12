@@ -6,6 +6,7 @@ import { PeopleService } from '../src/people/people.service';
 import { authRoutes } from './support/auth-routes';
 import {
   botRoutes,
+  REPORT_FILE_NAME,
   REPORT_NOTICE,
   TEST_BOT_TOKEN,
   TEST_WORKER_TOKEN,
@@ -20,6 +21,7 @@ type MessageBody = {
   business_data: boolean;
   blocked: boolean;
   mentions: { id: string; username: string }[];
+  report: { file_name: string; size_bytes: number } | null;
 };
 
 type ActivityBody = {
@@ -28,8 +30,8 @@ type ActivityBody = {
 
 const LONG_TTL_MS = 10 * 60 * 1000;
 
-// O Aviso de início e a falha do Relatório (spec da F14, "Ações de bot do Relatório"; F14-T01, CA1
-// a CA4).
+// O Aviso de início, a entrega e a falha do Relatório (spec da F14, "Ações de bot do Relatório";
+// F14-T01, CA1 a CA4; F14-T02, CA1 e CA2).
 describe('Ações de bot do Relatório', () => {
   let app: INestApplication;
   let server: App;
@@ -308,6 +310,174 @@ describe('Ações de bot do Relatório', () => {
 
       expect(response.status).toBe(401);
       expect(response.body).toMatchObject({ code: 'invalid_bot_token' });
+    });
+  });
+
+  describe('report-delivered', () => {
+    async function reportRows(messageId: string) {
+      return app
+        .get(DataSource)
+        .query<
+          { storage_key: string; file_name: string; size_bytes: number }[]
+        >(
+          'SELECT storage_key, file_name, size_bytes FROM message_reports WHERE message_id = $1',
+          [messageId],
+        );
+    }
+
+    it('report-delivered grava a entrega com a referência ao PDF e a Menção', async () => {
+      const { ana, requestId } = await started();
+
+      const response = await botRoutes.reportDelivered(app, requestId);
+
+      expect(response.status).toBe(201);
+      const { message } = response.body as { message: MessageBody };
+      expect(message).toMatchObject({
+        author: { kind: 'bot' },
+        body: `@${ana.person.username}, o relatório está pronto.`,
+        business_data: true,
+        mentions: [{ id: ana.person.id, username: ana.person.username }],
+        report: { file_name: REPORT_FILE_NAME, size_bytes: 48_213 },
+      });
+      expect(message).not.toHaveProperty('report.storage_key');
+      expect(await reportRows(message.id)).toEqual([
+        {
+          storage_key: `reports/${requestId}.pdf`,
+          file_name: REPORT_FILE_NAME,
+          size_bytes: 48_213,
+        },
+      ]);
+    });
+
+    it('report-delivered repetido devolve a mesma Mensagem', async () => {
+      const { requestId } = await started();
+      const first = (
+        (await botRoutes.reportDelivered(app, requestId).expect(201)).body as {
+          message: MessageBody;
+        }
+      ).message;
+
+      const response = await botRoutes.reportDelivered(app, requestId);
+
+      expect(response.status).toBe(201);
+      expect((response.body as { message: MessageBody }).message).toMatchObject(
+        {
+          id: first.id,
+          report: first.report,
+        },
+      );
+      expect(await reportRows(first.id)).toHaveLength(1);
+    });
+
+    it('report-delivered depois da falha responde 409 request_closed', async () => {
+      const { requestId } = await started();
+      await botRoutes.reportFailed(app, requestId).expect(201);
+
+      const response = await botRoutes.reportDelivered(app, requestId);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toMatchObject({ code: 'request_closed' });
+    });
+
+    it('report-delivered sem o aviso responde 409 report_not_started', async () => {
+      const { requestId } = await scene();
+
+      const response = await botRoutes.reportDelivered(app, requestId);
+
+      expect(response.status).toBe(409);
+      expect(response.body).toMatchObject({ code: 'report_not_started' });
+    });
+
+    it('report-delivered recusa o segredo de bot', async () => {
+      const { requestId } = await started();
+
+      const response = await botRoutes.reportDelivered(
+        app,
+        requestId,
+        undefined,
+        TEST_BOT_TOKEN,
+      );
+
+      expect(response.status).toBe(401);
+      expect(response.body).toMatchObject({ code: 'invalid_bot_token' });
+    });
+
+    it.each([
+      ['a chave fora de reports/', { storage_key: 'outros/x.pdf' }],
+      ['o nome sem .pdf', { file_name: 'relatorio.txt' }],
+      [
+        'o nome com mais de 200 caracteres',
+        { file_name: `${'a'.repeat(197)}.pdf` },
+      ],
+      ['o tamanho zero', { size_bytes: 0 }],
+      ['o tamanho fracionário', { size_bytes: 1.5 }],
+    ])('report-delivered recusa %s', async (_, change) => {
+      const { requestId } = await started();
+
+      const response = await botRoutes.reportDelivered(app, requestId, {
+        storage_key: `reports/${requestId}.pdf`,
+        file_name: REPORT_FILE_NAME,
+        size_bytes: 1000,
+        ...change,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({ code: 'validation_failed' });
+    });
+
+    it('o histórico traz report a quem tem permissão e nulo na versão bloqueada', async () => {
+      const { ana, bruno, channel, requestId } = await started();
+      const delivered = (
+        (await botRoutes.reportDelivered(app, requestId).expect(201)).body as {
+          message: MessageBody;
+        }
+      ).message;
+      const history = async (cookie: string) =>
+        (
+          (
+            await conversationRoutes
+              .listMessages(app, cookie, channel.id)
+              .expect(200)
+          ).body as { messages: MessageBody[] }
+        ).messages;
+      const toAna = await history(ana.cookie);
+
+      const toBruno = await history(bruno.cookie);
+
+      expect(toAna.find((m) => m.id === delivered.id)).toMatchObject({
+        blocked: false,
+        report: { file_name: REPORT_FILE_NAME, size_bytes: 48_213 },
+      });
+      expect(toBruno.find((m) => m.id === delivered.id)).toMatchObject({
+        blocked: true,
+        body: '',
+        report: null,
+      });
+      expect(toBruno.filter((m) => m.id !== delivered.id)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ report: null })]),
+      );
+      expect(JSON.stringify(toAna)).not.toContain('storage_key');
+    });
+
+    it('a Atividade traz a entrega com report', async () => {
+      const { ana, requestId } = await started();
+      const delivered = (
+        (await botRoutes.reportDelivered(app, requestId).expect(201)).body as {
+          message: MessageBody;
+        }
+      ).message;
+
+      const activity = await activityOf(ana.cookie);
+
+      expect(activity.items).toContainEqual(
+        expect.objectContaining({
+          kind: 'mention',
+          message: expect.objectContaining({
+            id: delivered.id,
+            report: { file_name: REPORT_FILE_NAME, size_bytes: 48_213 },
+          }) as unknown,
+        }),
+      );
     });
   });
 });

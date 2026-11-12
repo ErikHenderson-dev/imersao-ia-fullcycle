@@ -16,6 +16,7 @@ import type {
   BotReadFilter,
   BotReadPage,
   MessageView,
+  NewReport,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ActivityPublisher } from '../notifications/activity.publisher';
@@ -232,13 +233,41 @@ export class BotActionsService {
     return message;
   }
 
-  // Grava o "não consegui gerar o relatório", com a marca e a Menção a quem pediu, que recebe a
-  // Notificação de Menção (spec da F14, "Ações de bot do Relatório"). O corpo é montado aqui, e não
-  // por quem chama, para a Menção ser sempre a quem pediu.
+  // Grava a entrega do Relatório numa transação: a Mensagem com a marca, a referência ao PDF que o
+  // Worker gravou no armazenamento e a Menção a quem pediu (spec da F14, "Ações de bot do
+  // Relatório"). Repetida, devolve a entrega já gravada, sem segunda referência.
+  async reportDelivered(
+    requestId: string,
+    report: NewReport,
+  ): Promise<MessageView> {
+    return this.reportOutcome(
+      requestId,
+      'report_delivered',
+      (username) => `@${username}, o relatório está pronto.`,
+      report,
+    );
+  }
+
+  // Grava o "não consegui gerar o relatório" (spec da F14, "Ações de bot do Relatório").
   async reportFailed(requestId: string): Promise<MessageView> {
-    const { message, written } = await this.once(
+    return this.reportOutcome(
       requestId,
       'report_failed',
+      (username) => `@${username}, não consegui gerar o relatório.`,
+    );
+  }
+
+  // A entrega ou a falha: a Mensagem com a marca e a Menção a quem pediu, que recebe a Notificação de
+  // Menção. O corpo é montado aqui, e não por quem chama, para a Menção ser sempre a quem pediu.
+  private async reportOutcome(
+    requestId: string,
+    actionType: BotActionType,
+    bodyFor: (username: string) => string,
+    report: NewReport | null = null,
+  ): Promise<MessageView> {
+    const { message, written } = await this.once(
+      requestId,
+      actionType,
       async (request) => {
         const [{ username }] = await this.people.findByIds([
           request.requesterId,
@@ -247,8 +276,8 @@ export class BotActionsService {
           message: await this.messages.insertBotMessage(
             request.botId,
             request.conversationId,
-            `@${username}, não consegui gerar o relatório.`,
-            { businessData: true, withMentions: true },
+            bodyFor(username),
+            { businessData: true, withMentions: true, report },
           ),
         };
       },

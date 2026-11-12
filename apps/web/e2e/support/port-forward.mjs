@@ -1,5 +1,5 @@
 // Encaminhador de portas do contêiner e2e (LLD, "Ambiente de desenvolvimento"): liga
-// localhost:3000 à web e localhost:3001 à API do chat, para o navegador do teste abrir os dois por
+// localhost:3000 à web, localhost:3001 à API do chat e localhost:8333 ao S3, para o navegador do teste abrir os dois por
 // localhost, como o da máquina, e o cookie de sessão valer também no WebSocket. É o processo
 // principal do contêiner e o mantém de pé.
 import net from "node:net";
@@ -7,6 +7,8 @@ import net from "node:net";
 const ROUTES = [
   { port: 3000, host: "web", targetPort: 3000 },
   { port: 3001, host: "chat-api", targetPort: 3000 },
+  // A URL assinada do PDF do Relatório (F14), com o mesmo endereço do navegador da máquina.
+  { port: 8333, host: "s3", targetPort: 8333 },
 ];
 
 for (const route of ROUTES) {

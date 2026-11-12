@@ -19,6 +19,7 @@ function message(id: string, overrides: Partial<Message> = {}): Message {
     quickReplies: null,
     businessData: false,
     blocked: false,
+    report: null,
     ...overrides,
   };
 }

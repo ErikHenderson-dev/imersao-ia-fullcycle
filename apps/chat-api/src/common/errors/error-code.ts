@@ -21,6 +21,7 @@ export type ErrorCode =
   | 'request_closed'
   | 'request_expired'
   | 'report_not_started'
+  | 'data_access_required'
   | 'assignee_not_member'
   | 'assignee_is_bot'
   | 'task_not_found'
@@ -50,6 +51,7 @@ export const ERROR_STATUS: Record<ErrorCode, number> = {
   request_closed: 409,
   request_expired: 410,
   report_not_started: 409,
+  data_access_required: 403,
   assignee_not_member: 422,
   assignee_is_bot: 422,
   task_not_found: 404,

@@ -18,6 +18,7 @@ function message(n: number, authorId = "outra"): Message {
     quickReplies: null,
     businessData: false,
     blocked: false,
+    report: null,
   };
 }
 

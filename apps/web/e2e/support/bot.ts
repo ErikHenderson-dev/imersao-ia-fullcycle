@@ -97,3 +97,18 @@ export async function workerReportFailed(requestId: string): Promise<{ id: strin
   );
   return result!.message;
 }
+
+// A entrega do Relatório, gravada pelo Worker com a credencial dele (F14-T02), do PDF já gravado no
+// S3 na chave do Pedido. Devolve a Mensagem.
+export async function workerReportDelivered(
+  requestId: string,
+  report: { fileName: string; sizeBytes: number },
+): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(
+    requestId,
+    "report-delivered",
+    { storage_key: `reports/${requestId}.pdf`, file_name: report.fileName, size_bytes: report.sizeBytes },
+    process.env.CHAT_WORKER_TOKEN,
+  );
+  return result!.message;
+}

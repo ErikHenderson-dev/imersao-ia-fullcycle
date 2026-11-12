@@ -5,7 +5,12 @@ import {
   toMessageResponse,
 } from '../messages/message.response';
 import { BotActionsService } from './bot-actions.service';
-import { BotOrWorkerTokenGuard, BotTokenGuard } from './bot-token.guard';
+import {
+  BotOrWorkerTokenGuard,
+  BotTokenGuard,
+  WorkerTokenGuard,
+} from './bot-token.guard';
+import { ReportDeliveredDto } from './report-delivered.dto';
 import { EditMessageDto } from '../messages/edit-message.dto';
 
 // As ações de bot do Relatório, sob o Pedido, cada uma com a credencial que aceita (spec da F14,
@@ -22,6 +27,20 @@ export class BotReportsController {
     @Body() body: EditMessageDto,
   ): Promise<{ message: MessageResponse }> {
     const message = await this.actions.reportStarted(requestId, body.body);
+    return { message: toMessageResponse(message, BOT_READER) };
+  }
+
+  @Post('report-delivered')
+  @UseGuards(WorkerTokenGuard)
+  async reportDelivered(
+    @Param('requestId') requestId: string,
+    @Body() body: ReportDeliveredDto,
+  ): Promise<{ message: MessageResponse }> {
+    const message = await this.actions.reportDelivered(requestId, {
+      storageKey: body.storage_key,
+      fileName: body.file_name,
+      sizeBytes: body.size_bytes,
+    });
     return { message: toMessageResponse(message, BOT_READER) };
   }
 

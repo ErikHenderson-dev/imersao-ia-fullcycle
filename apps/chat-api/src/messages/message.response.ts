@@ -2,6 +2,7 @@ import type {
   MessageAuthorPayload,
   QuickRepliesPayload,
   QuotePayload,
+  ReportPayload,
 } from 'chat-events';
 import { MessageView, QuoteView } from './messages.service';
 
@@ -19,6 +20,8 @@ export interface MessageResponse {
   // A marca "dados de negócio" e a Resposta bloqueada (spec da F13, "Marca e Resposta bloqueada").
   business_data: boolean;
   blocked: boolean;
+  // O PDF da entrega do Relatório, nulo na versão bloqueada (spec da F14).
+  report: ReportPayload | null;
 }
 
 // Quem vai ler a Mensagem: a Permissão de dados dele decide o bloqueio (ADR 0020).
@@ -60,6 +63,13 @@ export function toMessageResponse(
           },
     business_data: message.businessData,
     blocked,
+    report:
+      blocked || !message.report
+        ? null
+        : {
+            file_name: message.report.fileName,
+            size_bytes: message.report.sizeBytes,
+          },
   };
 }
 

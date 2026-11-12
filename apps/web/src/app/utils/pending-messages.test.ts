@@ -16,6 +16,7 @@ function message(clientId: string, authorId = "p1"): Message {
     quickReplies: null,
     businessData: false,
     blocked: false,
+    report: null,
   };
 }
 

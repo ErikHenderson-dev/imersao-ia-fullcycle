@@ -6,6 +6,8 @@ import { AgentAvatar } from "@/app/components/agent/agent-avatar";
 import { AgentTag } from "@/app/components/agent/agent-tag";
 import { AgentText } from "@/app/components/agent/agent-text";
 import { OpenAgentsButton } from "@/app/components/agent/open-agents-button";
+import { ReportCard } from "@/app/components/agent/report-card";
+import { reportOf } from "@/app/utils/report-card";
 import { QuickReplies } from "@/app/components/agent/quick-replies";
 import { OpenProfileButton } from "@/app/components/profile/open-profile-button";
 import { PersonAvatar, PersonName } from "@/app/components/people/person-display";
@@ -98,6 +100,8 @@ export function MessageItem({
     }
     wasEditing.current = isEditing;
   }, [isEditing]);
+  // O PDF da entrega do Relatório, só para quem pode vê-lo (spec da F14, "Cliente (web)").
+  const report = reportOf(message);
   const failed = status === "failed" && (
     <SendFailure
       onRetry={onRetry}
@@ -127,6 +131,7 @@ export function MessageItem({
         // "Cliente (web)"), e as Respostas prontas da pergunta (spec da F11, "Cliente").
         <>
           <AgentText text={message.body} mentions={message.mentions} currentPersonId={currentPersonId} />
+          {report && <ReportCard messageId={message.id} report={report} />}
           {message.quickReplies && message.quickReplies.options.length > 0 && (
             <QuickReplies
               quickReplies={message.quickReplies}

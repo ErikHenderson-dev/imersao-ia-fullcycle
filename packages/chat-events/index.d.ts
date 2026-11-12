@@ -42,6 +42,18 @@ export interface MessagePayload {
    * `body` vem vazio e `quick_replies` nulo. Ausente no evento guardado antes da F13.
    */
   blocked?: boolean;
+  /**
+   * O PDF da entrega do Relatório, ou nulo (spec da F14, "Referência ao PDF e download"): nulo
+   * também na versão bloqueada. A chave no armazenamento nunca vem. Ausente no evento guardado
+   * antes da F14.
+   */
+  report?: ReportPayload | null;
+}
+
+/** O PDF da entrega do Relatório: o nome do arquivo e o tamanho em bytes. */
+export interface ReportPayload {
+  file_name: string;
+  size_bytes: number;
 }
 
 /** Os botões da pergunta do bot: os rótulos, quem pode responder, até quando e se já se encerrou. */

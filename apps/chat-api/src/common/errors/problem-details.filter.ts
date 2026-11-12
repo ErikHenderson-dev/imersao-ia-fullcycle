@@ -34,6 +34,7 @@ const DETAILS: Record<ErrorCode, string> = {
   request_closed: 'O Pedido já foi encerrado.',
   request_expired: 'O Pedido venceu.',
   report_not_started: 'O Relatório não foi iniciado.',
+  data_access_required: 'Você não tem permissão para ver dados de negócio.',
   assignee_not_member:
     'O Responsável precisa ser Membro da Conversa do Pedido.',
   assignee_is_bot: 'Uma Tarefa não pode ser delegada a um Agente.',

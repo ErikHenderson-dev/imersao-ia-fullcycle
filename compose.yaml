@@ -48,12 +48,19 @@ services:
       CHAT_BOT_TOKEN: dev-chat-bot-token
       # O apoio do Relatório da F14 age como o Worker na falha e na entrega (support/bot.ts).
       CHAT_WORKER_TOKEN: dev-chat-worker-token
+      # O PDF de exemplo da F14 é gravado no S3 (support/s3.ts); o navegador segue a URL assinada por
+      # localhost:8333, que o port-forward liga ao s3.
+      S3_ENDPOINT: http://s3:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
       PLAYWRIGHT_HTML_OPEN: never
       HOME: /tmp
     command: ["node", "e2e/support/port-forward.mjs"]
     depends_on:
       - web
       - chat-api
+      - s3
 
   chat-api:
     build:
@@ -78,6 +85,13 @@ services:
       # Credencial do Worker, aceita só na entrega e na falha do Relatório (spec da F14); segredo fixo,
       # só de desenvolvimento, igual ao do worker.
       CHAT_WORKER_TOKEN: dev-chat-worker-token
+      # Armazenamento do PDF do Relatório (spec da F14): a URL de download é assinada com o endereço
+      # que o navegador alcança; os testes da API baixam pelo endereço interno.
+      S3_ENDPOINT: http://s3:8333
+      S3_PUBLIC_ENDPOINT: http://localhost:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
     ports:
       - "3001:3000"
     depends_on:

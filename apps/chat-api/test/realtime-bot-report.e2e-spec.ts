@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import type { MessagePayload } from 'chat-events';
 import { PeopleService } from '../src/people/people.service';
 import { authRoutes } from './support/auth-routes';
-import { botRoutes } from './support/bot-routes';
+import { botRoutes, REPORT_FILE_NAME } from './support/bot-routes';
 import { conversationRoutes } from './support/conversation-routes';
 import {
   collectEvents,
@@ -14,8 +14,8 @@ import {
   waitForCount,
 } from './support/realtime-routes';
 
-// O Aviso de início e a falha do Relatório em tempo real e na reconexão (spec da F14, "Ações de bot
-// do Relatório"; F14-T01, CA2 e CA3).
+// O Aviso de início, a entrega e a falha do Relatório em tempo real e na reconexão (spec da F14,
+// "Ações de bot do Relatório"; F14-T01, CA2 e CA3; F14-T02, CA2).
 describe('Ações de bot do Relatório em tempo real', () => {
   let app: INestApplication;
   let url: string;
@@ -142,6 +142,61 @@ describe('Ações de bot do Relatório em tempo real', () => {
     expect(await createdWithId(replayed, failed.id)).toMatchObject({
       body: '',
       blocked: true,
+    });
+  });
+
+  it('a entrega chega com report a quem tem permissão e bloqueada a quem não tem', async () => {
+    const { ana, bruno, requestId } = await scene();
+    await botRoutes.reportStarted(app, requestId).expect(201);
+    await settle();
+    const anaSocket = await connected(ana.token);
+    const toAna = collectEvents(anaSocket, 'message.created');
+    const anaActivity = collectEvents(anaSocket, 'activity.unread');
+    const toBruno = collectEvents(
+      await connected(bruno.token),
+      'message.created',
+    );
+
+    const response = await botRoutes
+      .reportDelivered(app, requestId)
+      .expect(201);
+
+    const { id } = (response.body as { message: { id: string } }).message;
+    expect(await createdWithId(toAna, id)).toMatchObject({
+      blocked: false,
+      report: { file_name: REPORT_FILE_NAME, size_bytes: 48_213 },
+    });
+    expect(await createdWithId(toBruno, id)).toMatchObject({
+      body: '',
+      blocked: true,
+      report: null,
+    });
+    const [unread] = await waitForCount(anaActivity, 1);
+    expect(unread).toMatchObject({ mention_count: 1 });
+  });
+
+  it('a reconexão reenvia a entrega bloqueada', async () => {
+    const { bruno, requestId } = await scene();
+    await botRoutes.reportStarted(app, requestId).expect(201);
+    await settle();
+    const first = await connected(bruno.token);
+    const seen = collectEvents(first, 'sync');
+    await waitForCount(seen, 1);
+    const cursor = seen[0].cursor ?? undefined;
+    first.disconnect();
+    const delivered = (
+      (await botRoutes.reportDelivered(app, requestId).expect(201)).body as {
+        message: { id: string };
+      }
+    ).message;
+
+    await settle();
+    const again = await connected(bruno.token, cursor);
+
+    const replayed = collectEvents(again, 'message.created');
+    expect(await createdWithId(replayed, delivered.id)).toMatchObject({
+      blocked: true,
+      report: null,
     });
   });
 });

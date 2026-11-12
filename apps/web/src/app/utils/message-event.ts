@@ -34,5 +34,7 @@ export function messageFromEvent(payload: MessagePayload): Message {
     // O evento guardado antes da F13 não traz a marca.
     businessData: payload.business_data ?? false,
     blocked: payload.blocked ?? false,
+    // O evento guardado antes da F14 não traz `report`.
+    report: payload.report ? { fileName: payload.report.file_name, sizeBytes: payload.report.size_bytes } : null,
   };
 }

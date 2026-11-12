@@ -41,6 +41,10 @@ export function bearerTokenGuard(...keys: TokenKey[]): Type<CanActivate> {
 // A credencial de bot, do Serviço de agentes: a das rotas /v1/bot, que recusam a do Worker.
 export const BotTokenGuard = bearerTokenGuard('CHAT_BOT_TOKEN');
 
+// A entrega do Relatório aceita só a credencial do Worker (spec da F14, "Ações de bot do
+// Relatório").
+export const WorkerTokenGuard = bearerTokenGuard('CHAT_WORKER_TOKEN');
+
 // A falha do Relatório aceita a credencial de bot, quando enfileirar falha, e a do Worker (spec da
 // F14, "Ações de bot do Relatório").
 export const BotOrWorkerTokenGuard = bearerTokenGuard(
