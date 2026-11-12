@@ -17,7 +17,7 @@
 | Eventos do WebSocket | Tipos TypeScript em `packages/chat-events/` |
 | Schema do Banco do chat | `apps/chat-api/migrations/`, migrações do TypeORM |
 | Schema do Banco dos agentes | `apps/agents/migrations/`, migrações do Alembic; as tabelas de sessão são do ADK |
-| Schema do Banco de negócio | Script de carga em `apps/agents/scripts/` (planejado) |
+| Schema do Banco de negócio | Script de carga `apps/agents/scripts/load_business.py` (planejado: [spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md), seção "Banco de negócio e script de carga") |
 | Schema das variáveis de ambiente | O schema zod do módulo de configuração de cada projeto TypeScript (`apps/chat-api/src/config/env.schema.ts` e `apps/web/src/app/config/env.ts` existem); do projeto `agents`, `apps/agents/app/config.py` (existe) |
 | Práticas e comandos | `apps/*/AGENTS.md`, um por app, apontados pelo `AGENTS.md` da raiz |
 
@@ -47,6 +47,8 @@ apps/
       agent_requests/
                   rota de Pedido e execução do Pedido (spec da F11)   existe
       chat_api.py cliente da API do chat, com a credencial de bot     existe
+      business/   catálogo de Métricas, consulta, lastro, conferência planejada
+                  de somente leitura e auditoria (spec da F13)
     migrations/   migrações do Banco dos agentes (Alembic)            existe
     tests/        unit/, integration/ e eval/                         existe
     scripts/      script de carga do Banco de negócio                 planejada
@@ -84,7 +86,7 @@ docs/             HLD, LLD, ADRs, brief
 | Acesso ao Banco dos agentes e migrações | SQLAlchemy assíncrono (Core), com asyncpg, e Alembic; o `env.py` do Alembic ignora as tabelas de sessão do ADK | O ADK já usa SQLAlchemy com asyncpg nas sessões, e o Alembic dá dono ao schema desse banco; descartado: SQL cru com arquivos `.sql` numerados |
 | Validação das variáveis de ambiente | zod, com `@nestjs/config` na API do chat; `pydantic-settings` no projeto `agents` | Valida e tipa numa peça só em cada projeto |
 | Validação de entrada na API do chat | `class-validator` e `class-transformer`, no `ValidationPipe` do Nest | Caminho padrão do Nest, e o `@nestjs/swagger` lê os mesmos decorators para gerar o snapshot OpenAPI; descartado: zod com `nestjs-zod` |
-| Parser da conferência de somente leitura | A definir | — |
+| Parser da conferência de somente leitura | pglast, `planejado` (spec da F13, seção "Catálogo e consulta") | Usa o parser do próprio Postgres, e não pode divergir da gramática dele; descartado: sqlglot, que reimplementa a gramática |
 | Log estruturado | A definir | — |
 
 ## 2. Componentes e dependências
@@ -190,8 +192,12 @@ novas tentativas e idempotência").
   ([ADR 0020](adr/0020-dados-de-negocio-pessoa-a-pessoa.md); depende de mudança no HLD). Uma
   função única monta a mensagem para o histórico, o REST e os eventos, `planejada` na
   [spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens". Ela também monta a versão de cada
-  destinatário de Atividade, `planejada` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem"); a versão de
-  dados de negócio de cada destinatário segue a detalhar.
+  destinatário de Atividade, `planejada` ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem"). A versão de
+  dados de negócio de cada leitor sai dessa função, que recebe a Permissão de dados de quem vai ler,
+  lida no momento da entrega: sem permissão, a Mensagem marcada sai com `blocked`, texto e Respostas
+  prontas vazios, e a citação de uma Mensagem marcada também, `planejada`
+  ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md), seção "Marca e Resposta
+  bloqueada").
 
 ### Concorrência e idempotência
 
@@ -351,13 +357,13 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 
 | Banco | Entidade (HLD, seção 7) | Situação |
 | --- | --- | --- |
-| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); o papel de administrador (`is_admin`) ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Papel de administrador"); permissão de dados a detalhar |
+| Chat | Pessoas (perfil, papel de administrador, permissão de dados) | existe a base da F01 (`people`), com @usuário, cargo, telefone e fuso ([spec da F05](funcionalidades/05-busca-de-pessoas-perfil-e-conversa-direta/spec.md), seção "Pessoas") , a regra do nome e o Status ([spec da F09](funcionalidades/09-perfil-e-tema/spec.md), seção "Pessoas") a escolha de presença e o tema (spec da F09, seção "Pessoas"); o papel de administrador (`is_admin`) ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Papel de administrador"); Permissão de dados (`data_access`), `planejada` ([spec da F13](funcionalidades/13-consulta-a-dados-de-negocio/spec.md), seção "Permissão de dados") |
 | Chat | Bots, um por Agente, numa tabela própria ([ADR 0028](adr/0028-bots-numa-tabela-propria.md)) | existe (`bots`), com o `@usuário` reservado pelo comando de contas (spec da F10, seção "Bots"); autor de Mensagem (`author_bot_id` em `messages`) (spec da F11, seção "Autor da Mensagem") |
 | Chat | Sessões | existe (`sessions`) |
 | Chat | Tentativas de login por e-mail | existe (`login_attempts`) |
 | Chat | Conversas e participações, numa tabela só para Canais e Conversas diretas ([ADR 0024](adr/0024-conversas-numa-tabela-so.md)) | existe: Canal público e privado, criador e identificador da criação (`conversations`, `conversation_members`) ([spec da F04](funcionalidades/04-criacao-de-canais-e-convite-para-canal-privado/spec.md), seção "Conversas") |
 | Chat | Conversas diretas | existe: tipo de Conversa (ADR 0024), com o par de Pessoas único (`conversations`) e a outra Pessoa Membro na primeira Mensagem (ADR 0025) (spec da F05, seção "Conversa direta") |
-| Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor pessoa ou bot (`author_person_id`, `author_bot_id`) ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Autor da Mensagem"); Respostas prontas (`quick_replies`) (spec da F11, seção "Envio e Pergunta pendente"); marca a detalhar |
+| Chat | Mensagens (autor pessoa ou bot, citação, marca "dados de negócio") | existe: texto, edição, exclusão e citação (`messages`, `edited_at`, `deleted_at`, `quoted_message_id`) ([spec da F06](funcionalidades/06-acoes-na-mensagem/spec.md), seção "Mensagens"); autor pessoa ou bot (`author_person_id`, `author_bot_id`) ([spec da F11](funcionalidades/11-resumo-de-conversa-pelo-agente/spec.md), seção "Autor da Mensagem"); Respostas prontas (`quick_replies`) (spec da F11, seção "Envio e Pergunta pendente"); marca "dados de negócio" (`business_data`), `planejada` (spec da F13, seção "Marca e Resposta bloqueada") |
 | Chat | Menções | existe: resolvidas na gravação a partir do @usuário, só para Membros (`message_mentions`) (spec da F06, seção "Mensagens") |
 | Chat | Última leitura por pessoa e conversa, de onde saem as não lidas e as menções (ADR 0026) | existe: `last_read_message_id` em `conversation_members` (spec da F07, seção "Última leitura e contagem") |
 | Chat | Notificações, calculadas sem tabela (ADR 0027) | existe: só a marca de Atividade, `activity_read_message_id` em `people`, uma posição sem chave estrangeira desde a F12 ([spec da F08](funcionalidades/08-notificacoes-e-atividade/spec.md), seção "Notificações e contagem"); as de Tarefa ficam em `task_notifications` (ADR 0029) |
@@ -367,7 +373,8 @@ exigem estão em "Conceitos transversais de implementação", seção "Concorrê
 | Chat | Referência ao PDF de uma mensagem | a detalhar |
 | Agentes | Registro de agentes conectados | existe (`connected_agents`): a linha existe enquanto o agente está conectado ([spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Registro de Agentes") |
 | Agentes | Sessões do ADK | existe: criadas pelo ADK no banco `agents` ("Estrutura do código", "Sessões do ADK") |
-| Negócio | Dados de vendas | dono: script de carga |
+| Agentes | Auditoria das consultas ao Banco de negócio | `planejada` (`business_queries`): spec da F13, seção "Auditoria" |
+| Negócio | Dados de vendas (`customers`, `sellers`, `products`, `orders`, `order_items`) | `planejada`, dono: script de carga (spec da F13, seção "Banco de negócio e script de carga") |
 
 ## 5. Interfaces
 
@@ -408,9 +415,9 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | API do chat: `POST /v1/agent-requests/:id/close` | existe | O BFF encerra o Pedido como `failed` ou `cancelled`, com a Sessão de quem pediu: spec da F11, seção "Pedido e ações de bot" |
 | API do chat: `GET /v1/bot/requests/:id/messages` | existe | Leitura do Recorte pelo bot, com a credencial de bot ("Segurança") e o "Teto de Mensagens do resumo"; `until` exclusivo, e o Serviço de agentes passa o instante da Mensagem do Pedido: spec da F11, seção "Rotas do bot e credencial" |
 | API do chat: `GET /v1/bot/requests/:id/message-counts` | existe | Contagem dos Recortes pelo bot, com a credencial de bot; aceita o mesmo `until` exclusivo da leitura, para as contagens serem as que a leitura devolveria: mesma seção |
-| API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/reply` | existe | Resposta do bot, com a credencial de bot e a ação idempotente ("Concorrência e idempotência", "Ação de bot"): mesma seção. Ganha `business_data`, que marca a resposta com Dados de negócio, `planejado` (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/typing` | existe | "Digitando" do bot, com a credencial de bot e as recusas de Pedido da ação de bot, sem gravar ação ("Estados e regras", "Digitando"): mesma seção |
-| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção |
+| API do chat: `POST /v1/bot/requests/:id/question` | existe | Pergunta do bot com as Respostas prontas (a lista pode vir vazia, para a pergunta sem botões da delegação: spec da F12, seção "O Agente `assistente`"), com a credencial de bot e a ação idempotente; abre a Pergunta pendente de quem pediu e emite o fim do "digitando": mesma seção. Ganha `business_data`, para a pergunta de nome repetido, `planejado` (spec da F13, seção "Marca e Resposta bloqueada") |
 | API do chat: `POST /v1/bot/requests/:id/task` | existe | Delegação pelo bot, com a credencial de bot e a ação idempotente: cria a Tarefa e a confirmação; recusa o Responsável que não é Membro da Conversa do Pedido (`assignee_not_member`) ou é um bot (`assignee_is_bot`): spec da F12, seção "Ação `task`" |
 | API do chat: `PATCH /v1/conversations/:id/messages/:messageId` | existe | Editar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
 | API do chat: `DELETE /v1/conversations/:id/messages/:messageId` | existe | Apagar a própria Mensagem ("Concorrência e idempotência"): spec da F06, seções "Mensagens" e "Rotas" |
@@ -447,7 +454,7 @@ de eventos do WebSocket estão a definir. As rotas já decididas:
 | Serviço de agentes: `GET /v1/agents` | existe | Catálogo com o estado de conexão, com a credencial de serviço ("Segurança"): [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `PUT /v1/agents/:slug/connection` | existe | Conectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
 | Serviço de agentes: `DELETE /v1/agents/:slug/connection` | existe | Desconectar, com a credencial de serviço ("Segurança") e o papel enviado pelo BFF: [spec da F10](funcionalidades/10-conexao-de-agentes/spec.md), seção "Rotas e credencial" |
-| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Antes do aceite, confere a conexão (`agent_not_connected`) e o `limite de pedidos por pessoa` (`rate_limited`; `agents_unavailable` com o Redis fora): mesmas seções. O corpo ganha `quote`, a Mensagem citada pelo Pedido, que vai ao modelo no conteúdo de quem pediu, marcada como dado, e nunca nas instruções ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Rota de Pedido e execução") |
+| Serviço de agentes: `POST /v1/requests` | existe | Recebe o Pedido, confere o Agente no catálogo, responde 202 e roda o Agente em segundo plano: spec da F11, seções "Rota de Pedido" e "Execução do Pedido". Antes do aceite, confere a conexão (`agent_not_connected`) e o `limite de pedidos por pessoa` (`rate_limited`; `agents_unavailable` com o Redis fora): mesmas seções. O corpo ganha `quote`, a Mensagem citada pelo Pedido, que vai ao modelo no conteúdo de quem pediu, marcada como dado, e nunca nas instruções ([spec da F12](funcionalidades/12-delegacao-de-tarefa-pelo-agente/spec.md), seção "Rota de Pedido e execução"). O `requester` ganha `data_access`, a Permissão de dados de quem pediu, e o BFF manda `quote` nula quando a citada tem Dados de negócio, `planejado` (spec da F13, seções "Rota de Pedido e execução" e "Citação enviada ao Agente") |
 | Serviço de agentes: `GET /health` | existe | Healthcheck, sem credencial: spec da F10, seção "Rotas e credencial" |
 | API do chat: `POST /v1/agents/changed` | existe | Um administrador avisa o workspace que o registro mudou, com o evento `agents.changed`: spec da F10, seção "Evento `agents.changed`" |
 | API do chat: `GET /v1/sessions/current` e `GET /v1/people/:id` com `is_admin` | existe | O papel de administrador na Pessoa da Sessão e no Perfil: spec da F10, seção "Papel de administrador" |
@@ -789,7 +796,8 @@ telas logadas, que corrigem o cookie (spec da F09, seção "Cliente", "Tema").
 | Intervalo do aviso de leitura | 1 s: no máximo um aviso de leitura por Conversa nesse intervalo (spec da F07) | Web | Constante |
 | Teto da contagem de não lidas | 100: as contagens de não lidas e de menções param nele, e o contador mostra `99+` (spec da F07); vale também para os números de Atividade (spec da F08) | API do chat e web | Constante |
 | Duração do Alerta | 8 s: o Alerta some sozinho depois disso (spec da F08) | Web | Constante |
-| Tempo limite da consulta ao Banco de negócio | A definir | Serviço de agentes e Worker | A definir |
+| Tempo limite da consulta ao Banco de negócio | 3 s, pelo `statement_timeout` da conexão do usuário só leitura; deixa folga ao p95 do brief com a chamada ao modelo (spec da F13) | Serviço de agentes e Worker | Variável `BUSINESS_QUERY_TIMEOUT_MS`, padrão 3000 |
+| Fuso da empresa | `America/Sao_Paulo`: os períodos das consultas a Dados de negócio seguem ele, e não o de quem pediu (PRD da F13) | Serviço de agentes | Variável `BUSINESS_TIME_ZONE`, padrão `America/Sao_Paulo` |
 | Tamanho da página | Padrão 50, máximo 100 | API do chat | Constante |
 | Limite da busca de Pessoas | 20 Pessoas por busca (spec da F04) | API do chat | Constante |
 | Espera da busca de Pessoas | 200 ms sem digitar antes de buscar (spec da F04) | Web | Constante |
@@ -964,7 +972,7 @@ As decisões que mudam o desenho estão no HLD, seção 10.
       desse banco (spec da F10).
 - [x] Biblioteca de validação das variáveis: zod nos projetos TypeScript e `pydantic-settings` no
       projeto `agents` (spec da F10).
-- [ ] Parser da conferência de somente leitura (pglast ou sqlglot).
+- [x] Parser da conferência de somente leitura: pglast (spec da F13).
 - [ ] Biblioteca de log estruturado (pino e structlog, ou o logger de cada framework).
 - [ ] Porquê das escolhas sem motivo registrado: App Router, SWR; ADRs 0017, 0018, 0019 e 0022.
 - [x] Rotas próprias `/v1` do Serviço de agentes e o destino das rotas genéricas do ADK e da
@@ -987,7 +995,8 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 - [x] Chave do limite de tentativas de login: só o e-mail (ADR 0023).
 - [x] Origem do IP atrás do proxy: deixou de ser necessária, porque o limite não usa o IP.
 - [x] Lugar da conferência de participação: no service de Conversas.
-- [ ] Função única que monta a mensagem para cada destinatário.
+- [ ] Função única que monta a mensagem para cada destinatário (a versão de dados de negócio de
+      cada leitor está decidida na spec da F13).
 - [x] Onde a transação começa e como passa entre módulos: no service que orquestra, pelo CLS.
 - [x] Publicação do evento depois do commit: direta.
 - [x] Quem traduz exceção em resposta na API do chat: o filter global.
@@ -1011,7 +1020,8 @@ As decisões que mudam o desenho estão no HLD, seção 10.
 
 - [x] Pedido ao agente e pergunta pendente em "Estados e regras"; limite de pedidos e teto de
       custo em "Valores e configuração" (spec da F11).
-- [ ] Subseção de "Estados e regras": consulta a dados de negócio (comparação do lastro).
+- [ ] Subseção de "Estados e regras": consulta a dados de negócio (a comparação do lastro está
+      na spec da F13, seção "Catálogo e consulta").
 - [ ] Idempotência do job do PDF (chave no S3, entrega única) e a retenção dos PDFs. Perguntas
       pendentes vencidas não têm rotina (spec da F11).
 

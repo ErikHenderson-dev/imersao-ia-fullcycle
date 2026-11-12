@@ -15,6 +15,11 @@ Pessoa com o papel de conectar e desconectar Agentes do workspace. Quem opera a 
 tira o papel.
 _Avoid_: admin, dono
 
+**Permissão de dados**:
+O direito de uma Pessoa de pedir consultas aos Dados de negócio e de ver as respostas com eles.
+Quem opera a instalação dá e tira; não faz parte do papel de Administrador.
+_Avoid_: acesso, papel de dados
+
 **@usuário**:
 O nome único de uma Pessoa no workspace, que não muda, usado para encontrá-la e mencioná-la.
 _Avoid_: handle, apelido, login
@@ -63,6 +68,20 @@ _Avoid_: descrição
 
 **Mensagem**:
 Texto que uma Pessoa ou um Agente envia numa Conversa.
+
+**Dados de negócio**:
+Os dados de vendas da empresa (pedidos, clientes, vendedores, produtos), que os Agentes só leem.
+Não são Mensagens nem Pessoas do chat.
+_Avoid_: dados da empresa, BI
+
+**Métrica**:
+Uma grandeza dos Dados de negócio que um Agente sabe calcular para um período, como faturamento ou
+pedidos. Não confundir com as métricas de sucesso do product brief, que medem o produto.
+_Avoid_: KPI, indicador
+
+**Resposta bloqueada**:
+O aviso que um Membro sem Permissão de dados vê no lugar de uma Mensagem com Dados de negócio.
+_Avoid_: mensagem oculta, censurada
 
 **Agente**:
 Participante de IA que atende Pedidos feitos por Menção numa Conversa, e as respostas às

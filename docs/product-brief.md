@@ -100,7 +100,8 @@ Plataforma: web, no navegador de desktop.
     quem recebe, aparece em Atividade → Tarefas e pode ser concluída ou reaberta, e quem delegou
     é avisado quando isso acontece.
 11. Consolidar informações do negócio em linguagem natural: contar, somar e comparar dados de
-    vendas (faturamento por mês, pedidos por vendedor, clientes ativos). O resultado chega como
+    vendas (faturamento de um mês, pedidos de um vendedor, clientes ativos, um período contra
+    outro), sem listas, rankings nem séries. O resultado chega como
     resposta em texto na conversa e, quando a pessoa pedir, como relatório em PDF para baixar. Só
     quem tem permissão de dados recebe o conteúdo, inclusive o arquivo; a resposta fica na
     conversa, bloqueada para quem não tem acesso.
