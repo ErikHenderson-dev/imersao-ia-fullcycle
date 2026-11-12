@@ -1,6 +1,6 @@
 # 03: Banco de negócio com dados fixos
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** quem desenvolve carrega o Banco de negócio com um comando e sempre obtém os
 mesmos dados de vendas (clientes, vendedores, produtos, pedidos e itens), que servem ao
