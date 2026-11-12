@@ -105,8 +105,6 @@ async def perguntar_delegacao(
     Returns:
         A pergunta gravada e, com "qual", o rótulo e o @usuário de cada candidato.
     """
-    if tool_context.state.get(context.KIND) == "continuation":
-        return {"erro": NAO_PERGUNTE}
     client = CURRENT_CHAT_API.get()
     if client is None:
         return {"erro": FORA_DE_UM_PEDIDO}

@@ -20,7 +20,13 @@ type TaskBoardProps = {
 export function TaskBoard({ personId, assigned, delegated, timeZone, highlightedId, highlighted }: TaskBoardProps) {
   // A Tarefa delegada a si mesmo está nos dois grupos: o destaque, e o foco, ficam só no primeiro
   // dela, Recebidas antes de Delegadas.
-  const highlightRole = highlighted ? (taskRoles(highlighted, personId)[0] ?? null) : "assigned";
+  // Sem a Tarefa lida pelo servidor, o grupo é o da primeira página em que ela está.
+  const highlightRole = highlighted
+    ? (taskRoles(highlighted, personId)[0] ?? null)
+    : delegated.tasks.some((task) => task.id === highlightedId) &&
+        !assigned.tasks.some((task) => task.id === highlightedId)
+      ? "delegated"
+      : "assigned";
   const highlightFor = (role: "assigned" | "delegated") => (highlightRole === role ? highlightedId : null);
   const pinnedFor = (role: "assigned" | "delegated", page: TaskPage) =>
     highlighted && taskRoles(highlighted, personId).includes(role) && !page.tasks.some((t) => t.id === highlighted.id)

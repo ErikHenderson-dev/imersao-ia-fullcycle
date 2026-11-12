@@ -17,11 +17,16 @@ from app.agent_requests import context
 from app.agent_requests.reading import username_of
 from app.chat_api import ChatApiClient, ChatApiError
 
+# O limite do título na ação `task` da API do chat (spec da F12, "Tarefa").
+TASK_TITLE_MAX_LENGTH = 120
+
 # O motivo de cada recusa da ação, para o modelo escrever a recusa curta ou corrigir o título.
 REFUSALS = {
     "assignee_not_member": "Essa Pessoa não é Membro desta Conversa.",
     "assignee_is_bot": "Uma Tarefa não pode ser delegada a um Agente.",
-    "validation_failed": "O título precisa ter de 1 a 120 caracteres; escreva um mais curto.",
+    "validation_failed": (
+        f"O título precisa ter de 1 a {TASK_TITLE_MAX_LENGTH} caracteres; escreva um mais curto."
+    ),
 }
 NOT_MENTIONED = (
     "O Responsável precisa ser mencionado no pedido com @, ou ser quem pediu; não delegue a outra "
