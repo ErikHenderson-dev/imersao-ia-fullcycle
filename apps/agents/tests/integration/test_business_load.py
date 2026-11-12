@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 import asyncpg
 import pytest
@@ -17,23 +16,32 @@ import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
-from app.business.load import load
+from app.business.load import TIME_ZONE, load
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 TABLES = ["customers", "sellers", "products", "orders", "order_items"]
-TZ = ZoneInfo("America/Sao_Paulo")
+TZ = TIME_ZONE
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="module", loop_scope="session")
 async def owner(business_test_admin_url: str) -> AsyncIterator[AsyncConnection]:
-    """Uma conexão do superusuário no `business_test`, agindo como o dono."""
+    """Uma conexão do superusuário no `business_test`, agindo como o dono, com o banco carregado
+    uma vez: os testes que só leem não recarregam."""
     engine = create_async_engine(business_test_admin_url)
     async with engine.connect() as connection:
         await connection.execute(text("SET ROLE business"))
         await connection.commit()
+        await loaded(connection)
         yield connection
     await engine.dispose()
+
+
+@pytest_asyncio.fixture(autouse=True, loop_scope="session")
+async def end_transaction(owner: AsyncConnection) -> AsyncIterator[None]:
+    """A conexão é do módulo: cada teste termina sem transação aberta pela leitura."""
+    yield
+    await owner.rollback()
 
 
 def plain(url: str) -> str:
@@ -64,8 +72,6 @@ async def summary(owner: AsyncConnection) -> dict[str, object]:
 
 
 async def test_cria_as_tabelas_e_os_indices_da_spec(owner: AsyncConnection) -> None:
-    await loaded(owner)
-
     columns = (
         await owner.execute(
             text(
@@ -138,8 +144,6 @@ async def test_os_pedidos_cobrem_o_periodo_e_os_tres_status(
 async def test_os_dados_trazem_os_nomes_repetidos_e_o_mes_sem_pedidos(
     owner: AsyncConnection,
 ) -> None:
-    await loaded(owner)
-
     anas = (
         await owner.execute(
             text("SELECT count(*) FROM sellers WHERE name ILIKE '%ana%'")
@@ -175,7 +179,6 @@ async def test_os_dados_trazem_os_nomes_repetidos_e_o_mes_sem_pedidos(
 async def test_o_usuario_so_leitura_le_as_tabelas(
     owner: AsyncConnection, business_test_database_url: str
 ) -> None:
-    await loaded(owner)
     readonly = await asyncpg.connect(plain(business_test_database_url))
 
     try:
@@ -198,7 +201,6 @@ async def test_o_usuario_so_leitura_le_as_tabelas(
 async def test_o_usuario_so_leitura_nao_escreve(
     owner: AsyncConnection, business_test_database_url: str, statement: str
 ) -> None:
-    await loaded(owner)
     readonly = await asyncpg.connect(plain(business_test_database_url))
 
     try:

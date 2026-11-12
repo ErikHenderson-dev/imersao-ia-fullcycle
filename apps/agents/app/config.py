@@ -115,13 +115,10 @@ class BusinessLoadSettings(BaseSettings):
 
 def load_business_load_settings() -> BusinessLoadSettings:
     """A URL do dono do Banco de negócio, com o nome da variável no erro quando falta."""
-    try:
-        return BusinessLoadSettings()
-    except ValidationError as error:
-        raise _missing("BUSINESS_OWNER_DATABASE_URL") from error
+    return _read(BusinessLoadSettings)
 
 
-def _read[T: ModelSettings](cls: type[T]) -> T:
+def _read[T: BaseSettings](cls: type[T]) -> T:
     """Lê a configuração do ambiente, com o nome da variável que faltar no erro."""
     try:
         settings = cls()
@@ -129,7 +126,8 @@ def _read[T: ModelSettings](cls: type[T]) -> T:
         raise _missing(
             *(str(issue["loc"][0]).upper() for issue in error.errors() if issue["loc"])
         ) from error
-    settings.check_model()
+    if isinstance(settings, ModelSettings):
+        settings.check_model()
     return settings
 
 

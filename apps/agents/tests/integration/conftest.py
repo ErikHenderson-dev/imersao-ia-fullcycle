@@ -36,15 +36,33 @@ BOT_TOKEN = "credencial-de-bot-dos-testes"
 NO_CHAT_API = "http://127.0.0.1:9"
 
 
-async def _recreate_database(admin_url: str, name: str) -> None:
+async def _recreate_database(
+    admin_url: str, name: str, owner: str = "agents", readers: tuple[str, ...] = ()
+) -> None:
+    """Recria o banco com o dono dado; os `readers` conectam e leem as tabelas que o dono criar,
+    como o `business_readonly` no init (docker/postgres/init)."""
     admin = await asyncpg.connect(admin_url)
     try:
         await admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
-        await admin.execute(f'CREATE DATABASE "{name}" OWNER agents')
+        await admin.execute(f'CREATE DATABASE "{name}" OWNER {owner}')
         await admin.execute(f'REVOKE CONNECT ON DATABASE "{name}" FROM PUBLIC')
-        await admin.execute(f'GRANT CONNECT ON DATABASE "{name}" TO agents')
+        await admin.execute(
+            f'GRANT CONNECT ON DATABASE "{name}" TO {", ".join((owner, *readers))}'
+        )
     finally:
         await admin.close()
+    if not readers:
+        return
+    database = await asyncpg.connect(_with_database(admin_url, name))
+    try:
+        for reader in readers:
+            await database.execute(f"GRANT USAGE ON SCHEMA public TO {reader}")
+            await database.execute(
+                f"ALTER DEFAULT PRIVILEGES FOR ROLE {owner} IN SCHEMA public "
+                f"GRANT SELECT ON TABLES TO {reader}"
+            )
+    finally:
+        await database.close()
 
 
 @pytest.fixture(scope="session")
@@ -65,30 +83,6 @@ def test_database_url() -> Iterator[str]:
     yield url
 
 
-async def _recreate_business_database(admin_url: str, name: str) -> None:
-    """O Banco de negócio de teste com os papéis do init (docker/postgres/init): o dono `business`
-    e o `business_readonly`, que só lê, inclusive as tabelas que a carga criar."""
-    admin = await asyncpg.connect(admin_url)
-    try:
-        await admin.execute(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)')
-        await admin.execute(f'CREATE DATABASE "{name}" OWNER business')
-        await admin.execute(f'REVOKE CONNECT ON DATABASE "{name}" FROM PUBLIC')
-        await admin.execute(
-            f'GRANT CONNECT ON DATABASE "{name}" TO business, business_readonly'
-        )
-    finally:
-        await admin.close()
-    database = await asyncpg.connect(_with_database(admin_url, name))
-    try:
-        await database.execute("GRANT USAGE ON SCHEMA public TO business_readonly")
-        await database.execute(
-            "ALTER DEFAULT PRIVILEGES FOR ROLE business IN SCHEMA public "
-            "GRANT SELECT ON TABLES TO business_readonly"
-        )
-    finally:
-        await database.close()
-
-
 def _with_database(url: str, name: str) -> str:
     return urlparse(url)._replace(path=f"/{name}").geturl()
 
@@ -102,7 +96,14 @@ def business_test_database_url() -> Iterator[str]:
         raise RuntimeError(
             "BUSINESS_TEST_DATABASE_URL e TEST_DATABASE_ADMIN_URL são obrigatórias"
         )
-    asyncio.run(_recreate_business_database(admin_url, urlparse(url).path.lstrip("/")))
+    asyncio.run(
+        _recreate_database(
+            admin_url,
+            urlparse(url).path.lstrip("/"),
+            owner="business",
+            readers=("business_readonly",),
+        )
+    )
     yield url
 
 

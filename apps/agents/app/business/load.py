@@ -16,7 +16,6 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.business.schema import (
@@ -142,6 +141,7 @@ PRODUCTS = [
     ("Headset", "389.00"),
 ]
 
+PRICES = [Decimal(price) for _, price in PRODUCTS]
 CENTS = Decimal("0.01")
 
 
@@ -204,7 +204,6 @@ def _customer_rows(rng: random.Random) -> list[dict[str, object]]:
 def _order_rows(
     rng: random.Random, customers_created: list[datetime]
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-    prices = [Decimal(price) for _, price in PRODUCTS]
     without_orders = SELLERS.index(SELLER_WITHOUT_ORDERS) + 1
     order_rows: list[dict[str, object]] = []
     item_rows: list[dict[str, object]] = []
@@ -235,10 +234,10 @@ def _order_rows(
                         "order_id": order_id,
                         "product_id": product + 1,
                         "quantity": quantity,
-                        "unit_price": prices[product],
+                        "unit_price": PRICES[product],
                     }
                 )
-                gross += prices[product] * quantity
+                gross += PRICES[product] * quantity
             discount = (
                 _money(gross * Decimal(rng.choice([5, 10])) / 100)
                 if rng.random() < 0.3
@@ -267,33 +266,26 @@ def _order_rows(
 async def load(connection: AsyncConnection) -> dict[str, int]:
     """Apaga e recria as tabelas e os dados, na transação de quem chama; devolve as contagens."""
     rng = random.Random(SEED)
-    await connection.execute(
-        text(
-            "DROP TABLE IF EXISTS order_items, orders, products, sellers, customers CASCADE"
-        )
-    )
+    await connection.run_sync(metadata.drop_all)
     await connection.run_sync(metadata.create_all)
     seller_rows = [{"id": index, "name": name} for index, name in enumerate(SELLERS, 1)]
     product_rows = [
-        {"id": index, "name": name, "price": Decimal(price)}
-        for index, (name, price) in enumerate(PRODUCTS, 1)
+        {"id": index, "name": name, "price": price}
+        for index, ((name, _), price) in enumerate(
+            zip(PRODUCTS, PRICES, strict=True), 1
+        )
     ]
     customer_rows = _customer_rows(rng)
-    # Os ids dos clientes seguem a data da conta (_customer_rows).
-    created = sorted(row["created_at"] for row in customer_rows)  # type: ignore[type-var]
+    # Já em ordem: os ids dos clientes seguem a data da conta (_customer_rows).
+    created: list[datetime] = [row["created_at"] for row in customer_rows]  # type: ignore[misc]
     order_rows, item_rows = _order_rows(rng, created)
-    for table, rows in [
+    batches = [
         (sellers, seller_rows),
         (products, product_rows),
         (customers, customer_rows),
         (orders, order_rows),
         (order_items, item_rows),
-    ]:
+    ]
+    for table, rows in batches:
         await connection.execute(table.insert(), rows)
-    return {
-        "customers": len(customer_rows),
-        "sellers": len(seller_rows),
-        "products": len(product_rows),
-        "orders": len(order_rows),
-        "order_items": len(item_rows),
-    }
+    return {table.name: len(rows) for table, rows in batches}
