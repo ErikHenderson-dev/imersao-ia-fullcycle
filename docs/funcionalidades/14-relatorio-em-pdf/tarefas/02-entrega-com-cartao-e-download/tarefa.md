@@ -1,6 +1,6 @@
 # 02: Entrega do Relatório com o cartão e o download
 
-**Status:** a fazer
+**Status:** em andamento
 
 **O que construir:** o bot entrega na Conversa um PDF já gravado no armazenamento de objetos, e a
 Mensagem de entrega mostra, a quem tem Permissão de dados, o cartão com o nome do arquivo, o tamanho
