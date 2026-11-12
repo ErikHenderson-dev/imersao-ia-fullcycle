@@ -19,6 +19,11 @@ describe("agentMentionOptions", () => {
     expect(agentMentionOptions(agents, "anal")).toEqual([agents[1]]);
   });
 
+  it("acha pelo @usuário digitado em maiúsculas quando o nome não começa pelo texto", () => {
+    const helper = agent("assistente", "Ajudante");
+    expect(agentMentionOptions([helper], "ASS")).toEqual([helper]);
+  });
+
   it("traz todos os conectados, na ordem da lista, com o texto vazio", () => {
     expect(agentMentionOptions(agents, "")).toEqual([agents[0], agents[1]]);
   });
