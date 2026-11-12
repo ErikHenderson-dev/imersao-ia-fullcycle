@@ -420,7 +420,9 @@ async def test_a_segunda_chamada_no_mesmo_pedido_nao_grava_nada(
 
     assert [action["action"] for action in client.actions] == ["report_started"]
     assert answered(ctx)
-    await queue.delete(lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}")
+    await queue.delete(
+        lock_key(ctx.state[context.REQUESTER_ID]), f"arq:job:{request_id}"
+    )
 
 
 async def test_uma_chamada_em_paralelo_no_mesmo_pedido_volta_ao_modelo(

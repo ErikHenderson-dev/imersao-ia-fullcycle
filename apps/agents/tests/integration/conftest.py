@@ -18,17 +18,25 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 import asyncpg
+import boto3
 import httpx
 import pytest
 import pytest_asyncio
+from botocore.config import Config
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+from app.business.db import BusinessStore, business_engine
+from app.chat_api import ChatApiClient
 from app.config import Settings
 from app.registry.store import connect, disconnect
+from app.worker.job import WorkerDeps
+from app.worker.storage import ReportStorage
 
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 SERVICE_TOKEN = "segredo-dos-testes"
@@ -351,3 +359,52 @@ async def app_client(settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
 
     async for client in _client(create_app(settings)):
         yield client
+
+
+def s3_client():
+    """O S3 do contêiner, pelo endereço interno, como o Worker o acessa (F14-T03)."""
+    return boto3.client(
+        "s3",
+        endpoint_url=os.environ["S3_ENDPOINT"],
+        aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["S3_SECRET_ACCESS_KEY"],
+        region_name="us-east-1",
+        config=Config(s3={"addressing_style": "path"}),
+    )
+
+
+# O Banco dos agentes de teste, para a auditoria (F13-T04 e F14).
+@pytest_asyncio.fixture(loop_scope="session")
+async def agents_engine(test_database_url: str) -> AsyncIterator[AsyncEngine]:
+    engine = create_async_engine(test_database_url)
+    yield engine
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def redis() -> AsyncIterator[Redis]:
+    client = Redis.from_url(redis_url_for_tests(), decode_responses=True)
+    yield client
+    await client.aclose()
+
+
+# As dependências do Worker de agentes (F14-T03): o Banco de negócio de teste, a auditoria, a API do
+# chat falsa com a credencial do Worker, o S3 do contêiner e o Redis de teste.
+@pytest_asyncio.fixture(loop_scope="session")
+async def deps(
+    loaded_business_test: str,
+    agents_engine: AsyncEngine,
+    fake_chat_api: FakeChatApi,
+    redis: Redis,
+) -> AsyncIterator[WorkerDeps]:
+    storage = ReportStorage(s3_client(), os.environ["S3_BUCKET"])
+    await storage.ensure_bucket()
+    business = BusinessStore(
+        business=business_engine(loaded_business_test, 3000),
+        agents=agents_engine,
+        time_zone=ZoneInfo("America/Sao_Paulo"),
+    )
+    chat = ChatApiClient(fake_chat_api.url, "credencial-do-worker")
+    yield WorkerDeps(business=business, chat=chat, storage=storage, redis=redis)
+    await chat.close()
+    await business.dispose()

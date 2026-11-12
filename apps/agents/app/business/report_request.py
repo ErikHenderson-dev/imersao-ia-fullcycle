@@ -108,7 +108,9 @@ async def request_report(
     # gravar nada nem marcar o desfecho, e a primeira segue.
     if not await acquire_lock(queue, requester_id, request_id):
         if await lock_owner(queue, requester_id) == request_id:
-            return {"erro": "Um Relatório deste pedido já está sendo gerado; não chame de novo."}
+            return {
+                "erro": "Um Relatório deste pedido já está sendo gerado; não chame de novo."
+            }
         return await refuse(REPORT_IN_PROGRESS)
     # Até o aviso, qualquer falha solta a trava: sem aviso, nenhum job a soltaria.
     try:

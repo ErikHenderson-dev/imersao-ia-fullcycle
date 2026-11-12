@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from arq import Retry
 from redis.asyncio import Redis
 from sqlalchemy import Select
 
@@ -22,7 +23,7 @@ from app.business.db import BusinessStore
 from app.business.lastro import has_lastro
 from app.business.readonly import assert_read_only
 from app.business.report_queue import ReportJob, release_lock
-from app.chat_api import ChatApiClient
+from app.chat_api import ChatApiClient, ChatApiError
 from app.worker.metrics import metrics_query, report_rows, values_of
 from app.worker.pdf import (
     ReportContent,
@@ -78,16 +79,7 @@ async def run_report(deps: WorkerDeps, job: ReportJob, now: datetime) -> None:
     )
 
     async def record(outcome: audit.Outcome) -> None:
-        await deps.business.record(
-            request_id=job.request_id,
-            requester_id=job.requester_id,
-            conversation_id=job.conversation_id,
-            question=job.question,
-            params=job.to_payload(),
-            sql=sql,
-            outcome=outcome,
-            kind="report",
-        )
+        await _record(deps, job, outcome, sql)
 
     if not has_lastro:
         # Um número sem lastro barra o PDF inteiro, sem nova tentativa (ADR 0014).
@@ -127,6 +119,99 @@ async def _run(business: BusinessStore, query: Select, sql: str) -> Any:
     return await business.fetch_one(query)
 
 
+# As novas tentativas (LLD, "Valores e configuração"): `tentativas do Worker`, a espera antes da
+# segunda e da terceira e o tempo limite de cada tentativa. O arq marca o job estourado como falho,
+# sem nova tentativa: o tempo limite é do próprio job.
+MAX_TRIES = 3
+RETRY_DELAYS_S = (5, 15)
+ATTEMPT_TIMEOUT_S: float = 20
+
+# A API do chat diz que o Pedido acabou: o job termina sem nova tentativa.
+REQUEST_GONE_STATUS = frozenset({404, 410})
+REQUEST_GONE_CODES = frozenset(
+    {"request_closed", "request_expired", "request_not_found"}
+)
+
+
+def request_gone(error: ChatApiError) -> bool:
+    return error.status in REQUEST_GONE_STATUS or error.code in REQUEST_GONE_CODES
+
+
 async def generate_report(ctx: dict[str, Any], payload: dict[str, Any]) -> None:
-    """A função do job no arq."""
-    await run_report(ctx["deps"], ReportJob.from_payload(payload), datetime.now(UTC))
+    """A função do job no arq: uma tentativa com o tempo limite; a que falha volta à fila com a
+    espera da vez dela, e a última grava a falha (spec da F14, "Fila e job")."""
+    deps: WorkerDeps = ctx["deps"]
+    job = ReportJob.from_payload(payload)
+    job_try: int = ctx.get("job_try", 1)
+    log = {"extra": {"request_id": job.request_id}}
+    try:
+        await asyncio.wait_for(
+            run_report(deps, job, datetime.now(UTC)), timeout=ATTEMPT_TIMEOUT_S
+        )
+    except ChatApiError as error:
+        if not request_gone(error):
+            await _retry_or_fail(deps, job, job_try, error)
+            return
+        # O Pedido acabou: sem nova tentativa nem "não consegui", só o log e a trava solta.
+        logger.warning(
+            "Pedido %s recusou o Relatório (%s); job encerrado",
+            job.request_id,
+            error.status,
+            **log,
+        )
+        await release_lock(deps.redis, job.requester_id, job.request_id)
+    except Exception as error:
+        await _retry_or_fail(deps, job, job_try, error)
+
+
+async def _retry_or_fail(
+    deps: WorkerDeps, job: ReportJob, job_try: int, error: Exception
+) -> None:
+    log = {"extra": {"request_id": job.request_id}}
+    if job_try < MAX_TRIES:
+        logger.warning(
+            "Tentativa %s do Relatório do Pedido %s falhou: %s",
+            job_try,
+            job.request_id,
+            type(error).__name__,
+            **log,
+        )
+        raise Retry(defer=RETRY_DELAYS_S[job_try - 1]) from error
+    logger.error(
+        "Relatório do Pedido %s falhou nas %s tentativas: %s",
+        job.request_id,
+        MAX_TRIES,
+        type(error).__name__,
+        **log,
+    )
+    # A trava primeiro; a auditoria e a falha depois, cada uma sem impedir a outra.
+    await release_lock(deps.redis, job.requester_id, job.request_id)
+    for step in (
+        _record(deps, job, "error", None),
+        deps.chat.report_failed(job.request_id),
+    ):
+        try:
+            await step
+        except Exception as step_error:
+            logger.error(
+                "Falha final do Relatório do Pedido %s incompleta: %s",
+                job.request_id,
+                type(step_error).__name__,
+                **log,
+            )
+
+
+async def _record(
+    deps: WorkerDeps, job: ReportJob, outcome: audit.Outcome, sql: str | None
+) -> None:
+    """A linha de auditoria do Relatório (spec da F14, "Auditoria"), nunca o resultado nem o PDF."""
+    await deps.business.record(
+        request_id=job.request_id,
+        requester_id=job.requester_id,
+        conversation_id=job.conversation_id,
+        question=job.question,
+        params=job.to_payload(),
+        sql=sql,
+        outcome=outcome,
+        kind="report",
+    )

@@ -69,13 +69,6 @@ class FakeClient:
 
 
 @pytest_asyncio.fixture(loop_scope="session")
-async def agents_engine(test_database_url: str) -> AsyncIterator[AsyncEngine]:
-    engine = create_async_engine(test_database_url)
-    yield engine
-    await engine.dispose()
-
-
-@pytest_asyncio.fixture(loop_scope="session")
 async def store(
     loaded_business_test: str, agents_engine: AsyncEngine
 ) -> AsyncIterator[BusinessStore]:

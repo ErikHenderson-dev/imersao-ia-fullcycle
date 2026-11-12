@@ -22,10 +22,9 @@ from app.business.report_queue import ReportJob, lock_key
 from app.chat_api import ChatApiClient
 from app.worker.job import WorkerDeps, run_report
 from app.worker.storage import ReportStorage
-from tests.integration.conftest import FakeChatApi, redis_url_for_tests
+from tests.integration.conftest import FakeChatApi, redis_url_for_tests, s3_client
 from tests.integration.test_request_business import continuation_of
 from tests.integration.test_request_routes import AUTH, pedido, wait_for_end_log
-from tests.integration.test_worker_job import s3_client
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 

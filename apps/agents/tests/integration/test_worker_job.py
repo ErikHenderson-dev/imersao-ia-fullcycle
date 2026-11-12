@@ -8,18 +8,14 @@ from __future__ import annotations
 
 import os
 import uuid
-from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-import boto3
 import pytest
-import pytest_asyncio
 from arq import create_pool
 from arq.connections import RedisSettings
-from botocore.config import Config
 from botocore.exceptions import ClientError
 from redis.asyncio import Redis
 from sqlalchemy import text
@@ -27,7 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.business.answer import format_count, format_money, format_percent, variation
 from app.business.catalog import Period
-from app.business.db import BusinessStore, business_engine
 from app.business.report_queue import (
     ReportFilter,
     ReportJob,
@@ -35,12 +30,11 @@ from app.business.report_queue import (
     enqueue_report,
     lock_key,
 )
-from app.chat_api import ChatApiClient
 from app.worker import job as worker_job
 from app.worker.job import WorkerDeps, run_report
 from app.worker.pdf import pdf_text
 from app.worker.storage import ReportStorage, report_key
-from tests.integration.conftest import FakeChatApi, redis_url_for_tests
+from tests.integration.conftest import FakeChatApi, redis_url_for_tests, s3_client
 
 TZ = ZoneInfo("America/Sao_Paulo")
 MARCH = Period(date(2026, 3, 1), date(2026, 3, 31))
@@ -50,51 +44,6 @@ JUNE = Period(date(2026, 6, 1), date(2026, 6, 30))
 NOW = datetime(2026, 11, 12, 17, 32, tzinfo=UTC)
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
-
-
-def s3_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=os.environ["S3_ENDPOINT"],
-        aws_access_key_id=os.environ["S3_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["S3_SECRET_ACCESS_KEY"],
-        region_name="us-east-1",
-        config=Config(s3={"addressing_style": "path"}),
-    )
-
-
-@pytest_asyncio.fixture(loop_scope="session")
-async def agents_engine(test_database_url: str) -> AsyncIterator[AsyncEngine]:
-    engine = create_async_engine(test_database_url)
-    yield engine
-    await engine.dispose()
-
-
-@pytest_asyncio.fixture(loop_scope="session")
-async def redis() -> AsyncIterator[Redis]:
-    client = Redis.from_url(redis_url_for_tests(), decode_responses=True)
-    yield client
-    await client.aclose()
-
-
-@pytest_asyncio.fixture(loop_scope="session")
-async def deps(
-    loaded_business_test: str,
-    agents_engine: AsyncEngine,
-    fake_chat_api: FakeChatApi,
-    redis: Redis,
-) -> AsyncIterator[WorkerDeps]:
-    storage = ReportStorage(s3_client(), os.environ["S3_BUCKET"])
-    await storage.ensure_bucket()
-    business = BusinessStore(
-        business=business_engine(loaded_business_test, 3000),
-        agents=agents_engine,
-        time_zone=TZ,
-    )
-    chat = ChatApiClient(fake_chat_api.url, "credencial-do-worker")
-    yield WorkerDeps(business=business, chat=chat, storage=storage, redis=redis)
-    await chat.close()
-    await business.dispose()
 
 
 async def seller(url: str, name: str | None = None) -> tuple[int, str]:

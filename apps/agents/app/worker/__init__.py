@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.business.db import BusinessStore, business_engine
 from app.chat_api import ChatApiClient
 from app.config import load_worker_settings
-from app.worker.job import WorkerDeps, generate_report
+from app.worker.job import MAX_TRIES, WorkerDeps, generate_report
 from app.worker.storage import ReportStorage
 
 
@@ -58,4 +58,8 @@ class WorkerSettings:
     functions: ClassVar[list[Any]] = [generate_report]
     on_startup = startup
     on_shutdown = shutdown
+    # As novas tentativas são do job (`job.py`); o tempo limite do arq é só uma rede de segurança
+    # acima do da tentativa.
+    max_tries = MAX_TRIES
+    job_timeout = 60
     redis_settings = RedisSettings.from_dsn(os.environ["REDIS_URL"])
