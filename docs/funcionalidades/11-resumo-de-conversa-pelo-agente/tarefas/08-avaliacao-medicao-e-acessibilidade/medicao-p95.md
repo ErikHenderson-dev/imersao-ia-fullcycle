@@ -3,16 +3,26 @@
 2026-11-11 · F11-T08 · Critérios: brief, "Objetivos e métricas de sucesso" ("Tempo de resposta",
 p95 ≤ 5 s; "Custo por pedido", ≤ US$ 0,01)
 
-**Resultado: as duas metas do brief não são atingidas numa Conversa de 500 Mensagens.** p95 de
-14,5 s (meta 5 s) e custo de US$ 0,022 a US$ 0,025 por Pedido (meta US$ 0,01). A medição também
-mostrou um defeito: 11 dos 20 resumos saíram cortados pelo teto de tokens de saída (abaixo, "Resumos
-cortados"). O desenho não mudou nesta tarefa; a decisão é do usuário.
+**Resultado final (`gemini-3.6-flash`, raciocínio no nível mínimo): as duas metas do brief ainda não
+são atingidas numa Conversa de 500 Mensagens, mas o tempo chegou perto e nenhum resumo saiu
+cortado.** p95 de 6,23 s e p50 de 5,04 s (meta: p95 ≤ 5 s); custo de US$ 0,0224 a US$ 0,0226 por
+Pedido (meta US$ 0,01), quase todo da entrada.
+
+Rodadas:
+
+1. `gemini-3.8-flash` com o raciocínio no nível baixo: p95 de 14,5 s, US$ 0,022 a US$ 0,025, e 11
+   dos 20 resumos cortados pelo teto de tokens de saída ("Comparação", abaixo).
+2. Decisão do usuário: o modelo padrão passou a `gemini-3.6-flash` com o raciocínio no nível mínimo
+   (o `gemini-3.8-flash` recusa o mínimo com `400 INVALID_ARGUMENT`), mantendo o teto de 1024 tokens
+   de saída e o de 500 Mensagens. O mesmo script, com o mesmo critério de corte: a tabela de
+   "Amostras".
 
 ## Método
 
 - Script `apps/web/e2e/medicao/resumo-p95.medicao.ts`, fora da suíte, rodado no contêiner `e2e`
   com o ambiente de desenvolvimento de pé (web no `next dev`, API do chat e Serviço de agentes) e o
-  modelo padrão (`AGENT_MODEL=gemini-3.8-flash`, raciocínio no nível baixo):
+  modelo padrão (`AGENT_MODEL`; `gemini-3.6-flash` no nível mínimo na rodada final,
+  `gemini-3.8-flash` no nível baixo na comparação):
 
   ```bash
   docker compose -f compose.yaml exec e2e npx playwright test --config playwright.medicao.config.ts
@@ -37,9 +47,9 @@ cortados"). O desenho não mudou nesta tarefa; a decisão é do usuário.
 
 ## Preço do modelo padrão
 
-Gemini 3.8 Flash, nível pago Standard, na página oficial de preços da API do Gemini
-(<https://aistudio.google.com/docs/pricing>, para onde `https://ai.google.dev/gemini-api/docs/pricing`
-redireciona), consultada em 2026-11-11:
+Gemini 3.6 Flash e Gemini 3.8 Flash, que têm o mesmo preço, nível pago Standard, na página oficial
+de preços da API do Gemini (<https://aistudio.google.com/docs/pricing>, para onde
+`https://ai.google.dev/gemini-api/docs/pricing` redireciona), consultada em 2026-11-11:
 
 | Item | Até 31/12/2026 | A partir de 01/01/2027 |
 | --- | --- | --- |
@@ -50,10 +60,46 @@ redireciona), consultada em 2026-11-11:
 Custo do Pedido = entrada × 0,75 / 10⁶ + saída × 3,75 / 10⁶, sem o desconto de cache (um teto). Com
 o preço de 2027, o custo dobra.
 
-## Amostras
+## Amostras (`gemini-3.6-flash`, nível mínimo)
 
-Em 2026-11-11, entre 20:35 e 20:40 de São Paulo. "Ponta a ponta" é o tempo na tela; "Serviço" é o
-`tempo_ms` do Pedido no Serviço de agentes. Todos os Pedidos terminaram com `desfecho=reply`.
+Em 2026-11-11, entre 21:01 e 21:04 de São Paulo. "Ponta a ponta" é o tempo na tela; "Serviço" é o
+`tempo_ms` do Pedido no Serviço de agentes. Todos os Pedidos terminaram com `desfecho=reply`, e todos
+os resumos chegaram completos (terminam numa frase inteira, com a saída bem abaixo do teto).
+
+| # | Ponta a ponta | Serviço | Entrada | Saída | Custo (US$) | Resumo |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 5,52 s | 4,94 s | 28163 | 382 | 0,0226 | completo |
+| 2 | 5,35 s | 4,84 s | 28163 | 387 | 0,0226 | completo |
+| 3 | 5,11 s | 4,64 s | 28163 | 371 | 0,0225 | completo |
+| 4 | 5,35 s | 4,87 s | 28163 | 395 | 0,0226 | completo |
+| 5 | 5,54 s | 5,02 s | 28163 | 363 | 0,0225 | completo |
+| 6 | 5,01 s | 4,55 s | 28163 | 390 | 0,0226 | completo |
+| 7 | 4,68 s | 4,22 s | 28163 | 366 | 0,0225 | completo |
+| 8 | 5,04 s | 4,52 s | 28163 | 347 | 0,0224 | completo |
+| 9 | 5,10 s | 4,60 s | 28163 | 357 | 0,0225 | completo |
+| 10 | 4,74 s | 4,25 s | 28163 | 389 | 0,0226 | completo |
+| 11 | 5,28 s | 4,79 s | 28163 | 394 | 0,0226 | completo |
+| 12 | 4,68 s | 4,15 s | 28163 | 390 | 0,0226 | completo |
+| 13 | 4,42 s | 3,93 s | 28163 | 377 | 0,0225 | completo |
+| 14 | 6,23 s | 5,52 s | 28163 | 399 | 0,0226 | completo |
+| 15 | 4,77 s | 4,26 s | 28163 | 387 | 0,0226 | completo |
+| 16 | 4,89 s | 4,42 s | 28163 | 377 | 0,0225 | completo |
+| 17 | 4,95 s | 4,43 s | 28163 | 381 | 0,0226 | completo |
+| 18 | 4,76 s | 4,26 s | 28163 | 360 | 0,0225 | completo |
+| 19 | 5,39 s | 4,73 s | 28163 | 380 | 0,0225 | completo |
+| 20 | 6,64 s | 6,12 s | 28163 | 382 | 0,0226 | completo |
+
+| Medida (posto mais próximo) | Ponta a ponta, 20 amostras |
+| --- | --- |
+| p50 | 5,04 s |
+| p95 | **6,23 s** |
+| Mínimo / máximo | 4,42 s / 6,64 s |
+
+Custo por Pedido: de US$ 0,0224 a US$ 0,0226, média US$ 0,0225.
+
+## Comparação: `gemini-3.8-flash`, nível baixo
+
+Em 2026-11-11, entre 20:35 e 20:40 de São Paulo, com o mesmo script e o mesmo critério de corte.
 
 | # | Ponta a ponta | Serviço | Entrada | Saída | Custo (US$) | Resumo |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -88,25 +134,31 @@ Custo por Pedido: de US$ 0,0220 a US$ 0,0253, média US$ 0,0243.
 
 ## Causas
 
-- **Tempo:** quase todo no modelo. O Serviço de agentes responde por 90% a 97% de cada amostra (o
-  BFF, a API do chat, o disparo e a tela somam de 0,5 a 1,1 s, na ordem do que o ensaio sem o modelo
-  mostrou). O Pedido faz duas chamadas ao modelo: a primeira escolhe o Recorte e chama
-  `ler_mensagens`; a segunda lê as 500 Mensagens (cerca de 28 mil tokens de entrada) e gera o resumo
-  com o raciocínio. O tempo cresce com a saída: até cerca de 400 tokens, de 6 a 7 s; perto do teto
-  de 1024, de 11 a 15 s.
+- **Tempo:** quase todo no modelo. Com o `gemini-3.6-flash` no nível mínimo, o Serviço de agentes
+  responde por 88% a 92% de cada amostra, e o BFF, a API do chat, o disparo e a tela somam de 0,47 a
+  0,71 s, na ordem do que o ensaio sem o modelo mostrou. O Pedido faz duas chamadas ao modelo: a
+  primeira escolhe o Recorte e chama `ler_mensagens`; a segunda lê as 500 Mensagens (cerca de 28 mil
+  tokens de entrada) e escreve o resumo. Sem o raciocínio, a saída ficou entre 347 e 399 tokens e o
+  Serviço, entre 3,9 s e 6,1 s; o que sobra acima dos 5 s é o tempo do modelo com a entrada de 500
+  Mensagens. Com o `gemini-3.8-flash` no nível baixo, o raciocínio levava a saída a até 1120 tokens e
+  o tempo a até 15,5 s.
 - **Custo:** a entrada das 500 Mensagens custa sozinha cerca de US$ 0,021 (28 mil tokens a
-  US$ 0,75 por milhão), o dobro da meta, antes de qualquer saída. Os Pedidos com Recortes de poucas
-  Mensagens ficam abaixo de US$ 0,006 ([avaliacao.md](avaliacao.md)).
+  US$ 0,75 por milhão), o dobro da meta, antes de qualquer saída, com os dois modelos (o preço é o
+  mesmo). Os Pedidos com Recortes de poucas Mensagens ficam abaixo de US$ 0,004 com o
+  `gemini-3.6-flash` ([avaliacao.md](avaliacao.md)).
 
 ## Resumos cortados
 
-Em 11 das 20 amostras, a segunda chamada atingiu o `max_output_tokens` de 1024 (saída do Pedido entre
-1087 e 1120 tokens, a primeira chamada mais 1024), e o resumo gravado terminou no meio de uma frase.
-Em três, só o cabeçalho, ou o cabeçalho e um nome, chegou à Conversa. O raciocínio conta no teto, e
-com 500 Mensagens variadas ele mais o texto passam de 1024 mesmo no nível baixo; a avaliação não
-pegou isso porque o caso `teto` repete poucas frases e ficou em 833 tokens. O corte não é detectado:
-o texto cortado é gravado como `reply`. Mudar o teto de tokens de saída (constante da spec, "Modelo de
-IA"), o nível de raciocínio ou o tamanho da entrada é decisão do desenho e fica para o usuário.
+| Modelo e nível | Resumos cortados | Saída do Pedido |
+| --- | --- | --- |
+| `gemini-3.8-flash`, nível baixo | 11 de 20 (3 com só o cabeçalho, ou o cabeçalho e um nome) | 263 a 1120 tokens |
+| `gemini-3.6-flash`, nível mínimo | 0 de 20 | 347 a 399 tokens |
+
+O critério é o mesmo nas duas rodadas: o resumo gravado termina no meio de uma frase, com a segunda
+chamada no `max_output_tokens` de 1024 (a saída do Pedido passa de 1024 só com a primeira chamada
+somada). Com o nível baixo, o raciocínio contava no teto, e com 500 Mensagens variadas ele mais o
+texto passavam de 1024; a avaliação não pegou isso porque o caso `teto` repete poucas frases. O corte
+não é detectado no código: o texto cortado seria gravado como `reply`.
 
 ## Ensaio do script, sem o modelo
 

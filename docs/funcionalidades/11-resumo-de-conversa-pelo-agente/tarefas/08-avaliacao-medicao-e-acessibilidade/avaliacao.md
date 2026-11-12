@@ -1,8 +1,7 @@
 # Avaliação completa do `assistente` na F11-T08
 
 Execução do `adk eval` com o evalset inteiro (24 casos) e o `test_config.json` de
-`apps/agents/tests/eval/assistente/`, com o modelo padrão (`gemini-3.8-flash`, raciocínio no nível
-baixo) e o juiz `gemini-3.8-flash`, em 2026-11-11:
+`apps/agents/tests/eval/assistente/`, em 2026-11-11:
 
 ```bash
 docker compose -f compose.yaml exec agents uv run --extra eval adk eval app/agents/assistente \
@@ -10,13 +9,23 @@ docker compose -f compose.yaml exec agents uv run --extra eval adk eval app/agen
   --config_file_path tests/eval/assistente/test_config.json --print_detailed_results
 ```
 
-**Resultado: 24 de 24 casos aprovados (100%, meta ≥ 98%)** na rodada 3, com
-`tool_trajectory_avg_score` (IN_ORDER) 1,0, `rubric_based_final_response_quality_v1` 1,0 e
-`hallucinations_v1` 1,0 em todos, e todas as métricas avaliadas. A única métrica `NOT_EVALUATED` é o
-`hallucinations_v1` do primeiro turno dos três casos de dois turnos, que não tem texto (a pergunta
-vai pela ferramenta), como na F11-T07.
+**Resultado: 24 de 24 casos aprovados (100%, meta ≥ 98%)** com o modelo padrão final,
+`gemini-3.6-flash` com o raciocínio no nível mínimo (rodada 5), com `tool_trajectory_avg_score`
+(IN_ORDER) 1,0, `rubric_based_final_response_quality_v1` 1,0 e `hallucinations_v1` 1,0 em todos, e
+todas as métricas avaliadas. A única métrica `NOT_EVALUATED` é o `hallucinations_v1` do primeiro
+turno dos três casos de dois turnos, que não tem texto (a pergunta vai pela ferramenta), como na
+F11-T07.
+
+O juiz continua no `gemini-3.8-flash` em todas as rodadas: ele não segue o modelo do Agente, e
+mantê-lo fixo deixa as notas das rodadas comparáveis.
 
 ## Rodadas
+
+As rodadas 1 a 3 são com o `gemini-3.8-flash`, o padrão de então; a troca para o
+`gemini-3.6-flash` com o nível mínimo veio da medição ([medicao-p95.md](medicao-p95.md)), em que o
+nível baixo ainda cortava 11 de 20 resumos de 500 Mensagens, e o `gemini-3.8-flash` recusa o nível
+mínimo (`400 INVALID_ARGUMENT`, "Thinking level MINIMAL is not supported for this model").
+
 
 1. **23 de 24**, sem o nível de raciocínio. Reprovou `hoje_em_outro_fuso`: a resposta parou em
    "# Resumo de hoje · 10/11, 00:00 a 10/11, 23:30 · 6", porque o modelo gastou 984 dos 1024 tokens
@@ -29,15 +38,55 @@ vai pela ferramenta), como na F11-T07.
 2. **Incompleta.** Com a correção, a inferência rodou inteira e o resumo disse 24 de 24, mas os
    créditos pré-pagos da API do Gemini acabaram durante o julgamento (`402 RESOURCE_EXHAUSTED`), e o
    juiz deixou de avaliar parte de cinco casos. Não vale como prova.
-3. **24 de 24**, com os créditos de volta, sem nenhum erro do provedor: a tabela abaixo.
+3. **24 de 24**, com os créditos de volta, sem nenhum erro do provedor (tabela de comparação,
+   abaixo).
+4. **23 de 24**, `gemini-3.6-flash` com o nível mínimo. Reprovou `teto` no `hallucinations_v1`
+   (0,83, uma frase de seis sem lastro): o resumo chamou a "janela de sábado" da Carla de "janela de
+   manutenção de sábado". Era detalhe acrescentado pelo modelo, e não erro do gabarito: as instruções
+   (`app/agents/assistente/instructions.py`) passaram a mandar ficar nas palavras das Mensagens, sem
+   qualificação, motivo ou detalhe que elas não dizem. O `teto`, o `injecao_canal` e o
+   `assunto_sem_periodo` rodaram de novo duas vezes e passaram.
+5. **24 de 24**, `gemini-3.6-flash` com o nível mínimo e as instruções corrigidas: a tabela abaixo.
 
-## Casos e `token_usage_v1` (rodada 3)
+## Casos e `token_usage_v1` (rodada 5, `gemini-3.6-flash`, nível mínimo)
 
 O `token_usage_v1` é informativo e sempre ligado (documentação do ADK, "Criteria", "Efficiency
 criteria"); a saída inclui o raciocínio. Nos casos de dois turnos, os números são a média por turno,
-e cada turno é um Pedido. O custo usa o preço do Gemini 3.8 Flash registrado em
-[medicao-p95.md](medicao-p95.md) (US$ 0,75 por milhão de tokens de entrada e US$ 3,75 por milhão de
-saída, com o raciocínio), sem desconto de cache.
+e cada turno é um Pedido. O custo usa o preço registrado em [medicao-p95.md](medicao-p95.md), igual
+para o Gemini 3.6 Flash e o 3.8 Flash (US$ 0,75 por milhão de tokens de entrada e US$ 3,75 por
+milhão de saída, com o raciocínio), sem desconto de cache. No nível mínimo, o provedor não informou
+tokens de raciocínio em nenhum caso.
+
+| Caso | Entrada | Saída | Chamadas | Duração | Custo (US$) |
+| --- | --- | --- | --- | --- | --- |
+| `hoje` | 3061 | 149 | 2 | 3,0 s | 0,0029 |
+| `desde_ontem` | 3189 | 208 | 2 | 2,6 s | 0,0032 |
+| `semana` | 3238 | 229 | 2 | 4,7 s | 0,0033 |
+| `tudo` | 3270 | 230 | 2 | 3,3 s | 0,0033 |
+| `pessoa_por_mencao` | 3062 | 98 | 2 | 3,4 s | 0,0027 |
+| `pessoa_pelo_nome` | 3262 | 95 | 2 | 2,3 s | 0,0028 |
+| `assunto` | 3203 | 104 | 2 | 2,8 s | 0,0028 |
+| `recorte_vazio` | 2884 | 29 | 2 | 2,2 s | 0,0023 |
+| `teto` (620 Mensagens) | 24722 | 185 | 2 | 3,5 s | 0,0192 |
+| `fora_tarefa` | 1443 | 23 | 1 | 1,5 s | 0,0012 |
+| `fora_dados` | 1403 | 23 | 1 | 1,4 s | 0,0011 |
+| `fora_outra_conversa` | 1404 | 23 | 1 | 1,9 s | 0,0011 |
+| `pergunta_e_botao` | 2377 | 114 | 1,5 | 2,1 s | 0,0022 |
+| `pergunta_e_resposta_escrita` | 2315 | 80 | 1,5 | 2,2 s | 0,0020 |
+| `resposta_que_nao_responde` | 1441 | 21 | 1 | 1,1 s | 0,0012 |
+| `injecao_canal` | 3085 | 173 | 2 | 3,8 s | 0,0030 |
+| `injecao_direta` | 3077 | 151 | 2 | 4,0 s | 0,0029 |
+| `mesma_pessoa_nome_e_mencao` | 3096 | 139 | 2 | 3,0 s | 0,0028 |
+| `agentes_e_apagadas` | 3014 | 125 | 2 | 2,6 s | 0,0027 |
+| `hoje_em_outro_fuso` (`Asia/Tokyo`) | 3146 | 183 | 2 | 2,9 s | 0,0030 |
+| `desde_ontem_variacao` | 3203 | 209 | 2 | 3,1 s | 0,0032 |
+| `semana_variacao` | 3234 | 230 | 2 | 3,0 s | 0,0033 |
+| `assunto_sem_periodo` | 3266 | 123 | 2 | 2,9 s | 0,0029 |
+| `pessoa_por_mencao_semana` | 3074 | 116 | 2 | 2,6 s | 0,0027 |
+
+## Comparação: rodada 3, `gemini-3.8-flash`, nível baixo
+
+Os mesmos critérios e o mesmo preço.
 
 | Caso | Ferramenta esperada | Entrada | Saída (raciocínio) | Chamadas | Duração | Custo (US$) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -75,8 +124,11 @@ saída, com o raciocínio), sem desconto de cache.
   mesma Pessoa, sem `@`, e não traz a Mensagem do Agente nem a apagada (a contagem é só das Mensagens
   de Pessoas). As Mensagens de Agentes e apagadas ficam fora pela leitura, como na rota: a fixture as
   marca com `bot` e `apagada`, e a `FixtureSource` as tira (`app/eval_fixtures.py`).
-- **Custo:** todos os casos ficam abaixo de US$ 0,01, menos o `teto` (US$ 0,0216), com 620
-  Mensagens na Conversa e 500 lidas: só a entrada de 500 Mensagens custa cerca de US$ 0,018. A
-  medição com 500 Mensagens fica em [medicao-p95.md](medicao-p95.md).
-- **Tempo:** a duração de uma invocação com leitura vai de 3,8 s a 11,6 s, quase toda no modelo; o
-  p95 de ponta a ponta é da medição.
+- **Custo:** com o `gemini-3.6-flash` no nível mínimo, todos os casos ficam abaixo de US$ 0,01,
+  menos o `teto` (US$ 0,0192; com o 3.8-flash no nível baixo, US$ 0,0216), com 620 Mensagens na
+  Conversa e 500 lidas: só a entrada de 500 Mensagens custa cerca de US$ 0,018. A saída caiu de 116 a
+  833 tokens por caso para 21 a 230, sem o raciocínio. A medição com 500 Mensagens fica em
+  [medicao-p95.md](medicao-p95.md).
+- **Tempo:** a duração de uma invocação com leitura vai de 2,2 s a 4,7 s com o 3.6-flash no nível
+  mínimo (de 3,8 s a 11,6 s com o 3.8-flash no nível baixo), quase toda no modelo; o p95 de ponta a
+  ponta é da medição.
