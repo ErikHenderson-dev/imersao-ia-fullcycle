@@ -1,7 +1,7 @@
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-typeorm';
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { BotsService } from '../bots/bots.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import type { ConversationKind } from '../conversations/conversation.entity';
@@ -9,6 +9,8 @@ import { MessagesService } from '../messages/messages.service';
 import { PeopleService } from '../people/people.service';
 import { AssigneeIsBotError } from './assignee-is-bot.error';
 import { AssigneeNotMemberError } from './assignee-not-member.error';
+import type { TaskNotificationKind } from 'chat-events';
+import { TaskNotification } from './task-notification.entity';
 import { Task, TaskStatus } from './task.entity';
 
 export interface NewTask {
@@ -72,8 +74,41 @@ export class TasksService {
     throw new AssigneeNotMemberError();
   }
 
-  create(task: NewTask): Promise<Task> {
-    return this.tasks.save(this.tasks.create(task));
+  // A Tarefa e a Notificação `received` do Responsável, na transação de quem chama. Delegar a si
+  // mesmo não notifica.
+  async create(
+    task: NewTask,
+  ): Promise<{ task: Task; notification: TaskNotification | null }> {
+    const saved = await this.tasks.save(this.tasks.create(task));
+    const notification =
+      task.assigneeId === task.delegatorId
+        ? null
+        : await this.notify(saved, task.assigneeId, 'received');
+    return { task: saved, notification };
+  }
+
+  // Grava a Notificação de Tarefa de quem recebe (ADR 0029).
+  notify(
+    task: Task,
+    recipientId: string,
+    kind: TaskNotificationKind,
+  ): Promise<TaskNotification> {
+    const notifications = this.txHost.tx.getRepository(TaskNotification);
+    return notifications.save(
+      notifications.create({
+        taskId: task.id,
+        recipientId,
+        kind,
+        readAt: null,
+      }),
+    );
+  }
+
+  // A Notificação `received` da Tarefa, ou null: a repetição da ação `task` a publica de novo.
+  findReceived(taskId: string): Promise<TaskNotification | null> {
+    return this.txHost.tx
+      .getRepository(TaskNotification)
+      .findOneBy({ taskId, kind: 'received' });
   }
 
   // A Tarefa que o Pedido criou: quem chama sabe que a ação `task` dele foi gravada.
@@ -125,6 +160,13 @@ export class TasksService {
         deleted: deleted.has(task.triggerMessageId),
       },
     }));
+  }
+
+  // As Tarefas desses ids, montadas, sem ordem garantida: as Tarefas dos itens de Atividade (spec da
+  // F12, "Atividade").
+  async viewsByIds(ids: string[]): Promise<TaskView[]> {
+    if (ids.length === 0) return [];
+    return this.views(await this.tasks.findBy({ id: In(ids) }));
   }
 
   async view(task: Task): Promise<TaskView> {

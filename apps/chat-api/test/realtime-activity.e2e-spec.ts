@@ -92,6 +92,7 @@ describe('Atividade em tempo real', () => {
       total_count: 1,
       mention_count: 1,
       direct_count: 0,
+      task_count: 0,
     });
     await waitForCount(toAuthor, 1);
     await settle();

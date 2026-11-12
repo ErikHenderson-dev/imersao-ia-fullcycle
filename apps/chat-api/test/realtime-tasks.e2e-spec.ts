@@ -96,4 +96,37 @@ describe('Tarefas em tempo real', () => {
     expect((await waitForCount(created, 1))[0].task.id).toBe(task.id);
     expect((await waitForCount(updated, 1))[0].task.status).toBe('done');
   });
+
+  // A Notificação de Tarefa no evento (F12-T03, CA4).
+  it('a Notificação vai só a quem recebe', async () => {
+    const { ana, bruno, delegate } = await scene();
+    const toAna = await connected(ana.token);
+    const toBruno = await connected(bruno.token);
+    const created = [toAna, toBruno].map((s) =>
+      collectEvents(s, 'task.created'),
+    );
+    const updated = [toAna, toBruno].map((s) =>
+      collectEvents(s, 'task.updated'),
+    );
+    const unread = collectEvents(toBruno, 'activity.unread');
+    const task = await delegate();
+
+    await taskRoutes.change(app, bruno.cookie, task.id, 'complete').expect(200);
+
+    const [[createdForAna], [createdForBruno]] = await Promise.all(
+      created.map((events) => waitForCount(events, 1)),
+    );
+    expect(createdForAna.notification).toBeNull();
+    expect(createdForBruno.notification).toEqual({
+      id: expect.any(String) as string,
+      kind: 'received',
+    });
+    const [[updatedForAna], [updatedForBruno]] = await Promise.all(
+      updated.map((events) => waitForCount(events, 1)),
+    );
+    expect(updatedForAna.notification).toMatchObject({ kind: 'completed' });
+    expect(updatedForBruno.notification).toBeNull();
+    const [counts] = await waitForCount(unread, 1);
+    expect(counts.task_count).toBe(1);
+  });
 });

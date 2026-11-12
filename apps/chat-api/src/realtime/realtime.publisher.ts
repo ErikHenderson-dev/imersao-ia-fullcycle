@@ -84,18 +84,19 @@ export class RealtimePublisher {
 
   // A Tarefa criada ou que mudou de estado, para o Responsável e quem delegou (spec da F12,
   // "Eventos").
+  // A carga é montada para cada Pessoa: a Notificação vai só a quem recebe.
   taskCreated(
     personIds: string[],
-    event: StoredEventPayloads['task.created'],
+    payloadFor: (personId: string) => StoredEventPayloads['task.created'],
   ): Promise<void> {
-    return this.publish('task.created', personIds, event);
+    return this.publish('task.created', personIds, payloadFor);
   }
 
   taskUpdated(
     personIds: string[],
-    event: StoredEventPayloads['task.updated'],
+    payloadFor: (personId: string) => StoredEventPayloads['task.updated'],
   ): Promise<void> {
-    return this.publish('task.updated', personIds, event);
+    return this.publish('task.updated', personIds, payloadFor);
   }
 
   // O Perfil que mudou, para todo o workspace, sem guardar: quem perde o evento numa queda vê o nome

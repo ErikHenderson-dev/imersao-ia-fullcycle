@@ -814,8 +814,17 @@ export async function listMembers(token: string, conversationId: string): Promis
 export type ActivityFilter = "all" | "mentions" | "direct";
 export type NotificationKind = "mention" | "direct";
 
-// Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela.
-export type ActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
+// Um item de Atividade: a Notificação, com a Mensagem como no histórico e a Conversa dela, ou a
+// Notificação de Tarefa, com a Tarefa e quem agiu (spec da F12, "Atividade").
+export type MessageActivityItem = { kind: NotificationKind; message: Message; conversation: Conversation };
+export type TaskNotificationKind = "received" | "completed" | "reopened";
+export type TaskActivityItem = {
+  kind: "task";
+  notification: { id: string; kind: TaskNotificationKind; read: boolean };
+  task: Task;
+  actor: TaskPerson;
+};
+export type ActivityItem = MessageActivityItem | TaskActivityItem;
 
 export type ActivityPage = { items: ActivityItem[]; hasMore: boolean };
 
@@ -825,6 +834,7 @@ export type ActivityUnread = {
   totalCount: number;
   mentionCount: number;
   directCount: number;
+  taskCount: number;
 };
 
 export type ActivityPageResult =
@@ -837,7 +847,14 @@ export type ActivityUnreadResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
-type ApiActivityItem = { kind: NotificationKind; message: ApiMessage; conversation: ApiConversation };
+type ApiActivityItem =
+  | { kind: NotificationKind; message: ApiMessage; conversation: ApiConversation }
+  | {
+      kind: "task";
+      notification: { id: string; kind: TaskNotificationKind; read: boolean };
+      task: TaskPayload;
+      actor: TaskPerson;
+    };
 
 // Uma página de Atividade: as anteriores a `before`, ou as mais novas sem ele, em ordem cronológica.
 export async function listActivity(
@@ -854,11 +871,16 @@ export async function listActivity(
   return {
     kind: "ok",
     page: {
-      items: result.body.items.map((item) => ({
-        kind: item.kind,
-        message: messageFromEvent(item.message),
-        conversation: conversationFromPayload(item.conversation),
-      })),
+      items: result.body.items.map(
+        (item): ActivityItem =>
+          item.kind === "task"
+            ? { kind: "task", notification: item.notification, task: taskFromPayload(item.task), actor: item.actor }
+            : {
+                kind: item.kind,
+                message: messageFromEvent(item.message),
+                conversation: conversationFromPayload(item.conversation),
+              },
+      ),
       hasMore: result.body.has_more,
     },
   };
@@ -881,12 +903,19 @@ export type MarkActivityReadResult =
   | { kind: "unauthenticated" }
   | { kind: "failure" };
 
-// Marca tudo como lido até a Mensagem (spec da F08, "Rotas"): só avança.
-export async function markActivityRead(token: string, messageId: string): Promise<MarkActivityReadResult> {
+// A posição de "Marcar tudo como lido": a Mensagem ou a Notificação de Tarefa mais nova.
+export type ActivityPosition = { messageId: string } | { taskNotificationId: string };
+
+// Marca tudo como lido até a posição (spec da F08, "Rotas"; spec da F12, "Atividade"): só avança.
+export async function markActivityRead(token: string, position: ActivityPosition): Promise<MarkActivityReadResult> {
   const response = await request("/v1/activity/read", {
     method: "PUT",
     headers: { ...authenticated(token), "content-type": "application/json" },
-    body: JSON.stringify({ message_id: messageId }),
+    body: JSON.stringify(
+      "messageId" in position
+        ? { message_id: position.messageId }
+        : { task_notification_id: position.taskNotificationId },
+    ),
   });
   if (response?.status === 200) {
     const body = await jsonBody<ActivityUnreadPayload>(response);
@@ -973,4 +1002,15 @@ export async function changeTaskStatus(
   }
   if (response?.status === 403) return { kind: "not_assignee" };
   return commonFailure(response);
+}
+
+export type MarkTaskNotificationResult = { kind: "ok" } | { kind: "not_found" } | { kind: "unauthenticated" } | { kind: "failure" };
+
+// Abre uma Notificação de Tarefa: ela fica lida (spec da F12, "Atividade").
+export async function markTaskNotificationRead(token: string, notificationId: string): Promise<MarkTaskNotificationResult> {
+  const response = await request(`/v1/activity/task-notifications/${encodeURIComponent(notificationId)}/read`, {
+    method: "PUT",
+    headers: authenticated(token),
+  });
+  return response?.status === 204 ? { kind: "ok" } : commonFailure(response);
 }

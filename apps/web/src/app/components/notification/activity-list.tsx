@@ -14,10 +14,18 @@ import type {
   Conversation,
 } from "@/app/services/chat-api";
 import { applyCreated, applyDeleted, applyUpdated } from "@/app/utils/activity-cache";
-import { isNotificationRead, relativeTime } from "@/app/utils/activity";
+import { uuidV7Instant } from "@/app/utils/uuid";
+import {
+  activityItemId,
+  isNotificationRead,
+  isTaskNotificationRead,
+  relativeTime,
+  taskItemFromEvent,
+} from "@/app/utils/activity";
 import { ActivityEmpty } from "./activity-empty";
 import { ActivitySkeleton } from "./activity-skeleton";
 import { NotificationItem } from "./notification-item";
+import { TaskNotificationItem } from "./task-notification-item";
 
 type ActivityListProps = {
   personId: string;
@@ -47,7 +55,7 @@ export function ActivityList({
     (index, previous) => {
       if (index === 0) return ["activity", personId, filter, null];
       if (!previous?.hasMore || previous.items.length === 0) return null;
-      return ["activity", personId, filter, previous.items[0].message.id];
+      return ["activity", personId, filter, activityItemId(previous.items[0])];
     },
     fetchActivityPage,
     {
@@ -76,6 +84,11 @@ export function ActivityList({
           }),
         onMessageDeleted: ({ messageId }) =>
           void mutate((current) => applyDeleted(current ?? [], messageId), { revalidate: false }),
+        // A Notificação de Tarefa nova entra em Todas (spec da F12, "Cliente (web)").
+        onTask: (task, _arrival, notification) => {
+          const item = notification && taskItemFromEvent(task, notification);
+          if (item) void mutate((current) => applyCreated(current ?? [], item, filter), { revalidate: false });
+        },
         // Depois de uma queda longa, as páginas são buscadas de novo.
         onSync: (event) => {
           if (event.reset) void mutate();
@@ -91,6 +104,7 @@ export function ActivityList({
   // acabou de chegar pelo evento de entrada ainda não foi lida.
   const { activityReadMessageId } = useActivityUnread(personId);
   const isItemRead = (item: ActivityItem) => {
+    if (item.kind === "task") return isTaskNotificationRead(item, activityReadMessageId);
     const id = item.conversation.id;
     if (lastRead.has(id)) {
       return isNotificationRead(item.message.id, lastRead.get(id) ?? null, activityReadMessageId);
@@ -127,14 +141,23 @@ export function ActivityList({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <ul aria-label="Notificações" className="flex flex-col">
-        {items.map((item) => (
-          <NotificationItem
-            key={item.message.id}
-            item={item}
-            isRead={isItemRead(item)}
-            time={relativeTime(item.message.createdAt, now, timeZone)}
-          />
-        ))}
+        {items.map((item) =>
+          item.kind === "task" ? (
+            <TaskNotificationItem
+              key={item.notification.id}
+              item={item}
+              isRead={isItemRead(item)}
+              time={relativeTime(notificationCreatedAt(item.notification.id), now, timeZone)}
+            />
+          ) : (
+            <NotificationItem
+              key={item.message.id}
+              item={item}
+              isRead={isItemRead(item)}
+              time={relativeTime(item.message.createdAt, now, timeZone)}
+            />
+          ),
+        )}
       </ul>
       {isLoadingMore && <ActivitySkeleton rows={2} />}
       {error && !isLoadingMore && (
@@ -148,4 +171,9 @@ export function ActivityList({
       {hasMore && !error && <div ref={sentinel} className="h-px" />}
     </div>
   );
+}
+
+// A hora da Notificação de Tarefa, pelo UUID v7 dela (ADR 0022).
+function notificationCreatedAt(id: string): string {
+  return uuidV7Instant(id).toISOString();
 }

@@ -130,6 +130,8 @@ export interface ActivityUnreadEvent {
   total_count: number;
   mention_count: number;
   direct_count: number;
+  /** As Notificações de Tarefa não lidas (spec da F12, "Atividade"). */
+  task_count: number;
 }
 
 /** Uma Pessoa da Tarefa: o Responsável ou quem delegou. */
@@ -163,6 +165,16 @@ export interface TaskEvent {
   /** Cursor do evento para a reconexão; ausente quando o Redis falhou na publicação. */
   event_id?: string;
   task: TaskPayload;
+  /** A Notificação de quem recebe o evento, ou nula para quem agiu (spec da F12, "Eventos"). */
+  notification: TaskNotificationPayload | null;
+}
+
+/** O tipo de uma Notificação de Tarefa. */
+export type TaskNotificationKind = "received" | "completed" | "reopened";
+
+export interface TaskNotificationPayload {
+  id: string;
+  kind: TaskNotificationKind;
 }
 
 /**

@@ -6,6 +6,7 @@ import type {
   Message,
   NotificationKind,
 } from "@/app/services/chat-api";
+import { activityItemId } from "./activity";
 
 // As chaves do cache do SWR da Atividade, por Pessoa: quem entra depois de outra na mesma aba não
 // herda os números nem as páginas dela.
@@ -31,50 +32,52 @@ export function notificationKindFor(
   return message.mentions.some((mention) => mention.id === personId) ? "mention" : null;
 }
 
-function belongsTo(kind: NotificationKind, filter: ActivityFilter): boolean {
+// A Notificação de Tarefa só entra em Todas (spec da F12, "Atividade").
+function belongsTo(kind: ActivityItem["kind"], filter: ActivityFilter): boolean {
   return filter === "all" || (filter === "mentions" ? kind === "mention" : kind === "direct");
 }
 
-function without(pages: readonly Page[], messageId: string): Page[] {
+function without(pages: readonly Page[], id: string): Page[] {
   return pages.map((page) => ({
     ...page,
-    items: page.items.filter((item) => item.message.id !== messageId),
+    items: page.items.filter((item) => activityItemId(item) !== id),
   }));
 }
 
-function contains(pages: readonly Page[], messageId: string): boolean {
-  return pages.some((page) => page.items.some((item) => item.message.id === messageId));
+function contains(pages: readonly Page[], id: string): boolean {
+  return pages.some((page) => page.items.some((item) => activityItemId(item) === id));
 }
 
 // Põe o item no lugar dele pelo id. Mais antigo que tudo o que está carregado, com páginas por vir,
 // ele fica para a página que trouxer aquela parte.
 function inserted(pages: readonly Page[], item: ActivityItem): Page[] {
   if (pages.length === 0) return [{ items: [item], hasMore: false }];
-  const id = item.message.id;
+  const id = activityItemId(item);
   const last = pages.at(-1)!;
-  const oldest = last.items[0]?.message.id;
+  const oldest = last.items[0] && activityItemId(last.items[0]);
   if (last.hasMore && oldest !== undefined && id < oldest) return [...pages];
-  const index = pages.findIndex((page) => (page.items[0]?.message.id ?? "") <= id);
+  const index = pages.findIndex((page) => (page.items[0] ? activityItemId(page.items[0]) : "") <= id);
   const target = index === -1 ? pages.length - 1 : index;
   return pages.map((page, position) =>
     position === target
       ? {
           ...page,
-          items: [...page.items, item].sort((a, b) =>
-            a.message.id < b.message.id ? -1 : a.message.id > b.message.id ? 1 : 0,
-          ),
+          items: [...page.items, item].sort((a, b) => {
+            const [first, second] = [activityItemId(a), activityItemId(b)];
+            return first < second ? -1 : first > second ? 1 : 0;
+          }),
         }
       : page,
   );
 }
 
-// Uma Mensagem nova que é Notificação da aba entra no topo dela.
+// Uma Mensagem nova que é Notificação da aba, ou uma Notificação de Tarefa nova, entra no topo dela.
 export function applyCreated(
   pages: readonly Page[],
   item: ActivityItem,
   filter: ActivityFilter,
 ): Page[] {
-  if (!belongsTo(item.kind, filter) || contains(pages, item.message.id)) return [...pages];
+  if (!belongsTo(item.kind, filter) || contains(pages, activityItemId(item))) return [...pages];
   return inserted(pages, item);
 }
 
@@ -83,14 +86,16 @@ export function applyCreated(
 export function applyUpdated(
   pages: readonly Page[],
   message: Message,
-  item: ActivityItem | null,
+  item: Extract<ActivityItem, { message: Message }> | null,
   filter: ActivityFilter,
 ): Page[] {
   if (!item || !belongsTo(item.kind, filter)) return without(pages, message.id);
   if (!contains(pages, message.id)) return inserted(pages, item);
   return pages.map((page) => ({
     ...page,
-    items: page.items.map((entry) => (entry.message.id === message.id ? { ...entry, message } : entry)),
+    items: page.items.map((entry) =>
+      entry.kind !== "task" && entry.message.id === message.id ? { ...entry, message } : entry,
+    ),
   }));
 }
 

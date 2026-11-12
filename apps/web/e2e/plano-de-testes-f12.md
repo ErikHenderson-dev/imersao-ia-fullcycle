@@ -31,3 +31,17 @@ sai da página da Ana pela rota de envio (`requestByApi`), e o bot delega pela r
 
 O teste "tudo pelo teclado" de `atividade/atividade.spec.ts` passa pela aba Tarefas entre Mensagens
 diretas e o primeiro item.
+
+## F12-T03 · Notificações de Tarefa (`atividade/notificacao-de-tarefa.spec.ts`)
+
+As Tarefas são criadas pelo bot do teste, como na F12-T02. Cada aba espera o tempo real conectar
+antes da delegação: o evento que chega no reenvio da reconexão não alerta.
+
+1. **A Notificação de Tarefa chega, conta e abre a Tarefa:** com o Bruno em Atividade → Todas, a Ana
+   delega a ele; o item "Ana … delegou uma Tarefa a você" chega não lido, e os contadores da aba
+   Tarefas e do rail mostram 1; o clique abre a aba Tarefas com a Tarefa em destaque, e o contador
+   da aba some.
+2. **O Alerta da Tarefa recebida e da concluída:** com os dois numa Conversa, o Bruno vê o Alerta da
+   Tarefa recebida; ele conclui pela aba Tarefas, e a Ana vê "Bruno … concluiu uma Tarefa".
+3. **Sem Alerta com a aba Tarefas aberta:** com o Bruno na aba Tarefas, a delegação sobe o contador,
+   sem Alerta.

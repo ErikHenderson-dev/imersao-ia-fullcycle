@@ -13,6 +13,8 @@ import type {
   MessageView,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
+import { ActivityPublisher } from '../notifications/activity.publisher';
+import { notificationFor } from '../tasks/task-status.service';
 import { partiesOf } from '../tasks/task.entity';
 import { toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
@@ -29,6 +31,7 @@ export class BotActionsService {
     private readonly bots: BotsService,
     private readonly realtime: RealtimePublisher,
     private readonly tasks: TasksService,
+    private readonly activity: ActivityPublisher,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -157,7 +160,7 @@ export class BotActionsService {
           request.conversationId,
           assigneeUsername,
         );
-        const task = await this.tasks.create({
+        const { task, notification } = await this.tasks.create({
           requestId: request.id,
           conversationId: request.conversationId,
           triggerMessageId: request.triggerMessageId,
@@ -167,6 +170,7 @@ export class BotActionsService {
         });
         return {
           task,
+          notification,
           message: await this.messages.insertBotMessage(
             request.botId,
             request.conversationId,
@@ -178,12 +182,20 @@ export class BotActionsService {
     if (written) this.announceAnswer(message);
     const task =
       written?.task ?? (await this.tasks.findByRequestOrFail(requestId));
+    const notification = written
+      ? written.notification
+      : await this.tasks.findReceived(task.id);
     const view = await this.tasks.view(task);
     // Também na repetição: uma falha entre o commit e a publicação não deixa as Pessoas sem o
     // evento, e o cliente que já tem a Tarefa só a substitui.
-    void this.realtime.taskCreated(partiesOf(task), {
-      task: toTaskResponse(view),
-    });
+    const payload = toTaskResponse(view);
+    void this.realtime.taskCreated(partiesOf(task), (recipientId) => ({
+      task: payload,
+      notification: notificationFor(notification, recipientId),
+    }));
+    if (written && notification) {
+      this.activity.publish([notification.recipientId]);
+    }
     return { task: view, message };
   }
 

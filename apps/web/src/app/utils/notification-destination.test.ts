@@ -31,4 +31,18 @@ describe("notificationDestination", () => {
     expect(notificationDestination({ ...base, isAnyTabFocused: true })).toBe("none");
     expect(notificationDestination({ ...base, isTabFocused: true, isAnyTabFocused: true })).toBe("alert");
   });
+
+  // A Notificação de Tarefa, com a aba Tarefas no papel da Conversa aberta (F12-T03).
+  it("a Notificação de Tarefa segue as mesmas regras", () => {
+    const base = {
+      kind: "received" as const,
+      isTabFocused: true,
+      isConversationOpen: false,
+      isAnyTabFocused: true,
+      isBrowserEnabled: true,
+    };
+    expect(notificationDestination(base)).toBe("alert");
+    expect(notificationDestination({ ...base, kind: "completed", isConversationOpen: true })).toBe("none");
+    expect(notificationDestination({ ...base, isTabFocused: false, isAnyTabFocused: false })).toBe("browser");
+  });
 });

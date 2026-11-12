@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { ActivityItem } from "@/app/services/chat-api";
+import type { MessageActivityItem, Task, TaskActivityItem } from "@/app/services/chat-api";
 import {
   activityFilterFromParam,
+  activityItemId,
   activityTabFromParam,
+  isTaskNotificationRead,
+  taskItemFromEvent,
+  taskNotificationTitle,
   activityTabHref,
   isNotificationRead,
   notificationSuffix,
@@ -11,7 +15,7 @@ import {
   unreadSuffix,
 } from "./activity";
 
-function item(kind: ActivityItem["kind"]): Pick<ActivityItem, "kind" | "message"> & {
+function item(kind: MessageActivityItem["kind"]): Pick<MessageActivityItem, "kind" | "message"> & {
   conversation: { name: string };
 } {
   return {
@@ -82,5 +86,41 @@ describe("Atividade", () => {
     expect(activityFilterFromParam("mentions")).toBe("mentions");
     expect(activityFilterFromParam("tarefas")).toBeNull();
     expect(activityFilterFromParam("tasks")).toBeNull();
+  });
+});
+
+describe("Notificação de Tarefa", () => {
+  const ana = { id: "ana", name: "Ana Souza", username: "ana" };
+  const bruno = { id: "bruno", name: "Bruno Lima", username: "bruno" };
+  const task: Task = {
+    id: "t1",
+    title: "Revisar o contrato",
+    status: "open",
+    createdAt: "2026-11-12T10:00:00.000Z",
+    completedAt: null,
+    assignee: bruno,
+    delegator: ana,
+    conversation: { id: "c1", name: "geral", kind: "public_channel" },
+    triggerMessage: { id: "m1", deleted: false },
+  };
+
+  it("o título de cada tipo", () => {
+    expect(taskNotificationTitle("received", "Ana Souza")).toBe("Ana Souza delegou uma Tarefa a você");
+    expect(taskNotificationTitle("completed", "Bruno Lima")).toBe("Bruno Lima concluiu uma Tarefa");
+    expect(taskNotificationTitle("reopened", "Bruno Lima")).toBe("Bruno Lima reabriu uma Tarefa");
+  });
+
+  it("quem agiu: quem delegou na recebida, o Responsável nas outras", () => {
+    expect(taskItemFromEvent(task, { id: "n1", kind: "received" }).actor).toEqual(ana);
+    expect(taskItemFromEvent(task, { id: "n2", kind: "completed" }).actor).toEqual(bruno);
+    expect(activityItemId(taskItemFromEvent(task, { id: "n2", kind: "completed" }))).toBe("n2");
+  });
+
+  it("lida quando aberta ou pela marca", () => {
+    const unread: TaskActivityItem = taskItemFromEvent(task, { id: "0005", kind: "received" });
+    expect(isTaskNotificationRead(unread, null)).toBe(false);
+    expect(isTaskNotificationRead(unread, "0004")).toBe(false);
+    expect(isTaskNotificationRead(unread, "0005")).toBe(true);
+    expect(isTaskNotificationRead({ ...unread, notification: { ...unread.notification, read: true } }, null)).toBe(true);
   });
 });

@@ -430,6 +430,7 @@ describe('Atividade', () => {
       total_count: 0,
       mention_count: 0,
       direct_count: 0,
+      task_count: 0,
     });
     const listed = await conversationRoutes.listed<{
       id: string;

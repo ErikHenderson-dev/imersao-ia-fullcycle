@@ -1,4 +1,4 @@
-import type { NotificationKind } from "@/app/services/chat-api";
+import type { NotificationKind, TaskNotificationKind } from "@/app/services/chat-api";
 
 // Quanto tempo o Alerta fica na tela (LLD, "Valores de regra", "Duração do Alerta").
 export const ALERT_DURATION_MS = 8_000;
@@ -16,7 +16,8 @@ export function notificationDestination({
   isAnyTabFocused,
   isBrowserEnabled,
 }: {
-  kind: NotificationKind | null;
+  // A de Tarefa também (spec da F12, "Cliente (web)"), com a aba Tarefas no papel da Conversa aberta.
+  kind: NotificationKind | TaskNotificationKind | null;
   isTabFocused: boolean;
   isConversationOpen: boolean;
   isAnyTabFocused: boolean;

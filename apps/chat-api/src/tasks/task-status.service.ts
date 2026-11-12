@@ -3,7 +3,9 @@ import { TransactionalAdapterTypeOrm } from '@nestjs-cls/transactional-adapter-t
 import { Injectable } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
+import { ActivityPublisher } from '../notifications/activity.publisher';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
+import type { TaskNotification } from './task-notification.entity';
 import type { ListTasksQuery } from './list-tasks.query';
 import { partiesOf, Task, type TaskStatus } from './task.entity';
 import { toTaskResponse } from './task.response';
@@ -19,6 +21,7 @@ export class TaskStatusService {
     private readonly txHost: TransactionHost<TransactionalAdapterTypeOrm>,
     private readonly views: TasksService,
     private readonly realtime: RealtimePublisher,
+    private readonly activity: ActivityPublisher,
   ) {}
 
   private get tasks(): Repository<Task> {
@@ -66,12 +69,19 @@ export class TaskStatusService {
     taskId: string,
     status: TaskStatus,
   ): Promise<TaskView> {
-    const { task, changed } = await this.saveStatus(personId, taskId, status);
+    const { task, changed, notification } = await this.saveStatus(
+      personId,
+      taskId,
+      status,
+    );
     const view = await this.views.view(task);
     if (changed) {
-      void this.realtime.taskUpdated(partiesOf(task), {
-        task: toTaskResponse(view),
-      });
+      const payload = toTaskResponse(view);
+      void this.realtime.taskUpdated(partiesOf(task), (recipientId) => ({
+        task: payload,
+        notification: notificationFor(notification, recipientId),
+      }));
+      if (notification) this.activity.publish([notification.recipientId]);
     }
     return view;
   }
@@ -81,15 +91,31 @@ export class TaskStatusService {
     personId: string,
     taskId: string,
     status: TaskStatus,
-  ): Promise<{ task: Task; changed: boolean }> {
+  ): Promise<{
+    task: Task;
+    changed: boolean;
+    notification: TaskNotification | null;
+  }> {
     const task = await this.findVisible(personId, taskId, { lock: true });
     if (task.assigneeId !== personId) throw new TaskNotAssigneeError();
-    if (task.status === status) return { task, changed: false };
+    if (task.status === status) {
+      return { task, changed: false, notification: null };
+    }
     const completedAt = status === 'done' ? new Date() : null;
     await this.tasks.update({ id: task.id }, { status, completedAt });
+    // Quem delegou é avisado, a não ser que tenha delegado a si mesmo.
+    const notification =
+      task.delegatorId === personId
+        ? null
+        : await this.views.notify(
+            task,
+            task.delegatorId,
+            status === 'done' ? 'completed' : 'reopened',
+          );
     return {
       task: Object.assign(task, { status, completedAt }),
       changed: true,
+      notification,
     };
   }
 
@@ -109,4 +135,14 @@ export class TaskStatusService {
     }
     return task;
   }
+}
+
+// A Notificação na carga do evento de quem recebe: a dele, ou nula.
+export function notificationFor(
+  notification: TaskNotification | null,
+  recipientId: string,
+): { id: string; kind: TaskNotification['kind'] } | null {
+  return notification?.recipientId === recipientId
+    ? { id: notification.id, kind: notification.kind }
+    : null;
 }

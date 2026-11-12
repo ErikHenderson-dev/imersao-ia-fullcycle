@@ -546,7 +546,7 @@ Estes detalhes não aparecem só olhando o desenho:
 - **ReplyQuote:** normal, apagada e restrita; clicar leva à mensagem original.
 - **AgentText:** blocos de cabeçalho, lista, tabela mono e parágrafo. **Nunca vira HTML**: o texto do agente é renderizado como dados, sem `dangerouslySetInnerHTML`.
 - **MentionChip:** amarelo (`mention-self-*`) para o próprio usuário e para `@canal` e `@aqui`.
-- **NotificationItem:** não lida tem fundo `highlight-bg`, título bold e ponto vermelho.
+- **NotificationItem:** não lida tem fundo `highlight-bg`, título bold e ponto vermelho. Serve também à Notificação de Tarefa (recebida, concluída ou reaberta), sem variant própria: o avatar é de quem agiu, o título diz a ação e o `Excerpt` traz o título da Tarefa. Frames: "Atividade / Todas / Com Notificações de Tarefa", "Alerta / Tarefa / Recebida" e "Alerta / Tarefa / Concluída", na seção "Tarefas (F12)".
 - **TaskItem:** pílula de estado (Aberta; Concluída com check em `success`) e título em `fg-muted` quando concluída. `Show action` só nas Recebidas (Concluir ou Reabrir); nas Delegadas, só o estado. Pedido apagado: `Show link` desligado e `Show deleted` com "Mensagem apagada", e o link leva à Conversa. `Tone=highlighted` (aberta por `?tarefa=`) usa `highlight-bg` e borda à esquerda. **TaskGroupHeader:** rótulo dos grupos Recebidas e Delegadas da aba Tarefas.
 - **SidebarRow:** `h-7`, `rounded-item`; não lida em `font-black`; ativa com `sidebar-active`. **SidebarSection:** recolhida, o chevron gira -90°.
 - **SidebarAction (Agentes):** muda com o papel: `connect` (admin, nenhum conectado), `add` (admin, parte conectada), `manage` (admin, todos conectados), `view` (não admin).

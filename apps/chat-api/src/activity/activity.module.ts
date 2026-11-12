@@ -5,6 +5,7 @@ import { SessionsModule } from '../sessions/sessions.module';
 import { ActivityController } from './activity.controller';
 import { ActivityService } from './activity.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { TasksModule } from '../tasks/tasks.module';
 
 // A Atividade: as Notificações calculadas e os números (spec da F08; ADR 0027).
 @Module({
@@ -13,6 +14,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     MessagesModule,
     NotificationsModule,
     SessionsModule,
+    TasksModule,
   ],
   controllers: [ActivityController],
   providers: [ActivityService],

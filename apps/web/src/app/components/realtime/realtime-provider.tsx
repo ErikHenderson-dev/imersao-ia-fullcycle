@@ -16,6 +16,7 @@ import type {
   StoredEventName,
   SyncEvent,
   TaskEvent,
+  TaskNotificationPayload,
 } from "chat-events";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
@@ -57,7 +58,7 @@ export type RealtimeListener = {
   onActivityUnread?: (unread: ActivityUnread) => void;
   // A Tarefa criada ou que mudou de estado (`task.created` e `task.updated`), para o Responsável e
   // quem delegou (spec da F12, "Eventos"). O reenvio da reconexão não alerta.
-  onTask?: (task: Task, arrival: MessageArrival) => void;
+  onTask?: (task: Task, arrival: MessageArrival, notification: TaskNotificationPayload | null) => void;
   onSync?: (event: SyncEvent) => void;
   // O Perfil que mudou, para todo o workspace, sem guardar nem reenviar (spec da F09, "Tempo real").
   // Assinado aqui, e não direto no socket, para não perder o que chega logo depois da conexão.
@@ -258,7 +259,7 @@ export function RealtimeProvider({ url, children }: RealtimeProviderProps) {
     const applyTask = (event: TaskEvent) => {
       const task = taskFromPayload(event.task);
       const arrival = { isReplay: isReplaying };
-      listeners.current.forEach((listener) => listener.onTask?.(task, arrival));
+      listeners.current.forEach((listener) => listener.onTask?.(task, arrival, event.notification ?? null));
     };
     // Uma entrada por evento guardado: um evento novo no contrato não compila até ter a sua.
     const handlers: StoredEventHandlers = {

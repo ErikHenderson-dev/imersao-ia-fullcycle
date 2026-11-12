@@ -6,6 +6,7 @@ const counts = (mark: string | null) => ({
   totalCount: 0,
   mentionCount: 0,
   directCount: 0,
+  taskCount: 0,
 });
 
 describe("isNewerMark", () => {
