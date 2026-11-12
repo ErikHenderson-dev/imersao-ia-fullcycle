@@ -36,3 +36,12 @@ precisa do Banco de negócio de desenvolvimento carregado (`scripts.load_busines
    ela vê "Faturamento de março de 2026: R$ …" e a linha "Considerado: faturamento líquido, pedidos
    pagos, de 01/03/2026 a 31/03/2026", e o Bruno vê a Resposta bloqueada, sem o número, sem
    recarregar.
+
+## F13-T06 · Pergunta pendente de período (`agentes/pergunta-de-periodo.spec.ts`)
+
+O bot do teste, com `@usuário` próprio, grava pela rota a pergunta que a ferramenta
+`perguntar_periodo` grava, sem o modelo.
+
+1. **Os botões de período valem só para quem pediu:** a Ana pede, e o bot pergunta "De que
+   período?" com "Este mês", "Mês passado" e "Este ano"; a Ana vê os três ativos, e o Bruno os vê
+   desativados, com "só quem pediu pode responder" no rótulo acessível.

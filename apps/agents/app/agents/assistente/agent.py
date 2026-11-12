@@ -23,6 +23,7 @@ from .instructions import build_instruction
 from .tools import (
     consultar_dados,
     delegar_tarefa,
+    perguntar_periodo,
     ler_mensagens,
     perguntar_delegacao,
     perguntar_recorte,
@@ -48,6 +49,7 @@ root_agent = Agent(
         delegar_tarefa,
         perguntar_delegacao,
         consultar_dados,
+        perguntar_periodo,
     ],
     # Só age na avaliação, com a Conversa da fixture do caso (app/eval_fixtures.py).
     before_tool_callback=fixture_tool_callback,

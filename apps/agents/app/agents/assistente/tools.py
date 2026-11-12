@@ -23,6 +23,7 @@ from app.agent_requests.recorte import Recorte
 from app.agent_requests.task import delegate
 from app.business.consult import consult
 from app.business.db import CURRENT_BUSINESS
+from app.business.period_question import ask_period
 from app.chat_api import CURRENT_CHAT_API
 
 FORA_DE_UM_PEDIDO = "A ferramenta só funciona dentro de um Pedido."
@@ -161,3 +162,17 @@ async def consultar_dados(
         filtro_tipo,
         filtro_nome,
     )
+
+
+async def perguntar_periodo(tool_context: ToolContext) -> dict[str, Any]:
+    """Pergunta a quem pediu de que período é o número, com os botões "Este mês", "Mês passado" e
+    "Este ano". Use só numa pergunta de número de vendas sem período. Depois dela, não escreva nada:
+    a pergunta já está na Conversa.
+
+    Returns:
+        A pergunta gravada e os rótulos dos botões.
+    """
+    client = CURRENT_CHAT_API.get()
+    if client is None:
+        return {"erro": FORA_DE_UM_PEDIDO}
+    return await ask_period(client, tool_context)
