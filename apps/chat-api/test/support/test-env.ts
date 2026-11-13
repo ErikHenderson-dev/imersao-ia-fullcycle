@@ -16,3 +16,9 @@ process.env.PRESENCE_GRACE_MS = '300';
 
 // A credencial de bot dos testes, a mesma que `botRoutes` envia (test/support/bot-routes.ts).
 process.env.CHAT_BOT_TOKEN = 'credencial-de-bot-dos-testes';
+
+// A credencial do Worker dos testes, a mesma que `botRoutes` envia como Worker.
+process.env.CHAT_WORKER_TOKEN = 'credencial-do-worker-dos-testes';
+
+// O S3 do contêiner: o teste baixa a URL assinada de dentro do contêiner, pelo endereço interno.
+process.env.S3_PUBLIC_ENDPOINT = process.env.S3_ENDPOINT ?? 'http://s3:8333';

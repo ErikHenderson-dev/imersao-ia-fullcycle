@@ -88,6 +88,7 @@ export function usePendingMessages(
           quickReplies: null,
           businessData: false,
           blocked: false,
+          report: null,
           status: "sending",
         },
       ]);

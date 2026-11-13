@@ -251,7 +251,13 @@ export type Message = {
   // F13, "Marca e Resposta bloqueada").
   businessData: boolean;
   blocked: boolean;
+  // O PDF da entrega do Relatório, nulo na versão bloqueada e nas outras Mensagens (spec da F14,
+  // "Cliente (web)").
+  report: Report | null;
 };
+
+// O PDF da entrega do Relatório: o nome do arquivo e o tamanho em bytes.
+export type Report = { fileName: string; sizeBytes: number };
 
 // Os botões da pergunta do Agente: os rótulos, quem pode responder, até quando e se já se encerrou.
 export type QuickReplies = {
@@ -1022,4 +1028,25 @@ export async function markTaskNotificationRead(token: string, notificationId: st
     headers: authenticated(token),
   });
   return response?.status === 204 ? { kind: "ok" } : commonFailure(response);
+}
+
+export type MessageReportUrlResult =
+  | { kind: "ok"; url: string }
+  | { kind: "forbidden" }
+  | { kind: "not_found" }
+  | { kind: "unauthenticated" }
+  | { kind: "failure" };
+
+// A URL assinada do PDF da entrega do Relatório, com a Permissão de dados conferida pela API no
+// momento do pedido (spec da F14, "Referência ao PDF e download").
+export async function getMessageReportUrl(token: string, messageId: string): Promise<MessageReportUrlResult> {
+  const response = await request(`/v1/messages/${encodeURIComponent(messageId)}/report`, {
+    headers: authenticated(token),
+  });
+  if (response?.status === 200) {
+    const body = await jsonBody<{ url?: unknown }>(response);
+    return typeof body?.url === "string" ? { kind: "ok", url: body.url } : { kind: "failure" };
+  }
+  if (response?.status === 403) return { kind: "forbidden" };
+  return commonFailure(response);
 }

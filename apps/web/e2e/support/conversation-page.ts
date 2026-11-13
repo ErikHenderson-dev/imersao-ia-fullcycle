@@ -31,11 +31,12 @@ export function messageItem(page: Page, channelName: string, text: string): Loca
   return messageList(page, channelName).getByRole("listitem").filter({ hasText: text });
 }
 
-// A Mensagem do Agente na Conversa: o item da lista com o nome do Agente (F11).
-export function agentMessage(page: Page, channelName: string): Locator {
+// A Mensagem do Agente na Conversa: o item da lista com o nome do Agente (F11), o `assistente` ou
+// o bot do teste.
+export function agentMessage(page: Page, channelName: string, agentName = "Assistente"): Locator {
   return messageList(page, channelName)
     .getByRole("listitem")
-    .filter({ has: page.getByRole("button", { name: "Assistente", exact: true }) });
+    .filter({ has: page.getByRole("button", { name: agentName, exact: true }) });
 }
 
 // Abre "Apagar mensagem?" pelo menu da Mensagem (F06) e devolve o diálogo.

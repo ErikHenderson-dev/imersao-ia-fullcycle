@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { AgentAvatar } from "@/app/components/agent/agent-avatar";
 import { useKnownPerson } from "@/app/components/people/people-provider";
 import { PersonAvatar } from "@/app/components/people/person-display";
 import type { MessageActivityItem } from "@/app/services/chat-api";
 import { notificationSuffix, notificationTitle } from "@/app/utils/activity";
+import { displayText } from "@/app/utils/business-data";
 import { messageHref } from "@/app/utils/conversation-list";
 import { cn } from "@/app/utils/cn";
 
@@ -35,7 +37,12 @@ export function NotificationItem({ item, isRead, time }: NotificationItemProps) 
           !isRead && "bg-highlight-bg hover:bg-highlight-bg",
         )}
       >
-        <PersonAvatar person={item.message.author} />
+        {/* A Menção de um Agente, como a falha do Relatório, leva o AgentAvatar (spec da F14). */}
+        {item.message.author.kind === "bot" ? (
+          <AgentAvatar />
+        ) : (
+          <PersonAvatar person={item.message.author} />
+        )}
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-center gap-3">
             <span className={cn("min-w-0 flex-1 truncate text-body text-fg", !isRead && "font-bold")}>
@@ -45,7 +52,7 @@ export function NotificationItem({ item, isRead, time }: NotificationItemProps) 
               {time}
             </span>
           </span>
-          <span className="truncate text-body text-fg-muted">{item.message.body}</span>
+          <span className="truncate text-body text-fg-muted">{displayText(item.message)}</span>
           <span className="sr-only">{notificationSuffix(isRead)}</span>
         </span>
         <span className="flex w-2 shrink-0 pt-2">

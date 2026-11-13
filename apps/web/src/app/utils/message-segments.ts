@@ -36,6 +36,18 @@ export function splitMessageBody(
   );
 }
 
+// Só as Menções, sem links nem Agentes: o texto do Agente, que nunca vira link, destaca as Pessoas
+// que a Mensagem do bot menciona, como a entrega e a falha do Relatório (spec da F14, "Cliente
+// (web)").
+export function splitMentionsOnly(
+  text: string,
+  mentions: readonly Mention[],
+): MessageSegment[] {
+  if (mentions.length === 0) return [{ kind: "text", text }];
+  const byUsername = new Map(mentions.map((mention) => [mention.username, mention]));
+  return splitMentions(text, byUsername, new Set());
+}
+
 function splitMentions(
   text: string,
   byUsername: Map<string, Mention>,

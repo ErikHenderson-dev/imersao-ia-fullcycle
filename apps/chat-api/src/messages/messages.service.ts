@@ -30,6 +30,7 @@ import {
 import { ClientIdConflictError } from './client-id-conflict.error';
 import { Message } from './message.entity';
 import { MessageMention } from './message-mention.entity';
+import { MessageReport } from './message-report.entity';
 import { extractMentionUsernames } from './mentions';
 import { MessageNotFoundError } from './message-not-found.error';
 import { MessageNotOwnedError } from './message-not-owned.error';
@@ -70,6 +71,18 @@ export interface QuickRepliesView extends PendingQuestionView {
   options: string[];
 }
 
+// O PDF da entrega do Relatório, sem a chave no armazenamento (spec da F14, "Referência ao PDF e
+// download").
+export interface ReportView {
+  fileName: string;
+  sizeBytes: number;
+}
+
+// O PDF que a entrega grava junto da Mensagem: a chave fica só na API.
+export interface NewReport extends ReportView {
+  storageKey: string;
+}
+
 export interface MessageView {
   id: string;
   conversationId: string;
@@ -83,6 +96,8 @@ export interface MessageView {
   quickReplies: QuickRepliesView | null;
   // A marca "dados de negócio" (spec da F13).
   businessData: boolean;
+  // O PDF da entrega do Relatório, ou nulo (spec da F14).
+  report: ReportView | null;
 }
 
 export interface MessagePage {
@@ -174,6 +189,10 @@ export class MessagesService {
     return this.txHost.tx.getRepository(MessageMention);
   }
 
+  private get reports(): Repository<MessageReport> {
+    return this.txHost.tx.getRepository(MessageReport);
+  }
+
   // Uma página do histórico, em ordem cronológica: as `limit` Mensagens anteriores a `before`, ou
   // as mais recentes sem ele. Uma linha a mais diz se há Mensagens anteriores (LLD, "Interfaces").
   async listPage(
@@ -218,6 +237,25 @@ export class MessagesService {
       where: { id: In(ids), deletedAt: Not(IsNull()) },
     });
     return new Set(deleted.map((message) => message.id));
+  }
+
+  // O PDF da Mensagem viva desse id, com a chave, e a Conversa dela, ou null: o download confere a
+  // participação e a Permissão de dados de quem pede (spec da F14, "Referência ao PDF e download").
+  async findReport(
+    messageId: string,
+  ): Promise<(NewReport & { conversationId: string }) | null> {
+    const report = await this.reports.findOne({
+      where: { messageId, message: { deletedAt: IsNull() } },
+      relations: { message: true },
+    });
+    if (!report?.message) return null;
+    const { storageKey, fileName, sizeBytes } = report;
+    return {
+      storageKey,
+      fileName,
+      sizeBytes,
+      conversationId: report.message.conversationId,
+    };
   }
 
   // A Mensagem desse id, montada como no histórico, mesmo apagada; quem chama sabe que ela existe.
@@ -301,9 +339,12 @@ export class MessagesService {
 
   // Grava a Mensagem de um bot na Conversa de um Pedido (spec da F11, "Rotas do bot e
   // credencial"), dentro da transação de quem chama, que confere o Pedido e a ação. O bot não é
-  // Membro: não há Última leitura, Menção nem Citação.
+  // Membro: não há Última leitura nem Citação.
   // Na pergunta, os rótulos das Respostas prontas vão junto, e a Pergunta pendente que dá o resto do
-  // payload é gravada por quem chama.
+  // payload é gravada por quem chama. Com `withMentions`, os @usuário de Membros no texto viram
+  // Menções, como na Mensagem de uma Pessoa: a entrega e a falha do Relatório mencionam quem pediu
+  // (spec da F14, "Ações de bot do Relatório"); as outras Mensagens de bot não mencionam ninguém.
+  // Com `report`, a referência ao PDF da entrega entra na mesma transação.
   async insertBotMessage(
     botId: string,
     conversationId: string,
@@ -311,7 +352,14 @@ export class MessagesService {
     {
       quickReplies = null,
       businessData = false,
-    }: { quickReplies?: string[] | null; businessData?: boolean } = {},
+      withMentions = false,
+      report = null,
+    }: {
+      quickReplies?: string[] | null;
+      businessData?: boolean;
+      withMentions?: boolean;
+      report?: NewReport | null;
+    } = {},
   ): Promise<MessageView> {
     const message = await this.messages.save(
       this.messages.create({
@@ -325,14 +373,26 @@ export class MessagesService {
         businessData,
       }),
     );
+    const mentions = withMentions
+      ? await this.saveMentions(message, body, false)
+      : [];
+    if (report) await this.reports.insert({ messageId: message.id, ...report });
     const [bot] = await this.bots.findByIds([botId]);
-    // Montada sem reler a linha: a Mensagem de bot não tem Menção nem Citação.
-    return toView(message, toAuthor('bot', bot), [], null);
+    // Montada sem reler a linha: a Mensagem de bot não tem Citação.
+    return toView(
+      message,
+      toAuthor('bot', bot),
+      mentions,
+      null,
+      null,
+      report && { fileName: report.fileName, sizeBytes: report.sizeBytes },
+    );
   }
 
   // Publica a Mensagem de bot gravada, depois do commit: o message.created e as Não lidas dos
-  // Membros. Sem Atividade, porque a Mensagem de bot nunca gera Notificação (spec da F11, "Autor da
-  // Mensagem"). A falha só vai para o log, como no envio.
+  // Membros e, quando ela menciona alguém, os números de Atividade de quem foi mencionado. A
+  // Mensagem de bot sem Menção não gera Notificação (spec da F11, "Autor da Mensagem"; spec da F14,
+  // "Ações de bot do Relatório"). A falha só vai para o log, como no envio.
   publishBotMessage(message: MessageView): void {
     const { conversationId } = message;
     this.queueForMessage(
@@ -340,7 +400,13 @@ export class MessagesService {
       this.toMembers(
         conversationId,
         async (memberIds) => {
-          await this.announceCreated(message, memberIds);
+          const { unread } = await this.announceCreated(message, memberIds);
+          if (message.mentions.length > 0) {
+            this.activityPublisher.publish(
+              message.mentions.map((mention) => mention.id),
+              unread,
+            );
+          }
         },
         'Falha ao publicar a Mensagem do bot',
       ),
@@ -1047,11 +1113,16 @@ export class MessagesService {
     const questionIds = messages.flatMap((message) =>
       message.quickReplies ? [message.id] : [],
     );
-    const [authorOf, mentions, quotes, questions] = await Promise.all([
+    // Só a Mensagem de bot com a marca "dados de negócio" pode ter o PDF do Relatório.
+    const botIds = messages.flatMap((message) =>
+      message.authorBotId && message.businessData ? [message.id] : [],
+    );
+    const [authorOf, mentions, quotes, questions, reports] = await Promise.all([
       this.authorsOf(messages),
       this.mentionsByMessage(messages.map((message) => message.id)),
       this.quotesById(quotedIds),
       this.pendingQuestions.viewsByMessages(questionIds),
+      this.reportsByMessage(botIds),
     ]);
     return messages.map((message) =>
       toView(
@@ -1062,7 +1133,25 @@ export class MessagesService {
           ? (quotes.get(message.quotedMessageId) ?? null)
           : null,
         quickRepliesOf(message, questions.get(message.id)),
+        reports.get(message.id) ?? null,
       ),
+    );
+  }
+
+  // Os PDFs de várias Mensagens, numa consulta pelos ids, sem a chave.
+  private async reportsByMessage(
+    messageIds: string[],
+  ): Promise<Map<string, ReportView>> {
+    if (messageIds.length === 0) return new Map();
+    const rows = await this.reports.find({
+      select: { messageId: true, fileName: true, sizeBytes: true },
+      where: { messageId: In(messageIds) },
+    });
+    return new Map(
+      rows.map((row) => [
+        row.messageId,
+        { fileName: row.fileName, sizeBytes: row.sizeBytes },
+      ]),
     );
   }
 }
@@ -1126,6 +1215,7 @@ function toView(
   mentions: MentionView[],
   quote: QuoteView | null,
   quickReplies: QuickRepliesView | null = null,
+  report: ReportView | null = null,
 ): MessageView {
   return {
     id: message.id,
@@ -1140,6 +1230,7 @@ function toView(
     quote,
     quickReplies,
     businessData: message.businessData,
+    report,
   };
 }
 

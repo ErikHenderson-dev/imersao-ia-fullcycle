@@ -43,6 +43,7 @@ Subir o Serviço de agentes está no `AGENTS.md` da raiz, seção "Subir e derru
 | `uv run pytest tests/unit` | Testes de unidade |
 | `uv run pytest tests/integration` | Testes de integração, com o modelo real |
 | `uv run --extra eval adk eval app/agents/<agente> tests/eval/<agente>/<agente>.evalset.json --config_file_path tests/eval/<agente>/test_config.json` | Avaliação de um agente (seção "Avaliação") |
+| `uv run arq app.worker.WorkerSettings` | O Worker de agentes, no contêiner `worker` (`docker compose -f compose.yaml exec worker ...`): consome a fila do Relatório em PDF (spec da F14, "Worker de agentes") |
 | `uv run alembic upgrade head` | Roda as migrações pendentes do Banco dos agentes (`DATABASE_URL`) |
 | `uv run alembic revision --autogenerate -m "<nome>"` | Gera uma migração das tabelas do registro; as de sessão do ADK ficam de fora |
 | `uv run python -m scripts.load_business` | Carrega o Banco de negócio com os dados fixos, pelo dono do banco (`BUSINESS_OWNER_DATABASE_URL`); apaga e recria as tabelas |
@@ -59,7 +60,8 @@ Os testes de integração do registro (`tests/integration/test_registry_routes.p
 `TEST_DATABASE_ADMIN_URL` (o superusuário local, porque o papel `agents` não tem `CREATEDB`) e pelo
 `TEST_DATABASE_URL`, os dois no `compose.yaml`. Os testes do Banco de negócio usam o banco `business_test`, que o `conftest.py` recria uma vez por
 execução pelo `TEST_DATABASE_ADMIN_URL`, com os papéis do init, e carregam com `SET ROLE business`;
-o usuário só leitura conecta por `BUSINESS_TEST_DATABASE_URL`. Os testes da rota de Pedido usam o banco lógico 2 do Redis
+o usuário só leitura conecta por `BUSINESS_TEST_DATABASE_URL`. Os testes do Worker (`tests/integration/test_worker_job.py`) gravam no S3 do contêiner pelas
+variáveis `S3_*` do `agents`, no `compose.yaml`, e usam a API do chat falsa. Os testes da rota de Pedido usam o banco lógico 2 do Redis
 (`TEST_REDIS_URL`, no `compose.yaml`) para o limite de pedidos. Os outros testes de integração e a avaliação chamam o Gemini e precisam da `GEMINI_API_KEY` em
 `apps/agents/.env` (copie do `.env.example`). Mudar o `.env` ou o `compose.yaml` pede
 `docker compose -f compose.yaml up -d agents` para as variáveis novas entrarem.
@@ -100,14 +102,19 @@ livre e não pode ser comparado por igualdade, então a trajetória confere só 
 ferramentas (`ignore_args`), e o Responsável e o título são conferidos pelo
 `rubric_based_tool_use_quality_v1`, com rubricas `TOOL_USE_QUALITY` por caso. O
 `eval_expected_assignee` do caso também faz a API do chat da avaliação recusar outro Responsável
-(F12-T06). A avaliação
-completa do `assistente` são os três evalsets, cada um com a sua configuração.
+(F12-T06).
 
 O terceiro, `dados.evalset.json`, com `test_config_dados.json`, cobre a consulta a Dados de negócio
 (F13-T07): `consultar_dados` e `perguntar_periodo` rodam de verdade, com o callback da avaliação
 pondo a API do chat da avaliação (que guarda a resposta no estado, em `eval_resposta`) e o Banco de
 negócio de `BUSINESS_DATABASE_URL`, sem auditoria; o Banco de negócio precisa estar carregado
 (`scripts.load_business`), e o "hoje" dos casos é 15/10/2026 (`business_today`).
+
+O quarto, `relatorio.evalset.json`, com `test_config_relatorio.json`, cobre o Relatório em PDF
+(F14-T07): `gerar_relatorio` roda de verdade até o Aviso de início, com a API do chat da avaliação
+(o aviso vai para `eval_resposta`) e uma fila em memória (`EvalReportQueue`, a carga do job vai para
+`eval_relatorio`), sem Worker nem Redis; o PDF é conferido pelos testes de integração do Worker. A
+avaliação completa do `assistente` são os quatro evalsets, cada um com a sua configuração.
 
 A avaliação chama o modelo e o juiz de verdade: ao iterar, rode só os casos que mudaram, com
 `<evalset>:<eval_id>,<eval_id>` no lugar do caminho do evalset.

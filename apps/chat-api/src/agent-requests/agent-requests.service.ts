@@ -7,7 +7,10 @@ import {
   AgentRequest,
   type AgentRequestClosedStatus,
 } from './agent-request.entity';
-import { AGENT_REQUEST_TTL_MS } from './agent-request-values';
+import {
+  AGENT_REQUEST_TTL_MS,
+  LONG_AGENT_REQUEST_TTL_MS,
+} from './agent-request-values';
 import { BotAction, BotActionType } from './bot-action.entity';
 import { RequestClosedError } from './request-closed.error';
 import { RequestExpiredError } from './request-expired.error';
@@ -96,19 +99,30 @@ export class AgentRequestsService {
     return request;
   }
 
-  // A Mensagem que a ação já gravou neste Pedido, ou null.
-  async findActionMessageId(
-    requestId: string,
-    actionType: BotActionType,
-  ): Promise<string | null> {
-    const action = await this.actions.findOneBy({ requestId, actionType });
-    return action?.messageId ?? null;
-  }
-
   // Se o Pedido já tem uma ação gravada: toda ação de bot responde ao Pedido, e depois dela o bot
   // já não está digitando (LLD, "Digitando").
   hasAnswer(requestId: string): Promise<boolean> {
     return this.actions.existsBy({ requestId });
+  }
+
+  // As ações já gravadas no Pedido, com a Mensagem de cada uma.
+  findActions(
+    requestId: string,
+  ): Promise<Pick<BotAction, 'actionType' | 'messageId'>[]> {
+    return this.actions.find({
+      select: { actionType: true, messageId: true },
+      where: { requestId },
+    });
+  }
+
+  // O Aviso de início estende a validade do Pedido demorado, contada a partir dele, para a entrega
+  // ou a falha poderem chegar minutos depois (spec da F14, "Ações de bot do Relatório"). Dentro da
+  // transação da ação, com o Pedido travado.
+  async extendForReport(requestId: string): Promise<void> {
+    await this.requests.update(
+      { id: requestId },
+      { expiresAt: new Date(Date.now() + LONG_AGENT_REQUEST_TTL_MS) },
+    );
   }
 
   async recordAction(

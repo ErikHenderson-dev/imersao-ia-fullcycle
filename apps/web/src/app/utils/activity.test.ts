@@ -33,6 +33,7 @@ function item(kind: MessageActivityItem["kind"]): Pick<MessageActivityItem, "kin
       quickReplies: null,
       businessData: false,
       blocked: false,
+      report: null,
     },
     conversation: { name: "geral" },
   };

@@ -2,15 +2,21 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 import { AgentRequestsService } from '../agent-requests/agent-requests.service';
 import type { AgentRequest } from '../agent-requests/agent-request.entity';
-import type { BotActionType } from '../agent-requests/bot-action.entity';
+import {
+  REPORT_TERMINAL_ACTIONS,
+  type BotActionType,
+} from '../agent-requests/bot-action.entity';
+import { ReportNotStartedError } from '../agent-requests/report-not-started.error';
 import { RequestClosedError } from '../agent-requests/request-closed.error';
 import { PendingQuestionsService } from '../agent-requests/pending-questions.service';
 import { BotsService } from '../bots/bots.service';
+import { PeopleService } from '../people/people.service';
 import { MessagesService, toAuthor } from '../messages/messages.service';
 import type {
   BotReadFilter,
   BotReadPage,
   MessageView,
+  NewReport,
 } from '../messages/messages.service';
 import { RealtimePublisher } from '../realtime/realtime.publisher';
 import { ActivityPublisher } from '../notifications/activity.publisher';
@@ -18,6 +24,7 @@ import { partiesOf } from '../tasks/task.entity';
 import { notificationFor, toTaskResponse } from '../tasks/task.response';
 import { TasksService, type TaskView } from '../tasks/tasks.service';
 import { SUMMARY_MESSAGE_LIMIT } from './bot-values';
+import { ReportKeyMismatchError } from './report-key-mismatch.error';
 
 // As ações do bot na Conversa, sempre dentro de um Pedido real (ADR 0011; spec da F11, "Rotas do bot
 // e credencial"): a Conversa e o bot vêm do Pedido, e nunca de quem chama.
@@ -31,6 +38,7 @@ export class BotActionsService {
     private readonly realtime: RealtimePublisher,
     private readonly tasks: TasksService,
     private readonly activity: ActivityPublisher,
+    private readonly people: PeopleService,
   ) {}
 
   // As Mensagens de Pessoas do Recorte, na Conversa do Pedido, no máximo as do teto do resumo, com
@@ -204,6 +212,85 @@ export class BotActionsService {
     return { task: view, message };
   }
 
+  // Grava o Aviso de início do Relatório, com a marca "dados de negócio", estende a validade do
+  // Pedido demorado e emite o fim do "digitando" (spec da F14, "Ações de bot do Relatório").
+  // Repetido, devolve o aviso já gravado, sem estender de novo.
+  async reportStarted(requestId: string, body: string): Promise<MessageView> {
+    const { message, written } = await this.once(
+      requestId,
+      'report_started',
+      async (request) => {
+        const inserted = await this.messages.insertBotMessage(
+          request.botId,
+          request.conversationId,
+          body,
+          { businessData: true },
+        );
+        await this.requests.extendForReport(request.id);
+        return { message: inserted };
+      },
+    );
+    if (written) this.announceAnswer(message);
+    return message;
+  }
+
+  // Grava a entrega do Relatório numa transação: a Mensagem com a marca, a referência ao PDF que o
+  // Worker gravou no armazenamento e a Menção a quem pediu (spec da F14, "Ações de bot do
+  // Relatório"). Repetida, devolve a entrega já gravada, sem segunda referência.
+  async reportDelivered(
+    requestId: string,
+    report: NewReport,
+  ): Promise<MessageView> {
+    return this.reportOutcome(
+      requestId,
+      'report_delivered',
+      (username) => `@${username}, o relatório está pronto.`,
+      report,
+    );
+  }
+
+  // Grava o "não consegui gerar o relatório" (spec da F14, "Ações de bot do Relatório").
+  async reportFailed(requestId: string): Promise<MessageView> {
+    return this.reportOutcome(
+      requestId,
+      'report_failed',
+      (username) => `@${username}, não consegui gerar o relatório.`,
+    );
+  }
+
+  // A entrega ou a falha: a Mensagem com a marca e a Menção a quem pediu, que recebe a Notificação de
+  // Menção. O corpo é montado aqui, e não por quem chama, para a Menção ser sempre a quem pediu.
+  private async reportOutcome(
+    requestId: string,
+    actionType: BotActionType,
+    bodyFor: (username: string) => string,
+    report: NewReport | null = null,
+  ): Promise<MessageView> {
+    const { message, written } = await this.once(
+      requestId,
+      actionType,
+      async (request) => {
+        if (report && report.storageKey !== reportStorageKey(request.id)) {
+          throw new ReportKeyMismatchError();
+        }
+        const [{ username }] = await this.people.findByIds([
+          request.requesterId,
+        ]);
+        return {
+          message: await this.messages.insertBotMessage(
+            request.botId,
+            request.conversationId,
+            bodyFor(username),
+            { businessData: true, withMentions: true, report },
+          ),
+        };
+      },
+      admitReportOutcome,
+    );
+    if (written) this.announceAnswer(message);
+    return message;
+  }
+
   // A resposta, a pergunta ou a confirmação gravada: publica a Mensagem e emite o fim do
   // "digitando" do bot.
   private announceAnswer(message: MessageView): void {
@@ -217,29 +304,27 @@ export class BotActionsService {
 
   // A ação gravada uma vez por Pedido e tipo (LLD, "Concorrência e idempotência", "Ação de bot"),
   // com o Pedido travado: `write` grava a Mensagem do bot e o que a ação tem de próprio, e a
-  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Uma ação de outro
-  // tipo num Pedido já respondido recebe `request_closed`.
+  // repetição devolve a Mensagem já gravada, sem chamar `write` (`written` nulo). Antes de gravar,
+  // `admit` confere as ações já gravadas no Pedido: por padrão, uma resposta por Pedido.
   @Transactional()
   private async once<T extends { message: MessageView }>(
     requestId: string,
     actionType: BotActionType,
     write: (request: AgentRequest) => Promise<T>,
+    admit: (recorded: BotActionType[]) => void = admitFirstAnswer,
   ): Promise<{ message: MessageView; written: T | null }> {
     const request = await this.requests.lockForAction(requestId);
-    const existingId = await this.requests.findActionMessageId(
-      request.id,
-      actionType,
+    const recorded = await this.requests.findActions(request.id);
+    const existing = recorded.find(
+      (action) => action.actionType === actionType,
     );
-    if (existingId) {
+    if (existing) {
       return {
-        message: await this.messages.viewById(existingId),
+        message: await this.messages.viewById(existing.messageId),
         written: null,
       };
     }
-    // O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
-    if (await this.requests.hasAnswer(request.id)) {
-      throw new RequestClosedError();
-    }
+    admit(recorded.map((action) => action.actionType));
     const written = await write(request);
     await this.requests.recordAction(
       request.id,
@@ -247,5 +332,24 @@ export class BotActionsService {
       written.message.id,
     );
     return { message: written.message, written };
+  }
+}
+
+// A chave do PDF de um Pedido no armazenamento de objetos (spec da F14, "Armazenamento").
+function reportStorageKey(requestId: string): string {
+  return `reports/${requestId}.pdf`;
+}
+
+// O Pedido já respondido por outra ação não aceita mais uma: uma resposta por Pedido.
+function admitFirstAnswer(recorded: BotActionType[]): void {
+  if (recorded.length > 0) throw new RequestClosedError();
+}
+
+// A entrega e a falha do Relatório só valem depois do Aviso de início, e só uma delas (spec da F14,
+// "Ações de bot do Relatório").
+function admitReportOutcome(recorded: BotActionType[]): void {
+  if (!recorded.includes('report_started')) throw new ReportNotStartedError();
+  if (recorded.some((type) => REPORT_TERMINAL_ACTIONS.includes(type))) {
+    throw new RequestClosedError();
   }
 }

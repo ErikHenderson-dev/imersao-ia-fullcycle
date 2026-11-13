@@ -147,7 +147,7 @@ Abaixo está o `globals.css` de destino. Os valores são os primitivos já resol
   --mention-bg: #1d9bd129;          /* alpha/blue-400-a16 */
   --mention-fg: #1d9bd1;            /* blue/400 */
   --mention-self-bg: #f2c74447;     /* alpha/yellow-300-a28 */
-  --mention-self-fg: #f2c744;       /* yellow/300 */
+  --mention-self-fg: #f8e3a3;       /* yellow/200 */
   --highlight-bg: #f2c7441a;        /* alpha/yellow-300-a10 */
   --highlight-border: #f2c74480;    /* alpha/yellow-300-a50 */
   --chrome: #121016;                /* aubergine/975 */

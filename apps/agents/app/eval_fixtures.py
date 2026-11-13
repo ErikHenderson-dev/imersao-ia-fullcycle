@@ -35,6 +35,7 @@ from app.agent_requests.question import question_asked, recorte_options
 from app.agent_requests.reading import read_recorte
 from app.agent_requests.task import TASK_TITLE_MAX_LENGTH, delegate
 from app.business.db import CURRENT_BUSINESS, BusinessStore, business_engine
+from app.business.report_queue import CURRENT_REPORTS
 from app.chat_api import CURRENT_CHAT_API, ChatApiError
 from app.config import DEFAULT_BUSINESS_QUERY_TIMEOUT_MS, DEFAULT_BUSINESS_TIME_ZONE
 
@@ -46,10 +47,13 @@ BOTS_KEY = "eval_bots"
 # O Responsável que o caso espera: outro faz a ação `task` ser recusada, e o caso reprova (F12-T06).
 EXPECTED_ASSIGNEE_KEY = "eval_expected_assignee"
 TOOLS = ("ler_mensagens", "perguntar_recorte", "delegar_tarefa", "perguntar_delegacao")
-# As ferramentas da consulta (F13-T07): rodam de verdade, contra o Banco de negócio com os dados fixos.
-BUSINESS_TOOLS = ("consultar_dados", "perguntar_periodo")
+# As ferramentas da consulta (F13-T07) e do Relatório (F14-T07): rodam de verdade, contra o Banco de
+# negócio com os dados fixos; o Relatório, até o aviso, com a fila da avaliação e sem Worker.
+BUSINESS_TOOLS = ("consultar_dados", "perguntar_periodo", "gerar_relatorio")
 # A última resposta ou pergunta que a API do chat da avaliação recebeu, no estado do caso.
 EVAL_ANSWER_KEY = "eval_resposta"
+# A carga do job do Relatório que a fila da avaliação recebeu, no estado do caso (F14-T07).
+EVAL_REPORT_KEY = "eval_relatorio"
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 FIXTURE_NAME = re.compile(r"^[a-z0-9-]+$")
 # O teto da rota de leitura do bot ("Teto de Mensagens do resumo").
@@ -130,6 +134,7 @@ async def fixture_tool_callback(
         # são as da avaliação, e o Banco de negócio é o real, só leitura (F13-T07).
         CURRENT_CHAT_API.set(EvalChatApi(tool_context.state))  # type: ignore[arg-type]
         CURRENT_BUSINESS.set(eval_business_store())
+        CURRENT_REPORTS.set(EvalReportQueue(tool_context.state))  # type: ignore[arg-type]
         return None
     if not name or tool.name not in TOOLS:
         return None
@@ -186,6 +191,13 @@ class EvalChatApi:
             "business_data": business_data,
         }
 
+    async def report_started(self, request_id: str, body: str) -> None:
+        """O Aviso de início do Relatório, guardado no estado do caso (F14-T07)."""
+        self._state[EVAL_ANSWER_KEY] = {"aviso": body}
+
+    async def report_failed(self, request_id: str) -> None:
+        self._state[EVAL_ANSWER_KEY] = {"falha": True}
+
     async def task(self, request_id: str, assignee_username: str, title: str) -> None:
         if assignee_username in self._bots:
             raise ChatApiError("recusada", 422, "assignee_is_bot")
@@ -196,6 +208,29 @@ class EvalChatApi:
         # A ação apara o título e conta os caracteres (code points), como o `len` do Python.
         if not title.strip() or len(title.strip()) > TASK_TITLE_MAX_LENGTH:
             raise ChatApiError("recusada", 400, "validation_failed")
+
+
+class EvalReportQueue:
+    """A fila e a trava do Relatório na avaliação (F14-T07): cada caso é um Pedido só, então a trava
+    está sempre livre, e o job, em vez de ir ao Worker, fica no estado do caso."""
+
+    def __init__(self, state: Any) -> None:
+        self._state = state
+
+    async def set(self, *_: Any, **__: Any) -> bool:
+        return True
+
+    async def get(self, _key: str) -> None:
+        return None
+
+    async def eval(self, *_: Any) -> int:
+        return 0
+
+    async def enqueue_job(
+        self, _name: str, payload: dict[str, Any], **_: Any
+    ) -> object:
+        self._state[EVAL_REPORT_KEY] = payload
+        return payload
 
 
 class EvalBusinessStore(BusinessStore):

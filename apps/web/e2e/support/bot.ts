@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { API, postMessageByApi } from "./chat-api";
+import { putSamplePdf } from "./s3";
 
 // Apoio para o teste agir como o bot de um Agente (spec da F11, "Decisões de teste"): o Pedido que o
 // envio criou é lido do banco (`latestAgentRequestOf`, em database.ts), e o bot age pelas rotas
@@ -7,12 +8,23 @@ import { API, postMessageByApi } from "./chat-api";
 // teste age antes do Serviço de agentes, e a ação dele depois é a repetição, sem nova Mensagem
 // (bot_actions).
 
-// Uma ação do bot; o corpo da resposta, ou null no 204.
-async function botPost<T>(requestId: string, action: string, payload?: unknown): Promise<T | null> {
+// O Aviso de início dos testes da F14 e o aviso da Resposta bloqueada (spec da F13, "Cliente").
+export const REPORT_NOTICE =
+  "Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.";
+export const BLOCKED_NOTICE = "Resposta com dados de negócio. Você não tem permissão para vê-la.";
+
+// Uma ação do bot; o corpo da resposta, ou null no 204. Com `token`, age com outra credencial, como
+// a do Worker na falha do Relatório (F14-T01).
+async function botPost<T>(
+  requestId: string,
+  action: string,
+  payload?: unknown,
+  token = process.env.CHAT_BOT_TOKEN,
+): Promise<T | null> {
   const response = await fetch(`${API}/bot/requests/${requestId}/${action}`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${process.env.CHAT_BOT_TOKEN}`,
+      authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: payload === undefined ? undefined : JSON.stringify(payload),
@@ -72,4 +84,53 @@ export async function botTask(
     title,
   });
   return result!.task;
+}
+
+// O Aviso de início do Relatório, com a marca "dados de negócio" (F14-T01). Devolve a Mensagem.
+export async function botReportStarted(requestId: string, body: string): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(requestId, "report-started", { body });
+  return result!.message;
+}
+
+// O "não consegui gerar o relatório", gravado pelo Worker com a credencial dele (F14-T01). Devolve a
+// Mensagem, com a Menção a quem pediu.
+export async function workerReportFailed(requestId: string): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(
+    requestId,
+    "report-failed",
+    undefined,
+    process.env.CHAT_WORKER_TOKEN,
+  );
+  return result!.message;
+}
+
+// A entrega do Relatório, gravada pelo Worker com a credencial dele (F14-T02), do PDF já gravado no
+// S3 na chave do Pedido. Devolve a Mensagem.
+export async function workerReportDelivered(
+  requestId: string,
+  report: { fileName: string; sizeBytes: number },
+): Promise<{ id: string; body: string }> {
+  const result = await botPost<{ message: { id: string; body: string } }>(
+    requestId,
+    "report-delivered",
+    { storage_key: `reports/${requestId}.pdf`, file_name: report.fileName, size_bytes: report.sizeBytes },
+    process.env.CHAT_WORKER_TOKEN,
+  );
+  return result!.message;
+}
+
+// O nome do arquivo do Relatório de março de 2026 dos testes da F14.
+export const REPORT_FILE_NAME = "relatorio-2026-03-01-a-2026-03-31.pdf";
+
+// O Relatório entregue sem o modelo (F14-T02): o Pedido sai da página de quem pede, o bot grava o
+// aviso, o PDF de exemplo vai para o S3 na chave do Pedido e o Worker entrega. Devolve a entrega.
+export async function deliverReportByApi(
+  page: Page,
+  conversationId: string,
+  botUsername: string,
+): Promise<{ id: string; body: string }> {
+  const requestId = await requestByApi(page, conversationId, botUsername);
+  await botReportStarted(requestId, REPORT_NOTICE);
+  const sizeBytes = await putSamplePdf(`reports/${requestId}.pdf`);
+  return workerReportDelivered(requestId, { fileName: REPORT_FILE_NAME, sizeBytes });
 }

@@ -46,12 +46,21 @@ services:
       REDIS_URL: redis://redis:6379/0
       # O apoio de bot dos testes da F11 age pelas rotas /v1/bot (support/bot.ts).
       CHAT_BOT_TOKEN: dev-chat-bot-token
+      # O apoio do Relatório da F14 age como o Worker na falha e na entrega (support/bot.ts).
+      CHAT_WORKER_TOKEN: dev-chat-worker-token
+      # O PDF de exemplo da F14 é gravado no S3 (support/s3.ts); o navegador segue a URL assinada por
+      # localhost:8333, que o port-forward liga ao s3.
+      S3_ENDPOINT: http://s3:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
       PLAYWRIGHT_HTML_OPEN: never
       HOME: /tmp
     command: ["node", "e2e/support/port-forward.mjs"]
     depends_on:
       - web
       - chat-api
+      - s3
 
   chat-api:
     build:
@@ -73,6 +82,16 @@ services:
       TEST_REDIS_URL: redis://redis:6379/1
       # Credencial de bot das rotas /v1/bot; segredo fixo, só de desenvolvimento, igual ao do agents.
       CHAT_BOT_TOKEN: dev-chat-bot-token
+      # Credencial do Worker, aceita só na entrega e na falha do Relatório (spec da F14); segredo fixo,
+      # só de desenvolvimento, igual ao do worker.
+      CHAT_WORKER_TOKEN: dev-chat-worker-token
+      # Armazenamento do PDF do Relatório (spec da F14): a URL de download é assinada com o endereço
+      # que o navegador alcança; os testes da API baixam pelo endereço interno.
+      S3_ENDPOINT: http://s3:8333
+      S3_PUBLIC_ENDPOINT: http://localhost:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
     ports:
       - "3001:3000"
     depends_on:
@@ -128,6 +147,12 @@ services:
       # Gemini pelo Google AI Studio (GEMINI_API_KEY), sem projeto do Google Cloud.
       GOOGLE_GENAI_USE_ENTERPRISE: "false"
       AGENTS_CLI_TELEMETRY: "0"
+      # Armazenamento do PDF do Relatório (spec da F14, "Ambiente de desenvolvimento"): os testes de
+      # integração do Worker rodam neste contêiner e gravam no S3 pelo endereço interno.
+      S3_ENDPOINT: http://s3:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
     ports:
       - "3002:8000"
     depends_on:
@@ -135,6 +160,47 @@ services:
         condition: service_healthy
       # Sem o Redis, o Serviço de agentes sobe e recusa os Pedidos com agents_unavailable.
       redis:
+        condition: service_started
+
+  # Worker de agentes (spec da F14, "Worker de agentes"; ADR 0006): a mesma imagem e o mesmo volume
+  # do agents, parado como os outros apps; roda com
+  # `docker compose -f compose.yaml exec worker uv run arq app.worker.WorkerSettings`. O .venv é o
+  # do volume, que o agents sincroniza na subida. Sem a chave do modelo (sem o env_file), sem a
+  # credencial de bot e sem as sessões do ADK: o Worker nunca chama o modelo.
+  worker:
+    build:
+      context: ./apps/agents
+      dockerfile: Dockerfile.dev
+    init: true
+    volumes:
+      - .:/home/app/repo
+    command: ["sh", "-c", "tail -f /dev/null"]
+    environment:
+      # A auditoria, no Banco dos agentes.
+      DATABASE_URL: postgresql+asyncpg://agents:agents@postgres:5432/agents
+      # A entrega e a falha do Relatório, com a credencial do Worker; segredo fixo, só de
+      # desenvolvimento, igual ao do chat-api.
+      CHAT_API_URL: http://chat-api:3000
+      CHAT_WORKER_TOKEN: dev-chat-worker-token
+      # A fila e a trava do Relatório, no Redis do Serviço de agentes.
+      REDIS_URL: redis://redis:6379/0
+      # O Banco de negócio pelo usuário só leitura (ADR 0013).
+      BUSINESS_DATABASE_URL: postgresql+asyncpg://business_readonly:business_readonly@postgres:5432/business
+      # O PDF, pelo endereço interno do S3; só no desenvolvimento, o Worker cria o bucket na subida.
+      S3_ENDPOINT: http://s3:8333
+      S3_BUCKET: reports
+      S3_ACCESS_KEY_ID: fullcycle
+      S3_SECRET_ACCESS_KEY: fullcycle-secret
+      S3_CREATE_BUCKET: "true"
+    depends_on:
+      # O .venv é o do agents: o worker sobe depois dele.
+      agents:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      s3:
         condition: service_started
 
   postgres:

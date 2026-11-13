@@ -17,10 +17,10 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from arq import ArqRedis
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from google.adk.cli.fast_api import get_fast_api_app
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.agent_requests.execution import ExecutionDeps
@@ -66,9 +66,10 @@ def create_app(settings: Settings) -> FastAPI:
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
     # O Agente age na Conversa pela API do chat, como bot (spec da F11, "Execução do Pedido").
     chat_api = ChatApiClient(settings.chat_api_url, settings.chat_bot_token)
-    # O limite de pedidos por Pessoa (spec da F11, "Rota de Pedido"). Os tempos curtos fazem o Redis
-    # fora virar 503 bem antes do tempo limite do BFF.
-    redis = Redis.from_url(
+    # O limite de pedidos por Pessoa (spec da F11, "Rota de Pedido") e a fila e a trava do Relatório
+    # em PDF (F14-T04), no mesmo Redis. Os tempos curtos fazem o Redis fora virar 503 bem antes do
+    # tempo limite do BFF.
+    redis = ArqRedis.from_url(
         settings.redis_url, socket_connect_timeout=1, socket_timeout=1
     )
 
@@ -113,7 +114,10 @@ def create_app(settings: Settings) -> FastAPI:
         build_requests_router(
             catalog,
             ExecutionDeps(
-                session_service=session_service, chat_api=chat_api, business=business
+                session_service=session_service,
+                chat_api=chat_api,
+                business=business,
+                reports=redis,
             ),
             RequestRateLimiter(redis, settings.agent_requests_per_minute),
         )

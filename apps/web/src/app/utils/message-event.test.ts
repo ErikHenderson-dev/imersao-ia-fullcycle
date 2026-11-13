@@ -28,7 +28,25 @@ describe("messageFromEvent", () => {
       quickReplies: null,
       businessData: false,
       blocked: false,
+      report: null,
     });
+  });
+
+  it("converte o PDF da entrega do Relatório (F14)", () => {
+    const message = messageFromEvent({
+      id: "m1",
+      conversation_id: "c1",
+      client_id: "k1",
+      author: { kind: "bot", id: "b1", name: "Assistente", username: "assistente" },
+      body: "@ana, o relatório está pronto.",
+      created_at: "2026-11-09T12:00:00.000Z",
+      edited_at: null,
+      mentions: [],
+      quote: null,
+      report: { file_name: "relatorio-2026-03-01-a-2026-03-31.pdf", size_bytes: 48_213 },
+    });
+
+    expect(message.report).toEqual({ fileName: "relatorio-2026-03-01-a-2026-03-31.pdf", sizeBytes: 48_213 });
   });
 
   it("converte as Respostas prontas da pergunta do Agente", () => {

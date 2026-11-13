@@ -1,7 +1,12 @@
 import { spawnSync } from 'node:child_process';
 
 describe('subida da API', () => {
-  it.each(['DATABASE_URL', 'WEB_ORIGIN', 'CHAT_BOT_TOKEN'])(
+  it.each([
+    'DATABASE_URL',
+    'WEB_ORIGIN',
+    'CHAT_BOT_TOKEN',
+    'CHAT_WORKER_TOKEN',
+  ])(
     'a API não sobe sem %s e diz o nome da variável',
     (variable) => {
       const env: NodeJS.ProcessEnv = { ...process.env };

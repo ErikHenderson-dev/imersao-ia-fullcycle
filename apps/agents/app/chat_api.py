@@ -1,4 +1,5 @@
-"""Cliente da API do chat, com a credencial de bot (spec da F11, "Execução do Pedido").
+"""Cliente da API do chat, com a credencial de bot (spec da F11, "Execução do Pedido"), ou com a do
+Worker, só na entrega e na falha do Relatório (spec da F14, "Worker de agentes").
 
 O Agente age na Conversa só pelas rotas /v1/bot, sob o identificador do Pedido (ADR 0010 e ADR
 0011). As ferramentas e a gravação final usam este cliente.
@@ -12,6 +13,10 @@ from typing import Any
 import httpx
 
 TIMEOUT_S = 10.0
+
+# Os status em que a API do chat diz que o Pedido acabou (inexistente, encerrado ou vencido): quem
+# age nele para, sem nova tentativa.
+REQUEST_GONE = frozenset({404, 409, 410})
 
 
 class ChatApiError(Exception):
@@ -111,6 +116,31 @@ class ChatApiClient:
             f"/v1/bot/requests/{request_id}/reply",
             json={"body": body, "business_data": business_data},
         )
+
+    async def report_started(self, request_id: str, body: str) -> None:
+        """Grava o Aviso de início do Relatório, com a marca, e estende a validade do Pedido (spec da
+        F14, "Ações de bot do Relatório")."""
+        await self._request(
+            "POST", f"/v1/bot/requests/{request_id}/report-started", json={"body": body}
+        )
+
+    async def report_delivered(
+        self, request_id: str, *, storage_key: str, file_name: str, size_bytes: int
+    ) -> None:
+        """Entrega o PDF já gravado no armazenamento; só com a credencial do Worker."""
+        await self._request(
+            "POST",
+            f"/v1/bot/requests/{request_id}/report-delivered",
+            json={
+                "storage_key": storage_key,
+                "file_name": file_name,
+                "size_bytes": size_bytes,
+            },
+        )
+
+    async def report_failed(self, request_id: str) -> None:
+        """Grava o "não consegui gerar o relatório", com a Menção a quem pediu."""
+        await self._request("POST", f"/v1/bot/requests/{request_id}/report-failed")
 
     async def close(self) -> None:
         await self._http.aclose()

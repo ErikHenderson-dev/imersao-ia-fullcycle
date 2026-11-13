@@ -7,6 +7,16 @@ import { conversationRoutes } from './conversation-routes';
 // A credencial de bot dos testes, fixada em test/support/test-env.ts.
 export const TEST_BOT_TOKEN = process.env.CHAT_BOT_TOKEN!;
 
+// A credencial do Worker dos testes, fixada em test/support/test-env.ts.
+export const TEST_WORKER_TOKEN = process.env.CHAT_WORKER_TOKEN!;
+
+// O nome do arquivo do Relatório dos testes (spec da F14, "O PDF").
+export const REPORT_FILE_NAME = 'relatorio-2026-03-01-a-2026-03-31.pdf';
+
+// O texto do Aviso de início dos testes (spec da F14, "Ferramenta `gerar_relatorio`").
+export const REPORT_NOTICE =
+  'Comecei a gerar o relatório de 01/03/2026 a 31/03/2026. Ele chega aqui quando ficar pronto.';
+
 export interface AgentRequestRow {
   id: string;
   conversation_id: string;
@@ -99,6 +109,50 @@ export const botRoutes = {
     const call = request(app.getHttpServer() as App).post(
       `/v1/bot/requests/${requestId}/typing`,
     );
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // O Aviso de início do Relatório (spec da F14), com a credencial de bot, ou com a que o teste
+  // passar.
+  reportStarted(
+    app: INestApplication,
+    requestId: string,
+    body: unknown = REPORT_NOTICE,
+    token: string | null = TEST_BOT_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .post(`/v1/bot/requests/${requestId}/report-started`)
+      .send({ body });
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // A falha do Relatório (spec da F14), com a credencial do Worker, ou com a que o teste passar.
+  reportFailed(
+    app: INestApplication,
+    requestId: string,
+    token: string | null = TEST_WORKER_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App).post(
+      `/v1/bot/requests/${requestId}/report-failed`,
+    );
+    return token === null ? call : call.set('Authorization', `Bearer ${token}`);
+  },
+
+  // A entrega do Relatório (spec da F14), com a credencial do Worker, ou com a que o teste passar.
+  // Sem corpo, entrega o PDF de exemplo na chave do Pedido.
+  reportDelivered(
+    app: INestApplication,
+    requestId: string,
+    payload: unknown = {
+      storage_key: `reports/${requestId}.pdf`,
+      file_name: REPORT_FILE_NAME,
+      size_bytes: 48_213,
+    },
+    token: string | null = TEST_WORKER_TOKEN,
+  ): request.Test {
+    const call = request(app.getHttpServer() as App)
+      .post(`/v1/bot/requests/${requestId}/report-delivered`)
+      .send(payload as object);
     return token === null ? call : call.set('Authorization', `Bearer ${token}`);
   },
 

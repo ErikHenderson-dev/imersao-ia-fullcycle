@@ -17,6 +17,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from arq import ArqRedis
 from google.adk.agents.invocation_context import LlmCallsLimitExceededError
 from google.adk.agents.run_config import RunConfig
 from google.adk.apps import App
@@ -29,7 +30,8 @@ from app.agent_requests import context
 from app.agent_requests.models import AgentRequestBody
 from app.agent_requests.recorte import to_api_instant, uuid7_instant
 from app.business.db import CURRENT_BUSINESS, BusinessStore
-from app.chat_api import CURRENT_CHAT_API, ChatApiClient, ChatApiError
+from app.business.report_queue import CURRENT_REPORTS
+from app.chat_api import CURRENT_CHAT_API, REQUEST_GONE, ChatApiClient, ChatApiError
 from app.config import DEFAULT_BUSINESS_TIME_ZONE
 
 logger = logging.getLogger(__name__)
@@ -41,12 +43,12 @@ NAO_CONSEGUI = "Não consegui atender o seu pedido agora. Tente de novo em insta
 # tokens de saída fica em app/model.py.
 MAX_LLM_CALLS = 4
 # A API do chat recusa o Pedido em si (inexistente, encerrado ou vencido): não há o que gravar.
-REQUEST_GONE = frozenset({404, 409, 410})
 
 # reply: gravou o texto do modelo; question: a ferramenta gravou a pergunta (F11-T07); task: a
 # ferramenta delegou a Tarefa e gravou a confirmação (F12-T01); business: a ferramenta de consulta
-# gravou a resposta (F13-T04); failed: gravou o "não consegui"; discarded: nada foi gravado.
-Outcome = Literal["reply", "question", "task", "business", "failed", "discarded"]
+# gravou a resposta (F13-T04); report: a ferramenta do Relatório gravou o aviso ou a recusa
+# (F14-T04); failed: gravou o "não consegui"; discarded: nada foi gravado.
+Outcome = Literal["reply", "failed", "discarded"] | context.AnsweredBy
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,8 @@ class ExecutionDeps:
     chat_api: ChatApiClient
     # O Banco de negócio e a auditoria da ferramenta de consulta (F13-T04).
     business: BusinessStore | None = None
+    # A fila e a trava do Relatório em PDF (F14-T04).
+    reports: ArqRedis | None = None
     run_config: RunConfig = field(
         default_factory=lambda: RunConfig(max_llm_calls=MAX_LLM_CALLS)
     )
@@ -228,6 +232,7 @@ async def execute(
 ) -> Outcome:
     CURRENT_CHAT_API.set(deps.chat_api)
     CURRENT_BUSINESS.set(deps.business)
+    CURRENT_REPORTS.set(deps.reports)
     request_id = str(request.request_id)
     log = {"request_id": request_id}
     result = RunResult()
